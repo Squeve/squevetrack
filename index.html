@@ -2025,15 +2025,11 @@ function renderDashboard() {
   if (sugEl) {
     var suggestions = [
       { icon:'📅', title:'PTP History', desc:'View & compare past days PTPs — tap to browse archived daily reports' },
-      { icon:'⚡', title:'Auto-suggest PTPs', desc:'One tap pulls all Day 13+ accounts and marks them as today PTPs' },
-      { icon:'🔔', title:'Morning Reminder', desc:'PWA push notification at 11:30am reminding you to send the PTP report' },
       { icon:'📊', title:'PTP Conversion Rate', desc:'Track how many of your PTPs actually pay — weekly and monthly stats' },
-      { icon:'📲', title:'Supervisor Quick-Send', desc:'Save your supervisor name so the WhatsApp button goes straight to them' },
-      { icon:'🔄', title:'Recurring Borrowers', desc:'Flag borrowers who appear every month so you can track repeat delinquency' },
       { icon:'📈', title:'Collection Forecast', desc:'AI-style projection of end-of-month total based on current pace + PTPs' },
       { icon:'🗂️', title:'Loan Portfolio Segments', desc:'Group borrowers by risk tier (A/B/C) for prioritised collection strategy' },
     ];
-    var dismissed = JSON.parse(localStorage.getItem('dismissed_suggestions') || '[]');
+    var dismissed = JSON.parse(localStorage.getItem('dismissed_suggestions_v2') || '[]');
     var visible = suggestions.filter(function(_,i){ return !dismissed.includes(i); });
     if (!visible.length) { sugEl.style.display = 'none'; }
     else {
@@ -2062,7 +2058,7 @@ function renderDashboard() {
         btn.addEventListener('click', function(e){
           e.stopPropagation();
           dismissed.push(parseInt(btn.dataset.suggIdx));
-          localStorage.setItem('dismissed_suggestions', JSON.stringify(dismissed));
+          localStorage.setItem('dismissed_suggestions_v2', JSON.stringify(dismissed));
           renderDashboard();
         });
       });
