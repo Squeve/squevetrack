@@ -761,61 +761,6 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
   .dispatch-actions { flex-direction: row; min-width: unset; width: 100%; }
   .kpi-value { font-size: 20px; }
 }
-
-/* ── NEW FEATURES CSS ── */
-.hit-list-panel{background:var(--surface2);border:1px solid rgba(232,160,32,0.3);border-radius:var(--radius);padding:14px 18px;margin-bottom:18px;}
-.hit-list-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-.hit-list-title{font-family:var(--font-head);font-size:13px;font-weight:700;color:var(--gold);}
-.hit-list-items{display:flex;flex-direction:column;gap:6px;}
-.hit-list-item{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;}
-.hit-list-name{flex:1;font-size:12px;font-weight:600;}
-.hit-list-meta{font-size:11px;color:var(--text3);font-family:var(--font-mono);}
-.hit-list-actions{display:flex;gap:5px;}
-.sq-hit-btn{background:none;border:1px solid var(--border2);border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;color:var(--text2);}
-.sq-hit-btn:hover{border-color:var(--gold);color:var(--gold);}
-.sq-pin-btn{background:none;border:none;cursor:pointer;font-size:12px;padding:2px 4px;opacity:.35;line-height:1;}
-.sq-pin-btn.on,.sq-pin-btn:hover{opacity:1;}
-.sq-streak{display:inline-flex;align-items:center;gap:5px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.3);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;color:var(--orange);}
-.sq-pb{display:inline-flex;align-items:center;gap:5px;background:rgba(232,160,32,0.1);border:1px solid rgba(232,160,32,0.3);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;color:var(--gold);}
-@keyframes sqPbFlash{0%,100%{box-shadow:0 0 0 0 rgba(232,160,32,0);}50%{box-shadow:0 0 0 8px rgba(232,160,32,0.25);}}
-.sq-pb.flash{animation:sqPbFlash 0.8s ease 2;}
-.sq-fc-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:18px;overflow:hidden;}
-.sq-fc-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;cursor:pointer;user-select:none;}
-.sq-fc-hdr:hover{background:rgba(255,255,255,.02);}
-.sq-fc-chev{transition:transform .2s;}
-.sq-fc-chev.open{transform:rotate(180deg);}
-.sq-eod-btn{background:linear-gradient(135deg,rgba(232,160,32,.15),rgba(232,160,32,.05));border:1px solid rgba(232,160,32,.4);color:var(--gold);border-radius:var(--radius-sm);padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
-.sq-eod-btn:hover{background:rgba(232,160,32,.2);}
-.sq-pending-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(232,160,32,0.12);border:1px solid rgba(232,160,32,0.3);border-radius:12px;padding:2px 8px;font-size:10px;color:var(--gold);font-weight:700;}
-.sq-char-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;flex-shrink:0;}
-.sq-char-svg{position:absolute;top:0;left:0;transform:rotate(-90deg);}
-.sq-char-lbl{font-family:var(--font-mono);font-size:9px;font-weight:700;z-index:1;}
-.sq-rank-zone{border:2px dashed var(--border2);border-radius:var(--radius);padding:28px;text-align:center;cursor:pointer;transition:border-color .15s;background:var(--surface2);}
-.sq-rank-zone:hover,.sq-rank-zone.drag-over{border-color:var(--gold);}
-.sq-rank-entry{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
-.sq-rank-entry:last-child{border-bottom:none;}
-.sq-rank-pos{font-family:var(--font-mono);font-size:13px;font-weight:700;width:22px;text-align:center;}
-.sq-rank-me{color:var(--gold);}
-.sq-rank-name{flex:1;font-size:12px;}
-.sq-rank-pct{font-family:var(--font-mono);font-size:12px;font-weight:600;}
-.sq-call-entry{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);}
-.sq-call-entry:last-child{border-bottom:none;}
-.sq-cb{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;}
-.sq-cb-ans{background:rgba(34,197,94,0.15);color:var(--green);}
-.sq-cb-no{background:rgba(239,68,68,0.1);color:var(--red);}
-.sq-cb-prom{background:rgba(167,139,250,0.15);color:var(--purple);}
-.sq-cb-ref{background:rgba(249,115,22,0.1);color:var(--orange);}
-.sq-note-tmpl{background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:3px 10px;font-size:11px;cursor:pointer;color:var(--text2);}
-.sq-note-tmpl:hover{border-color:var(--gold);color:var(--gold);}
-.sq-note-entry{display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);}
-.sq-note-entry:last-child{border-bottom:none;}
-.sq-note-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);margin-top:4px;flex-shrink:0;}
-.sq-api-banner{background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.2);border-radius:6px;padding:8px 12px;font-size:11px;color:var(--blue);display:flex;align-items:center;gap:8px;margin-bottom:14px;cursor:pointer;}
-.sq-api-banner:hover{background:rgba(96,165,250,0.14);}
-.sq-swipe-wrap{position:relative;overflow:hidden;touch-action:pan-y;}
-.sq-swipe-acts{position:absolute;right:0;top:0;bottom:0;display:flex;align-items:stretch;transform:translateX(100%);transition:transform .2s ease;}
-.sq-swipe-acts .sq-sw-btn{height:100%;padding:0 13px;font-size:11px;border:none;cursor:pointer;font-weight:700;white-space:nowrap;}
-.sq-swipe-wrap.swiped .sq-swipe-acts{transform:translateX(0);}
 </style>
 </head>
 <body>
@@ -868,14 +813,17 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <span class="nav-icon">🤝</span> PTP Report
     <span class="nav-badge" id="badge-ptp" style="display:none;background:var(--purple)"></span>
   </div>
-  <div class="nav-item" data-page="ptp-hub">
-    <span class="nav-icon">📅</span> PTP Hub
+  <div class="nav-item" data-page="ptp-history">
+    <span class="nav-icon">📅</span> PTP History
+  </div>
+  <div class="nav-item" data-page="ptp-stats">
+    <span class="nav-icon">📊</span> PTP Stats
+  </div>
+  <div class="nav-item" data-page="forecast">
+    <span class="nav-icon">📈</span> Forecast
   </div>
   <div class="nav-item" data-page="segments">
     <span class="nav-icon">🗂️</span> Segments
-  </div>
-  <div class="nav-item" data-page="ranking">
-    <span class="nav-icon">🏆</span> Ranking
   </div>
   <div class="sidebar-footer">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -885,7 +833,6 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
         <span id="theme-label">Light Mode</span>
       </button>
     </div>
-    <div id="sq-pending-row" style="display:none;margin-bottom:4px"><span class="sq-pending-badge"><span id="sq-pending-cnt">0</span> pending sync</span></div>
     <div id="sync-status" style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:11px">
       <span id="sync-dot" style="width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0;display:inline-block"></span>
       <span id="sync-label">Local only</span>
@@ -912,7 +859,6 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
         <div class="page-sub" id="dash-date-sub">March 2026 — Loan Tracking</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="sq-eod-btn" onclick="sqOpenEodReport()">📤 EOD Report</button>
         <button class="btn btn-ghost btn-sm" onclick="openRolloverModal()">📅 New Month</button>
         <button class="btn btn-gold" onclick="openAddModal()">＋ New Borrower</button>
       </div>
@@ -921,28 +867,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <div class="kpi-grid" id="kpi-grid"></div>
 
     <div id="dash-target-section"></div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center" id="sq-perf-row"></div>
     <div id="dash-alerts"></div>
-    <div class="hit-list-panel" id="sq-hit-panel" style="display:none">
-      <div class="hit-list-header">
-        <span class="hit-list-title">🎯 Today's Hit List</span>
-        <div style="display:flex;gap:6px;align-items:center">
-          <span style="font-size:11px;color:var(--text3)" id="sq-hit-count">0 accounts</span>
-          <button class="btn btn-ghost btn-xs" onclick="sqClearHitList()">✕ Clear</button>
-        </div>
-      </div>
-      <div class="hit-list-items" id="sq-hit-items"></div>
-    </div>
-    <div class="sq-fc-card">
-      <div class="sq-fc-hdr" onclick="sqToggleFc()">
-        <span style="font-family:var(--font-head);font-size:13px;font-weight:700">📈 Collection Forecast</span>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:11px;color:var(--text3)">End-of-month projection</span>
-          <span class="sq-fc-chev" id="sq-fc-chev">▼</span>
-        </div>
-      </div>
-      <div id="sq-fc-body" style="display:none;padding:14px 18px;border-top:1px solid var(--border)"></div>
-    </div>
 
 
     <div class="two-col">
@@ -1011,7 +936,6 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
         <table id="loans-table">
           <thead>
             <tr>
-              <th style="width:20px"></th>
               <th style="width:28px"><input type="checkbox" id="select-all-cb" style="accent-color:var(--gold);cursor:pointer" onchange="toggleSelectAll(this.checked)"></th>
               <th>#</th>
               <th onclick="sortLoans('name')">Name ↕</th>
@@ -1033,8 +957,6 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
       <span id="bulk-count" style="font-size:13px;font-weight:700;color:var(--gold)">0 selected</span>
       <button class="btn btn-ghost btn-sm" id="ba-paid">✅ Mark Paid</button>
       <button class="btn btn-ghost btn-sm" id="ba-promise">🤝 Promise</button>
-      <button class="btn btn-ghost btn-sm" id="ba-hitlist">🎯 Hit List</button>
-      <button class="btn btn-ghost btn-sm" id="ba-contacted">📞 Contacted</button>
       <button class="btn btn-ghost btn-sm" id="ba-base">Set LoanBase</button>
       <button class="btn btn-ghost btn-sm" id="ba-pro">Set Pro</button>
       <button class="btn btn-red btn-sm" id="ba-delete">🗑 Delete</button>
@@ -1106,10 +1028,6 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
       <div class="card">
         <div class="card-header"><span class="card-title">⚡ Collection Efficiency</span></div>
         <div class="card-body" id="analytics-efficiency"></div>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">📅 Best Day of Week</span></div>
-        <div class="card-body"><div class="chart-wrap"><canvas id="chart-dow"></canvas></div></div>
       </div>
     </div>
   </section>
@@ -1282,16 +1200,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
           </div>
           <textarea class="form-input" id="sms-custom-msg" rows="3" style="display:none;width:100%;font-size:12px;resize:vertical" placeholder="e.g. {name}, please pay {amount} to clear your {loantype} loan." oninput="updateSmsPreview()"></textarea>
           <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px;margin-top:8px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-              <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Preview</div>
-              <div class="sq-char-wrap">
-                <svg class="sq-char-svg" width="36" height="36">
-                  <circle cx="18" cy="18" r="13" fill="none" stroke="var(--border2)" stroke-width="3"/>
-                  <circle id="sq-ring-fill" cx="18" cy="18" r="13" fill="none" stroke="var(--green)" stroke-width="3" stroke-dasharray="0 81.68" stroke-linecap="round"/>
-                </svg>
-                <div class="sq-char-lbl" id="sq-char-lbl" style="color:var(--green)">0</div>
-              </div>
-            </div>
+            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Preview</div>
             <div id="sms-preview-text" style="font-size:12px;color:var(--text2);line-height:1.6">Select a contact to preview</div>
           </div>
         </div>
@@ -1352,58 +1261,22 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     </div>
   </section>
 
-  <!-- PTP HUB (merged) -->
-  <section class="page" id="page-ptp-hub">
-    <div class="page-header"><div><div class="page-title">📅 PTP Hub</div><div class="page-sub">History · Stats · Conversion</div></div></div>
-    <div style="display:flex;gap:8px;margin-bottom:16px">
-      <button class="btn btn-gold btn-sm" id="sq-ptp-h-btn" onclick="sqPtpHub('history')">📅 History</button>
-      <button class="btn btn-ghost btn-sm" id="sq-ptp-s-btn" onclick="sqPtpHub('stats')">📊 Stats</button>
-    </div>
-    <div id="sq-ptp-h-panel"><div id="ptp-history-body"></div></div>
-    <div id="sq-ptp-s-panel" style="display:none"><div id="ptp-stats-body"></div></div>
+  <!-- PTP HISTORY -->
+  <section class="page" id="page-ptp-history">
+    <div class="page-header"><div><div class="page-title">📅 PTP History</div><div class="page-sub">Past daily PTP reports</div></div></div>
+    <div id="ptp-history-body"></div>
   </section>
-  <!-- FORECAST legacy — redirect to dashboard -->
-  <section class="page" id="page-forecast" style="display:none"><div id="forecast-body"></div></section>
-  <!-- RANKING TRACKER -->
-  <section class="page" id="page-ranking">
-    <div class="page-header">
-      <div><div class="page-title">🏆 Ranking Tracker</div><div class="page-sub">Scan screenshot · track position over time</div></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-ghost btn-sm" onclick="sqApiKeyModal()">🔑 API Key</button>
-        <button class="btn btn-gold btn-sm" onclick="document.getElementById('sq-rank-file').click()">📸 Scan</button>
-        <input type="file" id="sq-rank-file" accept="image/*" style="display:none" onchange="sqHandleScan(this)">
-      </div>
-    </div>
-    <div id="sq-rank-banner" class="sq-api-banner" onclick="sqApiKeyModal()" style="display:none">🔑 No API key set — tap to add your Anthropic key and enable screenshot scanning</div>
-    <div class="kpi-grid" id="sq-rank-kpis" style="margin-bottom:16px"></div>
-    <div class="two-col">
-      <div class="card" style="grid-column:1/-1">
-        <div class="card-header"><span class="card-title">📈 Position Over Time</span><span id="sq-rank-chart-meta" style="font-size:11px;color:var(--text3)"></span></div>
-        <div class="card-body"><div class="chart-wrap"><canvas id="chart-ranking"></canvas></div></div>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">📋 Latest Ranking</span><span id="sq-rank-date" style="font-size:11px;color:var(--text3)"></span></div>
-        <div class="card-body" id="sq-rank-latest" style="max-height:320px;overflow-y:auto"></div>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">📅 Scan History</span><button class="btn btn-ghost btn-xs" onclick="sqClearRankHistory()" style="color:var(--red)">Clear</button></div>
-        <div class="card-body" id="sq-rank-hist" style="max-height:320px;overflow-y:auto"></div>
-      </div>
-    </div>
-    <div class="card" style="margin-top:4px">
-      <div class="card-body">
-        <div class="sq-rank-zone" id="sq-rank-zone"
-          ondragover="event.preventDefault();this.classList.add('drag-over')"
-          ondragleave="this.classList.remove('drag-over')"
-          ondrop="sqHandleDrop(event)"
-          onclick="document.getElementById('sq-rank-file').click()">
-          <div style="font-size:36px;margin-bottom:8px">📸</div>
-          <div style="font-weight:700;color:var(--text);margin-bottom:4px">Drop screenshot here or tap to upload</div>
-          <div style="font-size:12px;color:var(--text3)">Works with phone photos, laptop screenshots, any angle</div>
-        </div>
-        <div id="sq-rank-status" style="margin-top:10px;font-size:12px;text-align:center;color:var(--text3);min-height:18px"></div>
-      </div>
-    </div>
+
+  <!-- PTP STATS -->
+  <section class="page" id="page-ptp-stats">
+    <div class="page-header"><div><div class="page-title">📊 PTP Stats</div><div class="page-sub">Conversion rate &amp; performance</div></div></div>
+    <div id="ptp-stats-body"></div>
+  </section>
+
+  <!-- FORECAST -->
+  <section class="page" id="page-forecast">
+    <div class="page-header"><div><div class="page-title">📈 Collection Forecast</div><div class="page-sub">End-of-month projection</div></div></div>
+    <div id="forecast-body"></div>
   </section>
 
   <!-- SEGMENTS -->
@@ -1473,14 +1346,17 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <span class="mdrawer-icon">🤝</span> PTP Report
     <span class="mdrawer-badge" id="mbadge-ptp" style="display:none;background:var(--purple)"></span>
   </div>
-  <div class="mdrawer-item" data-page="ptp-hub" onclick="navigateDrawer('ptp-hub')">
-    <span class="mdrawer-icon">📅</span> PTP Hub
+  <div class="mdrawer-item" data-page="ptp-history" onclick="navigateDrawer('ptp-history')">
+    <span class="mdrawer-icon">📅</span> PTP History
+  </div>
+  <div class="mdrawer-item" data-page="ptp-stats" onclick="navigateDrawer('ptp-stats')">
+    <span class="mdrawer-icon">📊</span> PTP Stats
+  </div>
+  <div class="mdrawer-item" data-page="forecast" onclick="navigateDrawer('forecast')">
+    <span class="mdrawer-icon">📈</span> Forecast
   </div>
   <div class="mdrawer-item" data-page="segments" onclick="navigateDrawer('segments')">
     <span class="mdrawer-icon">🗂️</span> Segments
-  </div>
-  <div class="mdrawer-item" data-page="ranking" onclick="navigateDrawer('ranking')">
-    <span class="mdrawer-icon">🏆</span> Ranking
   </div>
   <div class="mdrawer-footer">
     <div id="mdrawer-sync" style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
@@ -1762,13 +1638,10 @@ function migrateState(s) {
   if (!s.agedOutLog) s.agedOutLog = [];
   if (!s.monthlyTarget) s.monthlyTarget = 0;
   if (!s.archive) s.archive = [];
-  if (!s.hitList) s.hitList = [];
   (s.borrowers||[]).forEach(b => {
     if (b.promisedToPay === undefined) b.promisedToPay = false;
     if (b.isPaid === undefined) b.isPaid = (b.amountPaid >= b.loanDue && b.amountPaid > 0);
     if (!b.payLog) b.payLog = [];
-    if (!b.callLog) b.callLog = [];
-    if (!b.noteLog) b.noteLog = [];
   });
   return s;
 }
@@ -2228,9 +2101,6 @@ function renderDashboard() {
 
 
   renderDailyChart();
-  try{sqRenderPerfRow();}catch(e){console.warn('sqRenderPerfRow:',e);}
-  try{sqRenderHitList();}catch(e){console.warn('sqRenderHitList:',e);}
-  try{var _sqAl=document.getElementById('dash-alerts');if(_sqAl){var _sqTm=sqTreadmillAlert();if(_sqTm)_sqAl.innerHTML=_sqTm+_sqAl.innerHTML;}}catch(e){console.warn('treadmill:',e);}
 }
 
 function chartColor(alpha) {
@@ -2352,14 +2222,10 @@ function renderLoansTable() {
       ? `<span class="badge badge-pro">Pro</span>`
       : `<span class="badge badge-loanbase">Base</span>`;
     const odCls = odClass(r.odAge);
-    const _sqPin = (state.hitList||[]).includes(r.id);
-    const _sqBadge = (function(){try{return sqBorrowerBadge(r);}catch(e){return '';}}());
-    const _sqPh = r.phone.replace(/\s/g,'').replace('+','');
     return `<tr class="${r.promisedToPay ? 'promised' : ''}">
-      <td><button class="sq-pin-btn ${_sqPin?'on':''}" onclick="sqToggleHit('${r.id}')" title="${_sqPin?'Remove from Hit List':'Add to Hit List'}">${_sqPin?'🎯':'📌'}</button></td>
       <td><input type="checkbox" class="row-cb" data-id="${r.id}" style="accent-color:var(--gold);cursor:pointer" onchange="updateBulkBar()"></td>
       <td class="mono" style="color:var(--text3)">${i+1}</td>
-      <td style="cursor:pointer" onclick="openBorrowerDetail('${r.id}')"><div class="name-cell">${r.name}${_sqBadge}</div><div style="font-size:10px;color:var(--text3);margin-top:1px">${r.phone}</div></td>
+      <td style="cursor:pointer" onclick="openBorrowerDetail('${r.id}')"><div class="name-cell">${r.name}</div><div style="font-size:10px;color:var(--text3);margin-top:1px">${r.phone}</div></td>
       <td class="phone-cell" style="display:none">${r.phone}</td>
       <td><span class="${odCls} mono">Day ${r.odAge}</span></td>
       <td>${typeBadge}</td>
@@ -2367,23 +2233,16 @@ function renderLoansTable() {
       <td class="mono txt-right" style="color:${r.amountPaid>0?'var(--green)':'var(--text3)'}">${r.amountPaid>0?fmtC(r.amountPaid):'—'}</td>
       <td class="mono txt-right" style="color:${r.dueToday>0?'var(--red)':'var(--green)'}">${r.dueToday>0?fmtC(r.dueToday):'✅'}${r.targetPayment>0&&r.amountPaid>0&&r.amountPaid<r.targetPayment?' ⚠':''}</td>
       <td>${statusBadge(r.status)}</td>
-      <td><div class="sq-swipe-wrap">
+      <td>
         <div class="action-group">
           <button class="btn btn-green btn-xs" onclick="openPayModal('${r.id}')">💰 Pay</button>
           <button class="btn btn-ghost btn-xs" style="${r.promisedToPay?'border-color:var(--purple);color:var(--purple);font-weight:700':''}" onclick="togglePromise('${r.id}')" title="${r.promisedToPay?('Promised: '+(r.promiseDate||'No date')+'  — tap to clear'):'Mark promised to pay'}">🤝${r.promisedToPay&&r.promiseDate?'<span style="font-size:9px;display:block;color:var(--purple);line-height:1">'+r.promiseDate.split(' ')[0]+'</span>':''}</button>
-          <button class="btn btn-ghost btn-xs" id="note-${r.id}" title="Notes">📝${r.notes?'<span style="width:5px;height:5px;background:var(--gold);border-radius:50%;display:inline-block;margin-left:2px"></span>':''}</button>
+          <button class="btn btn-ghost btn-xs" id="note-${r.id}" title="Quick note">📝${r.notes?'<span style="width:5px;height:5px;background:var(--gold);border-radius:50%;display:inline-block;margin-left:2px"></span>':''}</button>
           <button class="btn btn-ghost btn-xs" id="hist-${r.id}">📋</button>
-          <button class="btn btn-ghost btn-xs" onclick="sqOpenCallLog('${r.id}')">📞</button>
           <button class="btn btn-ghost btn-xs" onclick="openEditModal('${r.id}')">✏️</button>
           <button class="btn btn-red btn-xs" onclick="deleteBorrower('${r.id}')">🗑</button>
         </div>
-        <div class="sq-swipe-acts">
-          <a href="tel:${r.phone}" class="sq-sw-btn" style="background:#1a2a3a;color:var(--blue)">📞 Call</a>
-          <button class="sq-sw-btn" style="background:rgba(232,160,32,.2);color:var(--gold)" onclick="openPayModal('${r.id}')">💰 Pay</button>
-          <a href="https://wa.me/${_sqPh}" target="_blank" class="sq-sw-btn" style="background:#075E54;color:#fff">💬 WA</a>
-          <button class="sq-sw-btn" style="background:#2a1a3a;color:var(--purple)" onclick="openPromiseModal('${r.id}')">🤝 PTP</button>
-        </div>
-      </div></td>
+      </td>
     </tr>`;
   }).join('');
 }
@@ -2795,7 +2654,6 @@ function renderAnalytics() {
     + '<div class="summary-row"><span class="summary-label">Zero collection days</span><span class="summary-value text-red">'+(logsTotal-logsWithCollect)+'</span></div>'
     + '<div class="summary-row"><span class="summary-label">Avg on active day</span><span class="summary-value text-gold">'+fmtC(Math.round(avgOnGoodDay))+'</span></div>'
     + '<div class="summary-row"><span class="summary-label">Total days logged</span><span class="summary-value">'+logsTotal+'</span></div>';
-  try{sqRenderDowChart();}catch(e){}
 }
 
 // ============================================================
@@ -4350,12 +4208,10 @@ function renderCurrentPage() {
   else if (currentPage === 'smsblast') renderSmsBlast();
   else if (currentPage === 'agedout') renderAgedOut();
   else if (currentPage === 'ptp') renderPtp();
-  else if (currentPage === 'ptp-history') { navigate('ptp-hub'); return; }
-  else if (currentPage === 'ptp-stats') { navigate('ptp-hub'); return; }
-  else if (currentPage === 'ptp-hub') { try{sqRenderPtpHub();}catch(e){console.warn('sqPtpHub:',e);} }
-  else if (currentPage === 'forecast') { navigate('dashboard'); return; }
+  else if (currentPage === 'ptp-history') renderPtpHistory();
+  else if (currentPage === 'ptp-stats') renderPtpStats();
+  else if (currentPage === 'forecast') renderForecast();
   else if (currentPage === 'segments') renderSegments();
-  else if (currentPage === 'ranking') { try{sqRenderRanking();}catch(e){console.warn('sqRenderRanking:',e);} }
 }
 
 function updateBadges() {
@@ -4535,14 +4391,6 @@ function bulkAction(action) {
     const d = new Date().toISOString().split('T')[0];
     ids.forEach(id => { const b = state.borrowers.find(x => x.id === id); if (b) { b.promisedToPay = true; b.promiseDate = d; } });
     toast(ids.length + ' accounts marked as Promised 🤝', 'success');
-  } else if (action === 'hitlist') {
-    if(!state.hitList) state.hitList=[];
-    ids.forEach(function(id){if(!state.hitList.includes(id))state.hitList.push(id);});
-    toast(ids.length+' added to hit list 🎯','success');
-  } else if (action === 'contacted') {
-    var _sqNow=new Date();
-    ids.forEach(function(id){var b=state.borrowers.find(function(x){return x.id===id;});if(b){if(!b.callLog)b.callLog=[];b.callLog.push({date:_sqNow.toISOString().split('T')[0],time:_sqNow.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),outcome:'Answered',note:'Bulk contacted'});}});
-    toast(ids.length+' marked contacted 📞','success');
   } else if (action === 'base') {
     ids.forEach(id => { const b = state.borrowers.find(x => x.id === id); if (b) b.loanType = 'LoanBase'; });
     toast(ids.length + ' accounts set to LoanBase', 'info');
@@ -4556,8 +4404,7 @@ function bulkAction(action) {
 // ============================================================
 // QUICK NOTE
 // ============================================================
-function openQuickNote(id) { sqOpenNoteModal(id); }
-function _sqOldQuickNote(id) {
+function openQuickNote(id) {
   const b = state.borrowers.find(x => x.id === id);
   if (!b) return;
   document.getElementById('modal-title').textContent = '📝 Quick Note — ' + b.name.split(' ')[0];
@@ -5540,14 +5387,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('modal-overlay').addEventListener('click', e => {
     if (e.target === document.getElementById('modal-overlay')) closeModal();
   });
-  document.addEventListener('keydown',function(e){
-    if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT') return;
-    if(e.ctrlKey||e.metaKey||e.altKey) return;
-    var _m={d:'dashboard',l:'loans',a:'analytics',w:'dispatch',s:'smsblast',p:'ptp',r:'ranking',g:'log'};
-    if(_m[e.key]){navigate(_m[e.key]);return;}
-    if(e.key==='f'||e.key==='/'){e.preventDefault();var _si=document.getElementById('global-search-input')||document.getElementById('loan-search');if(_si){_si.focus();_si.select();}}
-    if(e.key==='n'||e.key==='N') openAddModal();
-  });
 
   // Run aged-out purge every minute (catches day change without reload)
   setInterval(() => {
@@ -5569,9 +5408,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     setSyncStatus('saved');
   }
 
-  try{sqInitHitList();}catch(e){console.warn('sqInitHitList:',e);}
-  try{sqRankHistory = JSON.parse(localStorage.getItem('sq_rank_history')||'[]');
-  sqMyName = localStorage.getItem('sq_rank_agent')||'Shadrack Agyei';
   updateBadges();
   checkOdAdvance();
   renderDashboard();
@@ -5651,420 +5487,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   };
 });
-
-// ================================================================
-// SQUEVETRACK v2 — NEW FEATURES (global scope)
-// ================================================================
-
-// ── PENDING SYNC ─────────────────────────────────────────────
-var _sqPend = 0;
-function sqPendIncr(){ _sqPend++; var r=document.getElementById('sq-pending-row'),c=document.getElementById('sq-pending-cnt'); if(r)r.style.display=''; if(c)c.textContent=_sqPend; }
-function sqPendClear(){ _sqPend=0; var r=document.getElementById('sq-pending-row'); if(r)r.style.display='none'; }
-
-// ── BORROWER BADGES ──────────────────────────────────────────
-function sqBorrowerBadge(b){
-  if(!b||!b.payLog||!b.payLog.length) return '';
-  var paid=b.payLog.some(function(e){return (e.delta||0)>0;});
-  var broken=b.promisedToPay&&getStatus(b)==='Unpaid'&&b.promiseDate&&b.promiseDate<new Date().toISOString().split('T')[0];
-  var ratio=b.loanDue>0?b.amountPaid/b.loanDue:0;
-  if(broken) return '<span style="font-size:11px" title="Broke a promise"> ⚠️</span>';
-  if(ratio>=0.5&&paid) return '<span style="font-size:11px" title="Reliable payer"> ⭐</span>';
-  return '';
-}
-
-// ── TREADMILL ALERT ──────────────────────────────────────────
-function sqTreadmillAlert(){
-  var d6=new Date(); d6.setDate(d6.getDate()-5);
-  var d6s=d6.toISOString().split('T')[0];
-  var newD6=getActiveBorrowers().filter(function(b){return b.startDate===d6s;});
-  if(!newD6.length) return '';
-  var tot=newD6.reduce(function(s,b){return s+getDueToday(b);},0);
-  return '<div style="background:rgba(96,165,250,0.07);border:1px solid rgba(96,165,250,0.22);border-left:4px solid var(--blue);border-radius:8px;padding:12px 18px;margin-bottom:14px;animation:fadeUp 0.3s ease both">'
-    +'<div style="font-weight:700;color:var(--blue);font-size:13px">⚙️ Treadmill: '+newD6.length+' new account'+(newD6.length>1?'s:':':')+' joined M2 today</div>'
-    +'<div style="font-size:11px;color:var(--text3);margin-top:3px">Your rate dropped before collecting anything · '+fmtC(Math.round(tot))+' new outstanding</div>'
-    +'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">'+newD6.slice(0,5).map(function(b){return '<span style="background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:2px 9px;font-size:11px;cursor:pointer" onclick="openPayModal(this.dataset.id)" data-id='+b.id+'>'+b.name.split(' ')[0]+' · '+fmtC(getDueToday(b))+'</span>';}).join('')+'</div>'
-    +'</div>';
-}
-
-// ── STREAK + PERSONAL BEST ───────────────────────────────────
-function sqStreak(){
-  var logs=[...state.dailyLog].sort(function(a,b){return b.date.localeCompare(a.date);});
-  var s=0;
-  for(var i=0;i<logs.length;i++){
-    var exp=new Date(); exp.setDate(exp.getDate()-i);
-    var es=exp.toISOString().split('T')[0];
-    if(logs[i].date===es&&(logs[i].collected||0)>0) s++;
-    else break;
-  }
-  return s;
-}
-function sqPB(){ return Math.max.apply(null,state.dailyLog.map(function(e){return e.collected||0;}).concat([0])); }
-function sqRenderPerfRow(){
-  var el=document.getElementById('sq-perf-row'); if(!el) return;
-  var streak=sqStreak(); var pb=sqPB();
-  var today=new Date().toISOString().split('T')[0];
-  var tl=state.dailyLog.find(function(e){return e.date===today;}); var ta=tl?(tl.collected||0):0;
-  var beat=ta>0&&ta>=pb&&pb>0;
-  var h='';
-  if(streak>1) h+='<span class="sq-streak">🔥 '+streak+'-day streak</span>';
-  if(pb>0) h+='<span class="sq-pb'+(beat?' flash':'')+'">⭐ Best: '+fmtC(pb)+(beat?' 🎉 New PB!':'')+'</span>';
-  var hc=(state.hitList||[]).length;
-  if(hc>0) h+='<span style="font-size:11px;color:var(--text3)">🎯 '+hc+' on hit list</span>';
-  el.innerHTML=h;
-}
-
-// ── HIT LIST ─────────────────────────────────────────────────
-function sqInitHitList(){
-  if(!state.hitList) state.hitList=[];
-  var last=localStorage.getItem('sq_hit_date');
-  var today=new Date().toISOString().split('T')[0];
-  if(last&&last!==today){state.hitList=[];saveState();}
-  localStorage.setItem('sq_hit_date',today);
-}
-function sqToggleHit(id){
-  if(!state.hitList) state.hitList=[];
-  var idx=state.hitList.indexOf(id);
-  if(idx>-1){state.hitList.splice(idx,1);toast('Removed from hit list','info');}
-  else{state.hitList.push(id);toast('Added to hit list 🎯','success');}
-  saveState(); renderCurrentPage();
-}
-function sqClearHitList(){state.hitList=[];saveState();renderCurrentPage();toast('Hit list cleared','info');}
-function sqRenderHitList(){
-  var panel=document.getElementById('sq-hit-panel');
-  var items=document.getElementById('sq-hit-items');
-  var cnt=document.getElementById('sq-hit-count');
-  var list=state.hitList||[];
-  if(!panel) return;
-  if(!list.length){panel.style.display='none';return;}
-  panel.style.display='';
-  if(cnt) cnt.textContent=list.length+' account'+(list.length!==1?'s':'');
-  if(!items) return;
-  items.innerHTML=list.map(function(id){
-    var b=state.borrowers.find(function(x){return x.id===id;}); if(!b) return '';
-    var ph=b.phone.replace(/\s/g,'').replace('+','');
-    var row='<div class="hit-list-item">';
-    row+='<div class="hit-list-name">'+b.name+'</div>';
-    row+='<div class="hit-list-meta">Day '+getOdAge(b.startDate)+' · '+fmtC(getDueToday(b))+'</div>';
-    row+='<div class="hit-list-actions">';
-    row+='<button class="sq-hit-btn" onclick="openPayModal(this.dataset.id)" data-id="'+id+'">💰</button>';
-    row+='<a href="tel:'+b.phone+'" class="sq-hit-btn" style="text-decoration:none">📞</a>';
-    row+='<a href="https://wa.me/'+ph+'" target="_blank" class="sq-hit-btn" style="text-decoration:none">💬</a>';
-    row+='<button class="sq-hit-btn" onclick="sqToggleHit(this.dataset.id)" data-id="'+id+'" style="color:var(--red)">✕</button>';
-    row+='</div></div>';
-    return row;
-  }).join('');
-}
-
-// ── SWIPE ────────────────────────────────────────────────────
-(function(){
-  var _sx=0,_st=null;
-  document.addEventListener('touchstart',function(e){_st=e.target.closest('.sq-swipe-wrap');if(_st)_sx=e.touches[0].clientX;},{passive:true});
-  document.addEventListener('touchend',function(e){
-    if(!_st) return;
-    var dx=((e.changedTouches&&e.changedTouches[0]?e.changedTouches[0].clientX:0))-_sx;
-    if(dx<-55){document.querySelectorAll('.sq-swipe-wrap.swiped').forEach(function(el){if(el!==_st)el.classList.remove('swiped');});_st.classList.add('swiped');}
-    else if(dx>20) _st.classList.remove('swiped');
-    _st=null;
-  },{passive:true});
-  document.addEventListener('click',function(e){if(!e.target.closest('.sq-swipe-wrap'))document.querySelectorAll('.sq-swipe-wrap.swiped').forEach(function(el){el.classList.remove('swiped');});});
-})();
-
-// ── EOD REPORT ───────────────────────────────────────────────
-function sqOpenEodReport(){
-  var active=getActiveBorrowers();
-  var paid=state.borrowers.filter(function(b){return getStatus(b)==='Paid';});
-  var partial=state.borrowers.filter(function(b){return getStatus(b)==='Partial';});
-  var today=new Date().toISOString().split('T')[0];
-  var tl=state.dailyLog.find(function(e){return e.date===today;}); var ta=tl?(tl.collected||0):0;
-  var ptps=state.borrowers.filter(function(b){return b.promisedToPay&&b.promiseDate&&b.promiseDate.startsWith(today);});
-  var ptpH=ptps.filter(function(b){return getStatus(b)!=='Unpaid';}).length;
-  var totOut=active.reduce(function(s,b){return s+getDueToday(b);},0);
-  var agentEl=document.getElementById('ptp-agent-name');
-  var supEl=document.getElementById('ptp-supervisor-name');
-  var agent=agentEl?agentEl.value:'Shadrack Agyei Arthur';
-  var sup=supEl?supEl.value:'NANA OSAE EMMANUEL';
-  var df=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  var rpt='*DAILY EOD COLLECTION REPORT*\n*'+df+'*\n──────────────────────\n*Agent:* '+agent+'\n*Supervisor:* '+sup+'\n──────────────────────\n*💰 Collected Today:* ₵'+fmt(ta)+'\n*👥 Active Accounts:* '+active.length+'\n*✅ Fully Paid:* '+paid.length+'\n*⚠️ Partial Payments:* '+partial.length+'\n*📋 PTPs Set:* '+ptps.length+'\n*🤝 PTPs Honoured:* '+ptpH+'\n*📊 Outstanding:* ₵'+fmt(Math.round(totOut))+'\n──────────────────────\n_Submitted via SqueveTrack_';
-  document.getElementById('modal-title').textContent='📤 EOD Collection Report';
-  document.getElementById('modal-body').innerHTML='<div style="background:var(--surface2);border-radius:8px;padding:14px;font-size:12px;line-height:1.9;white-space:pre-wrap;margin-bottom:8px">'+rpt+'</div><div style="font-size:11px;color:var(--text3)">Tap Copy to paste directly into WhatsApp</div>';
-  var _rpt=rpt;
-  document.getElementById('modal-footer').innerHTML='<button class="btn btn-ghost" onclick="closeModal()">Close</button><button class="btn btn-gold" id="sq-eod-copy-btn">📋 Copy</button>';
-  document.getElementById('modal-overlay').classList.add('open');
-  setTimeout(function(){var b=document.getElementById('sq-eod-copy-btn');if(b)b.addEventListener('click',function(){navigator.clipboard.writeText(_rpt).then(function(){toast('EOD report copied ✅','success');closeModal();});});},0);
-}
-
-// ── CALL LOG ─────────────────────────────────────────────────
-function sqOpenCallLog(id){
-  var b=state.borrowers.find(function(x){return x.id===id;}); if(!b) return;
-  if(!b.callLog) b.callLog=[];
-  var outs=['Answered','No Answer','Promised','Refused'];
-  var clsMap={'Answered':'sq-cb-ans','No Answer':'sq-cb-no','Promised':'sq-cb-prom','Refused':'sq-cb-ref'};
-  document.getElementById('modal-title').textContent='📞 Call Log — '+b.name.split(' ')[0];
-  document.getElementById('modal-body').innerHTML=
-    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">'+outs.map(function(o){return '<button class="btn btn-ghost btn-sm" onclick="sqLogCall(this.dataset.bid,this.dataset.out)" data-bid='+id+' data-out='+o+'>'+o+'</button>';}).join('')+'</div>'
-    +(b.callLog.length?b.callLog.slice().reverse().map(function(e){return '<div class="sq-call-entry"><span class="sq-cb '+(clsMap[e.outcome]||'')+'">'+e.outcome+'</span><div style="flex:1"><div style="font-size:12px;font-weight:600">'+e.date+(e.time?' at '+e.time:'')+'</div>'+(e.note?'<div style="font-size:11px;color:var(--text3)">'+e.note+'</div>':'')+'</div></div>';}).join(''):'<div class="empty-state" style="padding:20px 0"><div>No calls logged yet</div></div>');
-  document.getElementById('modal-footer').innerHTML='<button class="btn btn-gold" onclick="closeModal()">Close</button>';
-  document.getElementById('modal-overlay').classList.add('open');
-}
-function sqLogCall(id,outcome){
-  var b=state.borrowers.find(function(x){return x.id===id;}); if(!b) return;
-  if(!b.callLog) b.callLog=[];
-  var now=new Date();
-  b.callLog.push({date:now.toISOString().split('T')[0],time:now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),outcome:outcome,note:''});
-  saveState(); toast(b.name.split(' ')[0]+': '+outcome+' logged','success'); sqOpenCallLog(id);
-}
-
-// ── NOTES UPGRADE ────────────────────────────────────────────
-var _sqNoteTemplates=['Called — no answer','Called — promised to pay','Pays on Fridays','Husband/wife usually answers','Number changed — update needed','Follow up tomorrow morning','Needs instalment plan','Do not call after 6PM'];
-function sqOpenNoteModal(id){
-  var b=state.borrowers.find(function(x){return x.id===id;}); if(!b) return;
-  if(!b.noteLog) b.noteLog=[];
-  document.getElementById('modal-title').textContent='📝 Notes — '+b.name.split(' ')[0];
-  document.getElementById('modal-body').innerHTML=
-    '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">'+_sqNoteTemplates.map(function(t){return '<span class="sq-note-tmpl" onclick="sqNoteInsert(this,this.dataset.enc)" data-enc='+encodeURIComponent(t)+">'+t+'</span>';}).join('')+'</div>'
-    +'<div class="form-group"><label>Note</label><textarea class="form-input" id="sq-note-ta" rows="3" placeholder="Type or tap a template above...">'+(b.notes||'')+'</textarea></div>'
-    +(b.noteLog.length?'<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">History</div>'+b.noteLog.slice().reverse().map(function(e){return '<div class="sq-note-entry"><div class="sq-note-dot"></div><div><div style="font-size:12px">'+e.text+'</div><div style="font-size:10px;color:var(--text3)">'+e.date+(e.time?' at '+e.time:'')+'</div></div></div>';}).join(''):'');
-  document.getElementById('modal-footer').innerHTML='<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-gold" id="sq-note-save">Save Note</button>';
-  document.getElementById('modal-overlay').classList.add('open');
-  setTimeout(function(){
-    var btn=document.getElementById('sq-note-save');
-    if(!btn) return;
-    btn.addEventListener('click',function(){
-      var txt=document.getElementById('sq-note-ta');
-      if(!txt||!txt.value.trim()){closeModal();return;}
-      b.notes=txt.value.trim();
-      if(!b.noteLog) b.noteLog=[];
-      var now=new Date();
-      b.noteLog.push({text:b.notes,date:now.toISOString().split('T')[0],time:now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})});
-      if(b.noteLog.length>30) b.noteLog=b.noteLog.slice(-30);
-      saveState();closeModal();toast('Note saved for '+b.name.split(' ')[0],'success');renderCurrentPage();
-    });
-  },0);
-}
-function sqNoteInsert(el,enc){
-  var ta=document.getElementById('sq-note-ta');
-  if(ta) ta.value=decodeURIComponent(enc);
-}
-
-// ── PTP HUB ──────────────────────────────────────────────────
-var _sqPtpHubTab='history';
-function sqRenderPtpHub(){ sqPtpHub(_sqPtpHubTab); }
-function sqPtpHub(tab){
-  _sqPtpHubTab=tab;
-  var h=document.getElementById('sq-ptp-h-panel'); var s=document.getElementById('sq-ptp-s-panel');
-  var bh=document.getElementById('sq-ptp-h-btn'); var bs=document.getElementById('sq-ptp-s-btn');
-  if(h) h.style.display=tab==='history'?'':'none';
-  if(s) s.style.display=tab==='stats'?'':'none';
-  if(bh) bh.className=tab==='history'?'btn btn-gold btn-sm':'btn btn-ghost btn-sm';
-  if(bs) bs.className=tab==='stats'?'btn btn-gold btn-sm':'btn btn-ghost btn-sm';
-  if(tab==='history') renderPtpHistory(); else renderPtpStats();
-}
-
-// ── FORECAST CARD (dashboard) ────────────────────────────────
-var _sqFcOpen=false;
-function sqToggleFc(){
-  _sqFcOpen=!_sqFcOpen;
-  var body=document.getElementById('sq-fc-body'); var chev=document.getElementById('sq-fc-chev');
-  if(body) body.style.display=_sqFcOpen?'':'none';
-  if(chev) chev.classList.toggle('open',_sqFcOpen);
-  if(_sqFcOpen) sqRenderFc();
-}
-function sqRenderFc(){
-  var el=document.getElementById('sq-fc-body'); if(!el) return;
-  var tot=state.dailyLog.reduce(function(s,e){return s+(Number(e.collected)||0);},0);
-  var now=new Date(); var dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
-  var dLeft=dim-now.getDate();
-  var act=state.dailyLog.filter(function(e){return (e.collected||0)>0;}).length;
-  var avg=act>0?tot/act:0;
-  var proj=tot+(avg*dLeft);
-  var ptpV=state.borrowers.filter(function(b){var t=new Date().toISOString().split('T')[0];return b.promisedToPay&&b.promiseDate&&b.promiseDate.startsWith(t);}).reduce(function(s,b){return s+getDueToday(b);},0);
-  var tgt=state.monthlyTarget||0;
-  var rows=[['Collected so far',tot,'var(--text)'],['Avg daily (active days)',Math.round(avg),'var(--blue)'],['Projected end-of-month',Math.round(proj),proj>=tgt&&tgt>0?'var(--green)':'var(--gold)'],['Today PTP value',Math.round(ptpV),'var(--purple)'],['Projected with PTPs',Math.round(proj+ptpV),'var(--green)']];
-  el.innerHTML=rows.map(function(r){return '<div class="summary-row"><span class="summary-label">'+r[0]+'</span><span class="summary-value" style="color:'+r[2]+'">'+fmtC(r[1])+'</span></div>';}).join('')+(tgt>0?'<div style="margin-top:8px;font-size:11px;color:'+(proj>=tgt?'var(--green)':'var(--red)')+';">'+(proj>=tgt?'✅ On track to hit target':'⚠️ Below target — gap: '+fmtC(Math.round(tgt-proj)))+'</div>':'');
-}
-
-// ── CHAR RING ────────────────────────────────────────────────
-function sqUpdateCharRing(text){
-  var n=(text||'').length; var circ=2*Math.PI*13;
-  var fill=document.getElementById('sq-ring-fill'); var lbl=document.getElementById('sq-char-lbl');
-  if(!fill||!lbl) return;
-  var col=n<=160?'var(--green)':n<=320?'var(--orange)':'var(--red)';
-  fill.setAttribute('stroke',col);
-  fill.setAttribute('stroke-dasharray',(circ*Math.min(1,n/160)).toFixed(2)+' '+circ.toFixed(2));
-  lbl.textContent=n>999?'99+':String(n); lbl.style.color=col;
-}
-
-// ── DOW CHART ────────────────────────────────────────────────
-function sqRenderDowChart(){
-  var ctx=document.getElementById('chart-dow'); if(!ctx) return;
-  var days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  var tots=[0,0,0,0,0,0,0]; var cnts=[0,0,0,0,0,0,0];
-  state.dailyLog.forEach(function(e){
-    if(!(e.collected>0)||!e.date) return;
-    var dow=new Date(e.date).getDay(); var idx=dow===0?6:dow-1;
-    tots[idx]+=e.collected; cnts[idx]++;
-  });
-  var avgs=tots.map(function(t,i){return cnts[i]>0?Math.round(t/cnts[i]):0;});
-  if(charts['dow']){charts['dow'].destroy();delete charts['dow'];}
-  charts['dow']=new Chart(ctx,{type:'bar',data:{labels:days,datasets:[{label:'Avg ₵',data:avgs,backgroundColor:avgs.map(function(v){var m=Math.max.apply(null,avgs)||1;return v===m?chartGoldColor():'rgba(96,165,250,0.4)';}),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:chartTextColor()},grid:{display:false}},y:{ticks:{color:chartTextColor(),callback:function(v){return '₵'+v.toLocaleString();}},grid:{color:'rgba(255,255,255,0.04)'}}}}});
-}
-
-// ── RANKING TRACKER ──────────────────────────────────────────
-var sqRankHistory=[];
-var sqMyName='Shadrack Agyei';
-
-function sqApiKeyModal(){
-  var cur=localStorage.getItem('sq_api_key')||'';
-  var name=localStorage.getItem('sq_rank_agent')||'';
-  document.getElementById('modal-title').textContent='🔑 API & Ranking Settings';
-  document.getElementById('modal-body').innerHTML=
-    '<div class="form-group"><label>Anthropic API Key</label>'
-    +'<input type="password" class="form-input" id="sq-api-in" placeholder="sk-ant-..." value="'+cur+'" style="font-family:var(--font-mono);font-size:12px">'
-    +'<div style="font-size:11px;color:var(--text3);margin-top:4px">Get yours free at <a href="https://console.anthropic.com" target="_blank" style="color:var(--gold)">console.anthropic.com</a> · Stored on this device only</div></div>'
-    +'<div class="form-group"><label>Your Name on Ranking Board</label>'
-    +'<input type="text" class="form-input" id="sq-rank-name-in" placeholder="e.g. Shadrack Agyei" value="'+name+'"></div>';
-  document.getElementById('modal-footer').innerHTML=
-    '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
-    +'<button class="btn btn-red btn-sm" onclick="sqClearApiKey()" style="margin-right:auto">Remove Key</button>'
-    +'<button class="btn btn-gold" id="sq-api-save">Save</button>';
-  document.getElementById('modal-overlay').classList.add('open');
-  setTimeout(function(){
-    var sb=document.getElementById('sq-api-save');
-    if(!sb) return;
-    sb.addEventListener('click',function(){
-      var k=(document.getElementById('sq-api-in')||{}).value||'';
-      var n=(document.getElementById('sq-rank-name-in')||{}).value||'';
-      if(k.trim()){localStorage.setItem('sq_api_key',k.trim());toast('API key saved ✅','success');}
-      if(n.trim()){localStorage.setItem('sq_rank_agent',n.trim());sqMyName=n.trim();}
-      closeModal();sqRenderRanking();
-    });
-  },0);
-}
-function sqClearApiKey(){localStorage.removeItem('sq_api_key');toast('API key removed','info');closeModal();sqRenderRanking();}
-
-function sqHandleDrop(e){
-  e.preventDefault();
-  var z=document.getElementById('sq-rank-zone');if(z)z.classList.remove('drag-over');
-  var file=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];
-  if(file&&file.type.startsWith('image/')) sqProcessImg(file);
-}
-function sqHandleScan(inp){var f=inp.files&&inp.files[0];if(f)sqProcessImg(f);inp.value='';}
-
-async function sqProcessImg(file){
-  var apiKey=localStorage.getItem('sq_api_key');
-  if(!apiKey){sqApiKeyModal();return;}
-  var st=document.getElementById('sq-rank-status');
-  if(st)st.textContent='🔍 Scanning with AI…';
-  try{
-    var b64=await new Promise(function(res,rej){var r=new FileReader();r.onload=function(){res(r.result.split(',')[1]);};r.onerror=rej;r.readAsDataURL(file);});
-    var resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1024,messages:[{role:'user',content:[
-        {type:'image',source:{type:'base64',media_type:file.type||'image/jpeg',data:b64}},
-        {type:'text',text:'This is a loan collection team ranking table. Extract every row. Return ONLY a JSON array, no markdown: [{"rank":1,"name":"Full Name","percentage":23.6},...]. Just the array.'}
-      ]}]})
-    });
-    var data=await resp.json();
-    if(!resp.ok) throw new Error((data.error&&data.error.message)||'API error '+resp.status);
-    var raw=(data.content&&data.content.find(function(c){return c.type==='text';})||{}).text||'';
-    raw=raw.replace(/```json|```/g,'').trim();
-    var entries=JSON.parse(raw);
-    if(!Array.isArray(entries)||!entries.length) throw new Error('No ranking data found in image');
-    sqSaveScan(entries);
-    if(st)st.textContent='✅ Found '+entries.length+' agents!';
-    setTimeout(function(){if(st)st.textContent='';},3000);
-    sqRenderRanking();
-  }catch(e){
-    console.error(e);
-    if(st)st.textContent='❌ '+e.message;
-  }
-}
-function sqSaveScan(entries){
-  var today=new Date().toISOString().split('T')[0];
-  sqRankHistory=sqRankHistory.filter(function(h){return h.date!==today;});
-  sqRankHistory.unshift({date:today,entries:entries,at:new Date().toISOString()});
-  if(sqRankHistory.length>60) sqRankHistory=sqRankHistory.slice(0,60);
-  localStorage.setItem('sq_rank_history',JSON.stringify(sqRankHistory));
-}
-function sqClearRankHistory(){if(!confirm('Clear all ranking history?'))return;sqRankHistory=[];localStorage.removeItem('sq_rank_history');sqRenderRanking();toast('History cleared','info');}
-
-function sqRenderRanking(){
-  var apiKey=localStorage.getItem('sq_api_key');
-  var banner=document.getElementById('sq-rank-banner'); if(banner)banner.style.display=apiKey?'none':'';
-  var kpis=document.getElementById('sq-rank-kpis');
-  var latest=document.getElementById('sq-rank-latest');
-  var latDate=document.getElementById('sq-rank-date');
-  var hist=document.getElementById('sq-rank-hist');
-  if(!kpis) return;
-  if(!sqRankHistory.length){
-    kpis.innerHTML='';
-    if(latest)latest.innerHTML='<div class="empty-state"><div class="icon">📸</div><div>Scan your first ranking screenshot to begin</div></div>';
-    if(hist)hist.innerHTML='<div class="empty-state" style="padding:20px 0"><div>No scans yet</div></div>';
-    return;
-  }
-  var scan=sqRankHistory[0];
-  var first=sqMyName.split(' ')[0].toLowerCase();
-  var me=scan.entries.find(function(e){return e.name&&e.name.toLowerCase().indexOf(first)>=0;});
-  if(me){
-    var top=scan.entries[0];
-    var above=me.rank>1?scan.entries.find(function(e){return e.rank===me.rank-1;}):null;
-    var g1=top?(top.percentage-me.percentage).toFixed(2):null;
-    var ga=above?(above.percentage-me.percentage).toFixed(2):null;
-    kpis.innerHTML=
-      '<div class="kpi-card gold"><div class="kpi-label">My Position</div><div class="kpi-value gold">#'+me.rank+'</div><div class="kpi-sub">'+me.percentage+'% recovery rate</div></div>'
-      +(g1?'<div class="kpi-card red"><div class="kpi-label">Gap to #1</div><div class="kpi-value red">-'+g1+'%</div><div class="kpi-sub">'+top.name.split(' ')[0]+' at '+top.percentage+'%</div></div>':'')
-      +(ga?'<div class="kpi-card blue"><div class="kpi-label">Gap to #'+(me.rank-1)+'</div><div class="kpi-value" style="color:var(--blue)">-'+ga+'%</div><div class="kpi-sub">Need +'+ga+'% to move up one spot</div></div>':'')
-      +'<div class="kpi-card green"><div class="kpi-label">Scans Recorded</div><div class="kpi-value green">'+sqRankHistory.length+'</div><div class="kpi-sub">Last: '+scan.date+'</div></div>';
-  } else {
-    kpis.innerHTML='<div class="kpi-card" style="grid-column:1/-1"><div class="kpi-label">Tip</div><div style="font-size:12px;color:var(--text3)">Go to API Key settings and enter your name as it appears on the ranking board</div></div>';
-  }
-  if(latest){
-    if(latDate)latDate.textContent=scan.date;
-    latest.innerHTML=scan.entries.slice(0,25).map(function(e){
-      var isMe=e.name&&e.name.toLowerCase().indexOf(first)>=0;
-      return '<div class="sq-rank-entry"><div class="sq-rank-pos '+(isMe?'sq-rank-me':'')+'">'+(e.rank||'—')+'</div>'
-        +'<div class="sq-rank-name" style="'+(isMe?'color:var(--gold);font-weight:700':'')+'">'+e.name+(isMe?' ← You':'')+'</div>'
-        +'<div class="sq-rank-pct" style="color:'+(isMe?'var(--gold)':'var(--text2)')+'">'+e.percentage+'%</div></div>';
-    }).join('');
-  }
-  if(hist){
-    hist.innerHTML=sqRankHistory.map(function(s){
-      var m=s.entries.find(function(e){return e.name&&e.name.toLowerCase().indexOf(first)>=0;});
-      return '<div class="summary-row"><div><div style="font-size:12px;font-weight:600">'+s.date+'</div><div style="font-size:11px;color:var(--text3)">'+s.entries.length+' agents scanned</div></div>'
-        +(m?'<div style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--gold)">#'+m.rank+' · '+m.percentage+'%</div>':'<div style="font-size:12px;color:var(--text3)">—</div>')+'</div>';
-    }).join('');
-  }
-  sqRenderRankChart();
-}
-function sqRenderRankChart(){
-  var ctx=document.getElementById('chart-ranking');
-  if(!ctx||!sqRankHistory.length) return;
-  var first=sqMyName.split(' ')[0].toLowerCase();
-  var sorted=[].concat(sqRankHistory).sort(function(a,b){return a.date.localeCompare(b.date);});
-  var labels=sorted.map(function(s){return s.date;});
-  var pos=sorted.map(function(s){var m=s.entries.find(function(e){return e.name&&e.name.toLowerCase().indexOf(first)>=0;});return m?m.rank:null;});
-  var pcts=sorted.map(function(s){var m=s.entries.find(function(e){return e.name&&e.name.toLowerCase().indexOf(first)>=0;});return m?m.percentage:null;});
-  if(charts['ranking']){charts['ranking'].destroy();delete charts['ranking'];}
-  charts['ranking']=new Chart(ctx,{
-    type:'line',
-    data:{labels:labels,datasets:[
-      {label:'My Position',data:pos,borderColor:chartGoldColor(),backgroundColor:'rgba(232,160,32,0.1)',tension:0.3,pointRadius:5,pointBackgroundColor:chartGoldColor(),yAxisID:'y1'},
-      {label:'My % Rate',data:pcts,borderColor:'rgba(96,165,250,0.8)',backgroundColor:'rgba(96,165,250,0.05)',tension:0.3,pointRadius:4,borderDash:[4,2],yAxisID:'y2'}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{labels:{color:chartTextColor(),font:{family:'Instrument Sans',size:12}}}},
-      scales:{
-        x:{ticks:{color:chartTextColor()},grid:{display:false}},
-        y1:{position:'left',reverse:true,min:1,ticks:{color:chartGoldColor(),stepSize:1},title:{display:true,text:'Rank',color:chartGoldColor()}},
-        y2:{position:'right',ticks:{color:'rgba(96,165,250,0.8)',callback:function(v){return v+'%';}},grid:{display:false},title:{display:true,text:'Rate %',color:'rgba(96,165,250,0.8)'}}
-      }
-    }
-  });
-  var meta=document.getElementById('sq-rank-chart-meta');
-  if(meta)meta.textContent=sqRankHistory.length+' scan'+(sqRankHistory.length!==1?'s':'')+' recorded';
-}
-
 </script>
 </body>
 </html>
