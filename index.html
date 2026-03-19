@@ -2228,9 +2228,9 @@ function renderDashboard() {
 
 
   renderDailyChart();
-  sqRenderPerfRow();
-  sqRenderHitList();
-  var _sqAl=document.getElementById('dash-alerts'); if(_sqAl){var _sqTm=sqTreadmillAlert();if(_sqTm)_sqAl.innerHTML=_sqTm+_sqAl.innerHTML;}
+  try{sqRenderPerfRow();}catch(e){console.warn('sqRenderPerfRow:',e);}
+  try{sqRenderHitList();}catch(e){console.warn('sqRenderHitList:',e);}
+  try{var _sqAl=document.getElementById('dash-alerts');if(_sqAl){var _sqTm=sqTreadmillAlert();if(_sqTm)_sqAl.innerHTML=_sqTm+_sqAl.innerHTML;}}catch(e){console.warn('treadmill:',e);}
 }
 
 function chartColor(alpha) {
@@ -2353,7 +2353,7 @@ function renderLoansTable() {
       : `<span class="badge badge-loanbase">Base</span>`;
     const odCls = odClass(r.odAge);
     const _sqPin = (state.hitList||[]).includes(r.id);
-    const _sqBadge = sqBorrowerBadge(r);
+    const _sqBadge = (function(){try{return sqBorrowerBadge(r);}catch(e){return '';}}());
     const _sqPh = r.phone.replace(/\s/g,'').replace('+','');
     return `<tr class="${r.promisedToPay ? 'promised' : ''}">
       <td><button class="sq-pin-btn ${_sqPin?'on':''}" onclick="sqToggleHit('${r.id}')" title="${_sqPin?'Remove from Hit List':'Add to Hit List'}">${_sqPin?'🎯':'📌'}</button></td>
@@ -2795,6 +2795,7 @@ function renderAnalytics() {
     + '<div class="summary-row"><span class="summary-label">Zero collection days</span><span class="summary-value text-red">'+(logsTotal-logsWithCollect)+'</span></div>'
     + '<div class="summary-row"><span class="summary-label">Avg on active day</span><span class="summary-value text-gold">'+fmtC(Math.round(avgOnGoodDay))+'</span></div>'
     + '<div class="summary-row"><span class="summary-label">Total days logged</span><span class="summary-value">'+logsTotal+'</span></div>';
+  try{sqRenderDowChart();}catch(e){}
 }
 
 // ============================================================
@@ -4351,10 +4352,10 @@ function renderCurrentPage() {
   else if (currentPage === 'ptp') renderPtp();
   else if (currentPage === 'ptp-history') { navigate('ptp-hub'); return; }
   else if (currentPage === 'ptp-stats') { navigate('ptp-hub'); return; }
-  else if (currentPage === 'ptp-hub') sqRenderPtpHub();
+  else if (currentPage === 'ptp-hub') { try{sqRenderPtpHub();}catch(e){console.warn('sqPtpHub:',e);} }
   else if (currentPage === 'forecast') { navigate('dashboard'); return; }
   else if (currentPage === 'segments') renderSegments();
-  else if (currentPage === 'ranking') sqRenderRanking();
+  else if (currentPage === 'ranking') { try{sqRenderRanking();}catch(e){console.warn('sqRenderRanking:',e);} }
 }
 
 function updateBadges() {
@@ -5568,8 +5569,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     setSyncStatus('saved');
   }
 
-  sqInitHitList();
-  sqRankHistory = JSON.parse(localStorage.getItem('sq_rank_history')||'[]');
+  try{sqInitHitList();}catch(e){console.warn('sqInitHitList:',e);}
+  try{sqRankHistory = JSON.parse(localStorage.getItem('sq_rank_history')||'[]');
   sqMyName = localStorage.getItem('sq_rank_agent')||'Shadrack Agyei';
   updateBadges();
   checkOdAdvance();
