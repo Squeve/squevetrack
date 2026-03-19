@@ -1,6 +1,6 @@
 // SqueveTrack Service Worker v2
 // NETWORK-FIRST: always fetch fresh on deploy, fallback to cache when offline
-const CACHE = 'squevetrack-v3';
+const CACHE = 'squevetrack-v4';
 
 self.addEventListener('install', e => {
   // Pre-cache the app shell
@@ -33,7 +33,7 @@ self.addEventListener('fetch', e => {
   if (url.includes('fonts.gstatic.com')) return;
 
   // NETWORK FIRST for HTML (the app shell) — always get fresh on deploy
-  if (url.endsWith('/') || url.includes('index.html') || url.endsWith('.html')) {
+  if (url.endsWith('/') || url.endsWith('/squevetrack') || url.endsWith('/squevetrack/') || url.includes('index.html') || url.endsWith('.html')) {
     e.respondWith(
       fetch(e.request)
         .then(res => {

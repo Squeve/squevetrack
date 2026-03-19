@@ -1257,6 +1257,30 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     </div>
   </section>
 
+  <!-- PTP HISTORY -->
+  <section class="page" id="page-ptp-history">
+    <div class="page-header"><div><div class="page-title">📅 PTP History</div><div class="page-sub">Past daily PTP reports</div></div></div>
+    <div id="ptp-history-body"></div>
+  </section>
+
+  <!-- PTP STATS -->
+  <section class="page" id="page-ptp-stats">
+    <div class="page-header"><div><div class="page-title">📊 PTP Stats</div><div class="page-sub">Conversion rate &amp; performance</div></div></div>
+    <div id="ptp-stats-body"></div>
+  </section>
+
+  <!-- FORECAST -->
+  <section class="page" id="page-forecast">
+    <div class="page-header"><div><div class="page-title">📈 Collection Forecast</div><div class="page-sub">End-of-month projection</div></div></div>
+    <div id="forecast-body"></div>
+  </section>
+
+  <!-- SEGMENTS -->
+  <section class="page" id="page-segments">
+    <div class="page-header"><div><div class="page-title">🗂️ Portfolio Segments</div><div class="page-sub">Borrowers grouped by risk tier</div></div></div>
+    <div id="segments-body"></div>
+  </section>
+
 </main>
 
 <!-- ADD/EDIT MODAL -->
@@ -5230,7 +5254,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(function() {});
+    // Use relative path so it works on both root and subfolder (GitHub Pages)
+    navigator.serviceWorker.register('./sw.js', {scope: './'}).catch(function() {});
   }
 
   // PWA install logic — persists installed state in localStorage
