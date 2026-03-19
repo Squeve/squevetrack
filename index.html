@@ -5268,24 +5268,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (b2) b2.style.display = show ? 'flex' : 'none';
   }
 
-  // If already installed (persisted flag), hide buttons immediately
-  if (localStorage.getItem('pwa_installed') === '1') {
-    _setInstallBtnsVisible(false);
-  }
+  // Detect if actually running in standalone (truly installed)
+  var _isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 
-  // Also detect if running in standalone mode (already installed)
-  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+  if (_isStandalone) {
+    // Genuinely installed and running as app — hide install buttons
     localStorage.setItem('pwa_installed', '1');
     _setInstallBtnsVisible(false);
+  } else {
+    // Running in browser — clear any stale installed flag and show button
+    // when the browser offers the install prompt
+    localStorage.removeItem('pwa_installed');
+    _setInstallBtnsVisible(false); // hidden until beforeinstallprompt fires
   }
 
   window.addEventListener('beforeinstallprompt', function(e) {
     e.preventDefault();
     _deferredPrompt = e;
-    // Only show if not already installed
-    if (localStorage.getItem('pwa_installed') !== '1') {
-      _setInstallBtnsVisible(true);
-    }
+    _setInstallBtnsVisible(true); // browser says it can be installed — show button
   });
 
   window.addEventListener('appinstalled', function() {
