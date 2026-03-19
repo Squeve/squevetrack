@@ -1,6 +1,6 @@
 // SqueveTrack Service Worker v2
 // NETWORK-FIRST: always fetch fresh on deploy, fallback to cache when offline
-const CACHE = 'squevetrack-v4';
+const CACHE = 'squevetrack-v5';
 
 self.addEventListener('install', e => {
   // Pre-cache the app shell
