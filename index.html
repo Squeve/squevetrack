@@ -761,93 +761,6 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
   .dispatch-actions { flex-direction: row; min-width: unset; width: 100%; }
   .kpi-value { font-size: 20px; }
 }
-
-/* ── HIT LIST ─────────────────────────────────────── */
-.hit-list-panel{background:var(--surface2);border:1px solid rgba(232,160,32,0.3);border-radius:var(--radius);padding:14px 18px;margin-bottom:18px;}
-.hit-list-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-.hit-list-title{font-family:var(--font-head);font-size:13px;font-weight:700;color:var(--gold);}
-.hit-list-items{display:flex;flex-direction:column;gap:6px;}
-.hit-list-item{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;transition:border-color .15s;}
-.hit-list-item:hover{border-color:var(--gold);}
-.hit-list-name{flex:1;font-size:12px;font-weight:600;color:var(--text);}
-.hit-list-meta{font-size:11px;color:var(--text3);font-family:var(--font-mono);}
-.hit-list-actions{display:flex;gap:5px;}
-.hit-btn{background:none;border:1px solid var(--border2);border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;color:var(--text2);transition:all .12s;}
-.hit-btn:hover{border-color:var(--gold);color:var(--gold);}
-.hit-btn.red:hover{border-color:var(--red);color:var(--red);}
-.pin-btn-row{background:none;border:none;cursor:pointer;font-size:14px;padding:2px 4px;opacity:.4;transition:opacity .15s;}
-.pin-btn-row.pinned{opacity:1;}
-.pin-btn-row:hover{opacity:1;}
-
-/* ── STREAK & PERSONAL BEST ───────────────────────── */
-.streak-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.3);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;color:var(--orange);}
-.pb-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(232,160,32,0.1);border:1px solid rgba(232,160,32,0.3);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;color:var(--gold);}
-@keyframes pbFlash{0%,100%{box-shadow:0 0 0 0 rgba(232,160,32,0);}50%{box-shadow:0 0 0 8px rgba(232,160,32,0.25);}}
-.pb-flash{animation:pbFlash 0.8s ease 2;}
-
-/* ── SWIPE ACTIONS (wired) ────────────────────────── */
-.swipe-row-wrap{position:relative;overflow:hidden;touch-action:pan-y;}
-.swipe-actions{position:absolute;right:0;top:0;bottom:0;display:flex;align-items:stretch;transform:translateX(100%);transition:transform .2s ease;}
-.swipe-actions .btn{border-radius:0;height:100%;padding:0 14px;font-size:11px;white-space:nowrap;}
-.swipe-row-wrap.swiped .swipe-actions{transform:translateX(0);}
-
-/* ── RANKING TRACKER ──────────────────────────────── */
-.ranking-scan-zone{border:2px dashed var(--border2);border-radius:var(--radius);padding:28px;text-align:center;cursor:pointer;transition:border-color .15s;background:var(--surface2);}
-.ranking-scan-zone:hover,.ranking-scan-zone.drag-over{border-color:var(--gold);}
-.ranking-scan-zone .scan-icon{font-size:36px;margin-bottom:8px;}
-.ranking-entry{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
-.ranking-entry:last-child{border-bottom:none;}
-.rank-pos{font-family:var(--font-mono);font-size:13px;font-weight:700;width:22px;text-align:center;}
-.rank-me{color:var(--gold);}
-.rank-name{flex:1;font-size:12px;}
-.rank-pct{font-family:var(--font-mono);font-size:12px;font-weight:600;}
-.rank-trend{font-size:13px;width:18px;text-align:center;}
-
-/* ── CALL LOG ─────────────────────────────────────── */
-.call-entry{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
-.call-entry:last-child{border-bottom:none;}
-.call-outcome-badge{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;}
-.call-outcome-answered{background:rgba(34,197,94,0.15);color:var(--green);}
-.call-outcome-no_answer{background:rgba(239,68,68,0.1);color:var(--red);}
-.call-outcome-promised{background:rgba(167,139,250,0.15);color:var(--purple);}
-.call-outcome-refused{background:rgba(249,115,22,0.1);color:var(--orange);}
-
-/* ── NOTES TIMELINE ───────────────────────────────── */
-.note-entry{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);}
-.note-entry:last-child{border-bottom:none;}
-.note-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);margin-top:4px;flex-shrink:0;}
-.note-template-btns{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;}
-.note-tmpl{background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:3px 10px;font-size:11px;cursor:pointer;color:var(--text2);transition:all .12s;}
-.note-tmpl:hover{border-color:var(--gold);color:var(--gold);}
-
-/* ── CHARACTER RING (SMS) ─────────────────────────── */
-.char-ring-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;flex-shrink:0;}
-.char-ring-svg{position:absolute;top:0;left:0;transform:rotate(-90deg);}
-.char-ring-label{font-family:var(--font-mono);font-size:9px;font-weight:700;text-align:center;line-height:1.1;z-index:1;}
-
-/* ── PENDING SYNC ─────────────────────────────────── */
-.pending-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(232,160,32,0.12);border:1px solid rgba(232,160,32,0.3);border-radius:12px;padding:2px 8px;font-size:10px;color:var(--gold);font-weight:700;}
-
-/* ── BORROWER BADGES ──────────────────────────────── */
-.borrower-badge-reliable{font-size:11px;}
-.borrower-badge-cautious{font-size:11px;}
-
-/* ── FORECAST CARD (dashboard) ────────────────────── */
-.forecast-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:18px;overflow:hidden;}
-.forecast-card-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;cursor:pointer;user-select:none;}
-.forecast-card-hdr:hover{background:rgba(255,255,255,.02);}
-.forecast-chevron{transition:transform .2s;}
-.forecast-chevron.open{transform:rotate(180deg);}
-.forecast-body{padding:14px 18px;border-top:1px solid var(--border);}
-
-/* ── EOD REPORT BUTTON ────────────────────────────── */
-.eod-btn{background:linear-gradient(135deg,rgba(232,160,32,.15),rgba(232,160,32,.05));border:1px solid rgba(232,160,32,.4);color:var(--gold);border-radius:var(--radius-sm);padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap;}
-.eod-btn:hover{background:rgba(232,160,32,.2);}
-
-/* ── RANKING NAV ──────────────────────────────────── */
-.api-key-banner{background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.2);border-radius:6px;padding:8px 12px;font-size:11px;color:var(--blue);display:flex;align-items:center;gap:8px;margin-bottom:14px;cursor:pointer;transition:background .15s;}
-.api-key-banner:hover{background:rgba(96,165,250,0.14);}
-
 </style>
 </head>
 <body>
@@ -900,14 +813,17 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <span class="nav-icon">🤝</span> PTP Report
     <span class="nav-badge" id="badge-ptp" style="display:none;background:var(--purple)"></span>
   </div>
-  <div class="nav-item" data-page="ptp-hub">
-    <span class="nav-icon">📅</span> PTP Hub
+  <div class="nav-item" data-page="ptp-history">
+    <span class="nav-icon">📅</span> PTP History
+  </div>
+  <div class="nav-item" data-page="ptp-stats">
+    <span class="nav-icon">📊</span> PTP Stats
+  </div>
+  <div class="nav-item" data-page="forecast">
+    <span class="nav-icon">📈</span> Forecast
   </div>
   <div class="nav-item" data-page="segments">
     <span class="nav-icon">🗂️</span> Segments
-  </div>
-  <div class="nav-item" data-page="ranking">
-    <span class="nav-icon">🏆</span> Ranking
   </div>
   <div class="sidebar-footer">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -917,12 +833,9 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
         <span id="theme-label">Light Mode</span>
       </button>
     </div>
-    <div id="sync-status" style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:11px">
+    <div id="sync-status" style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:11px">
       <span id="sync-dot" style="width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0;display:inline-block"></span>
       <span id="sync-label">Local only</span>
-    </div>
-    <div id="pending-sync-row" style="display:none;margin-bottom:6px">
-      <span class="pending-badge"><span id="pending-count">0</span> change(s) pending sync</span>
     </div>
     Data saves locally · syncs to cloud
     <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
@@ -945,8 +858,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
         <div class="page-title">Dashboard</div>
         <div class="page-sub" id="dash-date-sub">March 2026 — Loan Tracking</div>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <button class="eod-btn" onclick="openEodReport()">📤 EOD Report</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-ghost btn-sm" onclick="openRolloverModal()">📅 New Month</button>
         <button class="btn btn-gold" onclick="openAddModal()">＋ New Borrower</button>
       </div>
@@ -955,35 +867,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <div class="kpi-grid" id="kpi-grid"></div>
 
     <div id="dash-target-section"></div>
-
-    <!-- Streak + Personal Best row -->
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center" id="dash-perf-row"></div>
-
     <div id="dash-alerts"></div>
-
-    <!-- Hit List Panel -->
-    <div class="hit-list-panel" id="dash-hit-list-panel" style="display:none">
-      <div class="hit-list-header">
-        <span class="hit-list-title">🎯 Today's Hit List</span>
-        <div style="display:flex;gap:6px">
-          <span style="font-size:11px;color:var(--text3)" id="hit-list-count">0 accounts</span>
-          <button class="btn btn-ghost btn-xs" onclick="clearHitList()" title="Clear all">✕ Clear</button>
-        </div>
-      </div>
-      <div class="hit-list-items" id="hit-list-items"></div>
-    </div>
-
-    <!-- Forecast collapsible card -->
-    <div class="forecast-card" id="dash-forecast-card">
-      <div class="forecast-card-hdr" onclick="toggleForecastCard()">
-        <span style="font-family:var(--font-head);font-size:13px;font-weight:700">📈 Collection Forecast</span>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:11px;color:var(--text3)">End-of-month projection</span>
-          <span class="forecast-chevron" id="forecast-chevron">▼</span>
-        </div>
-      </div>
-      <div class="forecast-body" id="dash-forecast-body" style="display:none"></div>
-    </div>
 
 
     <div class="two-col">
@@ -1053,7 +937,6 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
           <thead>
             <tr>
               <th style="width:28px"><input type="checkbox" id="select-all-cb" style="accent-color:var(--gold);cursor:pointer" onchange="toggleSelectAll(this.checked)"></th>
-              <th style="width:24px"></th>
               <th>#</th>
               <th onclick="sortLoans('name')">Name ↕</th>
               <th>Phone</th>
@@ -1074,8 +957,6 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
       <span id="bulk-count" style="font-size:13px;font-weight:700;color:var(--gold)">0 selected</span>
       <button class="btn btn-ghost btn-sm" id="ba-paid">✅ Mark Paid</button>
       <button class="btn btn-ghost btn-sm" id="ba-promise">🤝 Promise</button>
-      <button class="btn btn-ghost btn-sm" id="ba-hitlist">🎯 Hit List</button>
-      <button class="btn btn-ghost btn-sm" id="ba-contacted">📞 Contacted</button>
       <button class="btn btn-ghost btn-sm" id="ba-base">Set LoanBase</button>
       <button class="btn btn-ghost btn-sm" id="ba-pro">Set Pro</button>
       <button class="btn btn-red btn-sm" id="ba-delete">🗑 Delete</button>
@@ -1147,10 +1028,6 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
       <div class="card">
         <div class="card-header"><span class="card-title">⚡ Collection Efficiency</span></div>
         <div class="card-body" id="analytics-efficiency"></div>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">📅 Best Day of Week</span><span style="font-size:11px;color:var(--text3)">When do you collect most?</span></div>
-        <div class="card-body"><div class="chart-wrap"><canvas id="chart-dow"></canvas></div></div>
       </div>
     </div>
   </section>
@@ -1323,19 +1200,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
           </div>
           <textarea class="form-input" id="sms-custom-msg" rows="3" style="display:none;width:100%;font-size:12px;resize:vertical" placeholder="e.g. {name}, please pay {amount} to clear your {loantype} loan." oninput="updateSmsPreview()"></textarea>
           <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px;margin-top:8px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-              <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Preview</div>
-              <div style="display:flex;align-items:center;gap:8px">
-                <div id="sms-char-ring-wrap" class="char-ring-wrap" title="Character count">
-                  <svg class="char-ring-svg" id="sms-char-ring-svg" width="38" height="38">
-                    <circle cx="19" cy="19" r="14" fill="none" stroke="var(--border2)" stroke-width="3"/>
-                    <circle id="sms-ring-fill" cx="19" cy="19" r="14" fill="none" stroke="var(--green)" stroke-width="3" stroke-dasharray="87.96 87.96" stroke-linecap="round"/>
-                  </svg>
-                  <div class="char-ring-label" id="sms-char-count-lbl" style="color:var(--green)">0</div>
-                </div>
-                <div id="sms-warn-dupe" style="display:none;font-size:10px;color:var(--orange);font-weight:700">⚠️ Sent before</div>
-              </div>
-            </div>
+            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Preview</div>
             <div id="sms-preview-text" style="font-size:12px;color:var(--text2);line-height:1.6">Select a contact to preview</div>
           </div>
         </div>
@@ -1396,73 +1261,22 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     </div>
   </section>
 
-  <!-- PTP HUB (merged History + Stats) -->
-  <section class="page" id="page-ptp-hub">
-    <div class="page-header"><div><div class="page-title">📅 PTP Hub</div><div class="page-sub">History · Stats · Conversion</div></div></div>
-    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-      <button class="btn btn-gold btn-sm" id="ptp-hub-tab-history" onclick="switchPtpHub('history')">📅 History</button>
-      <button class="btn btn-ghost btn-sm" id="ptp-hub-tab-stats" onclick="switchPtpHub('stats')">📊 Stats</button>
-    </div>
-    <div id="ptp-hub-history-panel"><div id="ptp-history-body"></div></div>
-    <div id="ptp-hub-stats-panel" style="display:none"><div id="ptp-stats-body"></div></div>
+  <!-- PTP HISTORY -->
+  <section class="page" id="page-ptp-history">
+    <div class="page-header"><div><div class="page-title">📅 PTP History</div><div class="page-sub">Past daily PTP reports</div></div></div>
+    <div id="ptp-history-body"></div>
   </section>
 
-  <!-- FORECAST page (kept for legacy navigate() calls but redirects to dashboard) -->
-  <section class="page" id="page-forecast" style="display:none">
+  <!-- PTP STATS -->
+  <section class="page" id="page-ptp-stats">
+    <div class="page-header"><div><div class="page-title">📊 PTP Stats</div><div class="page-sub">Conversion rate &amp; performance</div></div></div>
+    <div id="ptp-stats-body"></div>
+  </section>
+
+  <!-- FORECAST -->
+  <section class="page" id="page-forecast">
+    <div class="page-header"><div><div class="page-title">📈 Collection Forecast</div><div class="page-sub">End-of-month projection</div></div></div>
     <div id="forecast-body"></div>
-  </section>
-
-  <!-- RANKING TRACKER -->
-  <section class="page" id="page-ranking">
-    <div class="page-header">
-      <div>
-        <div class="page-title">🏆 Ranking Tracker</div>
-        <div class="page-sub">Scan your ranking screenshot · track position over time</div>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-ghost btn-sm" onclick="openApiKeyModal()">🔑 API Key</button>
-        <button class="btn btn-gold btn-sm" onclick="document.getElementById('ranking-file-input').click()">📸 Scan Screenshot</button>
-        <input type="file" id="ranking-file-input" accept="image/*" style="display:none" onchange="handleRankingScan(this)">
-      </div>
-    </div>
-    <div id="ranking-api-banner" class="api-key-banner" onclick="openApiKeyModal()" style="display:none">
-      🔑 No API key set — click to add your Anthropic API key to enable screenshot scanning
-    </div>
-    <!-- KPI row -->
-    <div class="kpi-grid" id="ranking-kpis" style="margin-bottom:16px"></div>
-    <!-- Chart -->
-    <div class="two-col">
-      <div class="card" style="grid-column:1/-1">
-        <div class="card-header"><span class="card-title">📈 Position Over Time</span><span style="font-size:11px;color:var(--text3)" id="ranking-chart-meta"></span></div>
-        <div class="card-body"><div class="chart-wrap"><canvas id="chart-ranking"></canvas></div></div>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">📋 Latest Ranking</span><span id="ranking-latest-date" style="font-size:11px;color:var(--text3)"></span></div>
-        <div class="card-body" id="ranking-latest-list" style="max-height:320px;overflow-y:auto"></div>
-      </div>
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">📅 Scan History</span>
-          <button class="btn btn-ghost btn-xs" onclick="clearRankingHistory()" style="color:var(--red)">Clear</button>
-        </div>
-        <div class="card-body" id="ranking-history-list" style="max-height:320px;overflow-y:auto"></div>
-      </div>
-    </div>
-    <!-- Scan drop zone -->
-    <div class="card" style="margin-top:4px">
-      <div class="card-body">
-        <div class="ranking-scan-zone" id="ranking-drop-zone"
-          ondragover="event.preventDefault();this.classList.add('drag-over')"
-          ondragleave="this.classList.remove('drag-over')"
-          ondrop="handleRankingDrop(event)"
-          onclick="document.getElementById('ranking-file-input').click()">
-          <div class="scan-icon">📸</div>
-          <div style="font-weight:700;color:var(--text);margin-bottom:4px">Drop screenshot here or tap to upload</div>
-          <div style="font-size:12px;color:var(--text3)">Supports photos taken from phone, laptop screenshots, any angle</div>
-        </div>
-        <div id="ranking-scan-status" style="margin-top:10px;font-size:12px;text-align:center;color:var(--text3);min-height:18px"></div>
-      </div>
-    </div>
   </section>
 
   <!-- SEGMENTS -->
@@ -1532,14 +1346,17 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <span class="mdrawer-icon">🤝</span> PTP Report
     <span class="mdrawer-badge" id="mbadge-ptp" style="display:none;background:var(--purple)"></span>
   </div>
-  <div class="mdrawer-item" data-page="ptp-hub" onclick="navigateDrawer('ptp-hub')">
-    <span class="mdrawer-icon">📅</span> PTP Hub
+  <div class="mdrawer-item" data-page="ptp-history" onclick="navigateDrawer('ptp-history')">
+    <span class="mdrawer-icon">📅</span> PTP History
+  </div>
+  <div class="mdrawer-item" data-page="ptp-stats" onclick="navigateDrawer('ptp-stats')">
+    <span class="mdrawer-icon">📊</span> PTP Stats
+  </div>
+  <div class="mdrawer-item" data-page="forecast" onclick="navigateDrawer('forecast')">
+    <span class="mdrawer-icon">📈</span> Forecast
   </div>
   <div class="mdrawer-item" data-page="segments" onclick="navigateDrawer('segments')">
     <span class="mdrawer-icon">🗂️</span> Segments
-  </div>
-  <div class="mdrawer-item" data-page="ranking" onclick="navigateDrawer('ranking')">
-    <span class="mdrawer-icon">🏆</span> Ranking
   </div>
   <div class="mdrawer-footer">
     <div id="mdrawer-sync" style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
@@ -1821,14 +1638,10 @@ function migrateState(s) {
   if (!s.agedOutLog) s.agedOutLog = [];
   if (!s.monthlyTarget) s.monthlyTarget = 0;
   if (!s.archive) s.archive = [];
-  if (!s.hitList) s.hitList = [];
-  if (!s.theme) s.theme = localStorage.getItem('sq_theme') || 'dark';
   (s.borrowers||[]).forEach(b => {
     if (b.promisedToPay === undefined) b.promisedToPay = false;
     if (b.isPaid === undefined) b.isPaid = (b.amountPaid >= b.loanDue && b.amountPaid > 0);
     if (!b.payLog) b.payLog = [];
-    if (!b.callLog) b.callLog = [];
-    if (!b.noteLog) b.noteLog = [];
   });
   return s;
 }
@@ -2288,14 +2101,6 @@ function renderDashboard() {
 
 
   renderDailyChart();
-  renderPerfRow();
-  renderHitList();
-  // Treadmill alert — prepend to existing alerts
-  var alertsEl = document.getElementById('dash-alerts');
-  if (alertsEl) {
-    var treadmill = getTreadmillAlert();
-    if (treadmill) alertsEl.innerHTML = treadmill + alertsEl.innerHTML;
-  }
 }
 
 function chartColor(alpha) {
@@ -4129,8 +3934,6 @@ function smsClearAll() {
 }
 
 function sendBulkSMS() {
-  var tmpl = document.getElementById('sms-tmpl-select')?.value || 'custom';
-  smsSelected.forEach(function(id){ markSmsSent(id, tmpl); });
   if (!smsSelected.size) return toast('Select at least one contact', 'error');
   const contacts = [...smsSelected].map(id => state.borrowers.find(b => b.id === id)).filter(Boolean);
 
@@ -4405,12 +4208,10 @@ function renderCurrentPage() {
   else if (currentPage === 'smsblast') renderSmsBlast();
   else if (currentPage === 'agedout') renderAgedOut();
   else if (currentPage === 'ptp') renderPtp();
-  else if (currentPage === 'ptp-history') { navigate('ptp-hub'); return; }
-  else if (currentPage === 'ptp-stats') { navigate('ptp-hub'); return; }
-  else if (currentPage === 'ptp-hub') { switchPtpHub(_ptpHubTab); }
-  else if (currentPage === 'forecast') { navigate('dashboard'); return; }
+  else if (currentPage === 'ptp-history') renderPtpHistory();
+  else if (currentPage === 'ptp-stats') renderPtpStats();
+  else if (currentPage === 'forecast') renderForecast();
   else if (currentPage === 'segments') renderSegments();
-  else if (currentPage === 'ranking') renderRanking();
 }
 
 function updateBadges() {
@@ -4590,20 +4391,6 @@ function bulkAction(action) {
     const d = new Date().toISOString().split('T')[0];
     ids.forEach(id => { const b = state.borrowers.find(x => x.id === id); if (b) { b.promisedToPay = true; b.promiseDate = d; } });
     toast(ids.length + ' accounts marked as Promised 🤝', 'success');
-  } else if (action === 'hitlist') {
-    ids.forEach(function(id) {
-      if (!(state.hitList||[]).includes(id)) { if(!state.hitList) state.hitList=[]; state.hitList.push(id); }
-    });
-    toast(ids.length + ' added to hit list 🎯', 'success');
-  } else if (action === 'contacted') {
-    var now = new Date();
-    ids.forEach(function(id) {
-      var b = state.borrowers.find(function(x){ return x.id===id; });
-      if (!b) return;
-      if (!b.callLog) b.callLog = [];
-      b.callLog.push({ date: now.toISOString().split('T')[0], time: now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}), outcome: 'Answered', note: 'Bulk contacted' });
-    });
-    toast(ids.length + ' marked as contacted 📞', 'success');
   } else if (action === 'base') {
     ids.forEach(id => { const b = state.borrowers.find(x => x.id === id); if (b) b.loanType = 'LoanBase'; });
     toast(ids.length + ' accounts set to LoanBase', 'info');
@@ -4617,8 +4404,7 @@ function bulkAction(action) {
 // ============================================================
 // QUICK NOTE
 // ============================================================
-function openQuickNote(id) { return openNoteModal(id); }
-function _openQuickNoteOrig(id) {
+function openQuickNote(id) {
   const b = state.borrowers.find(x => x.id === id);
   if (!b) return;
   document.getElementById('modal-title').textContent = '📝 Quick Note — ' + b.name.split(' ')[0];
@@ -5622,9 +5408,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     setSyncStatus('saved');
   }
 
-  initHitList();
-  _rankHistory = JSON.parse(localStorage.getItem('rank_history')||'[]');
-  _myAgentName = localStorage.getItem('rank_agent_name')||'Shadrack Agyei';
   updateBadges();
   checkOdAdvance();
   renderDashboard();
@@ -5703,693 +5486,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       _deferredPrompt = null;
     });
   };
-
-// ============================================================
-// FEATURE 2 — TREADMILL ALERT
-// ============================================================
-function getTreadmillAlert() {
-  var today = new Date().toISOString().split('T')[0];
-  var storedKey = 'treadmill_' + today;
-  var active = getActiveBorrowers();
-  // new Day 6 accounts are those whose startDate is exactly today - 5 days
-  var d6 = new Date(); d6.setDate(d6.getDate()-5);
-  var d6str = d6.toISOString().split('T')[0];
-  var newDay6 = active.filter(function(b){ return b.startDate === d6str; });
-  if (!newDay6.length) return '';
-  var totalNew = newDay6.reduce(function(s,b){ return s+getDueToday(b); }, 0);
-  var rate = state.monthlyTarget > 0 ? (state.dailyLog.reduce(function(s,e){ return s+(e.collected||0); },0)/state.monthlyTarget*100).toFixed(1) : null;
-  var rateDrop = newDay6.length * 0.5; // approx % rate drop per new account
-  return '<div style="background:rgba(96,165,250,0.07);border:1px solid rgba(96,165,250,0.22);border-left:4px solid var(--blue);border-radius:8px;padding:12px 18px;margin-bottom:14px;animation:fadeUp 0.3s ease both">'
-    + '<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px">'
-    + '<div><div style="font-weight:700;color:var(--blue);font-size:13px">⚙️ Treadmill: ' + newDay6.length + ' new account' + (newDay6.length>1?'s':'') + ' joined M2 today</div>'
-    + '<div style="font-size:11px;color:var(--text3);margin-top:3px">Your rate dropped ~' + rateDrop.toFixed(1) + '% before collecting a single cedi · ' + fmtC(Math.round(totalNew)) + ' new outstanding</div>'
-    + '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">' + newDay6.slice(0,5).map(function(b){ return '<span style="background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:2px 9px;font-size:11px;cursor:pointer" onclick="openPayModal(''+b.id+'')">' + b.name.split(' ')[0] + ' · ' + fmtC(getDueToday(b)) + '</span>'; }).join('') + '</div>'
-    + '</div></div></div>';
-}
-
-// ============================================================
-// FEATURE 3 — PAYMENT STREAK + PERSONAL BEST
-// ============================================================
-function getStreak() {
-  var logs = [...state.dailyLog].sort(function(a,b){ return b.date.localeCompare(a.date); });
-  var streak = 0;
-  var today = new Date();
-  for (var i=0; i<logs.length; i++) {
-    var d = new Date(logs[i].date);
-    var expected = new Date(today); expected.setDate(expected.getDate()-i);
-    var expStr = expected.toISOString().split('T')[0];
-    if (logs[i].date === expStr && (logs[i].collected||0) > 0) streak++;
-    else break;
-  }
-  return streak;
-}
-
-function getPersonalBest() {
-  return Math.max.apply(null, state.dailyLog.map(function(e){ return e.collected||0; }).concat([0]));
-}
-
-function renderPerfRow() {
-  var el = document.getElementById('dash-perf-row');
-  if (!el) return;
-  var streak = getStreak();
-  var pb = getPersonalBest();
-  var today = new Date().toISOString().split('T')[0];
-  var todayLog = state.dailyLog.find(function(e){ return e.date===today; });
-  var todayAmt = todayLog ? (todayLog.collected||0) : 0;
-  var justBeat = todayAmt > 0 && todayAmt >= pb && pb > 0;
-  var html = '';
-  if (streak > 1) html += '<span class="streak-badge">🔥 ' + streak + '-day streak</span>';
-  if (pb > 0) html += '<span class="pb-badge' + (justBeat?' pb-flash':'') + '">⭐ Best: ' + fmtC(pb) + (justBeat?' 🎉 New PB!':'') + '</span>';
-  var hitCount = (state.hitList||[]).length;
-  if (hitCount > 0) html += '<span style="font-size:11px;color:var(--text3)">🎯 ' + hitCount + ' on hit list</span>';
-  el.innerHTML = html;
-}
-
-// ============================================================
-// FEATURE 4 — TODAY'S HIT LIST
-// ============================================================
-function initHitList() {
-  if (!state.hitList) state.hitList = [];
-  // auto-clear if last cleared on a different day
-  var lastDate = localStorage.getItem('hit_list_date');
-  var today = new Date().toISOString().split('T')[0];
-  if (lastDate && lastDate !== today) { state.hitList = []; saveState(); }
-  localStorage.setItem('hit_list_date', today);
-}
-
-function toggleHitList(id) {
-  if (!state.hitList) state.hitList = [];
-  var idx = state.hitList.indexOf(id);
-  if (idx > -1) { state.hitList.splice(idx,1); toast('Removed from hit list','info'); }
-  else { state.hitList.push(id); toast('Added to hit list 🎯','success'); }
-  saveState(); renderCurrentPage();
-}
-
-function clearHitList() {
-  state.hitList = []; saveState(); renderCurrentPage();
-  toast('Hit list cleared','info');
-}
-
-function renderHitList() {
-  var panel = document.getElementById('dash-hit-list-panel');
-  var items = document.getElementById('hit-list-items');
-  var cnt = document.getElementById('hit-list-count');
-  var list = state.hitList||[];
-  if (!panel) return;
-  if (!list.length) { panel.style.display='none'; return; }
-  panel.style.display='';
-  if (cnt) cnt.textContent = list.length + ' account' + (list.length>1?'s':'');
-  if (!items) return;
-  items.innerHTML = list.map(function(id) {
-    var b = state.borrowers.find(function(x){ return x.id===id; });
-    if (!b) return '';
-    var ph = b.phone.replace(/\s/g,'').replace('+','');
-    return '<div class="hit-list-item">'
-      + '<div class="hit-list-name">' + b.name + getBorrowerBadge(b) + '</div>'
-      + '<div class="hit-list-meta">Day ' + getOdAge(b.startDate) + ' · ' + fmtC(getDueToday(b)) + '</div>'
-      + '<div class="hit-list-actions">'
-      + '<button class="hit-btn" onclick="openPayModal(''+id+'')">💰</button>'
-      + '<a href="tel:'+b.phone+'" class="hit-btn" style="text-decoration:none">📞</a>'
-      + '<a href="https://wa.me/'+ph+'?text='+encodeURIComponent(getWaLink(b,true))+'" target="_blank" class="hit-btn" style="text-decoration:none">💬</a>'
-      + '<button class="hit-btn red" onclick="toggleHitList(''+id+'')">✕</button>'
-      + '</div></div>';
-  }).join('');
-}
-
-// ============================================================
-// FEATURE 5 — SWIPE ACTIONS (wire up existing CSS)
-// ============================================================
-var _swipeStartX = 0, _swipeTarget = null;
-document.addEventListener('touchstart', function(e) {
-  _swipeTarget = e.target.closest('.swipe-row-wrap');
-  if (_swipeTarget) _swipeStartX = e.touches[0].clientX;
-}, {passive:true});
-document.addEventListener('touchend', function(e) {
-  if (!_swipeTarget) return;
-  var dx = (e.changedTouches[0]?.clientX||0) - _swipeStartX;
-  if (dx < -55) {
-    document.querySelectorAll('.swipe-row-wrap.swiped').forEach(function(el){ if(el!==_swipeTarget) el.classList.remove('swiped'); });
-    _swipeTarget.classList.add('swiped');
-  } else if (dx > 20) {
-    _swipeTarget.classList.remove('swiped');
-  }
-  _swipeTarget = null;
-}, {passive:true});
-document.addEventListener('click', function(e) {
-  var sw = e.target.closest('.swipe-row-wrap');
-  if (!sw) document.querySelectorAll('.swipe-row-wrap.swiped').forEach(function(el){ el.classList.remove('swiped'); });
-});
-
-// ============================================================
-// FEATURE 7 — ONE-TAP EOD REPORT
-// ============================================================
-function openEodReport() {
-  var active = getActiveBorrowers();
-  var paid = state.borrowers.filter(function(b){ return getStatus(b)==='Paid'; });
-  var partial = state.borrowers.filter(function(b){ return getStatus(b)==='Partial'; });
-  var today = new Date().toISOString().split('T')[0];
-  var todayLog = state.dailyLog.find(function(e){ return e.date===today; });
-  var todayAmt = todayLog ? (todayLog.collected||0) : 0;
-  var ptps = (state.borrowers||[]).filter(function(b){ return b.promisedToPay && b.promiseDate && b.promiseDate.startsWith(today); });
-  var ptpHonoured = ptps.filter(function(b){ return getStatus(b)!=='Unpaid'; }).length;
-  var totalOut = active.reduce(function(s,b){ return s+getDueToday(b); }, 0);
-  var agentName = document.getElementById('ptp-agent-name')?.value || 'Shadrack Agyei Arthur';
-  var supName = document.getElementById('ptp-supervisor-name')?.value || 'NANA OSAE EMMANUEL';
-  var todayFmt = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-
-  var report = '*DAILY EOD COLLECTION REPORT*
-'
-    + '*' + todayFmt + '*
-'
-    + '──────────────────────
-'
-    + '*Agent:* ' + agentName + '
-'
-    + '*Supervisor:* ' + supName + '
-'
-    + '──────────────────────
-'
-    + '*💰 Collected Today:* ₵' + fmt(todayAmt) + '
-'
-    + '*👥 Active Accounts:* ' + active.length + '
-'
-    + '*✅ Fully Paid Today:* ' + paid.length + '
-'
-    + '*⚠️ Partial Payments:* ' + partial.length + '
-'
-    + '*📋 PTPs Set:* ' + ptps.length + '
-'
-    + '*🤝 PTPs Honoured:* ' + ptpHonoured + '
-'
-    + '*📊 Outstanding Balance:* ₵' + fmt(Math.round(totalOut)) + '
-'
-    + '──────────────────────
-'
-    + '_Submitted via SqueveTrack_';
-
-  document.getElementById('modal-title').textContent = '📤 EOD Collection Report';
-  document.getElementById('modal-body').innerHTML =
-    '<div style="background:var(--surface2);border-radius:8px;padding:14px;font-family:var(--font-mono);font-size:12px;line-height:1.9;white-space:pre-wrap;color:var(--text);margin-bottom:12px">' + report.replace(/\*/g,'<b>').replace(/</g,'<').replace(/>/g,'>').replace(/<b>/g,'<b>').replace(/<\/b>/g,'</b>') + '</div>'
-    + '<div style="font-size:11px;color:var(--text3)">Tap Copy to paste directly into WhatsApp</div>';
-  document.getElementById('modal-footer').innerHTML =
-    '<button class="btn btn-ghost" onclick="closeModal()">Close</button>'
-    + '<button class="btn btn-gold" onclick="copyEodReport(' + JSON.stringify(report).replace(/"/g,"'") + ')">📋 Copy Report</button>';
-  document.getElementById('modal-overlay').classList.add('open');
-}
-function copyEodReport(text) {
-  navigator.clipboard.writeText(text).then(function(){ toast('EOD report copied — paste to WhatsApp ✅','success'); closeModal(); });
-}
-
-// ============================================================
-// FEATURE 8 — CALL LOG PER BORROWER
-// ============================================================
-function openCallLogModal(id) {
-  var b = state.borrowers.find(function(x){ return x.id===id; });
-  if (!b) return;
-  if (!b.callLog) b.callLog = [];
-  var outcomes = ['Answered','No Answer','Promised','Refused'];
-  var outcomeStyles = { 'Answered':'call-outcome-answered','No Answer':'call-outcome-no_answer','Promised':'call-outcome-promised','Refused':'call-outcome-refused' };
-  document.getElementById('modal-title').textContent = '📞 Call Log — ' + b.name.split(' ')[0];
-  document.getElementById('modal-body').innerHTML =
-    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">'
-    + outcomes.map(function(o){
-      return '<button class="btn btn-ghost btn-sm" onclick="logCall(''+id+'',''+o+'')">' + o + '</button>';
-    }).join('')
-    + '</div>'
-    + (b.callLog.length ? b.callLog.slice().reverse().map(function(e){
-      return '<div class="call-entry">'
-        + '<span class="call-outcome-badge ' + (outcomeStyles[e.outcome]||'') + '">' + e.outcome + '</span>'
-        + '<div style="flex:1"><div style="font-size:12px;font-weight:600">' + e.date + (e.time?' at '+e.time:'') + '</div>'
-        + (e.note?'<div style="font-size:11px;color:var(--text3)">'+e.note+'</div>':'')
-        + '</div></div>';
-    }).join('') : '<div class="empty-state" style="padding:20px 0"><div>No calls logged yet</div></div>');
-  document.getElementById('modal-footer').innerHTML = '<button class="btn btn-gold" onclick="closeModal()">Close</button>';
-  document.getElementById('modal-overlay').classList.add('open');
-}
-function logCall(id, outcome) {
-  var b = state.borrowers.find(function(x){ return x.id===id; });
-  if (!b) return;
-  if (!b.callLog) b.callLog = [];
-  var now = new Date();
-  b.callLog.push({ date: now.toISOString().split('T')[0], time: now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}), outcome: outcome, note: '' });
-  saveState();
-  toast(b.name.split(' ')[0] + ': ' + outcome + ' logged', 'success');
-  openCallLogModal(id);
-}
-
-// ============================================================
-// FEATURE 9 — MESSAGE VARIATION WARNING
-// ============================================================
-var _smsSessionLog = {}; // {borrowerId_template: true}
-function checkSmsDupe(borrowerId, templateKey) {
-  var key = borrowerId + '_' + templateKey;
-  var warn = document.getElementById('sms-warn-dupe');
-  if (!warn) return;
-  if (_smsSessionLog[key]) { warn.style.display=''; }
-  else { warn.style.display='none'; }
-}
-function markSmsSent(borrowerId, templateKey) {
-  _smsSessionLog[borrowerId + '_' + templateKey] = true;
-}
-
-// ============================================================
-// FEATURE 10 — PTP HUB (merged)
-// ============================================================
-var _ptpHubTab = 'history';
-function switchPtpHub(tab) {
-  _ptpHubTab = tab;
-  document.getElementById('ptp-hub-history-panel').style.display = tab==='history' ? '' : 'none';
-  document.getElementById('ptp-hub-stats-panel').style.display = tab==='stats' ? '' : 'none';
-  document.getElementById('ptp-hub-tab-history').className = tab==='history' ? 'btn btn-gold btn-sm' : 'btn btn-ghost btn-sm';
-  document.getElementById('ptp-hub-tab-stats').className = tab==='stats' ? 'btn btn-gold btn-sm' : 'btn btn-ghost btn-sm';
-  if (tab==='history') renderPtpHistory();
-  else renderPtpStats();
-}
-
-// ============================================================
-// FEATURE 11 — FORECAST ON DASHBOARD
-// ============================================================
-var _forecastOpen = false;
-function toggleForecastCard() {
-  _forecastOpen = !_forecastOpen;
-  var body = document.getElementById('dash-forecast-body');
-  var chev = document.getElementById('forecast-chevron');
-  if (body) body.style.display = _forecastOpen ? '' : 'none';
-  if (chev) chev.classList.toggle('open', _forecastOpen);
-  if (_forecastOpen) renderDashForecast();
-}
-function renderDashForecast() {
-  var el = document.getElementById('dash-forecast-body');
-  if (!el) return;
-  var logTotal = state.dailyLog.reduce(function(s,e){ return s+(Number(e.collected)||0); }, 0);
-  var now = new Date();
-  var daysInMonth = new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
-  var dom = now.getDate();
-  var daysLeft = daysInMonth - dom;
-  var activeDays = state.dailyLog.filter(function(e){ return (e.collected||0)>0; }).length;
-  var avgDaily = activeDays > 0 ? logTotal/activeDays : 0;
-  var projected = logTotal + (avgDaily * daysLeft);
-  var ptpPotential = (state.borrowers||[]).filter(function(b){ var t=new Date().toISOString().split('T')[0]; return b.promisedToPay&&b.promiseDate&&b.promiseDate.startsWith(t); }).reduce(function(s,b){ return s+getDueToday(b); },0);
-  var target = state.monthlyTarget || 0;
-  var items = [
-    { label:'Collected so far', val:logTotal, color:'var(--text)' },
-    { label:'Avg daily (active days)', val:Math.round(avgDaily), color:'var(--blue)' },
-    { label:'Projected end-of-month', val:Math.round(projected), color:projected>=target&&target>0?'var(--green)':'var(--gold)' },
-    { label:'Today's PTP value', val:Math.round(ptpPotential), color:'var(--purple)' },
-    { label:'Projected with PTPs', val:Math.round(projected+ptpPotential), color:'var(--green)' },
-  ];
-  el.innerHTML = items.map(function(it){
-    return '<div class="summary-row"><span class="summary-label">'+it.label+'</span><span class="summary-value" style="color:'+it.color+'">'+fmtC(it.val)+'</span></div>';
-  }).join('') + (target>0 ? '<div style="margin-top:8px;font-size:11px;color:'+(projected>=target?'var(--green)':'var(--red)')+';">' + (projected>=target ? '✅ On track to hit target' : '⚠️ Below target — gap: '+fmtC(Math.round(target-projected))) + '</div>' : '');
-}
-
-// ============================================================
-// FEATURE 12 — KEYBOARD SHORTCUTS
-// ============================================================
-document.addEventListener('keydown', function(e) {
-  if (e.target.tagName==='INPUT' || e.target.tagName==='TEXTAREA' || e.target.tagName==='SELECT') return;
-  if (e.ctrlKey || e.metaKey || e.altKey) return;
-  var shortcuts = { 'd':'dashboard','l':'loans','a':'analytics','w':'dispatch','s':'smsblast','p':'ptp','r':'ranking','g':'log' };
-  if (shortcuts[e.key]) { navigate(shortcuts[e.key]); return; }
-  if (e.key==='f' || e.key==='/') {
-    e.preventDefault();
-    var si = document.getElementById('global-search-input') || document.getElementById('loan-search');
-    if (si) { si.focus(); si.select(); }
-  }
-  if (e.key==='n' || e.key==='N') openAddModal();
-});
-
-// ============================================================
-// FEATURE 13 — NOTES UPGRADE
-// ============================================================
-var NOTE_TEMPLATES = [
-  'Called — no answer',
-  'Called — promised to pay',
-  'Pays on Fridays',
-  'Husband/wife usually answers',
-  'Number changed — update needed',
-  'Follow up tomorrow morning',
-  'Needs instalment plan',
-  'Do not call after 6PM'
-];
-
-function openNoteModal(id) {
-  var b = state.borrowers.find(function(x){ return x.id===id; });
-  if (!b) return;
-  if (!b.noteLog) b.noteLog = [];
-  document.getElementById('modal-title').textContent = '📝 Notes — ' + b.name.split(' ')[0];
-  document.getElementById('modal-body').innerHTML =
-    '<div class="note-template-btns">'
-    + NOTE_TEMPLATES.map(function(t){ return '<span class="note-tmpl" onclick="insertNoteTemplate('+JSON.stringify(t).replace(/"/g,"'")+')">'+t+'</span>'; }).join('')
-    + '</div>'
-    + '<div class="form-group">'
-    + '<label>Add Note</label>'
-    + '<textarea class="form-input" id="note-input-text" rows="3" placeholder="Type a note or tap a template above...">' + (b.notes||'') + '</textarea>'
-    + '</div>'
-    + (b.noteLog.length ? '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">History</div>'
-      + b.noteLog.slice().reverse().map(function(e){
-        return '<div class="note-entry"><div class="note-dot"></div><div><div style="font-size:12px">' + e.text + '</div><div style="font-size:10px;color:var(--text3)">' + e.date + (e.time?' at '+e.time:'') + '</div></div></div>';
-      }).join('') : '');
-  document.getElementById('modal-footer').innerHTML =
-    '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
-    + '<button class="btn btn-gold" id="save-note-upgrade-btn">Save Note</button>';
-  document.getElementById('modal-overlay').classList.add('open');
-  setTimeout(function(){
-    var snb = document.getElementById('save-note-upgrade-btn');
-    if (snb) snb.addEventListener('click', function(){
-      var text = document.getElementById('note-input-text')?.value.trim();
-      if (!text) { closeModal(); return; }
-      b.notes = text;
-      if (!b.noteLog) b.noteLog = [];
-      var now = new Date();
-      b.noteLog.push({ text: text, date: now.toISOString().split('T')[0], time: now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) });
-      if (b.noteLog.length > 30) b.noteLog = b.noteLog.slice(-30);
-      saveState(); closeModal();
-      toast('Note saved for ' + b.name.split(' ')[0], 'success');
-      renderCurrentPage();
-    });
-  },0);
-}
-function insertNoteTemplate(t) {
-  var el = document.getElementById('note-input-text');
-  if (el) { el.value = t; el.focus(); }
-}
-
-// ============================================================
-// FEATURE 14 — CHARACTER RING (SMS)
-// ============================================================
-function updateSmsCharRing(text) {
-  var n = (text||'').length;
-  var maxC = 2*Math.PI*14;
-  var pct = Math.min(1, n/160);
-  var fill = document.getElementById('sms-ring-fill');
-  var lbl = document.getElementById('sms-char-count-lbl');
-  if (!fill || !lbl) return;
-  var color = n <= 160 ? 'var(--green)' : n <= 320 ? 'var(--orange)' : 'var(--red)';
-  fill.setAttribute('stroke', color);
-  fill.setAttribute('stroke-dasharray', (maxC*pct).toFixed(2) + ' ' + maxC.toFixed(2));
-  lbl.textContent = n > 999 ? '99+' : n;
-  lbl.style.color = color;
-}
-
-// ============================================================
-// FEATURE 15 — PENDING SYNC COUNTER
-// ============================================================
-var _pendingChanges = 0;
-function incrementPending() {
-  _pendingChanges++;
-  var row = document.getElementById('pending-sync-row');
-  var cnt = document.getElementById('pending-count');
-  if (row) row.style.display = _pendingChanges > 0 ? '' : 'none';
-  if (cnt) cnt.textContent = _pendingChanges;
-}
-function clearPending() {
-  _pendingChanges = 0;
-  var row = document.getElementById('pending-sync-row');
-  if (row) row.style.display = 'none';
-}
-
-// ============================================================
-// FEATURE 17 — DAILY PERSONAL BEST (logic in renderPerfRow)
-// ============================================================
-// Already handled in renderPerfRow above
-
-// ============================================================
-// FEATURE 18 — BEST BORROWER BADGES
-// ============================================================
-function getBorrowerBadge(b) {
-  if (!b.payLog || !b.payLog.length) return '';
-  var hasPaid = b.payLog.some(function(e){ return (e.delta||0)>0; });
-  var brokenPromise = b.promisedToPay && getStatus(b) === 'Unpaid' && b.promiseDate && b.promiseDate < new Date().toISOString().split('T')[0];
-  var payRatio = b.loanDue > 0 ? b.amountPaid / b.loanDue : 0;
-  if (brokenPromise) return ' <span class="borrower-badge-cautious" title="Broke a promise">⚠️</span>';
-  if (payRatio >= 0.5 && hasPaid) return ' <span class="borrower-badge-reliable" title="Reliable payer">⭐</span>';
-  return '';
-}
-
-// ============================================================
-// FEATURE 19 — DAY OF WEEK HEATMAP (chart)
-// ============================================================
-function renderDowChart() {
-  var ctx = document.getElementById('chart-dow');
-  if (!ctx) return;
-  var days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  var totals = [0,0,0,0,0,0,0];
-  var counts = [0,0,0,0,0,0,0];
-  state.dailyLog.forEach(function(e){
-    if (!e.collected || !e.date) return;
-    var dow = new Date(e.date).getDay(); // 0=Sun
-    var idx = dow === 0 ? 6 : dow-1;
-    totals[idx] += e.collected;
-    counts[idx]++;
-  });
-  var avgs = totals.map(function(t,i){ return counts[i]>0 ? Math.round(t/counts[i]) : 0; });
-  if (charts['dow']) { charts['dow'].destroy(); delete charts['dow']; }
-  charts['dow'] = new Chart(ctx, {
-    type:'bar',
-    data:{
-      labels:days,
-      datasets:[{
-        label:'Avg Collection (₵)',
-        data:avgs,
-        backgroundColor:avgs.map(function(v){ var m=Math.max.apply(null,avgs)||1; return v===m?chartGoldColor():'rgba(96,165,250,0.4)'; }),
-        borderRadius:4
-      }]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
-      scales:{
-        x:{ticks:{color:chartTextColor(),font:{family:'Instrument Sans',size:12}},grid:{display:false}},
-        y:{ticks:{color:chartTextColor(),font:{family:'IBM Plex Mono',size:11},callback:function(v){ return '₵'+v.toLocaleString(); }},grid:{color:'rgba(255,255,255,0.04)'}}
-      }
-    }
-  });
-}
-
-// ============================================================
-// FEATURE 1 — RANKING TRACKER
-// ============================================================
-var _rankHistory = JSON.parse(localStorage.getItem('rank_history')||'[]');
-var _myAgentName = localStorage.getItem('rank_agent_name')||'Shadrack Agyei';
-
-function openApiKeyModal() {
-  var current = localStorage.getItem('anthropic_key')||'';
-  var agentName = localStorage.getItem('rank_agent_name')||'';
-  document.getElementById('modal-title').textContent = '🔑 API Settings';
-  document.getElementById('modal-body').innerHTML =
-    '<div class="form-group">'
-    + '<label>Anthropic API Key</label>'
-    + '<input type="password" class="form-input" id="api-key-input" placeholder="sk-ant-..." value="' + current + '" style="font-family:var(--font-mono);font-size:12px">'
-    + '<div style="font-size:11px;color:var(--text3);margin-top:4px">Get yours free at <a href="https://console.anthropic.com" target="_blank" style="color:var(--gold)">console.anthropic.com</a> · Stored locally on your device only</div>'
-    + '</div>'
-    + '<div class="form-group">'
-    + '<label>Your Agent Name <span style="font-size:11px;color:var(--text3)">(must match name on ranking board)</span></label>'
-    + '<input type="text" class="form-input" id="rank-agent-name-input" placeholder="e.g. Shadrack Agyei" value="' + agentName + '">'
-    + '</div>';
-  document.getElementById('modal-footer').innerHTML =
-    '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
-    + '<button class="btn btn-red btn-sm" onclick="clearApiKey()" style="margin-right:auto">Remove Key</button>'
-    + '<button class="btn btn-gold" id="save-api-btn">Save</button>';
-  document.getElementById('modal-overlay').classList.add('open');
-  setTimeout(function(){
-    var sb = document.getElementById('save-api-btn');
-    if (sb) sb.addEventListener('click', function(){
-      var key = document.getElementById('api-key-input')?.value.trim();
-      var name = document.getElementById('rank-agent-name-input')?.value.trim();
-      if (key) { localStorage.setItem('anthropic_key', key); toast('API key saved ✅','success'); }
-      if (name) { localStorage.setItem('rank_agent_name', name); _myAgentName = name; }
-      closeModal(); renderRanking();
-    });
-  },0);
-}
-function clearApiKey() {
-  localStorage.removeItem('anthropic_key');
-  toast('API key removed','info');
-  closeModal(); renderRanking();
-}
-
-function handleRankingDrop(e) {
-  e.preventDefault();
-  document.getElementById('ranking-drop-zone').classList.remove('drag-over');
-  var file = e.dataTransfer?.files[0];
-  if (file && file.type.startsWith('image/')) processRankingImage(file);
-}
-function handleRankingScan(input) {
-  var file = input.files[0];
-  if (file) processRankingImage(file);
-  input.value = '';
-}
-
-async function processRankingImage(file) {
-  var apiKey = localStorage.getItem('anthropic_key');
-  if (!apiKey) { openApiKeyModal(); return; }
-  var status = document.getElementById('ranking-scan-status');
-  if (status) status.textContent = '🔍 Scanning image with AI…';
-  try {
-    var b64 = await new Promise(function(res,rej){
-      var r = new FileReader();
-      r.onload = function(){ res(r.result.split(',')[1]); };
-      r.onerror = rej;
-      r.readAsDataURL(file);
-    });
-    var resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body: JSON.stringify({
-        model:'claude-opus-4-6',
-        max_tokens:1024,
-        messages:[{role:'user',content:[
-          {type:'image',source:{type:'base64',media_type:file.type||'image/jpeg',data:b64}},
-          {type:'text',text:'This is a loan collection ranking table. Extract all rows. Return ONLY valid JSON array: [{"rank":1,"name":"Full Name","supervisor":"Supervisor","percentage":23.6},...]. No markdown, no explanation, just the JSON array.'}
-        ]}]
-      })
-    });
-    var data = await resp.json();
-    if (!resp.ok) throw new Error(data.error?.message || 'API error');
-    var raw = data.content?.find(function(c){ return c.type==='text'; })?.text || '';
-    // strip markdown fences if any
-    raw = raw.replace(/```json|```/g,'').trim();
-    var entries = JSON.parse(raw);
-    if (!Array.isArray(entries) || !entries.length) throw new Error('No data found in image');
-    saveRankingScan(entries);
-    if (status) status.textContent = '✅ Found ' + entries.length + ' agents!';
-    setTimeout(function(){ if(status) status.textContent=''; }, 3000);
-    renderRanking();
-  } catch(e) {
-    console.error(e);
-    if (status) status.textContent = '❌ Error: ' + e.message;
-  }
-}
-
-function saveRankingScan(entries) {
-  var today = new Date().toISOString().split('T')[0];
-  var scan = { date: today, entries: entries, scannedAt: new Date().toISOString() };
-  _rankHistory = _rankHistory.filter(function(h){ return h.date !== today; });
-  _rankHistory.unshift(scan);
-  if (_rankHistory.length > 60) _rankHistory = _rankHistory.slice(0,60);
-  localStorage.setItem('rank_history', JSON.stringify(_rankHistory));
-}
-
-function clearRankingHistory() {
-  if (!confirm('Clear all ranking history?')) return;
-  _rankHistory = [];
-  localStorage.removeItem('rank_history');
-  renderRanking();
-  toast('Ranking history cleared','info');
-}
-
-function renderRanking() {
-  var apiKey = localStorage.getItem('anthropic_key');
-  var banner = document.getElementById('ranking-api-banner');
-  if (banner) banner.style.display = apiKey ? 'none' : '';
-
-  var kpisEl = document.getElementById('ranking-kpis');
-  var latestEl = document.getElementById('ranking-latest-list');
-  var latestDateEl = document.getElementById('ranking-latest-date');
-  var historyEl = document.getElementById('ranking-history-list');
-  var chartMetaEl = document.getElementById('ranking-chart-meta');
-  if (!kpisEl) return;
-
-  if (!_rankHistory.length) {
-    kpisEl.innerHTML = '';
-    if (latestEl) latestEl.innerHTML = '<div class="empty-state"><div class="icon">📸</div><div>Scan your first ranking screenshot to begin</div></div>';
-    if (historyEl) historyEl.innerHTML = '<div class="empty-state" style="padding:20px 0"><div>No scans yet</div></div>';
-    return;
-  }
-
-  var latest = _rankHistory[0];
-  var myEntry = latest.entries.find(function(e){ return e.name && e.name.toLowerCase().includes(_myAgentName.split(' ')[0].toLowerCase()); });
-  var myPos = myEntry ? myEntry.rank : null;
-  var myPct = myEntry ? myEntry.percentage : null;
-
-  // KPIs
-  if (myEntry) {
-    var top = latest.entries[0];
-    var above = myPos > 1 ? latest.entries.find(function(e){ return e.rank === myPos-1; }) : null;
-    var gapToFirst = top ? (top.percentage - myPct).toFixed(2) : null;
-    var gapToAbove = above ? (above.percentage - myPct).toFixed(2) : null;
-    kpisEl.innerHTML =
-      '<div class="kpi-card gold"><div class="kpi-label">My Position</div><div class="kpi-value gold">#' + myPos + '</div><div class="kpi-sub">' + (myPct||0) + '% recovery rate</div></div>'
-      + (gapToFirst ? '<div class="kpi-card red"><div class="kpi-label">Gap to #1</div><div class="kpi-value red">-' + gapToFirst + '%</div><div class="kpi-sub">' + top.name.split(' ')[0] + ' at ' + top.percentage + '%</div></div>' : '')
-      + (gapToAbove ? '<div class="kpi-card blue"><div class="kpi-label">Gap to #' + (myPos-1) + '</div><div class="kpi-value" style="color:var(--blue)">-' + gapToAbove + '%</div><div class="kpi-sub">Need +' + gapToAbove + '% to move up</div></div>' : '')
-      + '<div class="kpi-card green"><div class="kpi-label">Scans Recorded</div><div class="kpi-value green">' + _rankHistory.length + '</div><div class="kpi-sub">Last: ' + latest.date + '</div></div>';
-  } else {
-    kpisEl.innerHTML = '<div class="kpi-card" style="grid-column:1/-1"><div class="kpi-label">Note</div><div style="font-size:12px;color:var(--text3)">Set your agent name in API settings to see personalised KPIs</div></div>';
-  }
-
-  // Latest list
-  if (latestEl) {
-    if (latestDateEl) latestDateEl.textContent = latest.date;
-    latestEl.innerHTML = latest.entries.slice(0,15).map(function(e) {
-      var isMe = e.name && e.name.toLowerCase().includes(_myAgentName.split(' ')[0].toLowerCase());
-      return '<div class="ranking-entry">'
-        + '<div class="rank-pos ' + (isMe?'rank-me':'') + '">' + (e.rank||'—') + '</div>'
-        + '<div class="rank-name" style="' + (isMe?'color:var(--gold);font-weight:700':'') + '">' + (e.name||'Unknown') + (isMe?' ← You':'') + '</div>'
-        + '<div class="rank-pct" style="color:' + (isMe?'var(--gold)':'var(--text2)') + '">' + (e.percentage||0) + '%</div>'
-        + '</div>';
-    }).join('');
-  }
-
-  // History list
-  if (historyEl) {
-    historyEl.innerHTML = _rankHistory.map(function(scan) {
-      var me = scan.entries.find(function(e){ return e.name && e.name.toLowerCase().includes(_myAgentName.split(' ')[0].toLowerCase()); });
-      return '<div class="summary-row">'
-        + '<div><div style="font-size:12px;font-weight:600">' + scan.date + '</div>'
-        + '<div style="font-size:11px;color:var(--text3)">' + scan.entries.length + ' agents scanned</div></div>'
-        + (me ? '<div style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--gold)">#' + me.rank + ' · ' + me.percentage + '%</div>' : '<div style="font-size:12px;color:var(--text3)">—</div>')
-        + '</div>';
-    }).join('');
-  }
-
-  // Chart
-  renderRankingChart();
-}
-
-function renderRankingChart() {
-  var ctx = document.getElementById('chart-ranking');
-  if (!ctx || !_rankHistory.length) return;
-  var sorted = [..._rankHistory].sort(function(a,b){ return a.date.localeCompare(b.date); });
-  var labels = sorted.map(function(s){ return s.date; });
-  var myPositions = sorted.map(function(s){
-    var me = s.entries.find(function(e){ return e.name && e.name.toLowerCase().includes(_myAgentName.split(' ')[0].toLowerCase()); });
-    return me ? me.rank : null;
-  });
-  var myPcts = sorted.map(function(s){
-    var me = s.entries.find(function(e){ return e.name && e.name.toLowerCase().includes(_myAgentName.split(' ')[0].toLowerCase()); });
-    return me ? me.percentage : null;
-  });
-  if (charts['ranking']) { charts['ranking'].destroy(); delete charts['ranking']; }
-  charts['ranking'] = new Chart(ctx, {
-    type:'line',
-    data:{
-      labels:labels,
-      datasets:[
-        { label:'My Position', data:myPositions, borderColor:chartGoldColor(), backgroundColor:'rgba(232,160,32,0.1)', tension:0.3, pointRadius:5, pointBackgroundColor:chartGoldColor(), yAxisID:'y1' },
-        { label:'My % Rate', data:myPcts, borderColor:'rgba(96,165,250,0.8)', backgroundColor:'rgba(96,165,250,0.05)', tension:0.3, pointRadius:4, borderDash:[4,2], yAxisID:'y2' }
-      ]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{labels:{color:chartTextColor(),font:{family:'Instrument Sans',size:12}}}},
-      scales:{
-        x:{ticks:{color:chartTextColor(),font:{family:'IBM Plex Mono',size:11}},grid:{display:false}},
-        y1:{position:'left',reverse:true,min:1,ticks:{color:chartGoldColor(),font:{family:'IBM Plex Mono',size:11},stepSize:1},title:{display:true,text:'Rank',color:chartGoldColor()}},
-        y2:{position:'right',ticks:{color:'rgba(96,165,250,0.8)',font:{family:'IBM Plex Mono',size:11},callback:function(v){ return v+'%'; }},grid:{display:false},title:{display:true,text:'Rate %',color:'rgba(96,165,250,0.8)'}}
-      }
-    }
-  });
-  var metaEl = document.getElementById('ranking-chart-meta');
-  if (metaEl) metaEl.textContent = _rankHistory.length + ' scan' + (_rankHistory.length!==1?'s':'') + ' recorded';
-}
-
-// ============================================================
-// FEATURE 16 — THEME SYNC TO SUPABASE (via state)
-// ============================================================
-// Theme preference is stored in state.theme + localStorage for fast load
-// Already handled by existing applyTheme/toggleTheme — we just patch migrateState
-
 });
 </script>
 </body>
