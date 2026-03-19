@@ -5681,7 +5681,7 @@ function sqTreadmillAlert(){
   return '<div style="background:rgba(96,165,250,0.07);border:1px solid rgba(96,165,250,0.22);border-left:4px solid var(--blue);border-radius:8px;padding:12px 18px;margin-bottom:14px;animation:fadeUp 0.3s ease both">'
     +'<div style="font-weight:700;color:var(--blue);font-size:13px">⚙️ Treadmill: '+newD6.length+' new account'+(newD6.length>1?'s:':':')+' joined M2 today</div>'
     +'<div style="font-size:11px;color:var(--text3);margin-top:3px">Your rate dropped before collecting anything · '+fmtC(Math.round(tot))+' new outstanding</div>'
-    +'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">'+newD6.slice(0,5).map(function(b){return '<span style="background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:2px 9px;font-size:11px;cursor:pointer" onclick="openPayModal(''+b.id+'')">'+b.name.split(' ')[0]+' · '+fmtC(getDueToday(b))+'</span>';}).join('')+'</div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">'+newD6.slice(0,5).map(function(b){return '<span style="background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:2px 9px;font-size:11px;cursor:pointer" onclick="openPayModal(this.dataset.id)" data-id='+b.id+'>'+b.name.split(' ')[0]+' · '+fmtC(getDueToday(b))+'</span>';}).join('')+'</div>'
     +'</div>';
 }
 
@@ -5741,15 +5741,16 @@ function sqRenderHitList(){
   items.innerHTML=list.map(function(id){
     var b=state.borrowers.find(function(x){return x.id===id;}); if(!b) return '';
     var ph=b.phone.replace(/\s/g,'').replace('+','');
-    return '<div class="hit-list-item">'
-      +'<div class="hit-list-name">'+b.name+'</div>'
-      +'<div class="hit-list-meta">Day '+getOdAge(b.startDate)+' · '+fmtC(getDueToday(b))+'</div>'
-      +'<div class="hit-list-actions">'
-      +'<button class="sq-hit-btn" onclick="openPayModal(''+id+'')">💰</button>'
-      +'<a href="tel:'+b.phone+'" class="sq-hit-btn" style="text-decoration:none">📞</a>'
-      +'<a href="https://wa.me/'+ph+'" target="_blank" class="sq-hit-btn" style="text-decoration:none">💬</a>'
-      +'<button class="sq-hit-btn" onclick="sqToggleHit(''+id+')" style="color:var(--red)">✕</button>'
-      +'</div></div>';
+    var row='<div class="hit-list-item">';
+    row+='<div class="hit-list-name">'+b.name+'</div>';
+    row+='<div class="hit-list-meta">Day '+getOdAge(b.startDate)+' · '+fmtC(getDueToday(b))+'</div>';
+    row+='<div class="hit-list-actions">';
+    row+='<button class="sq-hit-btn" onclick="openPayModal(this.dataset.id)" data-id="'+id+'">💰</button>';
+    row+='<a href="tel:'+b.phone+'" class="sq-hit-btn" style="text-decoration:none">📞</a>';
+    row+='<a href="https://wa.me/'+ph+'" target="_blank" class="sq-hit-btn" style="text-decoration:none">💬</a>';
+    row+='<button class="sq-hit-btn" onclick="sqToggleHit(this.dataset.id)" data-id="'+id+'" style="color:var(--red)">✕</button>';
+    row+='</div></div>';
+    return row;
   }).join('');
 }
 
@@ -5799,7 +5800,7 @@ function sqOpenCallLog(id){
   var clsMap={'Answered':'sq-cb-ans','No Answer':'sq-cb-no','Promised':'sq-cb-prom','Refused':'sq-cb-ref'};
   document.getElementById('modal-title').textContent='📞 Call Log — '+b.name.split(' ')[0];
   document.getElementById('modal-body').innerHTML=
-    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">'+outs.map(function(o){return '<button class="btn btn-ghost btn-sm" onclick="sqLogCall(''+id+'',''+o+'')">'+o+'</button>';}).join('')+'</div>'
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">'+outs.map(function(o){return '<button class="btn btn-ghost btn-sm" onclick="sqLogCall(this.dataset.bid,this.dataset.out)" data-bid='+id+' data-out='+o+'>'+o+'</button>';}).join('')+'</div>'
     +(b.callLog.length?b.callLog.slice().reverse().map(function(e){return '<div class="sq-call-entry"><span class="sq-cb '+(clsMap[e.outcome]||'')+'">'+e.outcome+'</span><div style="flex:1"><div style="font-size:12px;font-weight:600">'+e.date+(e.time?' at '+e.time:'')+'</div>'+(e.note?'<div style="font-size:11px;color:var(--text3)">'+e.note+'</div>':'')+'</div></div>';}).join(''):'<div class="empty-state" style="padding:20px 0"><div>No calls logged yet</div></div>');
   document.getElementById('modal-footer').innerHTML='<button class="btn btn-gold" onclick="closeModal()">Close</button>';
   document.getElementById('modal-overlay').classList.add('open');
@@ -5819,7 +5820,7 @@ function sqOpenNoteModal(id){
   if(!b.noteLog) b.noteLog=[];
   document.getElementById('modal-title').textContent='📝 Notes — '+b.name.split(' ')[0];
   document.getElementById('modal-body').innerHTML=
-    '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">'+_sqNoteTemplates.map(function(t){return '<span class="sq-note-tmpl" onclick="sqNoteInsert(this,''+encodeURIComponent(t)+'')">'+t+'</span>';}).join('')+'</div>'
+    '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">'+_sqNoteTemplates.map(function(t){return '<span class="sq-note-tmpl" onclick="sqNoteInsert(this,this.dataset.enc)" data-enc='+encodeURIComponent(t)+">'+t+'</span>';}).join('')+'</div>'
     +'<div class="form-group"><label>Note</label><textarea class="form-input" id="sq-note-ta" rows="3" placeholder="Type or tap a template above...">'+(b.notes||'')+'</textarea></div>'
     +(b.noteLog.length?'<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">History</div>'+b.noteLog.slice().reverse().map(function(e){return '<div class="sq-note-entry"><div class="sq-note-dot"></div><div><div style="font-size:12px">'+e.text+'</div><div style="font-size:10px;color:var(--text3)">'+e.date+(e.time?' at '+e.time:'')+'</div></div></div>';}).join(''):'');
   document.getElementById('modal-footer').innerHTML='<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-gold" id="sq-note-save">Save Note</button>';
