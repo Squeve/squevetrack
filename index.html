@@ -1013,6 +1013,10 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
         <div class="card-header"><span class="card-title">⭐ Payment Behaviour Scores</span></div>
         <div class="card-body" id="analytics-behaviour"></div>
       </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">📅 Account Aging Timeline</span></div>
+        <div class="card-body" id="analytics-aging"></div>
+      </div>
       <div class="card full">
         <div class="card-header"><span class="card-title">📊 OD Fee Accrual Tracker</span></div>
         <div class="card-body"><div class="chart-wrap"><canvas id="chart-odfee-accrual"></canvas></div></div>
@@ -1995,9 +1999,36 @@ function renderDashboard() {
       + '</div>';
     alertHtml = zeroHtml + alertHtml;
   }
+  // Collection gap alert
+  if (state.monthlyTarget > 0) {
+    var nowG = new Date();
+    var dimG = new Date(nowG.getFullYear(),nowG.getMonth()+1,0).getDate();
+    var domG = nowG.getDate();
+    var dlG  = dimG - domG;
+    var expG = (state.monthlyTarget / dimG) * domG;
+    var gapG = expG - logTotal;
+    var pctG = expG > 0 ? gapG / expG : 0;
+    var npdG = dlG > 0 ? Math.ceil(Math.max(0, state.monthlyTarget - logTotal) / dlG) : 0;
+    if (gapG > 100 && pctG > 0.1) {
+      var sev = pctG >= 0.4 ? 'var(--red)' : 'var(--orange)';
+      var sevBg = pctG >= 0.4 ? 'rgba(239,68,68,0.07)' : 'rgba(249,115,22,0.07)';
+      var sevBd = pctG >= 0.4 ? 'rgba(239,68,68,0.2)' : 'rgba(249,115,22,0.2)';
+      alertHtml = '<div style="background:'+sevBg+';border:1px solid '+sevBd+';border-left:4px solid '+sev+';border-radius:8px;padding:12px 18px;margin-bottom:14px;animation:fadeIn 0.3s ease both">'
+        + '<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px">'
+        + '<div><div style="font-weight:700;color:'+sev+';font-size:13px">' + (pctG>=0.4?'🚨':'⚠️') + ' Behind collection pace</div>'
+        + '<div style="font-size:11px;color:var(--text3);margin-top:3px">Expected ' + fmtC(Math.round(expG)) + ' by today &middot; collected ' + fmtC(Math.round(logTotal)) + ' &middot; gap ' + fmtC(Math.round(gapG)) + '</div>'
+        + '<div style="font-size:11px;font-weight:600;color:'+sev+';margin-top:2px">Need ' + fmtC(npdG) + '/day for remaining ' + dlG + ' days to hit target</div>'
+        + '</div>'
+        + '<button class="btn btn-ghost btn-sm" id="gap-log-btn" style="border-color:'+sev+';color:'+sev+'">Log Now</button>'
+        + '</div></div>'
+        + alertHtml;
+    }
+  }
   document.getElementById('dash-alerts').innerHTML = alertHtml;
   var zlb = document.getElementById('zero-log-btn');
   if (zlb) zlb.addEventListener('click', function() { navigate('log'); });
+  var glb = document.getElementById('gap-log-btn');
+  if (glb) glb.addEventListener('click', function() { navigate('log'); });
   // Wire alert buttons via delegation
   var ab = document.getElementById('alert-aging-btn');
   if (ab) ab.addEventListener('click', function() { filterAndNavigate('loans','',15); });
@@ -2510,7 +2541,7 @@ function renderAnalytics() {
     + scoredBorrowers.map(b => {
         const col = b.score >= 80 ? 'var(--green)' : b.score >= 50 ? 'var(--gold)' : 'var(--red)';
         const w = b.score + '%';
-        return '<div style="margin-bottom:10px;cursor:pointer" onclick="openPayModal(\''+b.id+'\')">'
+        return '<div style="margin-bottom:10px;cursor:pointer" onclick="openRiskCard(\''+b.id+'\')">'
           + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px">'
           + '<div>'
           + '<div style="font-size:12px;font-weight:600">'+b.name.split(' ')[0]+'</div>'
@@ -2521,6 +2552,48 @@ function renderAnalytics() {
           + '<div style="width:'+w+';height:100%;background:'+col+';border-radius:4px;transition:width 0.8s ease"></div>'
           + '</div></div>';
       }).join('');
+
+  // ── Account Aging Timeline ───────────────────────────────
+  var agingEl = document.getElementById('analytics-aging');
+  if (agingEl) {
+    var agBands = [
+      {label:'Day 6-7', min:6,max:7,  color:'rgba(96,165,250,0.75)'},
+      {label:'Day 8-9', min:8,max:9,  color:'rgba(232,160,32,0.75)'},
+      {label:'Day 10-11',min:10,max:11,color:'rgba(249,115,22,0.75)'},
+      {label:'Day 12-13',min:12,max:13,color:'rgba(239,68,68,0.75)'},
+      {label:'Day 14-15',min:14,max:15,color:'rgba(168,85,247,0.85)'},
+    ];
+    var agMax = Math.max.apply(null, agBands.map(function(bd){
+      return active.filter(function(b){ var o=getOdAge(b.startDate); return o>=bd.min&&o<=bd.max; }).length;
+    }).concat([1]));
+    var agHtml = '<div style="font-size:11px;color:var(--text3);margin-bottom:10px">Tap any band to view those accounts in Borrowers</div>';
+    agHtml += agBands.map(function(bd) {
+      var grp = active.filter(function(b){ var o=getOdAge(b.startDate); return o>=bd.min&&o<=bd.max; });
+      var cnt = grp.length, due = grp.reduce(function(s,b){ return s+getDueToday(b); },0);
+      var pct = Math.round(cnt/agMax*100);
+      return '<div class="ag-band" data-agmin="'+bd.min+'" style="display:flex;align-items:center;gap:10px;margin-bottom:8px;cursor:pointer">'
+        + '<div style="font-size:11px;color:var(--text3);min-width:68px">'+bd.label+'</div>'
+        + '<div style="flex:1;background:var(--border);border-radius:4px;height:24px;overflow:hidden">'
+        + '<div style="width:'+pct+'%;height:100%;background:'+bd.color+';display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:700;color:#fff;min-width:'+(cnt>0?'28px':'0')+'">'+( cnt>0?cnt:'' )+'</div>'
+        + '</div>'
+        + '<div style="font-family:var(--font-mono);font-size:11px;font-weight:700;min-width:70px;text-align:right;color:var(--text2)">'+fmtC(due)+'</div>'
+        + '</div>';
+    }).join('');
+    // Dot timeline
+    agHtml += '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">'
+      + '<div style="font-size:11px;color:var(--text3);margin-bottom:6px">Account positions (Day 6 → 15)</div>'
+      + '<div style="position:relative;height:24px;background:linear-gradient(to right,rgba(96,165,250,0.12),rgba(168,85,247,0.2));border-radius:6px">';
+    active.forEach(function(b) {
+      var od=getOdAge(b.startDate), pct2=Math.round((od-6)/9*100);
+      var dc=od>=14?'#a855f7':od>=12?'#ef4444':od>=10?'#f97316':od>=8?'#e8a020':'#60a5fa';
+      agHtml += '<div style="position:absolute;left:'+pct2+'%;top:50%;transform:translate(-50%,-50%);width:8px;height:8px;border-radius:50%;background:'+dc+';opacity:0.85" title="'+b.name+' Day '+od+'"></div>';
+    });
+    agHtml += '</div><div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:2px"><span>Day 6</span><span>Day 15</span></div></div>';
+    agingEl.innerHTML = agHtml;
+    agingEl.querySelectorAll('.ag-band').forEach(function(el){
+      el.addEventListener('click',function(){ filterAndNavigate('loans','',parseInt(el.dataset.agmin)); });
+    });
+  }
 
   // ── OD Fee Accrual Tracker ────────────────────────────────
   const feeByType = { LoanBase: 0, 'LoanBase Pro': 0 };
@@ -3403,6 +3476,7 @@ function recordPayment(id) {
   }
   purgeAgedOut(); saveState(); closeModal();
   const status = getStatus(b);
+  haptic(status==='Paid'?'success':'light');
   toast((status==='Paid'?'✅ ':'💰 ')+b.name.split(' ')[0]+(status==='Paid'?' fully paid!':' payment recorded'),'success');
   updateBadges(); renderCurrentPage();
 }
@@ -3606,6 +3680,7 @@ function savePromise(id) {
   b.promisedToPay = true;
   b.promiseDate = date + (time ? ' ' + time : '');
   b.promiseNote = note;
+  haptic('light');
   saveState(); closeModal(); renderCurrentPage();
   toast(b.name.split(' ')[0] + ' promised to pay on ' + date + (time ? ' at ' + time : '') + ' 🤝', 'success');
 }
@@ -4191,6 +4266,81 @@ function navigateDrawer(page) {
   navigate(page);
 }
 
+
+
+function haptic(type) {
+  if (!navigator.vibrate) return;
+  if (type === 'success') navigator.vibrate([30,20,60]);
+  else if (type === 'warning') navigator.vibrate([20,30,20]);
+  else navigator.vibrate(15);
+}
+
+
+function getRiskBreakdown(b) {
+  var od = getOdAge(b.startDate);
+  var ratio = b.loanDue > 0 ? b.amountPaid / b.loanDue : 0;
+  var factors = [], score = 50;
+  factors.push({ label:'Base score', points:50, desc:'Starting point for all borrowers', pos:true });
+  if (b.amountPaid > 0) {
+    factors.push({ label:'Has made payment', points:20, desc:'Account shows payment history', pos:true }); score += 20;
+  } else {
+    factors.push({ label:'No payment made', points:0, desc:'No payment activity recorded', pos:false });
+  }
+  var ratioPts = Math.round(ratio * 20);
+  if (ratioPts > 0) {
+    factors.push({ label:'Payment ratio ('+Math.round(ratio*100)+'%)', points:ratioPts, desc:'Proportion of loan already repaid', pos:true }); score += ratioPts;
+  }
+  var odPen = (od - 6) * 3;
+  if (odPen > 0) {
+    factors.push({ label:'OD age penalty (Day '+od+')', points:-odPen, desc:'Score drops 3pts per day overdue past Day 6', pos:false }); score -= odPen;
+  }
+  if (b.promisedToPay) {
+    factors.push({ label:'Has promise to pay', points:5, desc:'Borrower committed to a payment date', pos:true }); score += 5;
+  }
+  score = Math.max(0, Math.min(100, score));
+  var tier = score >= 80 ? 'A' : score >= 50 ? 'B' : 'C';
+  var tierLabel = tier==='A' ? 'High Likelihood' : tier==='B' ? 'Moderate Risk' : 'High Risk';
+  var tierColor = tier==='A' ? 'var(--green)' : tier==='B' ? 'var(--gold)' : 'var(--red)';
+  return { score:score, tier:tier, tierLabel:tierLabel, tierColor:tierColor, factors:factors };
+}
+
+function openRiskCard(id) {
+  var b = state.borrowers.find(function(x){ return x.id===id; });
+  if (!b) return;
+  var rd = getRiskBreakdown(b);
+  var rec = rd.tier==='A'
+    ? 'Likely to respond to a gentle reminder or small incentive. Prioritise contact early in the day.'
+    : rd.tier==='B'
+    ? 'May need multiple contact attempts. Consider a generous offer to close the account.'
+    : 'High escalation risk. Recommend formal notice and same-day follow-up.';
+  document.getElementById('modal-title').textContent = 'Risk Score — '+b.name.split(' ')[0];
+  document.getElementById('modal-body').innerHTML =
+    '<div style="text-align:center;padding:16px 0 20px">'
+    + '<div style="font-family:var(--font-mono);font-size:52px;font-weight:800;color:'+rd.tierColor+';line-height:1">'+rd.score+'</div>'
+    + '<div style="font-size:13px;font-weight:700;color:'+rd.tierColor+';margin:4px 0">Tier '+rd.tier+' — '+rd.tierLabel+'</div>'
+    + '<div style="background:var(--border);border-radius:6px;height:10px;width:180px;margin:10px auto;overflow:hidden">'
+    + '<div style="width:'+rd.score+'%;height:100%;background:'+rd.tierColor+';border-radius:6px;transition:width 0.8s ease"></div>'
+    + '</div></div>'
+    + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Score Breakdown</div>'
+    + rd.factors.map(function(f) {
+        var col = f.points > 0 ? 'var(--green)' : f.points < 0 ? 'var(--red)' : 'var(--text3)';
+        return '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">'
+          + '<div><div style="font-size:12px;font-weight:600">'+f.label+'</div>'
+          + '<div style="font-size:10px;color:var(--text3)">'+f.desc+'</div></div>'
+          + '<div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:'+col+';flex-shrink:0">'+(f.points>0?'+':'')+f.points+'</div>'
+          + '</div>';
+      }).join('')
+    + '<div style="margin-top:12px;padding:10px 14px;background:var(--surface2);border-radius:8px;font-size:11px;color:var(--text3)">'+rec+'</div>';
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost" onclick="closeModal()">Close</button>'
+    + '<button class="btn btn-ghost btn-sm" id="rc-detail-btn">Details</button>'
+    + '<button class="btn btn-gold btn-sm" id="rc-pay-btn">Pay</button>';
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(function(){
+    var rp=document.getElementById('rc-pay-btn'); if(rp) rp.onclick=function(){ closeModal(); openPayModal(id); };
+    var rd2=document.getElementById('rc-detail-btn'); if(rd2) rd2.onclick=function(){ closeModal(); openBorrowerDetail(id); };
+  },0);
+}
 
 // ============================================================
 // BULK SELECT
