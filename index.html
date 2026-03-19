@@ -813,6 +813,18 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <span class="nav-icon">🤝</span> PTP Report
     <span class="nav-badge" id="badge-ptp" style="display:none;background:var(--purple)"></span>
   </div>
+  <div class="nav-item" data-page="ptp-history">
+    <span class="nav-icon">📅</span> PTP History
+  </div>
+  <div class="nav-item" data-page="ptp-stats">
+    <span class="nav-icon">📊</span> PTP Stats
+  </div>
+  <div class="nav-item" data-page="forecast">
+    <span class="nav-icon">📈</span> Forecast
+  </div>
+  <div class="nav-item" data-page="segments">
+    <span class="nav-icon">🗂️</span> Segments
+  </div>
   <div class="sidebar-footer">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
       <span>🌙 Theme</span>
@@ -856,7 +868,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
 
     <div id="dash-target-section"></div>
     <div id="dash-alerts"></div>
-    <div id="dash-suggestions" style="display:none"></div>
+
 
     <div class="two-col">
       <div class="card">
@@ -1305,6 +1317,18 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
   <div class="mdrawer-item" data-page="ptp" onclick="navigateDrawer('ptp')">
     <span class="mdrawer-icon">🤝</span> PTP Report
     <span class="mdrawer-badge" id="mbadge-ptp" style="display:none;background:var(--purple)"></span>
+  </div>
+  <div class="mdrawer-item" data-page="ptp-history" onclick="navigateDrawer('ptp-history')">
+    <span class="mdrawer-icon">📅</span> PTP History
+  </div>
+  <div class="mdrawer-item" data-page="ptp-stats" onclick="navigateDrawer('ptp-stats')">
+    <span class="mdrawer-icon">📊</span> PTP Stats
+  </div>
+  <div class="mdrawer-item" data-page="forecast" onclick="navigateDrawer('forecast')">
+    <span class="mdrawer-icon">📈</span> Forecast
+  </div>
+  <div class="mdrawer-item" data-page="segments" onclick="navigateDrawer('segments')">
+    <span class="mdrawer-icon">🗂️</span> Segments
   </div>
   <div class="mdrawer-footer">
     <div id="mdrawer-sync" style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
@@ -2020,50 +2044,6 @@ function renderDashboard() {
       + '</div></div>';
   }).join('') || '<div class="empty-state">No partial payments yet</div>';
 
-  // ── App suggestions ────────────────────────────────────────
-  var sugEl = document.getElementById('dash-suggestions');
-  if (sugEl) {
-    var suggestions = [
-      { icon:'📅', title:'PTP History', desc:'View & compare past days PTPs — tap to browse archived daily reports' },
-      { icon:'📊', title:'PTP Conversion Rate', desc:'Track how many of your PTPs actually pay — weekly and monthly stats' },
-      { icon:'📈', title:'Collection Forecast', desc:'AI-style projection of end-of-month total based on current pace + PTPs' },
-      { icon:'🗂️', title:'Loan Portfolio Segments', desc:'Group borrowers by risk tier (A/B/C) for prioritised collection strategy' },
-    ];
-    var dismissed = JSON.parse(localStorage.getItem('dismissed_suggestions_v2') || '[]');
-    var visible = suggestions.filter(function(_,i){ return !dismissed.includes(i); });
-    if (!visible.length) { sugEl.style.display = 'none'; }
-    else {
-      sugEl.style.display = '';
-      sugEl.innerHTML = '<div class="card">'
-        + '<div class="card-header" id="sugg-hdr" style="cursor:pointer">'
-        + '<span class="card-title">&#x1F4A1; Feature Suggestions</span>'
-        + '<span style="font-size:11px;color:var(--text3)">' + visible.length + ' ideas &middot; tap to expand</span>'
-        + '</div>'
-        + '<div id="sugg-body" style="display:none"><div class="card-body" style="padding-bottom:8px">'
-        + visible.map(function(s,i){
-            return '<div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">'
-              + '<div style="font-size:20px;flex-shrink:0">' + s.icon + '</div>'
-              + '<div style="flex:1"><div style="font-weight:700;font-size:13px">' + s.title + '</div>'
-              + '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + s.desc + '</div></div>'
-              + '<button style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;flex-shrink:0;padding:0 4px" data-sugg-idx="' + i + '" title="Dismiss">&#x2715;</button>'
-              + '</div>';
-          }).join('')
-        + '</div></div></div>';
-      var hdr = document.getElementById('sugg-hdr');
-      if (hdr) hdr.addEventListener('click', function() {
-        var body = document.getElementById('sugg-body');
-        if (body) body.style.display = body.style.display === 'none' ? '' : 'none';
-      });
-      sugEl.querySelectorAll('[data-sugg-idx]').forEach(function(btn){
-        btn.addEventListener('click', function(e){
-          e.stopPropagation();
-          dismissed.push(parseInt(btn.dataset.suggIdx));
-          localStorage.setItem('dismissed_suggestions_v2', JSON.stringify(dismissed));
-          renderDashboard();
-        });
-      });
-    }
-  }
 
   renderDailyChart();
 }
@@ -4102,6 +4082,10 @@ function renderCurrentPage() {
   else if (currentPage === 'smsblast') renderSmsBlast();
   else if (currentPage === 'agedout') renderAgedOut();
   else if (currentPage === 'ptp') renderPtp();
+  else if (currentPage === 'ptp-history') renderPtpHistory();
+  else if (currentPage === 'ptp-stats') renderPtpStats();
+  else if (currentPage === 'forecast') renderForecast();
+  else if (currentPage === 'segments') renderSegments();
 }
 
 function updateBadges() {
@@ -4819,6 +4803,218 @@ function openGlobalSearch() {
     var el = document.getElementById('loan-search');
     if (el) { el.focus(); el.select(); }
   }, 100);
+}
+
+
+// ============================================================
+// PTP HISTORY
+// ============================================================
+function renderPtpHistory() {
+  var el = document.getElementById('ptp-history-body');
+  if (!el) return;
+  // Build history from borrowers payLog + ptpOutcomes stored in state
+  var history = state.ptpHistory || [];
+  if (!history.length) {
+    el.innerHTML = '<div class="card"><div class="card-body"><div class="empty-state" style="padding:30px 0"><div class="icon">📅</div><div>No PTP history yet.<br><span style="font-size:11px;color:var(--text3)">History is saved each time you view the PTP Report page.</span></div></div></div></div>';
+    return;
+  }
+  el.innerHTML = history.slice().reverse().map(function(day) {
+    var metPct = day.total > 0 ? Math.round(day.met / day.total * 100) : 0;
+    var barColor = metPct >= 80 ? 'var(--green)' : metPct >= 50 ? 'var(--gold)' : 'var(--red)';
+    return '<div class="card" style="margin-bottom:12px">'
+      + '<div class="card-header" style="cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'\':\\\'none\\\'">'
+      + '<span class="card-title">' + day.date + '</span>'
+      + '<span style="font-size:12px;color:var(--text3)">' + day.total + ' PTPs &middot; <span style="color:'+barColor+';font-weight:700">' + day.met + ' paid</span> (' + metPct + '%)</span>'
+      + '</div>'
+      + '<div style="display:none"><div class="card-body">'
+      + '<div style="background:var(--border);border-radius:4px;height:6px;margin-bottom:12px;overflow:hidden"><div style="width:'+metPct+'%;height:100%;background:'+barColor+';border-radius:4px"></div></div>'
+      + (day.entries || []).map(function(e) {
+          var oc = e.outcome || '';
+          var ocColor = oc.toLowerCase()==='paid'?'var(--green)':oc.toLowerCase()==='part paid'?'var(--gold)':oc?'var(--text2)':'var(--text3)';
+          return '<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)">'
+            + '<div><div style="font-weight:600;font-size:12px">' + e.name + '</div>'
+            + '<div style="font-size:10px;color:var(--text3)">' + e.phone + (e.time ? ' &middot; ' + e.time : '') + '</div></div>'
+            + '<div style="font-size:11px;font-weight:700;color:'+ocColor+'">' + (oc || '—') + '</div>'
+            + '</div>';
+        }).join('')
+      + '</div></div></div>';
+  }).join('');
+}
+
+// Auto-save PTP snapshot when leaving PTP page
+function savePtpSnapshot() {
+  var ptps = getTodayPtps();
+  if (!ptps.length) return;
+  var today = new Date().toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+  if (!state.ptpHistory) state.ptpHistory = [];
+  // Don't duplicate same date
+  var existing = state.ptpHistory.findIndex(function(d){ return d.date === today; });
+  var entry = {
+    date: today,
+    total: ptps.length,
+    met: ptps.filter(function(b){ return getStatus(b) === 'Paid'; }).length,
+    entries: ptps.map(function(b) {
+      return { name: b.name, phone: b.phone, time: (b.promiseDate||'').split(' ')[1]||'', outcome: ptpOutcomes[b.id] || '' };
+    })
+  };
+  if (existing >= 0) state.ptpHistory[existing] = entry;
+  else state.ptpHistory.unshift(entry);
+  // Keep last 60 days
+  if (state.ptpHistory.length > 60) state.ptpHistory = state.ptpHistory.slice(0, 60);
+  saveState();
+}
+
+// ============================================================
+// PTP STATS (Conversion Rate)
+// ============================================================
+function renderPtpStats() {
+  var el = document.getElementById('ptp-stats-body');
+  if (!el) return;
+  var history = state.ptpHistory || [];
+  if (!history.length) {
+    el.innerHTML = '<div class="card"><div class="card-body"><div class="empty-state" style="padding:30px 0"><div class="icon">📊</div><div>No PTP data yet.<br><span style="font-size:11px;color:var(--text3)">Stats will appear after you record PTP outcomes.</span></div></div></div></div>';
+    return;
+  }
+  var totalPtps = history.reduce(function(s,d){ return s+d.total; }, 0);
+  var totalMet  = history.reduce(function(s,d){ return s+d.met; }, 0);
+  var overallPct = totalPtps > 0 ? (totalMet/totalPtps*100).toFixed(1) : 0;
+  var best = history.reduce(function(b,d){ return d.total>0&&(d.met/d.total)>(b.met/(b.total||1))?d:b; }, history[0]);
+  var last7 = history.slice(0, 7);
+  var l7total = last7.reduce(function(s,d){return s+d.total;},0);
+  var l7met   = last7.reduce(function(s,d){return s+d.met;},0);
+  var l7pct   = l7total > 0 ? (l7met/l7total*100).toFixed(1) : 0;
+  var rateColor = overallPct >= 70 ? 'var(--green)' : overallPct >= 50 ? 'var(--gold)' : 'var(--red)';
+
+  el.innerHTML = '<div class="kpi-grid" style="margin-bottom:16px">'
+    + '<div class="kpi-card" style="text-align:center"><div class="kpi-value" style="color:'+rateColor+'">' + overallPct + '%</div><div class="kpi-label">Overall Conversion</div></div>'
+    + '<div class="kpi-card" style="text-align:center"><div class="kpi-value">' + totalPtps + '</div><div class="kpi-label">Total PTPs Set</div></div>'
+    + '<div class="kpi-card" style="text-align:center"><div class="kpi-value" style="color:var(--green)">' + totalMet + '</div><div class="kpi-label">Total Paid</div></div>'
+    + '<div class="kpi-card" style="text-align:center"><div class="kpi-value" style="color:var(--gold)">' + l7pct + '%</div><div class="kpi-label">Last 7 Days</div></div>'
+    + '</div>'
+    + '<div class="card" style="margin-bottom:16px"><div class="card-header"><span class="card-title">Daily Conversion Rate</span></div><div class="card-body">'
+    + history.slice(0,14).reverse().map(function(d) {
+        var pct = d.total > 0 ? Math.round(d.met/d.total*100) : 0;
+        var col = pct>=70?'var(--green)':pct>=50?'var(--gold)':'var(--red)';
+        return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">'
+          + '<div style="font-size:11px;color:var(--text3);min-width:70px">' + d.date.split(' ').slice(0,2).join(' ') + '</div>'
+          + '<div style="flex:1;background:var(--border);border-radius:3px;height:8px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:'+col+';border-radius:3px"></div></div>'
+          + '<div style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:'+col+';min-width:36px;text-align:right">'+pct+'%</div>'
+          + '<div style="font-size:10px;color:var(--text3);min-width:40px">'+d.met+'/'+d.total+'</div>'
+          + '</div>';
+      }).join('')
+    + '</div></div>'
+    + '<div class="card"><div class="card-header"><span class="card-title">Best Day</span></div><div class="card-body">'
+    + '<div style="font-weight:700;font-size:15px">' + best.date + '</div>'
+    + '<div style="font-size:13px;color:var(--green)">' + best.met + ' of ' + best.total + ' PTPs paid (' + (best.total>0?Math.round(best.met/best.total*100):0) + '%)</div>'
+    + '</div></div>';
+}
+
+// ============================================================
+// COLLECTION FORECAST
+// ============================================================
+function renderForecast() {
+  var el = document.getElementById('forecast-body');
+  if (!el) return;
+  var now = new Date();
+  var daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  var dayOfMonth  = now.getDate();
+  var daysLeft    = daysInMonth - dayOfMonth;
+  var logTotal    = state.dailyLog.reduce(function(s,e){ return s+(Number(e.collected)||0); }, 0);
+  var activeDays  = state.dailyLog.filter(function(e){ return (e.collected||0)>0; }).length;
+  var avgDaily    = activeDays > 0 ? logTotal / activeDays : 0;
+  var projected   = logTotal + (avgDaily * daysLeft);
+  var target      = state.monthlyTarget || 0;
+  var ptpPotential = getTodayPtps().reduce(function(s,b){ return s+getDueToday(b); }, 0);
+  var projWithPtp = projected + ptpPotential;
+  var pct         = target > 0 ? Math.min(100, (projected/target*100)).toFixed(1) : 0;
+  var pctWithPtp  = target > 0 ? Math.min(100, (projWithPtp/target*100)).toFixed(1) : 0;
+  var barCol      = pct >= 100 ? 'var(--green)' : pct >= 70 ? 'var(--gold)' : 'var(--red)';
+
+  // Scenario table
+  var scenarios = [
+    { label: 'Pessimistic (50% of avg)', val: logTotal + avgDaily*0.5*daysLeft },
+    { label: 'Current pace (avg daily)', val: projected },
+    { label: 'With today PTPs', val: projWithPtp },
+    { label: 'Optimistic (150% of avg)', val: logTotal + avgDaily*1.5*daysLeft },
+  ];
+
+  el.innerHTML = '<div class="kpi-grid" style="margin-bottom:16px">'
+    + '<div class="kpi-card" style="text-align:center"><div class="kpi-value">' + fmtC(Math.round(logTotal)) + '</div><div class="kpi-label">Collected So Far</div></div>'
+    + '<div class="kpi-card" style="text-align:center"><div class="kpi-value" style="color:var(--gold)">' + fmtC(Math.round(avgDaily)) + '</div><div class="kpi-label">Daily Average</div></div>'
+    + '<div class="kpi-card" style="text-align:center"><div class="kpi-value">' + daysLeft + '</div><div class="kpi-label">Days Left</div></div>'
+    + '<div class="kpi-card" style="text-align:center"><div class="kpi-value" style="color:var(--blue)">' + fmtC(Math.round(ptpPotential)) + '</div><div class="kpi-label">Today PTP Value</div></div>'
+    + '</div>'
+    + (target > 0 ? '<div class="card" style="margin-bottom:16px"><div class="card-header"><span class="card-title">Target Progress</span></div><div class="card-body">'
+        + '<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:12px">Projected vs Target</span><span style="font-family:var(--font-mono);font-size:12px;color:'+barCol+'">' + pct + '%</span></div>'
+        + '<div style="background:var(--border);border-radius:4px;height:10px;overflow:hidden;margin-bottom:10px"><div style="width:'+pct+'%;height:100%;background:'+barCol+';border-radius:4px"></div></div>'
+        + '<div style="font-size:12px;color:var(--text3)">Monthly target: ' + fmtC(target) + ' &middot; Projected: ' + fmtC(Math.round(projected)) + ' &middot; Gap: <span style="color:'+barCol+'">' + (projected>=target?'On track!':'Short by '+fmtC(Math.round(target-projected))) + '</span></div>'
+        + '</div></div>' : '<div class="card" style="margin-bottom:16px"><div class="card-body"><div style="font-size:13px;color:var(--text3)">Set a monthly target on the Dashboard to see target progress here.</div></div></div>')
+    + '<div class="card"><div class="card-header"><span class="card-title">Scenarios for Month End</span></div><div class="card-body">'
+    + scenarios.map(function(s) {
+        var sc = target>0?Math.min(100,(s.val/target*100)).toFixed(0):null;
+        var col = sc>=100?'var(--green)':sc>=70?'var(--gold)':'var(--red)';
+        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">'
+          + '<div style="font-size:12px">' + s.label + '</div>'
+          + '<div style="text-align:right"><div style="font-family:var(--font-mono);font-weight:700;font-size:13px">' + fmtC(Math.round(s.val)) + '</div>'
+          + (sc ? '<div style="font-size:10px;color:'+col+'">' + sc + '% of target</div>' : '')
+          + '</div></div>';
+      }).join('')
+    + '</div></div>';
+}
+
+// ============================================================
+// PORTFOLIO SEGMENTS
+// ============================================================
+function renderSegments() {
+  var el = document.getElementById('segments-body');
+  if (!el) return;
+  var active = getActiveBorrowers();
+
+  // Score each borrower A/B/C
+  function getSegment(b) {
+    var score = 0;
+    var ratio = b.loanDue > 0 ? (b.amountPaid||0) / b.loanDue : 0;
+    var od = getOdAge(b.startDate);
+    if (ratio >= 0.5) score += 3;
+    else if (ratio > 0) score += 1;
+    if (b.promisedToPay) score += 2;
+    if (od <= 9) score += 2;
+    else if (od <= 12) score += 1;
+    if (b.amountPaid > 0) score += 1;
+    if (score >= 6) return 'A';
+    if (score >= 3) return 'B';
+    return 'C';
+  }
+
+  var segs = { A: [], B: [], C: [] };
+  active.forEach(function(b) { segs[getSegment(b)].push(b); });
+
+  var segDefs = {
+    A: { label: 'Tier A — High Likelihood', color: 'var(--green)', desc: 'Partial payers, promised, early OD days. Likely to pay with a gentle push.' },
+    B: { label: 'Tier B — Moderate', color: 'var(--gold)', desc: 'Some engagement or mid-range OD. May need multiple contacts.' },
+    C: { label: 'Tier C — High Risk', color: 'var(--red)', desc: 'No payment, no promise, late OD days. Escalation recommended.' }
+  };
+
+  el.innerHTML = Object.keys(segDefs).map(function(tier) {
+    var list = segs[tier];
+    var d = segDefs[tier];
+    var total = list.reduce(function(s,b){ return s+getDueToday(b); }, 0);
+    return '<div class="card" style="margin-bottom:16px">'
+      + '<div class="card-header"><span class="card-title" style="color:'+d.color+'">'+d.label+'</span>'
+      + '<span style="font-size:11px;color:var(--text3)">'+list.length+' accounts &middot; '+fmtC(total)+'</span></div>'
+      + '<div class="card-body">'
+      + '<div style="font-size:11px;color:var(--text3);margin-bottom:10px">'+d.desc+'</div>'
+      + (list.length === 0 ? '<div style="font-size:12px;color:var(--text3);font-style:italic">No accounts in this tier</div>' :
+        list.map(function(b) {
+          var ratio = b.loanDue > 0 ? Math.round((b.amountPaid||0)/b.loanDue*100) : 0;
+          return '<div class="summary-row" style="cursor:pointer" onclick="openBorrowerDetail(\''+b.id+'\')">'
+            + '<div><div style="font-weight:600;font-size:12px">'+b.name+'</div>'
+            + '<div style="font-size:10px;color:var(--text3)">Day '+getOdAge(b.startDate)+' &middot; Paid '+ratio+'%'+(b.promisedToPay?' &middot; Promised':'')+'</div></div>'
+            + '<div style="text-align:right"><div style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:'+d.color+'">'+fmtC(getDueToday(b))+'</div></div>'
+            + '</div>';
+        }).join(''))
+      + '</div></div>';
+  }).join('');
 }
 
 // ============================================================
