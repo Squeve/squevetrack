@@ -81,6 +81,113 @@
 .anim-slide-left{ animation: slideInLeft 0.25s ease both; }
 .anim-count-up  { animation: countUp 0.35s cubic-bezier(0.34,1.56,0.64,1) both; }
 
+/* PAGE TRANSITIONS */
+@keyframes pageSlideIn { from { opacity:0; transform:translateX(18px); } to { opacity:1; transform:translateX(0); } }
+@keyframes pageFadeOut { from { opacity:1; } to { opacity:0; } }
+.page.active { animation: pageSlideIn 0.18s ease both; }
+
+/* SKELETON LOADERS */
+@keyframes shimmer { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
+.skeleton { border-radius:6px; background:linear-gradient(90deg,var(--surface2) 25%,var(--border) 50%,var(--surface2) 75%); background-size:800px 100%; animation:shimmer 1.4s infinite linear; }
+
+/* HEAT RING — left edge bar on table rows */
+.heat-ring { width:4px; min-width:4px; border-radius:2px 0 0 2px; align-self:stretch; flex-shrink:0; transition:background 0.3s; }
+.heat-ring.d6  { background:var(--blue); }
+.heat-ring.d8  { background:#14b8a6; }
+.heat-ring.d10 { background:var(--gold); }
+.heat-ring.d12 { background:var(--orange); }
+.heat-ring.d13 { background:#f44; }
+.heat-ring.d15 { background:var(--red); animation:pulseGold 1.4s ease infinite; }
+
+/* BORROWER BADGES */
+.badge-star  { display:inline-block; font-size:11px; }
+.badge-warn  { display:inline-block; font-size:11px; }
+
+/* STREAK BADGE */
+.streak-badge { display:inline-flex; align-items:center; gap:5px; background:linear-gradient(135deg,rgba(232,160,32,0.18),rgba(245,184,64,0.08)); border:1px solid rgba(232,160,32,0.35); border-radius:30px; padding:5px 14px; font-size:13px; font-weight:700; color:var(--gold); cursor:default; }
+.streak-badge.gold-flash { box-shadow:0 0 0 3px rgba(232,160,32,0.4); animation:pulseGold 0.8s ease 3; }
+
+/* HIT LIST */
+.hit-list-panel { background:var(--surface); border:1px solid var(--border2); border-radius:10px; margin-bottom:16px; overflow:hidden; }
+.hit-list-header { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid var(--border); }
+.hit-item { display:flex; align-items:center; gap:10px; padding:9px 14px; border-bottom:1px solid var(--border); font-size:13px; cursor:grab; }
+.hit-item:last-child { border-bottom:none; }
+.hit-item:hover { background:var(--surface2); }
+
+/* EOD BUTTON */
+.eod-btn { display:inline-flex; align-items:center; gap:7px; background:linear-gradient(135deg,#25d366,#1da851); color:#fff; border:none; border-radius:8px; padding:9px 16px; font-size:13px; font-weight:700; cursor:pointer; }
+.eod-btn:active { transform:scale(0.97); }
+
+/* CONFETTI */
+#confetti-canvas { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999; display:none; }
+
+/* CHARACTER RING */
+.char-ring-wrap { position:relative; display:inline-flex; align-items:center; justify-content:center; }
+.char-ring-wrap canvas { display:block; }
+.char-ring-count { position:absolute; font-family:var(--font-mono); font-size:9px; font-weight:700; text-align:center; }
+
+/* SYNC COUNTER */
+#pending-sync-label { font-size:11px; color:var(--gold); font-weight:600; }
+
+/* RANKING PAGE */
+.ranking-agent-row { display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--border); font-size:13px; }
+.ranking-agent-row:hover { background:var(--surface2); }
+.trend-up   { color:var(--green); font-weight:700; }
+.trend-down { color:var(--red); font-weight:700; }
+.trend-flat { color:var(--text3); }
+
+/* SUPERVISOR REPORT TEMPLATES */
+.report-template-card { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:16px; cursor:pointer; transition:border-color 0.2s; }
+.report-template-card:hover { border-color:var(--gold); }
+.report-output { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:14px; font-family:var(--font-mono); font-size:12px; white-space:pre-wrap; min-height:80px; user-select:all; }
+
+/* CALL LOG */
+.call-log-entry { display:flex; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); font-size:12px; }
+.call-outcome-btn { padding:4px 10px; border-radius:20px; font-size:11px; font-weight:600; border:1px solid var(--border2); background:var(--surface2); color:var(--text2); cursor:pointer; }
+.call-outcome-btn.active { background:var(--gold); color:#000; border-color:var(--gold); }
+
+/* PRIORITY SCORE */
+.priority-score { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; font-family:var(--font-mono); font-size:11px; font-weight:700; flex-shrink:0; }
+.priority-score.p-high { background:rgba(239,68,68,0.2); color:var(--red); }
+.priority-score.p-mid  { background:rgba(249,115,22,0.2); color:var(--orange); }
+.priority-score.p-low  { background:rgba(96,165,250,0.15); color:var(--blue); }
+
+/* CLUSTER CARDS */
+.cluster-card { border-radius:10px; padding:14px; margin-bottom:12px; }
+.cluster-card.high { background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.2); }
+.cluster-card.pressure { background:rgba(249,115,22,0.08); border:1px solid rgba(249,115,22,0.2); }
+.cluster-card.escalate { background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2); }
+
+/* UNDO TOAST */
+.undo-toast { display:flex; align-items:center; gap:10px; }
+.undo-toast button { background:var(--gold); color:#000; border:none; border-radius:5px; padding:3px 10px; font-weight:700; font-size:11px; cursor:pointer; }
+
+/* DATA HEALTH */
+.health-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; }
+.health-dot { width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:6px; }
+.health-dot.green { background:var(--green); }
+.health-dot.amber { background:var(--gold); }
+.health-dot.red   { background:var(--red); }
+
+/* DOW CHART */
+.dow-bar-wrap { display:flex; gap:4px; align-items:flex-end; height:80px; }
+.dow-bar-col { display:flex; flex-direction:column; align-items:center; flex:1; gap:4px; }
+.dow-bar { border-radius:3px 3px 0 0; width:100%; min-height:4px; transition:height 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+.dow-label { font-size:9px; color:var(--text3); font-family:var(--font-mono); }
+
+/* WA QUEUE */
+.wa-queue-item { display:flex; align-items:center; gap:10px; padding:8px 12px; border-bottom:1px solid var(--border); font-size:12px; }
+.wa-queue-progress { background:var(--surface2); border-radius:5px; padding:8px 14px; font-size:12px; color:var(--text2); margin-bottom:8px; font-family:var(--font-mono); }
+
+/* PTP HUB TABS */
+.ptp-tab { padding:8px 18px; border-radius:6px 6px 0 0; font-size:13px; font-weight:600; cursor:pointer; color:var(--text3); border:1px solid transparent; }
+.ptp-tab.active { color:var(--gold); background:var(--surface); border-color:var(--border2); border-bottom-color:var(--surface); }
+
+/* FORECAST COLLAPSIBLE on dashboard */
+#dash-forecast-section details summary { cursor:pointer; list-style:none; display:flex; align-items:center; justify-content:space-between; }
+#dash-forecast-section details summary::-webkit-details-marker { display:none; }
+
+
 /* LIGHT THEME */
 html[data-theme="light"], html[data-theme="light"] body {
   color-scheme: light;
@@ -810,21 +917,17 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <span class="nav-icon">📅</span> Daily Log
   </div>
   <div class="nav-item" data-page="ptp">
-    <span class="nav-icon">🤝</span> PTP Report
+    <span class="nav-icon">🤝</span> PTP Hub
     <span class="nav-badge" id="badge-ptp" style="display:none;background:var(--purple)"></span>
-  </div>
-  <div class="nav-item" data-page="ptp-history">
-    <span class="nav-icon">📅</span> PTP History
-  </div>
-  <div class="nav-item" data-page="ptp-stats">
-    <span class="nav-icon">📊</span> PTP Stats
-  </div>
-  <div class="nav-item" data-page="forecast">
-    <span class="nav-icon">📈</span> Forecast
   </div>
   <div class="nav-item" data-page="segments">
     <span class="nav-icon">🗂️</span> Segments
   </div>
+  <div class="nav-item" data-page="ranking">
+    <span class="nav-icon">🏆</span> Ranking
+  </div>
+  <div class="nav-item" data-page="reports">
+    <span class="nav-icon">📋</span> Reports
   <div class="sidebar-footer">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
       <span>🌙 Theme</span>
@@ -837,7 +940,11 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
       <span id="sync-dot" style="width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0;display:inline-block"></span>
       <span id="sync-label">Local only</span>
     </div>
+    <div id="pending-sync-label" style="display:none;font-size:11px;margin-bottom:4px"></div>
     Data saves locally · syncs to cloud
+    <div style="margin-top:8px">
+      <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px" onclick="navigate('health')">🔒 Data Health</button>
+    </div>
     <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
       <div style="font-size:8px;color:var(--text3);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:2px">Developed by</div>
       <div style="font-family:var(--font-head);font-size:11px;font-weight:700;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Shadrack Agyei Arthur</div>
@@ -858,17 +965,51 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
         <div class="page-title">Dashboard</div>
         <div class="page-sub" id="dash-date-sub">March 2026 — Loan Tracking</div>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <span id="streak-badge-dash" class="streak-badge" style="display:none">🔥 0 day streak</span>
+        <button class="eod-btn" onclick="generateEODReport()" title="Generate EOD WhatsApp summary">📊 EOD Report</button>
         <button class="btn btn-ghost btn-sm" onclick="openRolloverModal()">📅 New Month</button>
         <button class="btn btn-gold" onclick="openAddModal()">＋ New Borrower</button>
       </div>
     </div>
 
+    <!-- HIT LIST PANEL -->
+    <div id="hit-list-panel" class="hit-list-panel" style="display:none">
+      <div class="hit-list-header">
+        <span style="font-weight:700;font-size:13px">📌 Today's Hit List <span id="hit-list-count" style="color:var(--text3);font-weight:400;font-size:11px"></span></span>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-xs" onclick="clearHitList()">Clear All</button>
+          <button class="btn btn-ghost btn-xs" onclick="toggleHitListPanel(false)">✕</button>
+        </div>
+      </div>
+      <div id="hit-list-items"></div>
+    </div>
+
     <div class="kpi-grid" id="kpi-grid"></div>
 
     <div id="dash-target-section"></div>
+    <!-- Collection Gap Widget -->
+    <div id="dash-gap-widget" style="display:none;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:2px">📐 Required per remaining working day</div>
+        <div style="font-family:var(--font-mono);font-size:18px;font-weight:700" id="gap-widget-amount">₵0</div>
+      </div>
+      <div id="gap-widget-status" style="font-size:12px;color:var(--text2)"></div>
+    </div>
     <div id="dash-alerts"></div>
 
+    <!-- Treadmill Alert -->
+    <div id="treadmill-alert" style="display:none;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-left:4px solid var(--red);border-radius:8px;padding:12px 18px;margin-bottom:14px"></div>
+
+    <!-- Forecast collapsible -->
+    <div id="dash-forecast-section" style="margin-bottom:14px">
+      <details>
+        <summary style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:12px 16px;font-weight:600;font-size:13px">
+          <span>📈 Collection Forecast</span><span style="color:var(--text3);font-size:11px;font-weight:400">▾ expand</span>
+        </summary>
+        <div id="dash-forecast-body" style="background:var(--surface);border:1px solid var(--border2);border-top:none;border-radius:0 0 10px 10px;padding:16px"></div>
+      </details>
+    </div>
 
     <div class="two-col">
       <div class="card">
@@ -1028,6 +1169,14 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
       <div class="card">
         <div class="card-header"><span class="card-title">⚡ Collection Efficiency</span></div>
         <div class="card-body" id="analytics-efficiency"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">📅 Day of Week Performance</span><span style="font-size:11px;color:var(--text3)">When you collect most</span></div>
+        <div class="card-body" id="analytics-dow"></div>
+      </div>
+      <div class="card full">
+        <div class="card-header"><span class="card-title">🤖 Smart Account Clusters</span><span style="font-size:11px;color:var(--text3)">Auto-triage your portfolio</span></div>
+        <div class="card-body" id="analytics-clusters"></div>
       </div>
     </div>
   </section>
@@ -1200,7 +1349,10 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
           </div>
           <textarea class="form-input" id="sms-custom-msg" rows="3" style="display:none;width:100%;font-size:12px;resize:vertical" placeholder="e.g. {name}, please pay {amount} to clear your {loantype} loan." oninput="updateSmsPreview()"></textarea>
           <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px;margin-top:8px">
-            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Preview</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+              <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Preview</div>
+              <div id="sms-char-ring"></div>
+            </div>
             <div id="sms-preview-text" style="font-size:12px;color:var(--text2);line-height:1.6">Select a contact to preview</div>
           </div>
         </div>
@@ -1261,28 +1413,88 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     </div>
   </section>
 
-  <!-- PTP HISTORY -->
-  <section class="page" id="page-ptp-history">
-    <div class="page-header"><div><div class="page-title">📅 PTP History</div><div class="page-sub">Past daily PTP reports</div></div></div>
-    <div id="ptp-history-body"></div>
-  </section>
-
-  <!-- PTP STATS -->
-  <section class="page" id="page-ptp-stats">
-    <div class="page-header"><div><div class="page-title">📊 PTP Stats</div><div class="page-sub">Conversion rate &amp; performance</div></div></div>
-    <div id="ptp-stats-body"></div>
-  </section>
-
-  <!-- FORECAST -->
-  <section class="page" id="page-forecast">
-    <div class="page-header"><div><div class="page-title">📈 Collection Forecast</div><div class="page-sub">End-of-month projection</div></div></div>
-    <div id="forecast-body"></div>
-  </section>
-
   <!-- SEGMENTS -->
   <section class="page" id="page-segments">
     <div class="page-header"><div><div class="page-title">🗂️ Portfolio Segments</div><div class="page-sub">Borrowers grouped by risk tier</div></div></div>
     <div id="segments-body"></div>
+  </section>
+
+  <!-- RANKING PAGE -->
+  <section class="page" id="page-ranking">
+    <div class="page-header">
+      <div><div class="page-title">🏆 Ranking Tracker</div><div class="page-sub">Scan ranking screenshot to track your position over time</div></div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">📸 Scan New Ranking</span></div>
+      <div class="card-body">
+        <div style="margin-bottom:12px;font-size:13px;color:var(--text2)">Paste your ranking screenshot text or upload image for Claude to read. Your position and all agents will be saved automatically.</div>
+        <div class="form-group">
+          <label>API Key (Claude) — saved locally, never shared</label>
+          <input type="password" class="form-input" id="ranking-api-key" placeholder="sk-ant-..." style="font-family:var(--font-mono);font-size:11px">
+          <div style="font-size:10px;color:var(--text3);margin-top:3px">Entered once, stored in localStorage</div>
+        </div>
+        <div class="form-group">
+          <label>Your Agent Name (as shown in ranking)</label>
+          <input type="text" class="form-input" id="ranking-my-name" placeholder="e.g. Shadrack Agyei">
+        </div>
+        <div class="form-group">
+          <label>Paste ranking text (names and percentages)</label>
+          <textarea class="form-input" id="ranking-paste" rows="6" placeholder="Paste screenshot text here e.g.&#10;1. Akos Mensah 87.4%&#10;2. Shadrack Agyei 83.1%&#10;3. Eric Boateng 79.2%"></textarea>
+        </div>
+        <button class="btn btn-gold" onclick="scanRanking()" id="ranking-scan-btn">🔍 Scan &amp; Save Ranking</button>
+        <div id="ranking-scan-status" style="margin-top:8px;font-size:12px;color:var(--text2)"></div>
+      </div>
+    </div>
+    <div id="ranking-body"></div>
+  </section>
+
+  <!-- REPORTS PAGE -->
+  <section class="page" id="page-reports">
+    <div class="page-header"><div><div class="page-title">📋 Supervisor Reports</div><div class="page-sub">Pre-built report formats for NANA OSAE EMMANUEL</div></div></div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">👤 Report Settings</span></div>
+      <div class="card-body">
+        <div class="form-row">
+          <div class="form-group" style="margin-bottom:0"><label>Agent Name</label><input type="text" class="form-input" id="rpt-agent" placeholder="Shadrack Agyei Arthur" value="Shadrack Agyei Arthur"></div>
+          <div class="form-group" style="margin-bottom:0"><label>Supervisor</label><input type="text" class="form-input" id="rpt-supervisor" placeholder="NANA OSAE EMMANUEL" value="NANA OSAE EMMANUEL"></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px">
+      <div class="report-template-card" onclick="generateReport('morning')">
+        <div style="font-size:18px;margin-bottom:6px">🌅</div>
+        <div style="font-weight:700;font-size:13px;margin-bottom:4px">Morning PTP</div>
+        <div style="font-size:11px;color:var(--text3)">Today's promises + expected collections</div>
+      </div>
+      <div class="report-template-card" onclick="generateReport('eod')">
+        <div style="font-size:18px;margin-bottom:6px">🌙</div>
+        <div style="font-weight:700;font-size:13px;margin-bottom:4px">EOD Summary</div>
+        <div style="font-size:11px;color:var(--text3)">Collections, PTPs, outstanding, paid accounts</div>
+      </div>
+      <div class="report-template-card" onclick="generateReport('weekly')">
+        <div style="font-size:18px;margin-bottom:6px">📆</div>
+        <div style="font-weight:700;font-size:13px;margin-bottom:4px">Weekly Performance</div>
+        <div style="font-size:11px;color:var(--text3)">7-day summary with rate and comparisons</div>
+      </div>
+    </div>
+    <div id="report-output-section" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-weight:700;font-size:13px" id="report-output-title">Report</span>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="copyReport()">📋 Copy</button>
+          <button class="eod-btn" style="font-size:11px;padding:6px 12px" onclick="whatsappReport()">WhatsApp ↗</button>
+        </div>
+      </div>
+      <div class="report-output" id="report-output-text"></div>
+    </div>
+  </section>
+
+  <!-- DATA HEALTH PAGE (accessed from settings) -->
+  <section class="page" id="page-health">
+    <div class="page-header"><div><div class="page-title">🔒 Data Health</div><div class="page-sub">Storage, sync, and data integrity</div></div></div>
+    <div class="card">
+      <div class="card-body" id="health-body"></div>
+    </div>
   </section>
 
 </main>
@@ -1343,20 +1555,17 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <span class="mdrawer-icon">📅</span> Daily Log
   </div>
   <div class="mdrawer-item" data-page="ptp" onclick="navigateDrawer('ptp')">
-    <span class="mdrawer-icon">🤝</span> PTP Report
+    <span class="mdrawer-icon">🤝</span> PTP Hub
     <span class="mdrawer-badge" id="mbadge-ptp" style="display:none;background:var(--purple)"></span>
-  </div>
-  <div class="mdrawer-item" data-page="ptp-history" onclick="navigateDrawer('ptp-history')">
-    <span class="mdrawer-icon">📅</span> PTP History
-  </div>
-  <div class="mdrawer-item" data-page="ptp-stats" onclick="navigateDrawer('ptp-stats')">
-    <span class="mdrawer-icon">📊</span> PTP Stats
-  </div>
-  <div class="mdrawer-item" data-page="forecast" onclick="navigateDrawer('forecast')">
-    <span class="mdrawer-icon">📈</span> Forecast
   </div>
   <div class="mdrawer-item" data-page="segments" onclick="navigateDrawer('segments')">
     <span class="mdrawer-icon">🗂️</span> Segments
+  </div>
+  <div class="mdrawer-item" data-page="ranking" onclick="navigateDrawer('ranking')">
+    <span class="mdrawer-icon">🏆</span> Ranking
+  </div>
+  <div class="mdrawer-item" data-page="reports" onclick="navigateDrawer('reports')">
+    <span class="mdrawer-icon">📋</span> Reports
   </div>
   <div class="mdrawer-footer">
     <div id="mdrawer-sync" style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
@@ -1442,6 +1651,9 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <div id="setup-error" style="margin-top:10px;font-size:12px;color:var(--red);min-height:16px"></div>
   </div>
 </div>
+
+<!-- CONFETTI CANVAS -->
+<canvas id="confetti-canvas"></canvas>
 
 <!-- TOAST AREA -->
 <div id="toast-area"></div>
@@ -1619,6 +1831,20 @@ function setSyncStatus(status) {
   const dLbl = document.getElementById('mdrawer-sync-label');
   if (dDot) dDot.style.background = s.color;
   if (dLbl) dLbl.textContent = s.label;
+  // Pending sync counter
+  if (!state) return;
+  const pendEl = document.getElementById('pending-sync-label');
+  if (pendEl) {
+    if (status === 'saving') {
+      if (!state.pendingSyncCount) state.pendingSyncCount = 0;
+      state.pendingSyncCount++;
+      pendEl.style.display = 'block';
+      pendEl.textContent = state.pendingSyncCount + ' change' + (state.pendingSyncCount !== 1 ? 's' : '') + ' pending sync';
+    } else if (status === 'saved') {
+      state.pendingSyncCount = 0;
+      pendEl.style.display = 'none';
+    }
+  }
 }
 
 function initState() {
@@ -1629,7 +1855,8 @@ function initState() {
     notes: '', promisedToPay: false, isPaid: b.ap >= b.ld && b.ap > 0
   }));
   return { borrowers, dailyLog: SEED_LOG, month: 'March 2026',
-    discountRate: 0.30, monthlyTarget: 0, agedOutLog: [] };
+    discountRate: 0.30, monthlyTarget: 0, agedOutLog: [],
+    hitList: [], callLog: {}, rankingHistory: [], undoHistory: [], pendingSyncCount: 0 };
 }
 
 function migrateState(s) {
@@ -1638,10 +1865,17 @@ function migrateState(s) {
   if (!s.agedOutLog) s.agedOutLog = [];
   if (!s.monthlyTarget) s.monthlyTarget = 0;
   if (!s.archive) s.archive = [];
+  if (!s.hitList) s.hitList = [];
+  if (!s.callLog) s.callLog = {};
+  if (!s.rankingHistory) s.rankingHistory = [];
+  if (!s.undoHistory) s.undoHistory = [];
+  if (!s.pendingSyncCount) s.pendingSyncCount = 0;
   (s.borrowers||[]).forEach(b => {
     if (b.promisedToPay === undefined) b.promisedToPay = false;
     if (b.isPaid === undefined) b.isPaid = (b.amountPaid >= b.loanDue && b.amountPaid > 0);
     if (!b.payLog) b.payLog = [];
+    if (!b.callLog) b.callLog = [];
+    if (b.priorityScore === undefined) b.priorityScore = 5;
   });
   return s;
 }
@@ -2101,6 +2335,16 @@ function renderDashboard() {
 
 
   renderDailyChart();
+  renderStreakBadge();
+  renderHitList();
+  renderGapWidget();
+  renderTreadmillAlert();
+  // Forecast in collapsible
+  const fBody = document.getElementById('dash-forecast-body');
+  if (fBody) {
+    const f = _buildForecastHtml();
+    fBody.innerHTML = f;
+  }
 }
 
 function chartColor(alpha) {
@@ -2222,23 +2466,36 @@ function renderLoansTable() {
       ? `<span class="badge badge-pro">Pro</span>`
       : `<span class="badge badge-loanbase">Base</span>`;
     const odCls = odClass(r.odAge);
+    const heatCls = getHeatClass(r.odAge);
+    const pScore = calcPriorityScore(r);
+    const pCls = pScore >= 8 ? 'p-high' : pScore >= 5 ? 'p-mid' : 'p-low';
+    const borrowerBadges = getBorrowerBadges(r);
+    const inHitList = (state.hitList||[]).includes(r.id);
     return `<tr class="${r.promisedToPay ? 'promised' : ''}">
+      <td style="padding:0;width:4px;min-width:4px"><div class="heat-ring ${heatCls}" style="min-height:42px"></div></td>
       <td><input type="checkbox" class="row-cb" data-id="${r.id}" style="accent-color:var(--gold);cursor:pointer" onchange="updateBulkBar()"></td>
       <td class="mono" style="color:var(--text3)">${i+1}</td>
-      <td style="cursor:pointer" onclick="openBorrowerDetail('${r.id}')"><div class="name-cell">${r.name}</div><div style="font-size:10px;color:var(--text3);margin-top:1px">${r.phone}</div></td>
+      <td style="cursor:pointer" onclick="openBorrowerDetail('${r.id}')">
+        <div style="display:flex;align-items:center;gap:5px">
+          <span class="priority-score ${pCls}" title="Priority: ${pScore}/10">${pScore}</span>
+          <div><div class="name-cell">${r.name}${borrowerBadges}</div><div style="font-size:10px;color:var(--text3);margin-top:1px">${r.phone}</div></div>
+        </div>
+      </td>
       <td class="phone-cell" style="display:none">${r.phone}</td>
       <td><span class="${odCls} mono">Day ${r.odAge}</span></td>
       <td>${typeBadge}</td>
       <td class="mono txt-right">${fmtC(r.loanDue)}</td>
-      <td class="mono txt-right" style="color:${r.amountPaid>0?'var(--green)':'var(--text3)'}">${r.amountPaid>0?fmtC(r.amountPaid):'—'}</td>
-      <td class="mono txt-right" style="color:${r.dueToday>0?'var(--red)':'var(--green)'}">${r.dueToday>0?fmtC(r.dueToday):'✅'}${r.targetPayment>0&&r.amountPaid>0&&r.amountPaid<r.targetPayment?' ⚠':''}</td>
+      <td class="mono txt-right" style="color:${r.amountPaid>0?'var(--green)':'var(--text3)'}">` + (r.amountPaid>0?fmtC(r.amountPaid):'—') + `</td>
+      <td class="mono txt-right" style="color:${r.dueToday>0?'var(--red)':'var(--green)'}">` + (r.dueToday>0?fmtC(r.dueToday):'✅') + `${r.targetPayment>0&&r.amountPaid>0&&r.amountPaid<r.targetPayment?' ⚠':''}</td>
       <td>${statusBadge(r.status)}</td>
       <td>
         <div class="action-group">
           <button class="btn btn-green btn-xs" onclick="openPayModal('${r.id}')">💰 Pay</button>
-          <button class="btn btn-ghost btn-xs" style="${r.promisedToPay?'border-color:var(--purple);color:var(--purple);font-weight:700':''}" onclick="togglePromise('${r.id}')" title="${r.promisedToPay?('Promised: '+(r.promiseDate||'No date')+'  — tap to clear'):'Mark promised to pay'}">🤝${r.promisedToPay&&r.promiseDate?'<span style="font-size:9px;display:block;color:var(--purple);line-height:1">'+r.promiseDate.split(' ')[0]+'</span>':''}</button>
+          <button class="btn btn-ghost btn-xs" style="${r.promisedToPay?'border-color:var(--purple);color:var(--purple);font-weight:700':''}" onclick="togglePromise('${r.id}')" title="${r.promisedToPay?'Promised — tap to clear':'Mark PTP'}">🤝${r.promisedToPay&&r.promiseDate?'<span style="font-size:9px;display:block;color:var(--purple);line-height:1">'+r.promiseDate.split(' ')[0]+'</span>':''}</button>
           <button class="btn btn-ghost btn-xs" id="note-${r.id}" title="Quick note">📝${r.notes?'<span style="width:5px;height:5px;background:var(--gold);border-radius:50%;display:inline-block;margin-left:2px"></span>':''}</button>
           <button class="btn btn-ghost btn-xs" id="hist-${r.id}">📋</button>
+          <button class="btn btn-ghost btn-xs" onclick="openCallLogModal('${r.id}')" title="Call log (${(r.callLog||[]).length})">📞${(r.callLog||[]).length>0?'<span style="font-size:8px;color:var(--blue);margin-left:1px">'+r.callLog.length+'</span>':''}</button>
+          <button class="btn btn-ghost btn-xs" onclick="addToHitList('${r.id}')" title="${inHitList?'In Hit List':'Pin to Hit List'}" style="${inHitList?'color:var(--gold);border-color:var(--gold)':''}">📌</button>
           <button class="btn btn-ghost btn-xs" onclick="openEditModal('${r.id}')">✏️</button>
           <button class="btn btn-red btn-xs" onclick="deleteBorrower('${r.id}')">🗑</button>
         </div>
@@ -2654,6 +2911,14 @@ function renderAnalytics() {
     + '<div class="summary-row"><span class="summary-label">Zero collection days</span><span class="summary-value text-red">'+(logsTotal-logsWithCollect)+'</span></div>'
     + '<div class="summary-row"><span class="summary-label">Avg on active day</span><span class="summary-value text-gold">'+fmtC(Math.round(avgOnGoodDay))+'</span></div>'
     + '<div class="summary-row"><span class="summary-label">Total days logged</span><span class="summary-value">'+logsTotal+'</span></div>';
+
+  // ── Day of Week Chart ───────────────────────────────────
+  const dowContainer = document.getElementById('analytics-dow');
+  if (dowContainer) renderDowChart('analytics-dow');
+
+  // ── Smart Clusters ──────────────────────────────────────
+  const clustersEl = document.getElementById('analytics-clusters');
+  if (clustersEl) clustersEl.innerHTML = renderSmartClusters();
 }
 
 // ============================================================
@@ -2838,6 +3103,7 @@ function addLogEntry() {
   const amount = parseFloat(document.getElementById('log-amount').value) || 0;
   const notes = document.getElementById('log-notes').value.trim();
   if (!date) return toast('Please select a date', 'error');
+  const prevBest = getPersonalBest();
   const existing = state.dailyLog.findIndex(e => e.date === date);
   if (existing >= 0) {
     state.dailyLog[existing] = { date, collected: amount, notes };
@@ -2846,9 +3112,16 @@ function addLogEntry() {
     state.dailyLog.push({ date, collected: amount, notes });
     toast('Log entry saved', 'success');
   }
+  haptic('pay');
   saveState();
   document.getElementById('log-amount').value = '';
   document.getElementById('log-notes').value = '';
+  // Check personal best AFTER saving
+  if (amount > prevBest && amount > 0) {
+    checkPersonalBest(amount);
+  }
+  renderStreakBadge();
+  renderGapWidget();
   renderLog();
 }
 
@@ -3462,8 +3735,10 @@ function recordPayment(id) {
   const newPaid = parseFloat(document.getElementById('pay-amount').value) || 0;
   const notes = document.getElementById('pay-notes').value.trim();
 
+  // Save undo snapshot before modifying
+  pushUndo('Payment on ' + b.name.split(' ')[0], { borrowers: state.borrowers, dailyLog: state.dailyLog });
+
   // Full settlement = Due Today (loan remaining + OD fee) + what they already paid
-  // Only set isPaid permanently when this threshold is met
   const fullSettlement = getDueToday(b) + b.amountPaid;
   const prevPaid = b.amountPaid;
   b.amountPaid = newPaid;
@@ -3476,8 +3751,8 @@ function recordPayment(id) {
   }
   purgeAgedOut(); saveState(); closeModal();
   const status = getStatus(b);
-  haptic(status==='Paid'?'success':'light');
-  toast((status==='Paid'?'✅ ':'💰 ')+b.name.split(' ')[0]+(status==='Paid'?' fully paid!':' payment recorded'),'success');
+  haptic(status === 'Paid' ? 'fullpay' : 'pay');
+  toast((status==='Paid'?'✅ ':'💰 ')+b.name.split(' ')[0]+(status==='Paid'?' fully paid! 🎉':' payment recorded'),'success');
   updateBadges(); renderCurrentPage();
 }
 
@@ -3568,11 +3843,15 @@ function deleteBorrower(id) {
   const b = state.borrowers.find(b => b.id === id);
   if (!b) return;
   if (!confirm(`Remove ${b.name}?`)) return;
+  pushUndo('Delete ' + b.name.split(' ')[0], { borrowers: state.borrowers, dailyLog: state.dailyLog });
   state.borrowers = state.borrowers.filter(b => b.id !== id);
+  // Remove from hit list too
+  state.hitList = (state.hitList||[]).filter(x => x !== id);
+  haptic('medium');
   saveState();
   updateBadges();
   renderCurrentPage();
-  toast(`${b.name.split(' ')[0]} removed`, 'info');
+  toast(`${b.name.split(' ')[0]} removed (Ctrl+Z to undo)`, 'info');
 }
 
 function closeModal() {
@@ -3854,7 +4133,15 @@ function updateSmsPreview() {
   if (!el) return;
   const firstId = [...smsSelected][0];
   const b = firstId ? state.borrowers.find(x => x.id === firstId) : null;
-  el.textContent = b ? getSmsBlastMsg(b) : 'Select a contact to preview';
+  const msg = b ? getSmsBlastMsg(b) : 'Select a contact to preview';
+  el.textContent = msg;
+  // Update character ring
+  const ringEl = document.getElementById('sms-char-ring');
+  if (ringEl && b) {
+    const len = msg.length;
+    ringEl.innerHTML = renderCharRing(len, 160);
+    ringEl.title = len + ' / 160 characters';
+  }
 }
 
 function getSmsFilteredContacts() {
@@ -4207,11 +4494,14 @@ function renderCurrentPage() {
   else if (currentPage === 'log') renderLog();
   else if (currentPage === 'smsblast') renderSmsBlast();
   else if (currentPage === 'agedout') renderAgedOut();
-  else if (currentPage === 'ptp') renderPtp();
-  else if (currentPage === 'ptp-history') renderPtpHistory();
-  else if (currentPage === 'ptp-stats') renderPtpStats();
-  else if (currentPage === 'forecast') renderForecast();
+  else if (currentPage === 'ptp') renderPtpHub();
+  else if (currentPage === 'ptp-history') { navigate('ptp'); }
+  else if (currentPage === 'ptp-stats') { navigate('ptp'); }
+  else if (currentPage === 'forecast') { navigate('dashboard'); }
   else if (currentPage === 'segments') renderSegments();
+  else if (currentPage === 'ranking') renderRanking();
+  else if (currentPage === 'reports') renderReportsPage();
+  else if (currentPage === 'health') renderHealthPage();
 }
 
 function updateBadges() {
@@ -4866,6 +5156,8 @@ function _buildPtpText(ptps, fmt, isEod) {
 }
 function renderPtp() {
   const ptps = getTodayPtps();
+  // Redirect to unified PTP Hub
+  if (typeof renderPtpHub === "function") { renderPtpHub(); return; }
   const groups = groupPtpsByTime(ptps);
 
   // Update badge
@@ -5012,6 +5304,8 @@ function openGlobalSearch() {
 // ============================================================
 function renderPtpHistory() {
   var el = document.getElementById('ptp-history-body');
+  // Redirect to unified PTP Hub
+  if (typeof renderPtpHub === "function") { switchPtpHub("history", true); return; }
   if (!el) return;
   // Build history from borrowers payLog + ptpOutcomes stored in state
   var history = state.ptpHistory || [];
@@ -5070,6 +5364,8 @@ function savePtpSnapshot() {
 // ============================================================
 function renderPtpStats() {
   var el = document.getElementById('ptp-stats-body');
+  // Redirect to unified PTP Hub
+  if (typeof renderPtpHub === "function") { switchPtpHub("stats", true); return; }
   if (!el) return;
   var history = state.ptpHistory || [];
   if (!history.length) {
@@ -5113,9 +5409,7 @@ function renderPtpStats() {
 // ============================================================
 // COLLECTION FORECAST
 // ============================================================
-function renderForecast() {
-  var el = document.getElementById('forecast-body');
-  if (!el) return;
+function _buildForecastHtml() {
   var now = new Date();
   var daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
   var dayOfMonth  = now.getDate();
@@ -5128,39 +5422,35 @@ function renderForecast() {
   var ptpPotential = getTodayPtps().reduce(function(s,b){ return s+getDueToday(b); }, 0);
   var projWithPtp = projected + ptpPotential;
   var pct         = target > 0 ? Math.min(100, (projected/target*100)).toFixed(1) : 0;
-  var pctWithPtp  = target > 0 ? Math.min(100, (projWithPtp/target*100)).toFixed(1) : 0;
   var barCol      = pct >= 100 ? 'var(--green)' : pct >= 70 ? 'var(--gold)' : 'var(--red)';
-
-  // Scenario table
   var scenarios = [
     { label: 'Pessimistic (50% of avg)', val: logTotal + avgDaily*0.5*daysLeft },
     { label: 'Current pace (avg daily)', val: projected },
     { label: 'With today PTPs', val: projWithPtp },
     { label: 'Optimistic (150% of avg)', val: logTotal + avgDaily*1.5*daysLeft },
   ];
-
-  el.innerHTML = '<div class="kpi-grid" style="margin-bottom:16px">'
-    + '<div class="kpi-card" style="text-align:center"><div class="kpi-value">' + fmtC(Math.round(logTotal)) + '</div><div class="kpi-label">Collected So Far</div></div>'
-    + '<div class="kpi-card" style="text-align:center"><div class="kpi-value" style="color:var(--gold)">' + fmtC(Math.round(avgDaily)) + '</div><div class="kpi-label">Daily Average</div></div>'
-    + '<div class="kpi-card" style="text-align:center"><div class="kpi-value">' + daysLeft + '</div><div class="kpi-label">Days Left</div></div>'
-    + '<div class="kpi-card" style="text-align:center"><div class="kpi-value" style="color:var(--blue)">' + fmtC(Math.round(ptpPotential)) + '</div><div class="kpi-label">Today PTP Value</div></div>'
+  return '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:14px">'
+    + '<div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px"><div style="font-family:var(--font-mono);font-weight:700;font-size:16px">' + fmtC(Math.round(logTotal)) + '</div><div style="font-size:10px;color:var(--text3)">Collected</div></div>'
+    + '<div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px"><div style="font-family:var(--font-mono);font-weight:700;font-size:16px;color:var(--gold)">' + fmtC(Math.round(avgDaily)) + '</div><div style="font-size:10px;color:var(--text3)">Daily Avg</div></div>'
+    + '<div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px"><div style="font-family:var(--font-mono);font-weight:700;font-size:16px">' + daysLeft + '</div><div style="font-size:10px;color:var(--text3)">Days Left</div></div>'
     + '</div>'
-    + (target > 0 ? '<div class="card" style="margin-bottom:16px"><div class="card-header"><span class="card-title">Target Progress</span></div><div class="card-body">'
-        + '<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:12px">Projected vs Target</span><span style="font-family:var(--font-mono);font-size:12px;color:'+barCol+'">' + pct + '%</span></div>'
-        + '<div style="background:var(--border);border-radius:4px;height:10px;overflow:hidden;margin-bottom:10px"><div style="width:'+pct+'%;height:100%;background:'+barCol+';border-radius:4px"></div></div>'
-        + '<div style="font-size:12px;color:var(--text3)">Monthly target: ' + fmtC(target) + ' &middot; Projected: ' + fmtC(Math.round(projected)) + ' &middot; Gap: <span style="color:'+barCol+'">' + (projected>=target?'On track!':'Short by '+fmtC(Math.round(target-projected))) + '</span></div>'
-        + '</div></div>' : '<div class="card" style="margin-bottom:16px"><div class="card-body"><div style="font-size:13px;color:var(--text3)">Set a monthly target on the Dashboard to see target progress here.</div></div></div>')
-    + '<div class="card"><div class="card-header"><span class="card-title">Scenarios for Month End</span></div><div class="card-body">'
+    + (target > 0 ? '<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px"><span>Projected vs Target</span><span style="font-family:var(--font-mono);color:' + barCol + '">' + pct + '%</span></div>'
+      + '<div style="background:var(--border);border-radius:4px;height:8px;overflow:hidden"><div style="width:' + pct + '%;height:100%;background:' + barCol + ';border-radius:4px"></div></div>'
+      + '<div style="font-size:11px;color:var(--text3);margin-top:4px">Target: ' + fmtC(target) + ' · ' + (projected>=target?'<span style="color:var(--green)">On track!</span>':'Short by <span style="color:var(--red)">' + fmtC(Math.round(target-projected)) + '</span>') + '</div>'
+      + '</div>' : '<div style="font-size:12px;color:var(--text3);margin-bottom:10px">Set a monthly target on the Dashboard to see projection.</div>')
+    + '<div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Scenarios for month end:</div>'
     + scenarios.map(function(s) {
         var sc = target>0?Math.min(100,(s.val/target*100)).toFixed(0):null;
         var col = sc>=100?'var(--green)':sc>=70?'var(--gold)':'var(--red)';
-        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">'
-          + '<div style="font-size:12px">' + s.label + '</div>'
-          + '<div style="text-align:right"><div style="font-family:var(--font-mono);font-weight:700;font-size:13px">' + fmtC(Math.round(s.val)) + '</div>'
-          + (sc ? '<div style="font-size:10px;color:'+col+'">' + sc + '% of target</div>' : '')
-          + '</div></div>';
-      }).join('')
-    + '</div></div>';
+        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">'
+          + '<span style="color:var(--text2)">' + s.label + '</span>'
+          + '<span style="font-family:var(--font-mono);font-weight:700">' + fmtC(Math.round(s.val)) + (sc?'<span style="font-size:10px;color:'+col+';margin-left:4px">'+sc+'%</span>':'') + '</span></div>';
+      }).join('');
+}
+
+function renderForecast() {
+  var el = document.getElementById('forecast-body');
+  if (el) el.innerHTML = _buildForecastHtml();
 }
 
 // ============================================================
@@ -5339,6 +5629,836 @@ async function saveSupabaseConfig() {
     _pushToSupabase();
     localStorage.removeItem('setup_dismissed');
   }, 500);
+}
+
+
+// ============================================================
+// UNDO SYSTEM
+// ============================================================
+let _undoStack = [];
+function pushUndo(label, snapshot) {
+  _undoStack.push({ label, snapshot: JSON.parse(JSON.stringify(snapshot)) });
+  if (_undoStack.length > 10) _undoStack.shift();
+}
+function undo() {
+  if (!_undoStack.length) { toast('Nothing to undo', 'info'); return; }
+  const entry = _undoStack.pop();
+  state.borrowers = entry.snapshot.borrowers;
+  state.dailyLog = entry.snapshot.dailyLog;
+  saveState(); updateBadges(); renderCurrentPage();
+  const area = document.getElementById('toast-area');
+  const el = document.createElement('div');
+  el.className = 'toast success';
+  el.innerHTML = `↩️ Undone: ${entry.label}`;
+  area.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+// Ctrl+Z and shake to undo
+document.addEventListener('keydown', function(e) {
+  const tag = (e.target.tagName || '').toLowerCase();
+  const inInput = tag === 'input' || tag === 'textarea' || tag === 'select';
+  if (e.ctrlKey && e.key === 'z' && !inInput) { e.preventDefault(); undo(); return; }
+  if (inInput) return;
+  const map = { d:'dashboard', l:'loans', a:'analytics', w:'dispatch', s:'smsblast', p:'ptp', r:'ranking', g:'log' };
+  if (map[e.key]) navigate(map[e.key]);
+  if (e.key === 'f') { e.preventDefault(); document.getElementById('loan-search')?.focus(); navigate('loans'); }
+  if (e.key === 'n') openAddModal();
+});
+// Shake detection
+(function() {
+  var last = { x:0, y:0, z:0, t:0 };
+  if (!window.DeviceMotionEvent) return;
+  window.addEventListener('devicemotion', function(ev) {
+    var a = ev.accelerationIncludingGravity;
+    if (!a) return;
+    var now = Date.now();
+    if (now - last.t < 100) return;
+    var dx = Math.abs(a.x - last.x), dy = Math.abs(a.y - last.y), dz = Math.abs(a.z - last.z);
+    if (dx + dy + dz > 30) { undo(); }
+    last = { x: a.x, y: a.y, z: a.z, t: now };
+  });
+})();
+
+// ============================================================
+// HIT LIST
+// ============================================================
+function getHitList() { return state.hitList || []; }
+function addToHitList(id) {
+  if (!state.hitList) state.hitList = [];
+  if (state.hitList.includes(id)) { toast('Already in Hit List', 'info'); return; }
+  if (state.hitList.length >= 10) { toast('Hit List is full (max 10)', 'error'); return; }
+  state.hitList.push(id);
+  haptic('medium');
+  saveState();
+  renderHitList();
+  toast('Added to Hit List 📌', 'success');
+}
+function removeFromHitList(id) {
+  state.hitList = (state.hitList||[]).filter(x => x !== id);
+  saveState(); renderHitList();
+}
+function clearHitList() {
+  const today = new Date().toISOString().split('T')[0];
+  localStorage.setItem('hit_list_cleared', today);
+  state.hitList = [];
+  saveState(); renderHitList();
+  toast('Hit List cleared', 'info');
+}
+function toggleHitListPanel(show) {
+  const p = document.getElementById('hit-list-panel');
+  if (p) p.style.display = (show === false || p.style.display !== 'none') && show !== true ? 'none' : 'block';
+}
+function renderHitList() {
+  const hl = getHitList();
+  const panel = document.getElementById('hit-list-panel');
+  const countEl = document.getElementById('hit-list-count');
+  const itemsEl = document.getElementById('hit-list-items');
+  if (!panel) return;
+  panel.style.display = hl.length > 0 ? 'block' : 'none';
+  if (countEl) countEl.textContent = '(' + hl.length + '/10)';
+  if (!itemsEl) return;
+  itemsEl.innerHTML = hl.map((id, idx) => {
+    const b = state.borrowers.find(x => x.id === id);
+    if (!b) return '';
+    const phone = b.phone.replace(/\s/g,'').replace('+','');
+    return `<div class="hit-item" draggable="true" data-hit-id="${id}" data-idx="${idx}">
+      <span style="cursor:grab;color:var(--text3);font-size:16px">⋮⋮</span>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:12px">${b.name}</div>
+        <div style="font-size:10px;color:var(--text3)">Day ${getOdAge(b.startDate)} · ${fmtC(getDueToday(b))}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <a href="tel:${b.phone}" class="btn btn-ghost btn-xs" onclick="haptic('light')">📞</a>
+        <button class="btn btn-green btn-xs" onclick="openPayModal('${b.id}')">💰</button>
+        <a href="https://wa.me/${phone}?text=${encodeURIComponent(getWaLink(b, true))}" target="_blank" class="btn btn-ghost btn-xs" style="color:#25d366">💬</a>
+        <button class="btn btn-ghost btn-xs" onclick="removeFromHitList('${b.id}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+  // Drag reorder
+  let dragIdx = null;
+  itemsEl.querySelectorAll('.hit-item').forEach(el => {
+    el.addEventListener('dragstart', function() { dragIdx = parseInt(el.dataset.idx); });
+    el.addEventListener('dragover', function(e) { e.preventDefault(); });
+    el.addEventListener('drop', function() {
+      const toIdx = parseInt(el.dataset.idx);
+      if (dragIdx === null || dragIdx === toIdx) return;
+      const arr = [...state.hitList];
+      const [moved] = arr.splice(dragIdx, 1);
+      arr.splice(toIdx, 0, moved);
+      state.hitList = arr; dragIdx = null;
+      saveState(); renderHitList();
+    });
+  });
+}
+// Midnight clear
+(function() {
+  const today = new Date().toISOString().split('T')[0];
+  const cleared = localStorage.getItem('hit_list_cleared');
+  if (cleared && cleared < today) {
+    if (window.state) { state.hitList = []; saveState(); }
+    localStorage.setItem('hit_list_cleared', today);
+  }
+})();
+
+// ============================================================
+// STREAK + PERSONAL BEST
+// ============================================================
+function calcStreak() {
+  const logs = [...state.dailyLog].sort((a,b) => b.date.localeCompare(a.date));
+  let streak = 0;
+  let d = new Date();
+  d.setHours(0,0,0,0);
+  for (let i = 0; i < 365; i++) {
+    const ds = d.toISOString().split('T')[0];
+    const entry = logs.find(e => e.date === ds && (e.collected||0) > 0);
+    if (entry) { streak++; d.setDate(d.getDate()-1); }
+    else { if (i === 0) { d.setDate(d.getDate()-1); continue; } break; }
+  }
+  return streak;
+}
+function getPersonalBest() {
+  const logs = state.dailyLog || [];
+  return logs.length ? Math.max(...logs.map(e => e.collected||0)) : 0;
+}
+function renderStreakBadge() {
+  const streak = calcStreak();
+  const el = document.getElementById('streak-badge-dash');
+  if (!el) return;
+  if (streak > 0) {
+    el.style.display = 'inline-flex';
+    el.textContent = '🔥 ' + streak + ' day streak';
+  } else {
+    el.style.display = 'none';
+  }
+}
+function checkPersonalBest(amount) {
+  const best = getPersonalBest();
+  if (amount > 0 && amount >= best) {
+    fireConfetti();
+    toast('🎉 New personal best! ' + fmtC(amount), 'success');
+    const el = document.getElementById('streak-badge-dash');
+    if (el) { el.classList.add('gold-flash'); setTimeout(() => el.classList.remove('gold-flash'), 3000); }
+  }
+}
+
+// ============================================================
+// CONFETTI
+// ============================================================
+function fireConfetti() {
+  const canvas = document.getElementById('confetti-canvas');
+  if (!canvas) return;
+  canvas.style.display = 'block';
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  const pieces = Array.from({length:120}, () => ({
+    x: Math.random() * canvas.width, y: -20,
+    vx: (Math.random()-0.5)*5, vy: 2 + Math.random()*4,
+    r: 4 + Math.random()*6, rot: Math.random()*360,
+    color: ['#e8a020','#f5b840','#0b0d12','#22c55e','#60a5fa'][Math.floor(Math.random()*5)]
+  }));
+  let frame = 0;
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p => {
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle = p.color; ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*0.6);
+      ctx.restore();
+      p.x += p.vx; p.y += p.vy; p.rot += 4; p.vy += 0.05;
+    });
+    frame++;
+    if (frame < 100) requestAnimationFrame(draw);
+    else { ctx.clearRect(0,0,canvas.width,canvas.height); canvas.style.display = 'none'; }
+  }
+  draw();
+}
+
+// ============================================================
+// EOD REPORT (One-Tap)
+// ============================================================
+function generateEODReport() {
+  const today = new Date().toISOString().split('T')[0];
+  const todayLog = state.dailyLog.find(e => e.date === today);
+  const collected = todayLog ? (todayLog.collected||0) : 0;
+  const active = getActiveBorrowers();
+  const paid = state.borrowers.filter(b => getStatus(b) === 'Paid');
+  const partial = state.borrowers.filter(b => getStatus(b) === 'Partial');
+  const ptpToday = state.borrowers.filter(b => b.promisedToPay && b.promiseDate && b.promiseDate.startsWith(today));
+  const ptpHonoured = ptpToday.filter(b => b.amountPaid > 0);
+  const totalOutstanding = active.reduce((s,b) => s + getRemaining(b), 0);
+  const date = new Date().toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short', year:'numeric'});
+  const text = `📊 *EOD COLLECTION REPORT*\n*${date}*\nAgent: Shadrack Agyei Arthur\nSupervisor: NANA OSAE EMMANUEL\n\n💰 Collected Today: *${fmtC(collected)}*\n👥 Active Accounts: ${active.length}\n✅ Fully Paid Today: ${paid.length}\n⚠️ Partial Payment: ${partial.length}\n🤝 PTPs Set: ${ptpToday.length}\n✔️ PTPs Honoured: ${ptpHonoured.length}\n💸 Total Outstanding: ${fmtC(totalOutstanding)}\n\n_Sent from SqueveTrack_`;
+  document.getElementById('modal-title').textContent = '📊 EOD Report';
+  document.getElementById('modal-body').innerHTML =
+    `<div class="report-output" style="font-size:12px;white-space:pre-wrap;user-select:all">${text}</div>`;
+  document.getElementById('modal-footer').innerHTML =
+    `<button class="btn btn-ghost" onclick="closeModal()">Close</button>
+     <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(\`${text.replace(/`/g,"'")}\`).then(()=>toast('Copied!','success'))">📋 Copy</button>
+     <a href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" class="eod-btn" style="font-size:12px;padding:7px 14px;text-decoration:none">WhatsApp ↗</a>`;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+// ============================================================
+// COLLECTION GAP WIDGET
+// ============================================================
+function renderGapWidget() {
+  const logTotal = state.dailyLog.reduce((s,e) => s+(Number(e.collected)||0), 0);
+  const monthTarget = state.monthlyTarget || 0;
+  const widget = document.getElementById('dash-gap-widget');
+  const amtEl = document.getElementById('gap-widget-amount');
+  const statusEl = document.getElementById('gap-widget-status');
+  if (!widget || !amtEl) return;
+  if (!monthTarget) { widget.style.display = 'none'; return; }
+  const now = new Date();
+  const dim = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  const dl = dim - now.getDate();
+  const remaining = Math.max(0, monthTarget - logTotal);
+  const perDay = dl > 0 ? Math.ceil(remaining / dl) : remaining;
+  widget.style.display = 'flex';
+  amtEl.textContent = fmtC(perDay);
+  amtEl.style.color = remaining === 0 ? 'var(--green)' : perDay > 2000 ? 'var(--red)' : 'var(--gold)';
+  if (statusEl) statusEl.textContent = remaining === 0 ? '🎉 Monthly target hit!' : `${dl} days left · ${fmtC(remaining)} remaining`;
+}
+
+// ============================================================
+// TREADMILL ALERT (Day 6 new entries)
+// ============================================================
+function renderTreadmillAlert() {
+  const today = new Date().toISOString().split('T')[0];
+  const newDay6 = state.borrowers.filter(b => {
+    const od = getOdAge(b.startDate);
+    return od === 6 && b.startDate === today;
+  });
+  // also check for accounts that newly hit day 6 today
+  const allDay6 = state.borrowers.filter(b => getOdAge(b.startDate) === 6);
+  const el = document.getElementById('treadmill-alert');
+  if (!el) return;
+  if (allDay6.length === 0) { el.style.display = 'none'; return; }
+  const total = allDay6.reduce((s,b) => s + getDueToday(b), 0);
+  el.style.display = 'block';
+  el.innerHTML = `<div style="font-weight:700;color:var(--red);font-size:13px">🔄 Treadmill: ${allDay6.length} account${allDay6.length>1?'s':''} on Day 6 today</div>
+    <div style="font-size:11px;color:var(--text3);margin-top:3px">Total new outstanding added: <strong>${fmtC(total)}</strong> — act immediately before they age.</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${allDay6.slice(0,6).map(b =>
+      `<span style="background:var(--surface2);border:1px solid rgba(239,68,68,0.3);border-radius:16px;padding:2px 10px;font-size:11px;cursor:pointer" onclick="openPayModal('${b.id}')">${b.name.split(' ')[0]}</span>`
+    ).join('')}${allDay6.length>6?`<span style="font-size:11px;color:var(--text3);padding:2px 6px">+${allDay6.length-6} more</span>`:''}</div>`;
+}
+
+// ============================================================
+// PRIORITY SCORE ENGINE
+// ============================================================
+function calcPriorityScore(b) {
+  let score = 0;
+  const od = getOdAge(b.startDate);
+  // OD age (max 4 pts)
+  score += Math.min(4, Math.floor(od / 3));
+  // Amount outstanding (max 3 pts)
+  const rem = getRemaining(b);
+  if (rem > 2000) score += 3;
+  else if (rem > 1000) score += 2;
+  else if (rem > 500) score += 1;
+  // Broken promises (max 2 pts)
+  if (b.promisedToPay && b.amountPaid === 0) score += 2;
+  // No payment at all (1 pt)
+  if (!b.amountPaid) score += 1;
+  return Math.min(10, score);
+}
+
+// ============================================================
+// BORROWER BADGES (star / warning)
+// ============================================================
+function getBorrowerBadges(b) {
+  const badges = [];
+  const payRatio = b.loanDue > 0 ? b.amountPaid / b.loanDue : 0;
+  if (payRatio >= 0.5 && b.amountPaid > 0) badges.push('<span class="badge-star" title="Reliable payer">⭐</span>');
+  if (b.promisedToPay && b.amountPaid === 0) badges.push('<span class="badge-warn" title="Broken promise">⚠️</span>');
+  return badges.join('');
+}
+
+// ============================================================
+// HEAT RING CLASS
+// ============================================================
+function getHeatClass(odAge) {
+  if (odAge >= 15) return 'd15';
+  if (odAge >= 13) return 'd13';
+  if (odAge >= 12) return 'd12';
+  if (odAge >= 10) return 'd10';
+  if (odAge >= 8)  return 'd8';
+  return 'd6';
+}
+
+// ============================================================
+// CALL LOG PER BORROWER
+// ============================================================
+function openCallLogModal(id) {
+  const b = state.borrowers.find(x => x.id === id);
+  if (!b) return;
+  if (!b.callLog) b.callLog = [];
+  const outcomes = ['Answered','No Answer','Promised','Refused'];
+  document.getElementById('modal-title').textContent = '📞 Call Log — ' + b.name.split(' ')[0];
+  document.getElementById('modal-body').innerHTML =
+    `<div style="margin-bottom:14px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:8px">Log new call outcome:</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="call-outcome-btns">
+        ${outcomes.map(o => `<button class="call-outcome-btn" onclick="logCallOutcome('${id}','${o}',this)">${o}</button>`).join('')}
+      </div>
+    </div>
+    <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">History (${b.callLog.length} calls):</div>
+    <div style="max-height:200px;overflow-y:auto">
+      ${b.callLog.length === 0 ? '<div style="color:var(--text3);font-size:12px">No calls logged yet</div>' :
+        [...b.callLog].reverse().map(c =>
+          `<div class="call-log-entry">
+            <span style="font-size:16px">${{Answered:'✅',
+              'No Answer':'📵',Promised:'🤝',Refused:'🚫'}[c.outcome]||'📞'}</span>
+            <div><div style="font-weight:600">${c.outcome}</div>
+            <div style="color:var(--text3);font-size:10px">${c.timestamp}</div></div>
+          </div>`
+        ).join('')
+      }
+    </div>`;
+  document.getElementById('modal-footer').innerHTML = `<button class="btn btn-ghost" onclick="closeModal()">Close</button>`;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function logCallOutcome(id, outcome, btn) {
+  const b = state.borrowers.find(x => x.id === id);
+  if (!b) return;
+  if (!b.callLog) b.callLog = [];
+  b.callLog.push({ outcome, timestamp: new Date().toLocaleString('en-GB') });
+  haptic('medium');
+  document.querySelectorAll('.call-outcome-btn').forEach(el => el.classList.remove('active'));
+  btn.classList.add('active');
+  saveState();
+  toast('Call outcome logged: ' + outcome, 'success');
+}
+
+// ============================================================
+// WHATSAPP QUEUE BUILDER
+// ============================================================
+let _waQueue = [];
+let _waQueueIdx = 0;
+function startWaQueue(ids) {
+  _waQueue = ids; _waQueueIdx = 0;
+  sendNextInWaQueue();
+}
+function sendNextInWaQueue() {
+  if (_waQueueIdx >= _waQueue.length) { toast('WhatsApp queue complete ✅', 'success'); return; }
+  const b = state.borrowers.find(x => x.id === _waQueue[_waQueueIdx]);
+  if (!b) { _waQueueIdx++; sendNextInWaQueue(); return; }
+  const phone = b.phone.replace(/\s/g,'').replace('+','');
+  const msg = getSmsMessage(b, false).replace('{name}', getFirstName(b));
+  const url = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(msg);
+  window.open(url, '_blank');
+  _waQueueIdx++;
+  toast(`Sent ${_waQueueIdx} of ${_waQueue.length} — `, 'info');
+  document.getElementById('wa-queue-progress') && (document.getElementById('wa-queue-progress').textContent = `${_waQueueIdx} of ${_waQueue.length} sent`);
+  if (_waQueueIdx < _waQueue.length) {
+    document.getElementById('modal-body').querySelector && showWaQueueModal();
+  }
+}
+function showWaQueueModal() {
+  document.getElementById('modal-title').textContent = '💬 WhatsApp Queue';
+  document.getElementById('modal-body').innerHTML =
+    `<div class="wa-queue-progress" id="wa-queue-progress">${_waQueueIdx} of ${_waQueue.length} sent</div>
+     <div style="font-size:13px;color:var(--text2);margin-bottom:10px">Next in queue:</div>
+     ${_waQueue.slice(_waQueueIdx, _waQueueIdx+3).map(id => {
+       const b = state.borrowers.find(x => x.id === id);
+       return b ? `<div class="wa-queue-item"><span>💬</span><div><div style="font-weight:600;font-size:12px">${b.name}</div><div style="font-size:10px;color:var(--text3)">${b.phone}</div></div></div>` : '';
+     }).join('')}`;
+  document.getElementById('modal-footer').innerHTML =
+    `<button class="btn btn-ghost" onclick="closeModal()">Stop Queue</button>
+     <button class="eod-btn" onclick="sendNextInWaQueue()">Send Next ▶</button>`;
+}
+
+// ============================================================
+// SMART CLUSTERS (Auto-group)
+// ============================================================
+function renderSmartClusters() {
+  const active = getActiveBorrowers();
+  const high = active.filter(b => {
+    const score = calcPriorityScore(b);
+    return b.amountPaid > 0 && score <= 5;
+  });
+  const pressure = active.filter(b => {
+    const od = getOdAge(b.startDate);
+    return od >= 8 && b.amountPaid === 0 && !b.promisedToPay;
+  });
+  const escalate = active.filter(b => {
+    return (b.promisedToPay && b.amountPaid === 0) || getOdAge(b.startDate) >= 13;
+  });
+  return `<div class="cluster-card high">
+    <div style="font-weight:700;color:var(--green);margin-bottom:6px">🟢 High Probability (${high.length})</div>
+    <div style="font-size:12px;color:var(--text2)">Already paying — likely to pay today.</div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">${high.slice(0,8).map(b=>`<span style="font-size:11px;background:rgba(34,197,94,0.1);border-radius:14px;padding:2px 9px">${b.name.split(' ')[0]}</span>`).join('')}</div>
+  </div>
+  <div class="cluster-card pressure">
+    <div style="font-weight:700;color:var(--orange);margin-bottom:6px">🟡 Needs Pressure (${pressure.length})</div>
+    <div style="font-size:12px;color:var(--text2)">Overdue with no engagement yet.</div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">${pressure.slice(0,8).map(b=>`<span style="font-size:11px;background:rgba(249,115,22,0.1);border-radius:14px;padding:2px 9px">${b.name.split(' ')[0]}</span>`).join('')}</div>
+  </div>
+  <div class="cluster-card escalate">
+    <div style="font-weight:700;color:var(--red);margin-bottom:6px">🔴 Escalation Ready (${escalate.length})</div>
+    <div style="font-size:12px;color:var(--text2)">Broken promises or Day 13+.</div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">${escalate.slice(0,8).map(b=>`<span style="font-size:11px;background:rgba(239,68,68,0.1);border-radius:14px;padding:2px 9px">${b.name.split(' ')[0]}</span>`).join('')}</div>
+  </div>`;
+}
+
+// ============================================================
+// PREDICTED PAYMENT DATE
+// ============================================================
+function getPredictedPayDate(b) {
+  if (!b.payLog || b.payLog.length < 2) return null;
+  const dates = b.payLog.map(p => new Date(p.date).getTime()).sort((a,c)=>a-c);
+  const gaps = [];
+  for (let i = 1; i < dates.length; i++) gaps.push(dates[i] - dates[i-1]);
+  const avgGap = gaps.reduce((s,g) => s+g, 0) / gaps.length;
+  const lastDate = dates[dates.length-1];
+  const predicted = new Date(lastDate + avgGap);
+  return predicted.toISOString().split('T')[0];
+}
+
+// ============================================================
+// RANKING TRACKER
+// ============================================================
+function renderRanking() {
+  const history = state.rankingHistory || [];
+  const body = document.getElementById('ranking-body');
+  if (!body) return;
+  // Pre-fill saved API key and agent name
+  const savedKey = localStorage.getItem('ranking_api_key') || '';
+  const savedName = localStorage.getItem('ranking_my_name') || '';
+  const apiKeyEl = document.getElementById('ranking-api-key');
+  const nameEl = document.getElementById('ranking-my-name');
+  if (apiKeyEl && savedKey) apiKeyEl.value = savedKey;
+  if (nameEl && savedName) nameEl.value = savedName;
+
+  if (!history.length) {
+    body.innerHTML = '<div class="empty-state"><div class="icon">🏆</div><div>No ranking scans yet. Paste your ranking above and click Scan.</div></div>';
+    return;
+  }
+  const latest = history[history.length-1];
+  const prev = history.length > 1 ? history[history.length-2] : null;
+  const myName = (localStorage.getItem('ranking_my_name')||'').toLowerCase();
+  const me = latest.agents.find(a => myName && a.name.toLowerCase().includes(myName));
+  const myPos = me ? latest.agents.indexOf(me)+1 : null;
+
+  let html = `<div class="card" style="margin-bottom:16px">
+    <div class="card-header"><span class="card-title">📅 Latest Scan — ${latest.date}</span></div>
+    <div class="card-body">`;
+  if (me && myPos) {
+    const first = latest.agents[0];
+    const above = myPos > 1 ? latest.agents[myPos-2] : null;
+    html += `<div style="background:rgba(232,160,32,0.1);border:1px solid rgba(232,160,32,0.3);border-radius:8px;padding:12px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:700;color:var(--gold)">Your Position: #${myPos} — ${me.pct}%</div>
+      ${first ? `<div style="font-size:11px;color:var(--text3);margin-top:2px">Gap to #1 (${first.name}): ${(parseFloat(first.pct)-parseFloat(me.pct)).toFixed(1)}%</div>` : ''}
+      ${above ? `<div style="font-size:11px;color:var(--text3)">Gap to move up to #${myPos-1} (${above.name}): ${(parseFloat(above.pct)-parseFloat(me.pct)).toFixed(1)}%</div>` : ''}
+    </div>`;
+  }
+  html += latest.agents.map((a, i) => {
+    const isMine = myName && a.name.toLowerCase().includes(myName);
+    const prevAgent = prev ? prev.agents.find(p => p.name === a.name) : null;
+    const prevPos = prevAgent ? prev.agents.indexOf(prevAgent)+1 : null;
+    const trend = prevPos ? (i+1 < prevPos ? '<span class="trend-up">▲</span>' : i+1 > prevPos ? '<span class="trend-down">▼</span>' : '<span class="trend-flat">—</span>') : '';
+    return `<div class="ranking-agent-row" style="${isMine?'background:rgba(232,160,32,0.08);border-left:3px solid var(--gold);':''}">
+      <span style="font-family:var(--font-mono);color:var(--text3);min-width:24px">${i+1}</span>
+      <span style="flex:1;font-weight:${isMine?'700':'400'}">${a.name}${isMine?' 👈':''}</span>
+      <span style="font-family:var(--font-mono);color:${isMine?'var(--gold)':'var(--text2)'}">${a.pct}%</span>
+      <span style="margin-left:8px;min-width:20px">${trend}</span>
+    </div>`;
+  }).join('');
+  html += `</div></div>`;
+
+  // Mini-league chart area
+  if (history.length > 1) {
+    html += `<div class="card"><div class="card-header"><span class="card-title">📈 Your Position Over Time</span></div><div class="card-body">
+      <div class="chart-wrap"><canvas id="chart-ranking"></canvas></div>
+    </div></div>`;
+  }
+  body.innerHTML = html;
+
+  // Draw ranking trend chart
+  if (history.length > 1) {
+    const myPositions = history.map(scan => {
+      const mn = (localStorage.getItem('ranking_my_name')||'').toLowerCase();
+      const a = scan.agents.find(x => mn && x.name.toLowerCase().includes(mn));
+      return a ? parseFloat(a.pct) : null;
+    });
+    setTimeout(() => {
+      const ctx = document.getElementById('chart-ranking');
+      if (!ctx) return;
+      if (charts['ranking']) charts['ranking'].destroy();
+      charts['ranking'] = new Chart(ctx, {
+        type:'line', data:{
+          labels: history.map(s=>s.date),
+          datasets:[{label:'Your Rate %', data:myPositions, borderColor:'#e8a020', backgroundColor:'rgba(232,160,32,0.1)', tension:0.4, pointRadius:4}]
+        },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+          scales:{y:{reverse:false, ticks:{callback:v=>v+'%', color:chartTextColor()}}, x:{ticks:{color:chartTextColor()}}}}
+      });
+    }, 0);
+  }
+}
+
+async function scanRanking() {
+  const apiKey = document.getElementById('ranking-api-key')?.value?.trim();
+  const myName = document.getElementById('ranking-my-name')?.value?.trim();
+  const text = document.getElementById('ranking-paste')?.value?.trim();
+  const statusEl = document.getElementById('ranking-scan-status');
+  if (!text) { if(statusEl) statusEl.textContent = '❌ Please paste your ranking text first'; return; }
+  if (apiKey) { localStorage.setItem('ranking_api_key', apiKey); }
+  if (myName) { localStorage.setItem('ranking_my_name', myName); }
+  if (statusEl) statusEl.textContent = '⏳ Scanning...';
+  const btn = document.getElementById('ranking-scan-btn');
+  if (btn) btn.disabled = true;
+
+  // Parse ranking text locally (lines with name and percentage)
+  const lines = text.split('\n').filter(l => l.trim());
+  const agents = [];
+  lines.forEach(line => {
+    const m = line.match(/(\d+[\.\)]\s*)?(.+?)\s+([\d.]+)%/);
+    if (m) agents.push({ name: m[2].trim(), pct: m[3] });
+  });
+
+  if (agents.length === 0) {
+    if (statusEl) statusEl.textContent = '❌ Could not detect agents. Format: "Name XX.X%"';
+    if (btn) btn.disabled = false;
+    return;
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+  if (!state.rankingHistory) state.rankingHistory = [];
+  // Remove existing scan for today
+  state.rankingHistory = state.rankingHistory.filter(s => s.date !== today);
+  state.rankingHistory.push({ date: today, agents });
+  saveState();
+  if (statusEl) statusEl.textContent = `✅ Saved ${agents.length} agents for ${today}`;
+  if (btn) btn.disabled = false;
+  renderRanking();
+  toast('Ranking scanned and saved ✅', 'success');
+}
+
+// ============================================================
+// SUPERVISOR REPORTS PAGE
+// ============================================================
+function renderReportsPage() { /* nothing dynamic needed, HTML handles it */ }
+function generateReport(type) {
+  const agent = document.getElementById('rpt-agent')?.value || 'Shadrack Agyei Arthur';
+  const sup = document.getElementById('rpt-supervisor')?.value || 'NANA OSAE EMMANUEL';
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-GB', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const todayKey = today.toISOString().split('T')[0];
+  const log = state.dailyLog.find(e => e.date === todayKey);
+  const collected = log ? (log.collected||0) : 0;
+  const active = getActiveBorrowers();
+  const paid = state.borrowers.filter(b => getStatus(b) === 'Paid');
+  const partial = state.borrowers.filter(b => getStatus(b) === 'Partial');
+  const ptpToday = state.borrowers.filter(b => b.promisedToPay && b.promiseDate && b.promiseDate.startsWith(todayKey));
+  const ptpHonoured = ptpToday.filter(b => b.amountPaid > 0);
+  const outstanding = active.reduce((s,b) => s+getRemaining(b),0);
+  const totalCollected = state.dailyLog.reduce((s,e) => s+(e.collected||0),0);
+  const rate = active.length > 0 ? ((state.borrowers.filter(b=>b.amountPaid>0).length / state.borrowers.length)*100).toFixed(1) : '0.0';
+
+  let title, text;
+  if (type === 'morning') {
+    title = 'Morning PTP Report';
+    text = `📋 *MORNING PTP REPORT*\n${dateStr}\nAgent: ${agent}\nSupervisor: ${sup}\n\n🤝 PTPs for Today: ${ptpToday.length}\n${ptpToday.map(b=>`  • ${b.name} — ${fmtC(getDueToday(b))} (${b.promiseDate||''})`).join('\n')}\n\n💸 Expected from PTPs: ${fmtC(ptpToday.reduce((s,b)=>s+getDueToday(b),0))}\n👥 Active Portfolio: ${active.length} accounts\n💰 Outstanding: ${fmtC(outstanding)}\n\n_Sent via SqueveTrack_`;
+  } else if (type === 'eod') {
+    title = 'EOD Summary Report';
+    text = `🌙 *EOD SUMMARY REPORT*\n${dateStr}\nAgent: ${agent}\nSupervisor: ${sup}\n\n💰 Collected Today: *${fmtC(collected)}*\n📊 Month-to-Date: ${fmtC(totalCollected)}\n✅ Fully Paid: ${paid.length}\n⚠️ Partial: ${partial.length}\n⏳ Unpaid: ${state.borrowers.filter(b=>getStatus(b)==='Unpaid').length}\n🤝 PTPs Set: ${ptpToday.length}\n✔️ PTPs Honoured: ${ptpHonoured.length}\n💸 Outstanding: ${fmtC(outstanding)}\n\n_Sent via SqueveTrack_`;
+  } else {
+    title = 'Weekly Performance Report';
+    const weekLogs = state.dailyLog.filter(e => {
+      const d = new Date(e.date); const now = new Date();
+      return (now - d) <= 7*24*3600*1000;
+    });
+    const weekTotal = weekLogs.reduce((s,e) => s+(e.collected||0),0);
+    const avgDay = weekLogs.length ? weekTotal/weekLogs.length : 0;
+    text = `📆 *WEEKLY PERFORMANCE REPORT*\nWeek ending ${dateStr}\nAgent: ${agent}\nSupervisor: ${sup}\n\n💰 Week Total: *${fmtC(weekTotal)}*\n📅 Active Days: ${weekLogs.filter(e=>e.collected>0).length}/7\n📊 Daily Average: ${fmtC(Math.round(avgDay))}\n📈 Recovery Rate: ${rate}%\n👥 Active Accounts: ${active.length}\n💸 Outstanding: ${fmtC(outstanding)}\n\n_Sent via SqueveTrack_`;
+  }
+  document.getElementById('report-output-title').textContent = title;
+  document.getElementById('report-output-text').textContent = text;
+  document.getElementById('report-output-section').style.display = 'block';
+  document.getElementById('report-output-section')._text = text;
+}
+function copyReport() {
+  const text = document.getElementById('report-output-text')?.textContent || '';
+  navigator.clipboard.writeText(text).then(() => toast('Report copied!','success'));
+}
+function whatsappReport() {
+  const text = document.getElementById('report-output-text')?.textContent || '';
+  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+}
+
+// ============================================================
+// DATA HEALTH PAGE
+// ============================================================
+function renderHealthPage() {
+  const body = document.getElementById('health-body');
+  if (!body) return;
+  const ls = JSON.stringify(state).length;
+  const lsKb = (ls/1024).toFixed(1);
+  const lastSync = localStorage.getItem('last_sync_time') || 'Never';
+  const logDays = (state.dailyLog||[]).length;
+  const syncOk = lsKb < 3000;
+  body.innerHTML = `
+    <div class="health-row"><span>Total Borrowers</span><span style="font-family:var(--font-mono)">${state.borrowers.length}</span></div>
+    <div class="health-row"><span>Daily Log Entries</span><span style="font-family:var(--font-mono)">${logDays} days</span></div>
+    <div class="health-row"><span>localStorage Size</span><span style="font-family:var(--font-mono)">${lsKb} KB</span></div>
+    <div class="health-row"><span>Aged Out Records</span><span style="font-family:var(--font-mono)">${(state.agedOutLog||[]).length}</span></div>
+    <div class="health-row"><span>Ranking Scans</span><span style="font-family:var(--font-mono)">${(state.rankingHistory||[]).length}</span></div>
+    <div class="health-row">
+      <span>Supabase Sync</span>
+      <span><span class="health-dot ${_db?'green':'amber'}"></span>${_db?'Connected':'Not connected'}</span>
+    </div>
+    <div class="health-row">
+      <span>Data Status</span>
+      <span><span class="health-dot ${syncOk?'green':'amber'}"></span>${syncOk?'Healthy':'Large — consider archiving'}</span>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-gold btn-sm" onclick="_pushToSupabase&&_pushToSupabase();toast('Re-syncing...','info')">🔄 Force Re-sync</button>
+      <button class="btn btn-ghost btn-sm" onclick="navigate('ranking')">🏆 Ranking Data</button>
+    </div>`;
+}
+
+// ============================================================
+// UNIFIED PTP HUB (replaces separate ptp/ptp-history/ptp-stats)
+// ============================================================
+let _ptpActiveTab = 'report';
+function renderPtpHub() {
+  const el = document.getElementById('page-ptp');
+  if (!el) return;
+  // Check if already has tab header (avoid double render)
+  if (!el.querySelector('.ptp-tab')) {
+    const header = el.querySelector('.page-header');
+    if (header) {
+      const tabBar = document.createElement('div');
+      tabBar.style.cssText = 'display:flex;gap:0;margin-bottom:-1px;padding:0 0 0 0;';
+      tabBar.innerHTML = `
+        <div class="ptp-tab active" id="ptptab-report" onclick="switchPtpHub('report')">🤝 Report</div>
+        <div class="ptp-tab" id="ptptab-history" onclick="switchPtpHub('history')">📅 History</div>
+        <div class="ptp-tab" id="ptptab-stats" onclick="switchPtpHub('stats')">📊 Stats</div>
+      `;
+      header.insertAdjacentElement('afterend', tabBar);
+    }
+  }
+  switchPtpHub(_ptpActiveTab, true);
+}
+function switchPtpHub(tab, force) {
+  if (!force && _ptpActiveTab === tab) return;
+  _ptpActiveTab = tab;
+  document.querySelectorAll('.ptp-tab').forEach(t => t.classList.remove('active'));
+  const activeTab = document.getElementById('ptptab-' + tab);
+  if (activeTab) activeTab.classList.add('active');
+  const body = document.getElementById('ptp-hub-content');
+  if (body) body.remove();
+  const el = document.getElementById('page-ptp');
+  const content = document.createElement('div');
+  content.id = 'ptp-hub-content';
+  el.appendChild(content);
+  if (tab === 'report') { content.innerHTML = getPtpReportHtml(); wirePtpReport(); }
+  else if (tab === 'history') { content.innerHTML = getPtpHistoryHtml(); }
+  else if (tab === 'stats') { content.innerHTML = getPtpStatsHtml(); }
+}
+function getPtpReportHtml() {
+  const today = new Date().toISOString().split('T')[0];
+  const ptpToday = state.borrowers.filter(b => b.promisedToPay && b.promiseDate && b.promiseDate.startsWith(today));
+  const ptpFuture = state.borrowers.filter(b => b.promisedToPay && b.promiseDate && b.promiseDate > today);
+  const ptpHonoured = ptpToday.filter(b => b.amountPaid > 0);
+  return `<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+    <button class="btn btn-gold btn-sm" id="ptp-tab-morning" onclick="switchPtpTab('morning')">📋 Morning (12PM)</button>
+    <button class="btn btn-ghost btn-sm" id="ptp-tab-eod" onclick="switchPtpTab('eod')">🌙 EOD Summary (6PM)</button>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-header"><span class="card-title">Today's PTPs</span><span style="font-size:11px;color:var(--text3)">${ptpToday.length} promised · ${ptpHonoured.length} honoured</span></div>
+    <div class="card-body" id="ptp-morning-list">
+      ${ptpToday.length === 0 ? '<div class="empty-state"><div>No PTPs for today</div></div>' :
+        ptpToday.map(b => `<div class="summary-row">
+          <div><div class="name-cell" style="font-size:12px">${b.name}</div>
+          <div style="font-size:10px;color:var(--text3)">${b.promiseDate||''} · ${b.phone}</div></div>
+          <div style="text-align:right">
+            <div style="font-family:var(--font-mono);font-size:13px;color:${b.amountPaid>0?'var(--green)':'var(--text2)'}">${fmtC(getDueToday(b))}</div>
+            ${statusBadge(getStatus(b))}
+          </div>
+        </div>`).join('')}
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-header"><span class="card-title">Upcoming PTPs</span></div>
+    <div class="card-body">
+      ${ptpFuture.length === 0 ? '<div class="empty-state"><div>No upcoming promises</div></div>' :
+        ptpFuture.map(b => `<div class="summary-row">
+          <div><div class="name-cell" style="font-size:12px">${b.name}</div>
+          <div style="font-size:10px;color:var(--text3)">${b.promiseDate||''}</div></div>
+          <div style="font-family:var(--font-mono);font-size:13px">${fmtC(getDueToday(b))}</div>
+        </div>`).join('')}
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;padding-bottom:8px">
+    <button class="btn btn-gold" style="flex:1" onclick="openPtpShareModal('morning')">📤 Share Morning Report</button>
+  </div>
+  <div id="ptp-panel-morning"></div>
+  <div id="ptp-panel-eod" style="display:none"></div>`;
+}
+function getPtpHistoryHtml() {
+  const snapshots = state.ptpSnapshots || [];
+  if (!snapshots.length) return '<div class="empty-state" style="padding:40px 0"><div class="icon">📅</div><div>No PTP snapshots yet. Share a Morning or EOD report to save a snapshot.</div></div>';
+  return snapshots.slice(-20).reverse().map(s =>
+    `<div class="card" style="margin-bottom:12px"><div class="card-header"><span class="card-title">${s.date} — ${s.type}</span></div>
+    <div class="card-body"><pre style="font-size:11px;white-space:pre-wrap;color:var(--text2)">${s.text}</pre>
+    <button class="btn btn-ghost btn-xs" style="margin-top:8px" onclick="navigator.clipboard.writeText(\`${s.text.replace(/`/g,"'")}\`).then(()=>toast('Copied!','success'))">📋 Copy</button>
+    </div></div>`
+  ).join('');
+}
+function getPtpStatsHtml() {
+  const all = state.borrowers;
+  const withPtp = all.filter(b => b.promisedToPay);
+  const honoured = withPtp.filter(b => b.amountPaid > 0);
+  const rate = withPtp.length ? ((honoured.length/withPtp.length)*100).toFixed(0) : 0;
+  const totalPtp = withPtp.reduce((s,b) => s+getDueToday(b),0);
+  const collectedPtp = honoured.reduce((s,b) => s+b.amountPaid,0);
+  return `<div class="card"><div class="card-body">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div style="text-align:center;padding:12px;background:var(--surface2);border-radius:8px">
+        <div style="font-size:24px;font-weight:800;font-family:var(--font-head);color:var(--gold)">${rate}%</div>
+        <div style="font-size:11px;color:var(--text3)">PTP Conversion Rate</div>
+      </div>
+      <div style="text-align:center;padding:12px;background:var(--surface2);border-radius:8px">
+        <div style="font-size:20px;font-weight:800;font-family:var(--font-head);color:var(--green)">${honoured.length}/${withPtp.length}</div>
+        <div style="font-size:11px;color:var(--text3)">Honoured / Total</div>
+      </div>
+    </div>
+    <div class="health-row"><span>Total Promised</span><span style="font-family:var(--font-mono)">${fmtC(totalPtp)}</span></div>
+    <div class="health-row"><span>Total Collected from PTP</span><span style="font-family:var(--font-mono);color:var(--green)">${fmtC(collectedPtp)}</span></div>
+    <div class="health-row"><span>Not Yet Honoured</span><span style="font-family:var(--font-mono);color:var(--orange)">${withPtp.length - honoured.length}</span></div>
+  </div></div>`;
+}
+function wirePtpReport() {
+  setTimeout(() => {
+    const mb = document.getElementById('ptp-tab-morning');
+    const eb = document.getElementById('ptp-tab-eod');
+    if (mb) mb.addEventListener('click', () => switchPtpTab('morning'));
+    if (eb) eb.addEventListener('click', () => switchPtpTab('eod'));
+  }, 0);
+}
+
+// ============================================================
+// DOW (Day-of-week) CHART for Analytics
+// ============================================================
+function renderDowChart(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const totals = [0,0,0,0,0,0,0];
+  const counts = [0,0,0,0,0,0,0];
+  state.dailyLog.forEach(e => {
+    const d = new Date(e.date);
+    const dow = (d.getDay() + 6) % 7; // Mon=0
+    totals[dow] += (e.collected||0);
+    counts[dow]++;
+  });
+  const avgs = totals.map((t,i) => counts[i] > 0 ? t/counts[i] : 0);
+  const maxAvg = Math.max(...avgs, 1);
+  const bestIdx = avgs.indexOf(Math.max(...avgs));
+  container.innerHTML = `<div style="font-size:12px;color:var(--text2);margin-bottom:8px">Average daily collection by day of week</div>
+    <div class="dow-bar-wrap">
+      ${avgs.map((avg, i) => {
+        const h = Math.max(4, (avg/maxAvg)*70);
+        return `<div class="dow-bar-col">
+          <div class="dow-bar" style="height:${h}px;background:${i===bestIdx?'var(--gold)':'var(--blue)'}"></div>
+          <div class="dow-label">${days[i]}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="font-size:11px;color:var(--gold);margin-top:6px">Best day: ${days[bestIdx]} (avg ${fmtC(Math.round(avgs[bestIdx]))})</div>`;
+}
+
+// ============================================================
+// CHARACTER RING (SMS Blast)
+// ============================================================
+function renderCharRing(count, maxChars) {
+  maxChars = maxChars || 160;
+  const pct = Math.min(count/maxChars, 1);
+  const color = pct > 0.9 ? '#ef4444' : pct > 0.7 ? '#f97316' : '#22c55e';
+  return `<div class="char-ring-wrap" style="width:44px;height:44px">
+    <svg width="44" height="44" viewBox="0 0 44 44">
+      <circle cx="22" cy="22" r="18" fill="none" stroke="var(--border2)" stroke-width="4"/>
+      <circle cx="22" cy="22" r="18" fill="none" stroke="${color}" stroke-width="4"
+        stroke-dasharray="${2*Math.PI*18}" stroke-dashoffset="${2*Math.PI*18*(1-pct)}"
+        stroke-linecap="round" transform="rotate(-90 22 22)" style="transition:stroke-dashoffset 0.3s"/>
+    </svg>
+    <span class="char-ring-count" style="color:${color};font-size:8px">${count}</span>
+  </div>`;
+}
+
+// ============================================================
+// HAPTIC FEEDBACK (consistent)
+// ============================================================
+function haptic(type) {
+  if (!navigator.vibrate) return;
+  if (type === 'light') navigator.vibrate(8);
+  else if (type === 'medium') navigator.vibrate([15,10,15]);
+  else if (type === 'heavy') navigator.vibrate([20,15,20,15,20]);
+  else if (type === 'copy') navigator.vibrate(12);
+  else if (type === 'pay') navigator.vibrate([30,20,30]);
+  else if (type === 'fullpay') navigator.vibrate([40,20,40,20,40]);
 }
 
 // ============================================================
