@@ -4043,7 +4043,8 @@ function openSmsReviewModal(action) {
       '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
       + '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">'
       + '<input type="checkbox" id="export-sms-msg" style="accent-color:var(--gold)"> Include message column</label>'
-      + '<button class="btn btn-gold" onclick="doSmsExport()">⬇ Download CSV</button>';
+      + '<button class="btn btn-ghost" onclick="doSmsExport()">⬇ CSV</button>'
+      + '<button class="btn btn-gold" onclick="doSmsExportXLSX()">📊 Excel</button>';
   }
   document.getElementById('modal-overlay').classList.add('open');
 }
@@ -4080,6 +4081,32 @@ function doSmsExport() {
   a.href = url; a.download = 'SMS-Blast-' + month + '.csv';
   a.click(); URL.revokeObjectURL(url);
   closeModal(); toast('⬇ Exported ' + reviewContacts.length + ' contacts', 'success');
+}
+
+function doSmsExportXLSX() {
+  if (!window.XLSX) return toast('SheetJS not loaded — try refreshing', 'error');
+  const includeMsg = document.getElementById('export-sms-msg')?.checked;
+  const headers = ['Name','Phone','OD Age','Loan Due','Paid','Due Today','Loan Type','Status'].concat(includeMsg?['Message']:[]);
+  const dataRows = reviewContacts.map(b => {
+    const row = [b.name, b.phone, 'Day '+getOdAge(b.startDate), b.loanDue, b.amountPaid||0, getDueToday(b), b.loanType, getStatus(b)];
+    if (includeMsg) row.push(getSmsBlastMsg(b));
+    return row;
+  });
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
+  ws['!cols'] = headers.map((h,i) => {
+    const maxLen = Math.max(h.length, ...dataRows.map(r => String(r[i]||'').length));
+    return { wch: Math.min(50, Math.max(10, maxLen+2)) };
+  });
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'SMS Blast');
+  // Summary sheet
+  const summary = [['SqueveTrack SMS Blast Export'],['Date', new Date().toLocaleDateString('en-GB')],['Contacts', reviewContacts.length],[],['Loan Type','Count','Total Due'],['LoanBase', reviewContacts.filter(b=>b.loanType==='LoanBase').length, reviewContacts.filter(b=>b.loanType==='LoanBase').reduce((s,b)=>s+getDueToday(b),0)],['LoanBase Pro', reviewContacts.filter(b=>b.loanType==='LoanBase Pro').length, reviewContacts.filter(b=>b.loanType==='LoanBase Pro').reduce((s,b)=>s+getDueToday(b),0)]];
+  const ws2 = XLSX.utils.aoa_to_sheet(summary);
+  ws2['!cols'] = [{wch:20},{wch:12},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Summary');
+  const month = new Date().toLocaleDateString('en-GB',{month:'short',year:'numeric'}).replace(' ','-');
+  XLSX.writeFile(wb, 'SMS-Blast-'+month+'.xlsx');
+  closeModal(); toast('📊 Excel exported — ' + reviewContacts.length + ' contacts', 'success');
 }
 
 // ============================================================
