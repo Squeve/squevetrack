@@ -1218,7 +1218,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
         <div class="card-header"><span class="card-title">⚡ Collection Efficiency</span></div>
         <div class="card-body" id="analytics-efficiency"></div>
       </div>
-      <div class="card">
+      <div class="card full">
         <div class="card-header"><span class="card-title">📊 Month vs Last Month</span><span style="font-size:10px;color:var(--text3)">side-by-side</span></div>
         <div class="card-body" id="analytics-month-compare" style="padding:0 4px"></div>
       </div>
@@ -1735,7 +1735,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
 <canvas id="confetti-canvas"></canvas>
 
 <!-- F8: Floating Daily Target Pill -->
-<div id="daily-target-pill" style="display:none;position:fixed;bottom:80px;right:16px;z-index:300;background:var(--surface);border:1.5px solid var(--border2);border-radius:24px;padding:8px 14px;box-shadow:0 4px 16px rgba(0,0,0,0.25);cursor:pointer;text-align:center;min-width:110px;animation:fadeUp 0.3s ease both;flex-direction:column;align-items:center" onclick="navigate('log');haptic('light')">
+<div id="daily-target-pill" style="display:none;position:fixed;bottom:72px;right:14px;z-index:300;background:var(--surface);border:1.5px solid var(--border2);border-radius:24px;padding:8px 14px;box-shadow:0 4px 16px rgba(0,0,0,0.25);cursor:pointer;text-align:center;min-width:110px" onclick="navigate('log');haptic('light')">
   <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px">Need today</div>
   <div id="daily-pill-amount" style="font-family:var(--font-mono);font-weight:800;font-size:16px;color:var(--gold)">₵0</div>
   <div id="daily-pill-sub" style="font-size:9px;color:var(--text3);margin-top:1px">tap to log</div>
@@ -3176,6 +3176,13 @@ function renderDispatch() {
     if (filter === 'promised') return b.promisedToPay;
     return s !== 'Paid';
   }).filter(b => !dispatchSearch || b.name.toLowerCase().includes(dispatchSearch) || b.phone.includes(dispatchSearch))
+  .filter(b => {
+    const minV = document.getElementById('dispatch-min-amount')?.value;
+    const maxV = document.getElementById('dispatch-max-amount')?.value;
+    if (!minV && !maxV) return true;
+    const due = getDueToday(b);
+    return due >= (minV ? parseFloat(minV) : 0) && due <= (maxV ? parseFloat(maxV) : Infinity);
+  })
   .map(b => ({...b, status: getStatus(b), odAge: getOdAge(b.startDate),
     generous: getGenerous(b), dueToday: getDueToday(b) }))
     .sort((a,b) => a.odAge - b.odAge);
@@ -3963,6 +3970,7 @@ function openBorrowerDetail(id) {
     + '<button class="btn btn-ghost" id="bd-hitlist">' + ((state.hitList||[]).includes(id) ? '📌 In Hit List' : '📌 Add to Hit List') + '</button>'
     + '<button class="btn btn-ghost" id="bd-note">' + (b.notes?'📝 Edit Note':'📝 Add Note') + '</button>'
     + '<button class="btn btn-ghost" id="bd-history">📋 History (' + log.length + ')</button>'
+    + '<button class="btn btn-ghost" id="bd-timeline" style="grid-column:1/-1">📜 Timeline</button>'
     + '</div>'
     + (log.length ? '<div style="margin-bottom:6px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Recent Payments</div>'
       + [].concat(log).reverse().slice(0,3).map(function(e){
@@ -4031,7 +4039,7 @@ function openPayModal(id) {
       <div class="summary-row"><span class="summary-label">Loan Due</span><span class="summary-value">${fmtC(b.loanDue)}</span></div>
       <div class="summary-row"><span class="summary-label">Already Paid</span><span class="summary-value text-green">${fmtC(b.amountPaid)}</span></div>
       <div class="summary-row"><span class="summary-label">Loan Remaining</span><span class="summary-value text-red">${fmtC(remaining)}</span></div>
-      <div class="summary-row"><span class="summary-label">OD Fee (auto)</span><span class="summary-value text-gold">${fmtC(getOdFee(b))}</span></div>
+      <div class="summary-row" style="cursor:pointer" onclick="openOdFeeModal('${id}')" title="Tap for breakdown"><span class="summary-label">OD Fee <span style="font-size:9px;color:var(--blue)">↗ breakdown</span></span><span class="summary-value text-gold">${fmtC(getOdFee(b))}</span></div>
       <div class="summary-row" style="background:rgba(232,160,32,0.06);border-radius:6px;padding:10px 8px;margin-top:4px">
         <span class="summary-label" style="font-weight:700;color:var(--text)">Total Balance Owed</span>
         <span class="summary-value text-gold" style="font-size:16px">${fmtC(getDueToday(b))}</span>
@@ -6314,7 +6322,7 @@ function getBorrowerBadges(b) {
   if (status === 'Paid') badges.push('<span class="badge-star" title="Fully paid ✅" style="font-size:10px">✅</span>');
   else if (payRatio >= 0.5 && b.amountPaid > 0) badges.push('<span class="badge-star" title="Reliable payer (50%+)">⭐</span>');
   if (b.promisedToPay && b.amountPaid === 0) badges.push('<span class="badge-warn" title="Promise not yet honoured">⚠️</span>');
-  if ((b.callLog||[]).some(c => c.outcome === 'Fraud')) badges.push('<span title="Fraud suspected" style="font-size:10px">🚨</span>');
+  if ((b.callLog||[]).some(cl => cl.outcome === 'Fraud')) badges.push('<span title="Fraud suspected" style="font-size:10px">🚨</span>');
   if (b.ptpBreached && b.amountPaid === 0) badges.push('<span title="PTP Breached" style="font-size:10px">🔴</span>');
   const _3d = new Date(Date.now()-3*86400000).toISOString().split('T')[0];
   if ((b.payLog||[]).some(p=>p.date>=_3d&&(p.delta||0)>0) && getStatus(b)!=='Paid') badges.push('<span title="🔥 Active — paid in last 3 days" style="font-size:10px">🔥</span>');
@@ -8102,6 +8110,8 @@ function updateDailyPill() {
   const needed = Math.ceil(Math.max(0, target - totalCollected) / daysLeft);
   const stillNeeded = Math.max(0, needed - todayCollected);
   pill.style.display = 'flex';
+  pill.style.flexDirection = 'column';
+  pill.style.alignItems = 'center';
   if (stillNeeded === 0 && todayCollected > 0) {
     pill.style.borderColor = 'var(--green)';
     amtEl.style.color = 'var(--green)';
