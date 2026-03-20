@@ -1453,11 +1453,15 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
         </div>
         <div class="form-group">
           <label>Ranking Type</label>
-          <div style="display:flex;gap:8px">
+          <div style="display:flex;gap:8px;margin-bottom:6px">
             <button class="btn btn-gold btn-sm" id="rank-type-daily" onclick="setRankType('daily')">📅 Daily</button>
             <button class="btn btn-ghost btn-sm" id="rank-type-monthly" onclick="setRankType('monthly')">📆 Monthly</button>
           </div>
-          <div id="rank-type-hint" style="font-size:11px;color:var(--text3);margin-top:4px">Logging a daily scan — monthly will be recalculated automatically</div>
+          <div id="rank-eod-row" style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <input type="checkbox" id="rank-eod-check" style="accent-color:var(--gold);width:16px;height:16px;cursor:pointer">
+            <label for="rank-eod-check" style="font-size:12px;color:var(--text2);cursor:pointer;font-weight:600">EOD scan → project tomorrow's monthly ranking</label>
+          </div>
+          <div id="rank-type-hint" style="font-size:10px;color:var(--text3)">Monthly = (monthly×50%) + (daily×50%) applied to every agent</div>
         </div>
         <div class="form-group">
           <label>Your Agent Name (as shown in ranking)</label>
@@ -1633,11 +1637,13 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
         <div class="page-sub">Promises, outcomes &amp; supervisor reports</div>
       </div>
     </div>
-    <!-- Tab bar — static HTML, toggled by JS -->
-    <div style="display:flex;gap:2px;margin-bottom:16px;background:var(--surface2);border-radius:8px;padding:3px;width:fit-content">
-      <button id="ptptab-report"  class="ptp-tab active" onclick="switchPtpHub('report')">🤝 Report</button>
-      <button id="ptptab-history" class="ptp-tab"        onclick="switchPtpHub('history')">📅 History</button>
-      <button id="ptptab-stats"   class="ptp-tab"        onclick="switchPtpHub('stats')">📊 Stats</button>
+        <!-- Tab bar — sticky so it stays visible while scrolling -->
+    <div style="position:sticky;top:0;z-index:40;background:var(--bg);padding:4px 0 10px;margin:-4px 0 12px">
+      <div style="display:flex;gap:2px;background:var(--surface2);border-radius:8px;padding:3px;width:fit-content">
+        <button id="ptptab-report"  class="ptp-tab active" onclick="switchPtpHub('report')">🤝 Report</button>
+        <button id="ptptab-history" class="ptp-tab"        onclick="switchPtpHub('history')">📅 History</button>
+        <button id="ptptab-stats"   class="ptp-tab"        onclick="switchPtpHub('stats')">📊 Stats</button>
+      </div>
     </div>
     <!-- Content injected here by switchPtpHub -->
     <div id="ptp-hub-content"></div>
@@ -2197,8 +2203,8 @@ function renderDashboard() {
   const projCol = projPct >= 100 ? 'var(--green)' : projPct >= 70 ? 'var(--gold)' : 'var(--red)';
   const neededPerDay = dlF > 0 ? Math.ceil(Math.max(0, monthTarget - logTotal) / dlF) : 0;
   const forecastHtml = monthTarget > 0 ? (
-    '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">'
-    + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">📈 How to Hit Your Target</div>'
+    '<div style="margin-top:14px;background:rgba(96,165,250,0.07);border:1px solid rgba(96,165,250,0.18);border-radius:10px;padding:14px 16px">'
+    + '<div style="font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">📈 How to Hit Your Target</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">'
     + '<div style="background:var(--surface2);border-radius:8px;padding:8px;text-align:center">'
     + '<div style="font-family:var(--font-mono);font-size:14px;font-weight:700;color:' + projCol + '">' + fmtC(projectedF) + '</div>'
@@ -2350,19 +2356,25 @@ function renderDashboard() {
   const topDue = [...active].sort((a,b) => getDueToday(b) - getDueToday(a)).slice(0,10);
   document.getElementById('dash-top-due').innerHTML = topDue.map((b,i) => {
     const phone = b.phone.replace(/\s/g,'').replace('+','');
-    return '<div class="summary-row">'
-      + '<div style="display:flex;align-items:center;gap:8px">'
-      + '<span style="font-family:var(--font-mono);font-size:10px;color:var(--text3);min-width:16px">' + (i+1) + '</span>'
-      + '<div>'
-      + '<div class="name-cell" style="font-size:12px">' + b.name + '</div>'
-      + '<div style="font-size:10px;color:var(--text3);display:flex;gap:6px;align-items:center">'
-      + 'Day ' + getOdAge(b.startDate)
-      + ' &nbsp;<a href="tel:' + b.phone + '" style="color:var(--blue);text-decoration:none" title="Call">📞 ' + b.phone + '</a>'
-      + '</div></div></div>'
+    const ps = calcPriorityScore(b);
+    const pCls = ps>=8?'p-high':ps>=5?'p-mid':'p-low';
+    return '<div class="summary-row" style="cursor:pointer;transition:background 0.1s" onmouseover="this.style.background=\'var(--surface2)\'" onmouseout="this.style.background=\'\'" onclick="openBorrowerDetail(\''+b.id+'\');haptic(\'light\')">'
+      + '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">'
+      + '<span style="font-family:var(--font-mono);font-size:10px;color:var(--text3);min-width:14px">' + (i+1) + '</span>'
+      + '<span class="priority-score ' + pCls + '" style="flex-shrink:0">' + ps + '</span>'
+      + '<div style="min-width:0">'
+      + '<div class="name-cell" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + b.name.split(' ')[0] + ' ' + (b.name.split(' ').slice(-1)[0]||'') + '</div>'
+      + '<div style="font-size:10px;color:var(--text3)">Day ' + getOdAge(b.startDate) + '</div>'
+      + '</div></div>'
+      + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">'
       + '<div style="text-align:right">'
       + '<div style="font-family:var(--font-mono);color:var(--red);font-size:13px;font-weight:600">' + fmtC(getDueToday(b)) + '</div>'
       + '<div>' + statusBadge(getStatus(b)) + '</div>'
-      + '</div></div>';
+      + '</div>'
+      + '<div style="display:flex;gap:3px">'
+      + '<button class="btn btn-green btn-xs" onclick="event.stopPropagation();openPayModal(\''+b.id+'\');haptic(\'light\')" title="Pay">💰</button>'
+      + '<a href="https://wa.me/'+phone+'" target="_blank" class="btn btn-ghost btn-xs" style="color:#25d366" onclick="event.stopPropagation();haptic(\'light\')" title="WhatsApp">💬</a>'
+      + '</div></div></div>';
   }).join('');
 
   // Top commitment (partial payers ranked by pay ratio)
@@ -2370,19 +2382,23 @@ function renderDashboard() {
     .map(b => ({...b, ratio: b.amountPaid / b.loanDue}))
     .sort((a,b) => b.ratio - a.ratio).slice(0,10);
   document.getElementById('dash-top-commit').innerHTML = topCommit.map((b,i) => {
-    return '<div class="summary-row">'
-      + '<div style="display:flex;align-items:center;gap:8px">'
-      + '<span style="font-family:var(--font-mono);font-size:10px;color:var(--text3);min-width:16px">' + (i+1) + '</span>'
-      + '<div>'
-      + '<div class="name-cell" style="font-size:12px">' + b.name + '</div>'
-      + '<div style="font-size:10px;color:var(--text3);display:flex;gap:6px;align-items:center">'
-      + 'Paid ' + fmtC(b.amountPaid)
-      + ' &nbsp;<a href="tel:' + b.phone + '" style="color:var(--blue);text-decoration:none" title="Call">📞 ' + b.phone + '</a>'
-      + '</div></div></div>'
+    const phone = b.phone.replace(/\s/g,'').replace('+','');
+    return '<div class="summary-row" style="cursor:pointer;transition:background 0.1s" onmouseover="this.style.background=\'var(--surface2)\'" onmouseout="this.style.background=\'\'" onclick="openBorrowerDetail(\''+b.id+'\');haptic(\'light\')">'
+      + '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">'
+      + '<span style="font-family:var(--font-mono);font-size:10px;color:var(--text3);min-width:14px">' + (i+1) + '</span>'
+      + '<div style="min-width:0">'
+      + '<div class="name-cell" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + b.name.split(' ')[0] + ' ' + (b.name.split(' ').slice(-1)[0]||'') + '</div>'
+      + '<div style="font-size:10px;color:var(--text3)">Paid ' + fmtC(b.amountPaid) + ' · Day ' + getOdAge(b.startDate) + '</div>'
+      + '</div></div>'
+      + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">'
       + '<div style="text-align:right">'
       + '<div style="font-family:var(--font-mono);color:var(--green);font-size:13px;font-weight:600">' + (b.ratio*100).toFixed(0) + '%</div>'
-      + '<div style="font-size:10px;color:var(--text3)">Day ' + getOdAge(b.startDate) + '</div>'
-      + '</div></div>';
+      + '<div style="font-size:10px;color:var(--text3)">' + (b.ratio>=1?'✅ Paid':'partial') + '</div>'
+      + '</div>'
+      + '<div style="display:flex;gap:3px">'
+      + '<button class="btn btn-green btn-xs" onclick="event.stopPropagation();openPayModal(\''+b.id+'\');haptic(\'light\')" title="Pay">💰</button>'
+      + '<a href="https://wa.me/'+phone+'" target="_blank" class="btn btn-ghost btn-xs" style="color:#25d366" onclick="event.stopPropagation();haptic(\'light\')" title="WhatsApp">💬</a>'
+      + '</div></div></div>';
   }).join('') || '<div class="empty-state">No partial payments yet</div>';
 
 
@@ -2942,22 +2958,15 @@ function renderAnalytics() {
     });
   }
 
-  // ── Zero-Day Streak ───────────────────────────────────────
+  // ── Zero-Day Streak (removed from UI but keep calc safe) ─
   const sortedLogs = [...state.dailyLog].sort((a,b)=>b.date.localeCompare(a.date));
   let streak = 0, bestStreak = 0, cur = 0;
   sortedLogs.forEach(e => { if ((e.collected||0) > 0) { streak++; cur++; bestStreak = Math.max(bestStreak, cur); } else { cur = 0; } });
-  // Also compute current streak from today backwards
   let currentStreak = 0;
   for (const e of sortedLogs) { if ((e.collected||0) > 0) currentStreak++; else break; }
-  document.getElementById('analytics-streak').innerHTML =
-    '<div style="text-align:center;padding:10px 0">'
-    + '<div style="font-size:48px;margin-bottom:4px">🔥</div>'
-    + '<div style="font-family:var(--font-mono);font-size:36px;font-weight:700;color:var(--gold)">'+currentStreak+'</div>'
-    + '<div style="font-size:12px;color:var(--text3);margin-bottom:12px">consecutive days with collections</div>'
-    + '<div style="display:flex;justify-content:center;gap:24px">'
-    + '<div style="text-align:center"><div style="font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--text)">'+bestStreak+'</div><div style="font-size:11px;color:var(--text3)">best streak</div></div>'
-    + '<div style="text-align:center"><div style="font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--text)">'+allLogs.filter(e=>(e.collected||0)===0).length+'</div><div style="font-size:11px;color:var(--text3)">zero days</div></div>'
-    + '</div></div>';
+  // analytics-streak card removed from HTML — skip write
+  const _streakEl = document.getElementById('analytics-streak');
+  if (_streakEl) _streakEl.innerHTML = currentStreak + ' day streak';
 
   // ── Collection Efficiency ─────────────────────────────────
   const logsWithCollect = allLogs.filter(e => (e.collected||0) > 0).length;
@@ -6308,161 +6317,318 @@ function getPredictedPayDate(b) {
 // ============================================================
 // RANKING TRACKER
 // ============================================================
-function renderRanking() {
-  const history = state.rankingHistory || [];
-  const body = document.getElementById('ranking-body');
-  if (!body) return;
-  // Pre-fill saved API key and agent name
-  const savedKey = localStorage.getItem('ranking_api_key') || '';
-  const savedName = localStorage.getItem('ranking_my_name') || '';
-  const apiKeyEl = document.getElementById('ranking-api-key');
-  const nameEl = document.getElementById('ranking-my-name');
-  if (apiKeyEl && savedKey) apiKeyEl.value = savedKey;
-  if (nameEl && savedName) nameEl.value = savedName;
-
-  if (!history.length) {
-    body.innerHTML = '<div class="empty-state"><div class="icon">🏆</div><div>No ranking scans yet. Paste your ranking above and click Scan.</div></div>';
-    return;
-  }
-  const latest = history[history.length-1];
-  const prev = history.length > 1 ? history[history.length-2] : null;
-  const myName = (localStorage.getItem('ranking_my_name')||'').toLowerCase();
-  const me = latest.agents.find(a => myName && a.name.toLowerCase().includes(myName));
-  const myPos = me ? latest.agents.indexOf(me)+1 : null;
-
-  let html = `<div class="card" style="margin-bottom:16px">
-    <div class="card-header"><span class="card-title">📅 Latest Scan — ${latest.date}</span></div>
-    <div class="card-body">`;
-  if (me && myPos) {
-    const first = latest.agents[0];
-    const above = myPos > 1 ? latest.agents[myPos-2] : null;
-    html += `<div style="background:rgba(232,160,32,0.1);border:1px solid rgba(232,160,32,0.3);border-radius:8px;padding:12px;margin-bottom:12px">
-      <div style="font-size:13px;font-weight:700;color:var(--gold)">Your Position: #${myPos} — ${me.pct}%</div>
-      ${first ? `<div style="font-size:11px;color:var(--text3);margin-top:2px">Gap to #1 (${first.name}): ${(parseFloat(first.pct)-parseFloat(me.pct)).toFixed(1)}%</div>` : ''}
-      ${above ? `<div style="font-size:11px;color:var(--text3)">Gap to move up to #${myPos-1} (${above.name}): ${(parseFloat(above.pct)-parseFloat(me.pct)).toFixed(1)}%</div>` : ''}
-    </div>`;
-  }
-  html += latest.agents.map((a, i) => {
-    const isMine = myName && a.name.toLowerCase().includes(myName);
-    const prevAgent = prev ? prev.agents.find(p => p.name === a.name) : null;
-    const prevPos = prevAgent ? prev.agents.indexOf(prevAgent)+1 : null;
-    const trend = prevPos ? (i+1 < prevPos ? '<span class="trend-up">▲</span>' : i+1 > prevPos ? '<span class="trend-down">▼</span>' : '<span class="trend-flat">—</span>') : '';
-    return `<div class="ranking-agent-row" style="${isMine?'background:rgba(232,160,32,0.08);border-left:3px solid var(--gold);':''}">
-      <span style="font-family:var(--font-mono);color:var(--text3);min-width:24px">${i+1}</span>
-      <span style="flex:1;font-weight:${isMine?'700':'400'}">${a.name}${isMine?' 👈':''}</span>
-      <span style="font-family:var(--font-mono);color:${isMine?'var(--gold)':'var(--text2)'}">${a.pct}%</span>
-      <span style="margin-left:8px;min-width:20px">${trend}</span>
-    </div>`;
-  }).join('');
-  html += `</div></div>`;
-
-  // Mini-league chart area
-  if (history.length > 1) {
-    html += `<div class="card"><div class="card-header"><span class="card-title">📈 Your Position Over Time</span></div><div class="card-body">
-      <div class="chart-wrap"><canvas id="chart-ranking"></canvas></div>
-    </div></div>`;
-  }
-  body.innerHTML = html;
-
-  // Draw ranking trend chart
-  if (history.length > 1) {
-    const myPositions = history.map(scan => {
-      const mn = (localStorage.getItem('ranking_my_name')||'').toLowerCase();
-      const a = scan.agents.find(x => mn && x.name.toLowerCase().includes(mn));
-      return a ? parseFloat(a.pct) : null;
-    });
-    setTimeout(() => {
-      const ctx = document.getElementById('chart-ranking');
-      if (!ctx) return;
-      if (charts['ranking']) charts['ranking'].destroy();
-      charts['ranking'] = new Chart(ctx, {
-        type:'line', data:{
-          labels: history.map(s=>s.date),
-          datasets:[{label:'Your Rate %', data:myPositions, borderColor:'#e8a020', backgroundColor:'rgba(232,160,32,0.1)', tension:0.4, pointRadius:4}]
-        },
-        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
-          scales:{y:{reverse:false, ticks:{callback:v=>v+'%', color:chartTextColor()}}, x:{ticks:{color:chartTextColor()}}}}
-      });
-    }, 0);
-  }
-}
-
+// ============================================================
+// RANKING TRACKER — Full Implementation
+// ============================================================
 let _rankType = 'daily';
+let _rankIsEOD = false;
+
 function setRankType(type) {
   _rankType = type;
-  const daily = document.getElementById('rank-type-daily');
+  const daily   = document.getElementById('rank-type-daily');
   const monthly = document.getElementById('rank-type-monthly');
-  const hint = document.getElementById('rank-type-hint');
-  if (daily) { daily.className = type === 'daily' ? 'btn btn-gold btn-sm' : 'btn btn-ghost btn-sm'; }
-  if (monthly) { monthly.className = type === 'monthly' ? 'btn btn-gold btn-sm' : 'btn btn-ghost btn-sm'; }
+  const eodRow  = document.getElementById('rank-eod-row');
+  const hint    = document.getElementById('rank-type-hint');
+  if (daily)   daily.className   = type === 'daily'   ? 'btn btn-gold btn-sm' : 'btn btn-ghost btn-sm';
+  if (monthly) monthly.className = type === 'monthly' ? 'btn btn-gold btn-sm' : 'btn btn-ghost btn-sm';
+  if (eodRow)  eodRow.style.display = type === 'daily' ? 'flex' : 'none';
   if (hint) hint.textContent = type === 'daily'
-    ? 'Logging a daily scan — monthly auto-calculated as: prev monthly + (daily × 50%)'
+    ? 'Logging a daily scan — mark EOD to auto-project tomorrow's monthly ranking'
     : 'Logging a monthly snapshot directly';
   haptic('light');
 }
 
 function scanRanking() {
   const myName = (document.getElementById('ranking-my-name')?.value || '').trim();
-  const text = (document.getElementById('ranking-paste')?.value || '').trim();
+  const text   = (document.getElementById('ranking-paste')?.value   || '').trim();
+  const isEOD  = document.getElementById('rank-eod-check')?.checked || false;
   const statusEl = document.getElementById('ranking-scan-status');
-  const btn = document.getElementById('ranking-scan-btn');
+  const btn      = document.getElementById('ranking-scan-btn');
 
-  if (!text) {
-    if (statusEl) statusEl.textContent = '❌ Please paste ranking text first';
-    return;
-  }
+  if (!text) { if (statusEl) statusEl.textContent = '❌ Please paste ranking text first'; return; }
   if (myName) localStorage.setItem('ranking_my_name', myName);
   if (btn) btn.disabled = true;
   haptic('light');
 
-  // Parse ranking text locally — no API call needed
   const agents = [];
-  const lines = text.split('\n').filter(l => l.trim());
-  lines.forEach(line => {
+  text.split('
+').filter(l => l.trim()).forEach(line => {
     const m = line.match(/(\d+[.)\s]*)?(.+?)\s+([\d.]+)%/);
-    if (m) agents.push({ name: m[2].trim(), pct: m[3] });
+    if (m) agents.push({ name: m[2].trim(), pct: parseFloat(m[3]).toFixed(2) });
   });
 
-  if (agents.length === 0) {
+  if (!agents.length) {
     if (statusEl) statusEl.textContent = '❌ No agents found. Format: "Name XX.X%" per line';
     if (btn) btn.disabled = false;
     return;
   }
 
-  const today = new Date().toISOString().split('T')[0];
+  const now   = new Date();
+  const today = now.toISOString().split('T')[0];
+  const time  = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   if (!state.rankingHistory) state.rankingHistory = [];
 
-  if (_rankType === 'daily') {
-    // Save daily scan
-    state.rankingHistory = state.rankingHistory.filter(s => !(s.date === today && s.type === 'daily'));
-    state.rankingHistory.push({ date: today, type: 'daily', agents });
+  const entry = { date: today, time, type: _rankType, isEOD: _rankType === 'daily' ? isEOD : false, agents };
 
-    // Recalculate monthly: find last monthly entry, add daily × 50%
-    const lastMonthly = [...state.rankingHistory].filter(s => s.type === 'monthly').sort((a,b) => b.date.localeCompare(a.date))[0];
-    if (lastMonthly) {
-      const updatedAgents = agents.map(a => {
-        const prev = lastMonthly.agents.find(p => p.name === a.name);
-        const dailyPct = parseFloat(a.pct);
-        const monthlyPct = prev ? parseFloat(prev.pct) + dailyPct * 0.5 : dailyPct * 0.5;
-        return { name: a.name, pct: monthlyPct.toFixed(1), dailyPct: a.pct };
-      });
-      state.rankingHistory = state.rankingHistory.filter(s => !(s.date === today && s.type === 'monthly-calculated'));
-      state.rankingHistory.push({ date: today, type: 'monthly-calculated', agents: updatedAgents });
-    }
-  } else {
-    // Save as direct monthly snapshot
+  // Allow multiple daily scans same day (morning, midday, EOD)
+  if (_rankType === 'monthly') {
     state.rankingHistory = state.rankingHistory.filter(s => !(s.date === today && s.type === 'monthly'));
-    state.rankingHistory.push({ date: today, type: 'monthly', agents });
+  }
+  state.rankingHistory.push(entry);
+
+  // If EOD daily scan → build full projection table
+  if (_rankType === 'daily' && isEOD) {
+    // Find latest monthly entry
+    const lastMonthly = [...state.rankingHistory]
+      .filter(s => s.type === 'monthly')
+      .sort((a,b) => b.date.localeCompare(a.date))[0];
+
+    const projectedAgents = agents.map(a => {
+      const prevMonthly = lastMonthly ? lastMonthly.agents.find(p => p.name.toLowerCase() === a.name.toLowerCase()) : null;
+      const monthlyPct  = prevMonthly ? parseFloat(prevMonthly.pct) : 0;
+      const dailyPct    = parseFloat(a.pct);
+      const projPct     = (monthlyPct * 0.5 + dailyPct * 0.5).toFixed(2);
+      return { name: a.name, pct: projPct, monthlyPct: monthlyPct.toFixed(2), dailyPct: a.pct };
+    }).sort((a,b) => parseFloat(b.pct) - parseFloat(a.pct));
+
+    state.rankingHistory = state.rankingHistory.filter(s => !(s.date === today && s.type === 'projected'));
+    state.rankingHistory.push({ date: today, time, type: 'projected', agents: projectedAgents });
   }
 
   saveState();
   haptic('pay');
-  if (statusEl) statusEl.innerHTML = `✅ Saved <strong>${agents.length}</strong> agents (${_rankType}) for ${today}`;
+  if (statusEl) statusEl.innerHTML = `✅ ${agents.length} agents saved (${_rankType}${isEOD?' · EOD projection built':''}) for ${today} ${time}`;
   if (btn) btn.disabled = false;
-  // Clear inputs
   if (document.getElementById('ranking-paste')) document.getElementById('ranking-paste').value = '';
   renderRanking();
   toast('Ranking saved ✅', 'success');
+}
+
+function renderRanking() {
+  const myName = (localStorage.getItem('ranking_my_name') || '').toLowerCase();
+  const body   = document.getElementById('ranking-body');
+  if (!body) return;
+
+  // Pre-fill saved agent name
+  const nameEl = document.getElementById('ranking-my-name');
+  if (nameEl && !nameEl.value && myName) nameEl.value = localStorage.getItem('ranking_my_name');
+
+  const history = state.rankingHistory || [];
+  if (!history.length) {
+    body.innerHTML = '<div class="empty-state" style="padding:40px 0"><div class="icon">🏆</div><div>No ranking scans yet.<br><span style="font-size:11px;color:var(--text3)">Paste your ranking text and tap Save.</span></div></div>';
+    return;
+  }
+
+  // Get latest of each type
+  const latestDaily    = [...history].filter(s=>s.type==='daily').sort((a,b)=>b.date.localeCompare(a.date)||b.time.localeCompare(a.time))[0];
+  const latestMonthly  = [...history].filter(s=>s.type==='monthly').sort((a,b)=>b.date.localeCompare(a.date))[0];
+  const latestProj     = [...history].filter(s=>s.type==='projected').sort((a,b)=>b.date.localeCompare(a.date))[0];
+  const prevDaily      = [...history].filter(s=>s.type==='daily' && s.date !== (latestDaily?.date||'')).sort((a,b)=>b.date.localeCompare(a.date)||b.time.localeCompare(a.time))[0];
+  const prevMonthly    = [...history].filter(s=>s.type==='monthly' && s !== latestMonthly).sort((a,b)=>b.date.localeCompare(a.date))[0];
+
+  function findMe(scan) {
+    if (!scan || !myName) return null;
+    return scan.agents.find(a => a.name.toLowerCase().includes(myName));
+  }
+  function myPos(scan) {
+    if (!scan || !myName) return null;
+    const me = findMe(scan);
+    return me ? scan.agents.indexOf(me) + 1 : null;
+  }
+
+  let html = '';
+
+  // ── My Position Card ──────────────────────────────────────
+  const meD = findMe(latestDaily);
+  const meM = findMe(latestMonthly);
+  const meP = findMe(latestProj);
+  if (meD || meM) {
+    html += '<div class="card" style="margin-bottom:16px"><div class="card-header"><span class="card-title">📍 Your Position</span></div><div class="card-body">';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px">';
+    if (meD) {
+      const posD = myPos(latestDaily); const prevD = findMe(prevDaily);
+      const trendD = prevD ? (parseFloat(meD.pct) > parseFloat(prevD.pct) ? '▲' : parseFloat(meD.pct) < parseFloat(prevD.pct) ? '▼' : '—') : '';
+      html += `<div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px">📅 Daily</div>
+        <div style="font-family:var(--font-mono);font-size:22px;font-weight:800;color:var(--gold)">#${posD||'?'}</div>
+        <div style="font-size:13px;font-weight:700;color:var(--gold)">${meD.pct}%</div>
+        ${trendD ? `<div style="font-size:11px;color:${trendD==='▲'?'var(--green)':'var(--red)'};font-weight:700">${trendD} ${prevD?Math.abs(parseFloat(meD.pct)-parseFloat(prevD.pct)).toFixed(2)+'%':''}</div>` : ''}
+        <div style="font-size:9px;color:var(--text3);margin-top:2px">${latestDaily.date} ${latestDaily.time}${latestDaily.isEOD?' · EOD':''}</div>
+      </div>`;
+    }
+    if (meM) {
+      const posM = myPos(latestMonthly); const prevM = findMe(prevMonthly);
+      const trendM = prevM ? (parseFloat(meM.pct) > parseFloat(prevM.pct) ? '▲' : parseFloat(meM.pct) < parseFloat(prevM.pct) ? '▼' : '—') : '';
+      html += `<div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px">📆 Monthly</div>
+        <div style="font-family:var(--font-mono);font-size:22px;font-weight:800;color:var(--blue)">#${posM||'?'}</div>
+        <div style="font-size:13px;font-weight:700;color:var(--blue)">${meM.pct}%</div>
+        ${trendM ? `<div style="font-size:11px;color:${trendM==='▲'?'var(--green)':'var(--red)'};font-weight:700">${trendM} ${prevM?Math.abs(parseFloat(meM.pct)-parseFloat(prevM.pct)).toFixed(2)+'%':''}</div>` : ''}
+        <div style="font-size:9px;color:var(--text3);margin-top:2px">${latestMonthly.date}</div>
+      </div>`;
+    }
+    if (meP) {
+      const posP = myPos(latestProj);
+      const posM = myPos(latestMonthly);
+      const moved = posM && posP ? posM - posP : 0;
+      html += `<div style="background:rgba(232,160,32,0.08);border:1px solid rgba(232,160,32,0.25);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px">🔮 Projected Tomorrow</div>
+        <div style="font-family:var(--font-mono);font-size:22px;font-weight:800;color:var(--gold)">#${posP||'?'}</div>
+        <div style="font-size:13px;font-weight:700;color:var(--gold)">${meP.pct}%</div>
+        ${moved !== 0 ? `<div style="font-size:11px;color:${moved>0?'var(--green)':'var(--red)'};font-weight:700">${moved>0?'▲ Up '+moved:moved<0?'▼ Down '+Math.abs(moved):''}</div>` : ''}
+        <div style="font-size:9px;color:var(--text3);margin-top:2px">formula: monthly×50% + daily×50%</div>
+      </div>`;
+    }
+    html += '</div>';
+
+    // Gap cards
+    const scanForGap = latestProj || latestMonthly || latestDaily;
+    if (scanForGap) {
+      const meInScan = findMe(scanForGap);
+      const myPosInScan = myPos(scanForGap);
+      if (meInScan && myPosInScan) {
+        const first = scanForGap.agents[0];
+        const above = myPosInScan > 1 ? scanForGap.agents[myPosInScan - 2] : null;
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+        if (above) {
+          const gap = (parseFloat(meInScan.pct) - parseFloat(above.pct)).toFixed(2);
+          html += `<div style="background:var(--surface2);border-radius:8px;padding:10px">
+            <div style="font-size:10px;color:var(--text3);margin-bottom:4px">Gap to #${myPosInScan-1} (${above.name.split(' ')[0]})</div>
+            <div style="font-family:var(--font-mono);font-size:16px;font-weight:700;color:${parseFloat(gap)<0?'var(--red)':'var(--green)'}">${gap}%</div>
+          </div>`;
+        }
+        if (first && first.name !== meInScan.name) {
+          const gapFirst = (parseFloat(meInScan.pct) - parseFloat(first.pct)).toFixed(2);
+          html += `<div style="background:var(--surface2);border-radius:8px;padding:10px">
+            <div style="font-size:10px;color:var(--text3);margin-bottom:4px">Gap to #1 (${first.name.split(' ')[0]})</div>
+            <div style="font-family:var(--font-mono);font-size:16px;font-weight:700;color:${parseFloat(gapFirst)<0?'var(--red)':'var(--green)'}">${gapFirst}%</div>
+          </div>`;
+        }
+        html += '</div>';
+      }
+    }
+    html += '</div></div>';
+  }
+
+  // ── Tab selector for mini-league view ─────────────────────
+  html += '<div class="card" style="margin-bottom:16px"><div class="card-header"><span class="card-title">👥 Team Board</span><div style="display:flex;gap:4px">';
+  html += `<button class="btn btn-gold btn-xs" id="lb-tab-proj"  onclick="switchLeagueTab('proj')"  style="display:${latestProj?'inline-flex':'none'}">🔮 Projection</button>`;
+  html += `<button class="btn btn-ghost btn-xs" id="lb-tab-monthly" onclick="switchLeagueTab('monthly')" style="display:${latestMonthly?'inline-flex':'none'}">📆 Monthly</button>`;
+  html += `<button class="btn btn-ghost btn-xs" id="lb-tab-daily"   onclick="switchLeagueTab('daily')">📅 Daily</button>`;
+  html += '</div></div><div class="card-body" id="league-table-body">';
+  // Default to projection if available, else monthly, else daily
+  const defaultScan = latestProj || latestMonthly || latestDaily;
+  html += buildLeagueTable(defaultScan, myName, latestProj ? 'proj' : latestMonthly ? 'monthly' : 'daily');
+  html += '</div></div>';
+
+  // ── History list ──────────────────────────────────────────
+  if (history.length > 1) {
+    const grouped = [...history].sort((a,b) => b.date.localeCompare(a.date) || (b.time||'').localeCompare(a.time||'')).slice(0, 20);
+    html += '<div class="card"><div class="card-header"><span class="card-title">📋 History</span></div><div class="card-body" style="padding:0">';
+    html += grouped.map(s => {
+      const me = myName ? s.agents.find(a => a.name.toLowerCase().includes(myName)) : null;
+      const pos = me ? s.agents.indexOf(me) + 1 : null;
+      const typeColors = { daily:'var(--blue)', monthly:'var(--purple)', projected:'var(--gold)' };
+      const typeLabels = { daily:'📅 Daily', monthly:'📆 Monthly', projected:'🔮 Projected' };
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px">
+        <div style="flex:1">
+          <span style="color:${typeColors[s.type]||'var(--text2)'};font-weight:600">${typeLabels[s.type]||s.type}</span>
+          ${s.isEOD ? '<span style="font-size:10px;background:rgba(232,160,32,0.15);color:var(--gold);border-radius:4px;padding:1px 5px;margin-left:4px">EOD</span>' : ''}
+          <span style="color:var(--text3);margin-left:6px">${s.date}${s.time?' '+s.time:''}</span>
+        </div>
+        ${pos ? `<span style="font-family:var(--font-mono);font-weight:700;color:var(--gold)">#${pos} · ${me.pct}%</span>` : ''}
+        <span style="font-size:10px;color:var(--text3)">${s.agents.length} agents</span>
+      </div>`;
+    }).join('');
+    html += '</div></div>';
+  }
+
+  body.innerHTML = html;
+
+  // Draw chart if we have data
+  if (history.filter(s=>s.type==='daily').length > 1 || history.filter(s=>s.type==='monthly').length > 1) {
+    setTimeout(() => _renderRankingChart(myName), 0);
+  }
+}
+
+function buildLeagueTable(scan, myName, tabType) {
+  if (!scan) return '<div style="color:var(--text3);font-size:12px;padding:8px">No data for this view</div>';
+  const typeLabel = {proj:'Projected Tomorrow', monthly:'Monthly', daily:'Daily'}[tabType] || '';
+  return `<div style="font-size:10px;color:var(--text3);margin-bottom:8px">${typeLabel} — ${scan.date}${scan.time?' '+scan.time:''}</div>`
+    + scan.agents.map((a,i) => {
+      const isMe = myName && a.name.toLowerCase().includes(myName);
+      const prevScan = tabType === 'daily'
+        ? (state.rankingHistory||[]).filter(s=>s.type==='daily'&&s.date!==scan.date).sort((a,b)=>b.date.localeCompare(a.date))[0]
+        : tabType === 'monthly'
+        ? (state.rankingHistory||[]).filter(s=>s.type==='monthly'&&s.date!==scan.date).sort((a,b)=>b.date.localeCompare(a.date))[0]
+        : null;
+      const prevAgent = prevScan ? prevScan.agents.find(p=>p.name===a.name) : null;
+      const prevPos   = prevAgent ? prevScan.agents.indexOf(prevAgent)+1 : null;
+      const trend = prevPos ? (i+1 < prevPos ? '▲' : i+1 > prevPos ? '▼' : '—') : '—';
+      const trendCol = trend === '▲' ? 'var(--green)' : trend === '▼' ? 'var(--red)' : 'var(--text3)';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);${isMe?'background:rgba(232,160,32,0.06);border-left:3px solid var(--gold);padding-left:8px;margin:0 -14px;padding-right:14px':''}">
+        <span style="font-family:var(--font-mono);color:var(--text3);min-width:20px;font-size:11px">${i+1}</span>
+        <span style="flex:1;font-size:13px;font-weight:${isMe?700:400}">${a.name}${isMe?' 👈':''}</span>
+        <span style="font-family:var(--font-mono);font-size:12px;color:${isMe?'var(--gold)':'var(--text2)'};font-weight:${isMe?700:400}">${a.pct}%</span>
+        <span style="min-width:16px;font-size:11px;font-weight:700;color:${trendCol}">${trend}</span>
+      </div>`;
+    }).join('');
+}
+
+function switchLeagueTab(tabType) {
+  const history = state.rankingHistory || [];
+  const scans = {
+    proj:    [...history].filter(s=>s.type==='projected').sort((a,b)=>b.date.localeCompare(a.date))[0],
+    monthly: [...history].filter(s=>s.type==='monthly').sort((a,b)=>b.date.localeCompare(a.date))[0],
+    daily:   [...history].filter(s=>s.type==='daily').sort((a,b)=>b.date.localeCompare(a.date)||b.time.localeCompare(a.time))[0],
+  };
+  const myName = (localStorage.getItem('ranking_my_name') || '').toLowerCase();
+  const el = document.getElementById('league-table-body');
+  if (el) el.innerHTML = buildLeagueTable(scans[tabType], myName, tabType);
+  ['proj','monthly','daily'].forEach(t => {
+    const btn = document.getElementById('lb-tab-'+t);
+    if (btn) btn.className = t === tabType ? 'btn btn-gold btn-xs' : 'btn btn-ghost btn-xs';
+  });
+  haptic('light');
+}
+
+function _renderRankingChart(myName) {
+  const history = (state.rankingHistory || []);
+  const ctx = document.getElementById('chart-ranking');
+  if (!ctx) return;
+  if (charts['ranking']) charts['ranking'].destroy();
+
+  const daily   = [...history].filter(s=>s.type==='daily').sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
+  const monthly = [...history].filter(s=>s.type==='monthly').sort((a,b)=>a.date.localeCompare(b.date));
+  const proj    = [...history].filter(s=>s.type==='projected').sort((a,b)=>a.date.localeCompare(b.date));
+
+  function myPct(scan) {
+    if (!myName) return null;
+    const me = scan.agents.find(a=>a.name.toLowerCase().includes(myName));
+    return me ? parseFloat(me.pct) : null;
+  }
+
+  const allDates = [...new Set([...daily.map(s=>s.date+' '+s.time), ...monthly.map(s=>s.date), ...proj.map(s=>s.date)])].sort();
+
+  charts['ranking'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: daily.map(s=>s.date.slice(5)+(s.isEOD?' EOD':' '+s.time)),
+      datasets: [
+        { label: 'Daily %',   data: daily.map(myPct),   borderColor:'#60a5fa', backgroundColor:'rgba(96,165,250,0.08)', tension:0.4, pointRadius:3, spanGaps:true },
+        { label: 'Monthly %', data: monthly.length>0 ? daily.map(s=>{ const m=monthly.filter(ms=>ms.date<=s.date).sort((a,b)=>b.date.localeCompare(a.date))[0]; return m?myPct(m):null; }) : [], borderColor:'#a78bfa', backgroundColor:'rgba(167,139,250,0.08)', tension:0.4, pointRadius:3, spanGaps:true, borderDash:[4,2] },
+        { label: 'Projected', data: proj.length>0 ? daily.map(s=>{ const p=proj.find(ps=>ps.date===s.date); return p?myPct(p):null; }) : [], borderColor:'#e8a020', backgroundColor:'rgba(232,160,32,0.08)', tension:0.4, pointRadius:3, spanGaps:true, borderDash:[6,3] },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:true, labels:{ color:chartTextColor(), font:{size:10} } } },
+      scales:{
+        x:{ grid:{color:chartColor(0.05)}, ticks:{color:chartTextColor(),font:{size:9}} },
+        y:{ grid:{color:chartColor(0.05)}, ticks:{color:chartTextColor(),font:{size:9},callback:v=>v+'%'} }
+      }
+    }
+  });
 }
 
 
@@ -7011,22 +7177,32 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('offline', function() { _setOfflineStatus(true);  toast('Offline - changes saved locally', 'info'); });
   if (!navigator.onLine) _setOfflineStatus(true);
 
-  // ── Swipe Right → Open Drawer ──────────────────────────────
+  // ── Swipe Right → Open Drawer (works from any page) ──────
   (function() {
-    var touchStartX = 0, touchStartY = 0;
+    var touchStartX = 0, touchStartY = 0, touchStartTime = 0;
+    // Use document so it works everywhere including modals and all pages
     document.addEventListener('touchstart', function(e) {
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
+      touchStartTime = Date.now();
     }, { passive: true });
     document.addEventListener('touchend', function(e) {
       var dx = e.changedTouches[0].clientX - touchStartX;
       var dy = Math.abs(e.changedTouches[0].clientY - touchStartY);
-      // Swipe right from left edge (within 60px) OR wide swipe from anywhere near left
-      if (dx > 60 && dy < 80 && touchStartX < 50) {
-        var drawer = document.getElementById('mobile-drawer');
+      var dt = Date.now() - touchStartTime;
+      var drawer = document.getElementById('mobile-drawer');
+      // Open: swipe right, starting near left edge, fast enough, not too vertical
+      if (dx > 50 && dy < 100 && dt < 400 && touchStartX < 55) {
         if (drawer && !drawer.classList.contains('open')) {
           haptic('light');
           openDrawer();
+        }
+      }
+      // Close: swipe left from anywhere while drawer is open
+      if (dx < -50 && dy < 100 && dt < 400) {
+        if (drawer && drawer.classList.contains('open')) {
+          haptic('light');
+          closeDrawer();
         }
       }
     }, { passive: true });
