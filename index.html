@@ -8726,41 +8726,68 @@ async function authSignInWithCode() {
     try {
       const res = await db.from('app_state').select('*').eq('id', id).maybeSingle();
       return res?.data || null;
-    } catch { return null; }
+    } catch(e) {
+      console.warn('fetchRow error for', id, e?.message);
+      return null;
+    }
+  }
+
+  // Debug: confirm db is working at all
+  let dbOk = false;
+  try {
+    const test = await db.from('app_state').select('id').limit(1);
+    dbOk = !test.error;
+    console.log('DB test:', dbOk, test.error?.message, 'rows:', test.data?.length);
+  } catch(e) { console.warn('DB test threw:', e?.message); }
+
+  if (!dbOk) {
+    errEl.textContent = 'Cannot reach Supabase — check your internet connection';
+    return;
   }
 
   // Try 1: direct slug key  e.g. agent_shadrack-agyei-oct25
   let row = await fetchRow('agent_' + slugCode);
+  console.log('Try1 agent_'+slugCode+':', row ? 'FOUND' : 'null');
 
-  // Try 2: all agent rows — find one where agentProfile.lbCode slugifies to match
+  // Try 2: scan all agent rows for matching lbCode
   if (!row) {
     try {
       const res = await db.from('app_state').select('*').like('id', 'agent_%');
       const rows = res?.data || [];
+      console.log('Try2 scan: found', rows.length, 'agent rows');
       row = rows.find(r => {
         const lb = r.data?.agentProfile?.lbCode || '';
         return lb && slugifyCode(lb) === slugCode;
       }) || null;
-    } catch {}
+      if (!row && rows.length > 0) {
+        // Show what we found for debugging
+        console.log('Try2 rows:', rows.map(r => r.id + ' lbCode=' + (r.data?.agentProfile?.lbCode||'none')));
+        // Last resort: if only one agent row exists, it's probably theirs
+        if (rows.length === 1) { row = rows[0]; console.log('Try2 fallback: using sole agent row', rows[0].id); }
+      }
+    } catch(e) { console.warn('Try2 error:', e?.message); }
   }
 
-  // Try 3: main stamp points to a UUID row
+  // Try 3: main stamp → UUID row
   if (!row) {
     const mainRow = await fetchRow('main');
     const pointed = mainRow?.data?.migratedToAgent;
+    console.log('Try3 main stamp points to:', pointed);
     if (pointed) row = await fetchRow('agent_' + pointed);
   }
 
-  // Try 4: main row IS the legacy state (borrowers directly on main)
+  // Try 4: main row IS legacy state
   if (!row) {
     const mainRow = await fetchRow('main');
-    if (mainRow?.data?.borrowers?.length) row = mainRow;
+    if (mainRow?.data?.borrowers?.length) { row = mainRow; console.log('Try4: using legacy main row'); }
   }
 
   if (!row) {
     errEl.textContent = 'Account not found — check your code or tap "New Agent" to sign up';
+    console.warn('All 4 lookups failed for slugCode:', slugCode);
     return;
   }
+  console.log('Found row:', row.id);
 
   // We have the row — extract data and pinHash
   const foundData = row.data || {};
