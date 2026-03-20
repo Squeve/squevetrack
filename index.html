@@ -971,10 +971,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
   </div><!-- end sidebar-nav-scroll -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
       <span>🌙 Theme</span>
-<button id="theme-toggle" onclick="toggleTheme()" style="display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:5px 12px;cursor:pointer;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--text2);white-space:nowrap">
-        <span id="theme-icon" style="font-size:14px">☀️</span>
-        <span id="theme-label">Light Mode</span>
-      </button>
+
     </div>
     <div id="sync-status" style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:11px">
       <span id="sync-dot" style="width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0;display:inline-block"></span>
@@ -1002,7 +999,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
   <section class="page active" id="page-dashboard">
     <div class="page-header">
       <div>
-        <div class="page-title">Dashboard</div>
+        <div class="page-title" id="dash-greeting">Dashboard</div>
         <div class="page-sub" id="dash-date-sub">March 2026 — Loan Tracking</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
@@ -1043,6 +1040,21 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
 
     <!-- Treadmill Alert -->
     <div id="treadmill-alert" style="display:none;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-left:4px solid var(--red);border-radius:8px;padding:12px 18px;margin-bottom:14px"></div>
+
+    <!-- Aged Out collapsible -->
+    <div id="dash-agedout-card" style="display:none;background:rgba(96,165,250,0.07);border:1px solid rgba(96,165,250,0.2);border-radius:10px;margin-bottom:14px;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer" onclick="toggleDashAgedOut()">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:16px">📤</span>
+          <div>
+            <div style="font-weight:700;font-size:13px">Aged Out Accounts</div>
+            <div id="dash-agedout-sub" style="font-size:11px;color:var(--text3)">0 accounts</div>
+          </div>
+        </div>
+        <span id="dash-agedout-chevron" style="font-size:18px;color:var(--text3);transition:transform 0.2s">›</span>
+      </div>
+      <div id="dash-agedout-body" style="display:none;padding:0 16px 12px;max-height:260px;overflow-y:auto"></div>
+    </div>
 
     <!-- Priority 1: Action lists — most important for daily workflow -->
     <div class="two-col">
@@ -1584,8 +1596,76 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
 
   <!-- DATA HEALTH PAGE (accessed from settings) -->
   <section class="page" id="page-health">
-    <div class="page-header"><div><div class="page-title">⚙️ Settings</div><div class="page-sub">Account, security and data</div></div></div>
+    <div class="page-header"><div><div class="page-title">⚙️ Settings</div><div class="page-sub">Account, preferences and data</div></div></div>
+
+    <!-- Profile card -->
     <div class="card" style="margin-bottom:14px"><div class="card-body" id="settings-agent-card"></div></div>
+
+    <!-- Profile editing -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-header"><span class="card-title">👤 Profile</span></div>
+      <div class="card-body" style="padding:14px 16px">
+        <!-- Avatar -->
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+          <div id="settings-avatar-preview" style="width:64px;height:64px;border-radius:50%;background:var(--surface2);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:28px;cursor:pointer;overflow:hidden;flex-shrink:0" onclick="document.getElementById('avatar-file-input').click()" title="Tap to change photo">
+            <span id="settings-avatar-emoji">👤</span>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:12px;color:var(--text2);margin-bottom:4px">Profile picture <span style="color:var(--text3);font-size:10px">(local only)</span></div>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('avatar-file-input').click()">Change Photo</button>
+            <button class="btn btn-ghost btn-sm" style="margin-left:6px;color:var(--text3)" onclick="settingsClearAvatar()">Remove</button>
+          </div>
+          <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="settingsLoadAvatar(this)">
+        </div>
+        <!-- Name edit -->
+        <div class="form-group" style="margin-bottom:12px">
+          <label style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px">Display Name</label>
+          <input type="text" class="form-input" id="settings-name-input" placeholder="Your full name" style="margin-top:5px">
+        </div>
+        <button class="btn btn-gold btn-sm" onclick="settingsSaveProfile()">Save Profile</button>
+        <div id="settings-copy-code" style="margin-top:12px;background:var(--surface2);border-radius:8px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="settingsCopyCode()">
+          <div>
+            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px">Agent Code</div>
+            <div id="settings-code-display" style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--gold)"></div>
+          </div>
+          <span style="font-size:12px;color:var(--text3)">📋 Copy</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preferences -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-header"><span class="card-title">🎛 Preferences</span></div>
+      <div class="card-body" style="padding:0">
+        <!-- Theme -->
+        <div class="settings-row" style="cursor:default">
+          <span>🌙 Theme</span>
+          <div style="display:flex;background:var(--surface2);border-radius:20px;padding:2px;gap:2px">
+            <button id="theme-btn-dark" onclick="settingsSetTheme('dark')" style="padding:4px 12px;border:none;border-radius:18px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font-body);transition:all 0.15s">Dark</button>
+            <button id="theme-btn-light" onclick="settingsSetTheme('light')" style="padding:4px 12px;border:none;border-radius:18px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font-body);transition:all 0.15s">Light</button>
+          </div>
+        </div>
+        <!-- Haptic -->
+        <div class="settings-row" style="cursor:default">
+          <span>📳 Haptic Feedback</span>
+          <label style="position:relative;width:44px;height:24px;display:inline-block;flex-shrink:0">
+            <input type="checkbox" id="haptic-toggle" onchange="settingsToggleHaptic(this.checked)" style="opacity:0;width:0;height:0">
+            <span id="haptic-slider" style="position:absolute;inset:0;background:var(--border2);border-radius:24px;cursor:pointer;transition:background 0.2s"></span>
+            <span id="haptic-knob" style="position:absolute;left:3px;top:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform 0.2s;pointer-events:none"></span>
+          </label>
+        </div>
+        <!-- Daily target -->
+        <div class="settings-row" style="cursor:default;flex-wrap:wrap;gap:8px">
+          <span>🎯 Monthly Target (₵)</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="number" id="settings-target-input" class="form-input" style="width:120px;padding:6px 10px;font-size:13px" placeholder="e.g. 50000" min="0">
+            <button class="btn btn-gold btn-sm" onclick="settingsSaveTarget()">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Security -->
     <div class="card" style="margin-bottom:14px">
       <div class="card-header"><span class="card-title">🔐 Security</span></div>
       <div class="card-body" style="padding:0">
@@ -1594,10 +1674,33 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
         <button class="settings-row" onclick="settingsLockApp()"><span>🔒 Lock App</span><span class="settings-chevron">›</span></button>
       </div>
     </div>
+
+    <!-- Data health -->
     <div class="card" style="margin-bottom:14px">
       <div class="card-header"><span class="card-title">📊 Data</span></div>
       <div class="card-body" id="health-body"></div>
     </div>
+
+    <!-- App info -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-header"><span class="card-title">ℹ️ About</span></div>
+      <div class="card-body" style="padding:14px 16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:13px;color:var(--text2)">SqueveTrack</span>
+          <span style="font-family:var(--font-mono);font-size:12px;color:var(--text3)">v2.0.0</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:13px;color:var(--text2)">Built for</span>
+          <span style="font-size:12px;color:var(--text3)">LoanBase Ghana · M0–M5</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;color:var(--text2)">Developed by</span>
+          <span style="font-size:12px;color:var(--gold);font-weight:600">Shadrack Agyei Arthur</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Danger zone -->
     <div class="card" style="margin-bottom:14px;border-color:rgba(239,68,68,0.3)">
       <div class="card-header"><span class="card-title" style="color:var(--red)">⚠️ Danger Zone</span></div>
       <div class="card-body" style="padding:0">
@@ -1626,7 +1729,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
   <div class="mhdr-title" id="mhdr-title">SqueveTrack</div>
   <div id="offline-badge" style="display:none;align-items:center;gap:4px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);border-radius:12px;padding:2px 8px;font-size:10px;color:var(--red);font-weight:700">OFFLINE</div>
   <button class="mhdr-theme" onclick="openGlobalSearch()" title="Search" style="margin-right:4px">🔍</button>
-  <button class="mhdr-theme" onclick="toggleTheme()" id="mhdr-theme-btn">☀️</button>
+  <button class="mhdr-theme" onclick="lockApp()" title="Lock App" style="font-size:16px">🔒</button>
 </header>
 
 <!-- MOBILE DRAWER OVERLAY -->
@@ -1682,7 +1785,6 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
       <div id="mdrawer-agent-name" style="font-size:12px;font-weight:700;color:var(--text)"></div>
       <div id="mdrawer-agent-stage" style="font-size:11px;margin-top:1px"></div>
     </div>
-    <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-bottom:6px" onclick="closeDrawer();navigate('health')">⚙️ Settings</button>
     <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-bottom:8px;color:var(--red);border-color:rgba(239,68,68,0.3)" onclick="closeDrawer();lockApp()">🔒 Lock App</button>
     <div id="mdrawer-sync" style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
       <span style="width:7px;height:7px;border-radius:50%;background:var(--text3);display:inline-block" id="mdrawer-sync-dot"></span>
@@ -1734,8 +1836,16 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
 <canvas id="confetti-canvas"></canvas>
 
 <!-- F8: Floating Daily Target Pill -->
-<div id="daily-target-pill" style="display:none;position:fixed;bottom:72px;right:14px;z-index:300;background:var(--surface);border:1.5px solid var(--border2);border-radius:24px;padding:8px 14px;box-shadow:0 4px 16px rgba(0,0,0,0.25);cursor:pointer;text-align:center;min-width:110px" onclick="navigate('log');haptic('light')">
-  <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px">Need today</div>
+<style>
+@keyframes pillPulse { 0%,100%{box-shadow:0 4px 16px rgba(0,0,0,0.25)} 50%{box-shadow:0 4px 24px rgba(232,160,32,0.45)} }
+@keyframes pillShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-4px)} 40%{transform:translateX(4px)} 60%{transform:translateX(-3px)} 80%{transform:translateX(3px)} }
+@keyframes pillGlow  { 0%,100%{box-shadow:0 4px 16px rgba(239,68,68,0.2)} 50%{box-shadow:0 4px 28px rgba(239,68,68,0.55)} }
+#daily-target-pill.on-track  { animation: pillPulse 2.5s ease-in-out infinite; border-color:var(--gold)!important; }
+#daily-target-pill.behind    { animation: pillGlow  1.8s ease-in-out infinite; border-color:var(--red)!important; }
+#daily-target-pill.done      { border-color:var(--green)!important; }
+</style>
+<div id="daily-target-pill" style="display:none;position:fixed;bottom:72px;right:14px;z-index:300;background:var(--surface);border:1.5px solid var(--border2);border-radius:24px;padding:8px 14px;cursor:pointer;text-align:center;min-width:110px;transition:border-color 0.3s" onclick="navigate('log');haptic('light')">
+  <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px" id="daily-pill-label">Need today</div>
   <div id="daily-pill-amount" style="font-family:var(--font-mono);font-weight:800;font-size:16px;color:var(--gold)">₵0</div>
   <div id="daily-pill-sub" style="font-size:9px;color:var(--text3);margin-top:1px">tap to log</div>
 </div>
@@ -2084,9 +2194,13 @@ async function _pushToSupabase() {
   if (!_db) return;
   setSyncStatus('saving');
   try {
+    // Always include _pinHash so syncs never wipe it
+    const agents = getAgentList();
+    const myAgent = agents.find(a => a.id === _activeAgent?.id);
+    const pinHash = myAgent?.pinHash || state._pinHash || null;
     const { error } = await _db.from('app_state').upsert({
       id: getSupabaseId(),
-      data: state,
+      data: { ...state, _pinHash: pinHash },
       updated_at: new Date().toISOString()
     });
     if (error) throw error;
@@ -2257,7 +2371,48 @@ function statusBadge(status) {
 // ============================================================
 // DASHBOARD
 // ============================================================
+function renderDashAgedOut() {
+  const card = document.getElementById('dash-agedout-card');
+  const sub  = document.getElementById('dash-agedout-sub');
+  const body = document.getElementById('dash-agedout-body');
+  if (!card) return;
+  const log = state.agedOutLog || [];
+  if (!log.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  if (sub) sub.textContent = log.length + ' account' + (log.length!==1?'s':'') + ' · ₵' + fmtC(log.reduce((s,a)=>s+(a.loanDue||0),0)).replace('₵','');
+  if (body) {
+    body.innerHTML = log.slice(0,10).map(a =>
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">'
+      +'<div><div style="font-weight:600;font-size:12px">'+a.name+'</div>'
+      +'<div style="font-size:10px;color:var(--text3)">Day '+a.odAge+' · Aged '+a.agedDate+'</div></div>'
+      +'<div style="font-family:var(--font-mono);font-size:12px;color:var(--red)">'+fmtC(a.loanDue)+'</div>'
+      +'</div>'
+    ).join('')
+    + (log.length > 10 ? '<div style="font-size:11px;color:var(--text3);padding:8px 0;text-align:center">+' + (log.length-10) + ' more · <a onclick="navigate(\'agedout\')" style="color:var(--gold);cursor:pointer">View all →</a></div>' : '');
+  }
+}
+
+function toggleDashAgedOut() {
+  const body    = document.getElementById('dash-agedout-body');
+  const chevron = document.getElementById('dash-agedout-chevron');
+  if (!body) return;
+  const open = body.style.display === 'block';
+  body.style.display = open ? 'none' : 'block';
+  if (chevron) chevron.style.transform = open ? '' : 'rotate(90deg)';
+  haptic('light');
+}
+
 function renderDashboard() {
+  // Dynamic greeting
+  const greetEl = document.getElementById('dash-greeting');
+  if (greetEl) {
+    const h = new Date().getHours();
+    const period = h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening';
+    const firstName = (_activeAgent?.name || state.agentProfile?.name || '').split(' ')[0] || '';
+    const today = new Date().toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long' });
+    greetEl.innerHTML = 'Good ' + period + (firstName ? ', ' + firstName : '') + ' 👋'
+      + '<div style="font-size:12px;font-weight:400;color:var(--text3);margin-top:2px">' + today + '</div>';
+  }
   const all = state.borrowers;
   const active = getActiveBorrowers();
   const paid = all.filter(b => getStatus(b) === 'Paid');
@@ -4971,6 +5126,7 @@ function navigateDrawer(page) {
 
 
 function haptic(type) {
+  if (localStorage.getItem('sq_haptic') === 'off') return;
   if (!navigator.vibrate) return;
   if (type === 'success') navigator.vibrate([30,20,60]);
   else if (type === 'warning') navigator.vibrate([20,30,20]);
@@ -6238,26 +6394,50 @@ function fireConfetti() {
   canvas.style.display = 'block';
   const ctx = canvas.getContext('2d');
   canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-  const pieces = Array.from({length:120}, () => ({
-    x: Math.random() * canvas.width, y: -20,
-    vx: (Math.random()-0.5)*5, vy: 2 + Math.random()*4,
-    r: 4 + Math.random()*6, rot: Math.random()*360,
-    color: ['#e8a020','#f5b840','#0b0d12','#22c55e','#60a5fa'][Math.floor(Math.random()*5)]
+  const colors = ['#e8a020','#f5b840','#22c55e','#60a5fa','#f97316','#a78bfa','#ec4899','#ffffff'];
+  const shapes = ['rect','circle','star'];
+  const pieces = Array.from({length:180}, () => ({
+    x: Math.random() * canvas.width, y: -20 - Math.random()*100,
+    vx: (Math.random()-0.5)*6, vy: 2 + Math.random()*5,
+    r: 4 + Math.random()*7, rot: Math.random()*360, rotV: (Math.random()-0.5)*8,
+    color: colors[Math.floor(Math.random()*colors.length)],
+    shape: shapes[Math.floor(Math.random()*shapes.length)],
+    opacity: 1, wobble: Math.random()*Math.PI*2
   }));
   let frame = 0;
+  function drawStar(ctx, r) {
+    ctx.beginPath();
+    for (let i=0;i<5;i++) {
+      const a = (i*4*Math.PI/5) - Math.PI/2;
+      const b = (i*4*Math.PI/5 + 2*Math.PI/5) - Math.PI/2;
+      i===0 ? ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r) : ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);
+      ctx.lineTo(Math.cos(b)*r*0.4,Math.sin(b)*r*0.4);
+    }
+    ctx.closePath();
+  }
   function draw() {
     ctx.clearRect(0,0,canvas.width,canvas.height);
     pieces.forEach(p => {
-      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot*Math.PI/180);
-      ctx.fillStyle = p.color; ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*0.6);
+      p.wobble += 0.05;
+      p.x += p.vx + Math.sin(p.wobble)*0.5;
+      p.y += p.vy; p.rot += p.rotV; p.vy += 0.04;
+      if (frame > 80) p.opacity = Math.max(0, p.opacity - 0.012);
+      ctx.save();
+      ctx.globalAlpha = p.opacity;
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle = p.color;
+      if (p.shape==='circle') { ctx.beginPath(); ctx.arc(0,0,p.r*0.6,0,Math.PI*2); ctx.fill(); }
+      else if (p.shape==='star') { drawStar(ctx, p.r); ctx.fill(); }
+      else { ctx.fillRect(-p.r/2,-p.r/3,p.r,p.r*0.6); }
       ctx.restore();
-      p.x += p.vx; p.y += p.vy; p.rot += 4; p.vy += 0.05;
     });
     frame++;
-    if (frame < 100) requestAnimationFrame(draw);
+    if (frame < 130) requestAnimationFrame(draw);
     else { ctx.clearRect(0,0,canvas.width,canvas.height); canvas.style.display = 'none'; }
   }
   draw();
+  // Toast celebration
+  toast('🎉 Monthly target reached! Outstanding work!', 'success');
 }
 
 // ============================================================
@@ -8143,9 +8323,10 @@ function checkPtpBreaches() {
 
 // ── F8: Floating Daily Target Pill ───────────────────────────
 function updateDailyPill() {
-  const pill = document.getElementById('daily-target-pill');
-  const amtEl = document.getElementById('daily-pill-amount');
-  const subEl = document.getElementById('daily-pill-sub');
+  const pill   = document.getElementById('daily-target-pill');
+  const amtEl  = document.getElementById('daily-pill-amount');
+  const subEl  = document.getElementById('daily-pill-sub');
+  const lblEl  = document.getElementById('daily-pill-label');
   if (!pill || !amtEl) return;
   const target = state.monthlyTarget || 0;
   if (!target) { pill.style.display = 'none'; return; }
@@ -8161,17 +8342,54 @@ function updateDailyPill() {
   pill.style.display = 'flex';
   pill.style.flexDirection = 'column';
   pill.style.alignItems = 'center';
-  if (stillNeeded === 0 && todayCollected > 0) {
-    pill.style.borderColor = 'var(--green)';
+  // Remove all state classes
+  pill.classList.remove('on-track','behind','done');
+
+  if (totalCollected >= target) {
+    // Target hit!
+    pill.classList.add('done');
+    amtEl.style.color = 'var(--green)';
+    amtEl.textContent = '🎯 Done!';
+    if (subEl) subEl.textContent = 'Target reached!';
+    if (lblEl) lblEl.textContent = 'This Month';
+    // Trigger confetti once
+    if (!window._confettiShown) { window._confettiShown = true; setTimeout(launchConfetti, 400); }
+  } else if (stillNeeded === 0 && todayCollected > 0) {
+    pill.classList.add('done');
     amtEl.style.color = 'var(--green)';
     amtEl.textContent = '✅ Done';
     if (subEl) subEl.textContent = fmtC(todayCollected) + ' today';
+    if (lblEl) lblEl.textContent = 'Today';
   } else {
-    pill.style.borderColor = stillNeeded > 2000 ? 'var(--red)' : 'var(--border2)';
-    amtEl.style.color = stillNeeded > 2000 ? 'var(--red)' : 'var(--gold)';
-    amtEl.textContent = fmtC(stillNeeded);
-    if (subEl) subEl.textContent = 'needed today';
+    const isBehind = stillNeeded > needed * 0.7;
+    pill.classList.add(isBehind ? 'behind' : 'on-track');
+    amtEl.style.color = isBehind ? 'var(--red)' : 'var(--gold)';
+    if (lblEl) lblEl.textContent = isBehind ? '⚡ Needed' : '🎯 Today';
+    // Animate number counting up
+    animatePillNumber(amtEl, stillNeeded, isBehind);
+    if (subEl) subEl.textContent = isBehind ? 'behind pace' : 'to log today';
+    // Shake if far behind
+    if (isBehind && stillNeeded > needed) {
+      void pill.offsetWidth;
+      pill.style.animation = 'none';
+      pill.classList.add('behind');
+    }
   }
+}
+
+function animatePillNumber(el, target, isBehind) {
+  let start = 0;
+  const dur = 600;
+  const t0 = performance.now();
+  function step(now) {
+    const p = Math.min(1, (now - t0) / dur);
+    const ease = 1 - Math.pow(1 - p, 3);
+    const val = Math.round(ease * target);
+    el.textContent = '₵' + val.toLocaleString('en-GH', {minimumFractionDigits:2, maximumFractionDigits:2});
+    if (p < 1) requestAnimationFrame(step);
+    else el.textContent = fmtC(target);
+  }
+  requestAnimationFrame(step);
 }
 
 // ── F10: Monthly Comparison Card ─────────────────────────────
@@ -8947,25 +9165,269 @@ async function authSignInWithCode() {
 }
 
 // Settings page functions
+
+// ============================================================
+// SETTINGS — Profile, Theme, Haptic, Target, Copy Code
+// ============================================================
+
 function renderSettingsPage() {
-  const cardEl=document.getElementById('settings-agent-card');
-  if(cardEl&&_activeAgent){
-    const s=STAGE_CONFIG[_activeAgent.stage]||STAGE_CONFIG.M2;
-    cardEl.innerHTML='<div style="display:flex;align-items:center;gap:14px;padding:4px 0">'
-      +'<div style="width:52px;height:52px;border-radius:50%;background:'+s.colorHex+'22;color:'+s.colorHex+';display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;font-family:var(--font-head);flex-shrink:0">'
-      +(_activeAgent.name||'A').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()+'</div>'
-      +'<div style="flex:1;min-width:0">'
-      +'<div style="font-weight:700;font-size:15px">'+(_activeAgent.lbCode||_activeAgent.name)+'</div>'
-      +'<div style="font-size:12px;color:var(--text3);margin-top:2px">'+_activeAgent.name+'</div>'
-      +'<div style="margin-top:4px"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:'+s.colorHex+'22;color:'+s.colorHex+'">'+s.label+' — '+s.name+'</span></div>'
-      +'</div>'
-      +'<div style="font-size:9px;color:var(--text3);text-align:right;font-family:var(--font-mono)">'
-      +'<div style="margin-bottom:2px">Agent Code</div>'
-      +'<div style="color:var(--gold);font-weight:700;font-size:11px;user-select:all">'+(_activeAgent.lbCode||_activeAgent.id)+'</div>'
-      +'</div></div>';
+  // Agent card
+  const cardEl = document.getElementById('settings-agent-card');
+  if (cardEl && _activeAgent) {
+    const s = STAGE_CONFIG[_activeAgent.stage] || STAGE_CONFIG.M2;
+    const avatar = localStorage.getItem('sq_avatar_' + _activeAgent.id);
+    const avatarHtml = avatar
+      ? '<img src="'+avatar+'" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid var(--border2)">'
+      : '<div style="width:52px;height:52px;border-radius:50%;background:'+s.colorHex+'22;color:'+s.colorHex+';display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;font-family:var(--font-head);flex-shrink:0">'+(_activeAgent.name||'A').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()+'</div>';
+    const displayName = localStorage.getItem('sq_displayname_' + _activeAgent.id) || _activeAgent.lbCode || _activeAgent.name;
+    cardEl.innerHTML =
+      '<div style="display:flex;align-items:center;gap:14px;padding:4px 0">'
+      + avatarHtml
+      + '<div style="flex:1;min-width:0">'
+      + '<div style="font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+displayName+'</div>'
+      + '<div style="font-size:12px;color:var(--text3);margin-top:2px">'+(_activeAgent.lbCode||_activeAgent.name)+'</div>'
+      + '<div style="margin-top:4px"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:'+s.colorHex+'22;color:'+s.colorHex+'">'+s.label+' — '+s.name+'</span></div>'
+      + '</div></div>';
   }
+
+  // Pre-fill profile fields
+  const nameInput = document.getElementById('settings-name-input');
+  if (nameInput && _activeAgent) {
+    nameInput.value = localStorage.getItem('sq_displayname_' + _activeAgent.id) || _activeAgent.name || '';
+  }
+
+  // Pre-fill avatar preview
+  const avatarPreview = document.getElementById('settings-avatar-preview');
+  const avatarEmoji   = document.getElementById('settings-avatar-emoji');
+  if (avatarPreview && _activeAgent) {
+    const saved = localStorage.getItem('sq_avatar_' + _activeAgent.id);
+    if (saved) {
+      avatarPreview.innerHTML = '<img src="'+saved+'" style="width:64px;height:64px;border-radius:50%;object-fit:cover">';
+    } else if (avatarEmoji) {
+      avatarEmoji.textContent = '👤';
+    }
+  }
+
+  // Agent code display
+  const codeDisplay = document.getElementById('settings-code-display');
+  if (codeDisplay && _activeAgent) codeDisplay.textContent = _activeAgent.lbCode || _activeAgent.id;
+
+  // Target
+  const targetInput = document.getElementById('settings-target-input');
+  if (targetInput) targetInput.value = state.monthlyTarget || '';
+
+  // Theme buttons
+  const isDark = (localStorage.getItem('m2_theme') || 'dark') === 'dark';
+  const darkBtn  = document.getElementById('theme-btn-dark');
+  const lightBtn = document.getElementById('theme-btn-light');
+  if (darkBtn && lightBtn) {
+    const activeStyle  = 'background:var(--gold);color:#000;';
+    const inactiveStyle= 'background:transparent;color:var(--text3);';
+    darkBtn.style.cssText  += isDark  ? activeStyle : inactiveStyle;
+    lightBtn.style.cssText += !isDark ? activeStyle : inactiveStyle;
+  }
+
+  // Haptic toggle
+  const hapticCheck = document.getElementById('haptic-toggle');
+  const hapticSlider= document.getElementById('haptic-slider');
+  const hapticKnob  = document.getElementById('haptic-knob');
+  const hapticOn = localStorage.getItem('sq_haptic') !== 'off';
+  if (hapticCheck) hapticCheck.checked = hapticOn;
+  if (hapticSlider) hapticSlider.style.background = hapticOn ? 'var(--gold)' : 'var(--border2)';
+  if (hapticKnob)   hapticKnob.style.transform = hapticOn ? 'translateX(20px)' : 'translateX(0)';
+
   renderHealthPage();
 }
+
+// ── Avatar crop system ──────────────────────────────────────
+let _cropImg = null, _cropX = 0, _cropY = 0, _cropScale = 1;
+let _cropDragStart = null, _cropLastDist = null;
+
+function settingsLoadAvatar(input) {
+  const file = input.files?.[0];
+  if (!file || !_activeAgent) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      _cropImg = img;
+      // Fit image to canvas initially
+      const size = 280;
+      const scale = Math.max(size / img.width, size / img.height);
+      _cropScale = scale;
+      _cropX = (size - img.width * scale) / 2;
+      _cropY = (size - img.height * scale) / 2;
+      // Setup canvas
+      const canvas = document.getElementById('crop-canvas');
+      canvas.width = canvas.height = size;
+      // Show overlay
+      const overlay = document.getElementById('crop-overlay');
+      overlay.style.display = 'flex';
+      document.getElementById('crop-info').innerHTML =
+        'Drag to reposition<br>Pinch or scroll to zoom<br>Circle = final crop';
+      cropDraw();
+      // Wire events
+      canvas.onmousedown = cropMouseDown;
+      canvas.onmousemove = cropMouseMove;
+      canvas.onmouseup = canvas.onmouseleave = () => _cropDragStart = null;
+      canvas.onwheel = cropWheel;
+      canvas.ontouchstart = cropTouchStart;
+      canvas.ontouchmove = cropTouchMove;
+      canvas.ontouchend = () => { _cropDragStart = null; _cropLastDist = null; };
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function cropDraw() {
+  if (!_cropImg) return;
+  const canvas = document.getElementById('crop-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, 280, 280);
+  ctx.drawImage(_cropImg, _cropX, _cropY, _cropImg.width * _cropScale, _cropImg.height * _cropScale);
+  // Update preview
+  const preview = document.getElementById('crop-preview');
+  if (preview) {
+    const pctx = preview.getContext('2d');
+    pctx.clearRect(0, 0, 64, 64);
+    // Draw cropped circle region scaled to 64px
+    const ratio = 64 / 260; // 260 = 2*130 crop circle diameter
+    pctx.save();
+    pctx.beginPath();
+    pctx.arc(32, 32, 32, 0, Math.PI * 2);
+    pctx.clip();
+    pctx.drawImage(canvas, 10, 10, 260, 260, 0, 0, 64, 64);
+    pctx.restore();
+  }
+}
+
+function cropMouseDown(e) {
+  _cropDragStart = { x: e.clientX - _cropX, y: e.clientY - _cropY };
+}
+function cropMouseMove(e) {
+  if (!_cropDragStart) return;
+  _cropX = e.clientX - _cropDragStart.x;
+  _cropY = e.clientY - _cropDragStart.y;
+  cropDraw();
+}
+function cropWheel(e) {
+  e.preventDefault();
+  _cropScale = Math.max(0.3, Math.min(5, _cropScale * (e.deltaY > 0 ? 0.92 : 1.08)));
+  cropDraw();
+}
+function cropTouchStart(e) {
+  if (e.touches.length === 1) {
+    _cropDragStart = { x: e.touches[0].clientX - _cropX, y: e.touches[0].clientY - _cropY };
+  } else if (e.touches.length === 2) {
+    _cropLastDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+  }
+}
+function cropTouchMove(e) {
+  e.preventDefault();
+  if (e.touches.length === 1 && _cropDragStart) {
+    _cropX = e.touches[0].clientX - _cropDragStart.x;
+    _cropY = e.touches[0].clientY - _cropDragStart.y;
+    cropDraw();
+  } else if (e.touches.length === 2 && _cropLastDist) {
+    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    _cropScale = Math.max(0.3, Math.min(5, _cropScale * (dist / _cropLastDist)));
+    _cropLastDist = dist;
+    cropDraw();
+  }
+}
+
+function cropConfirm() {
+  if (!_cropImg || !_activeAgent) return;
+  // Render final 200px circle crop
+  const out = document.createElement('canvas');
+  out.width = out.height = 200;
+  const ctx = out.getContext('2d');
+  ctx.beginPath();
+  ctx.arc(100, 100, 100, 0, Math.PI * 2);
+  ctx.clip();
+  // Source: 260x260 region centred in 280px canvas → scaled to 200px
+  const srcCanvas = document.getElementById('crop-canvas');
+  ctx.drawImage(srcCanvas, 10, 10, 260, 260, 0, 0, 200, 200);
+  const dataUrl = out.toDataURL('image/jpeg', 0.80);
+  localStorage.setItem('sq_avatar_' + _activeAgent.id, dataUrl);
+  const preview = document.getElementById('settings-avatar-preview');
+  if (preview) preview.innerHTML = '<img src="'+dataUrl+'" style="width:64px;height:64px;border-radius:50%;object-fit:cover">';
+  document.getElementById('crop-overlay').style.display = 'none';
+  renderSettingsPage();
+  toast('Profile photo saved ✅', 'success');
+  haptic('pay');
+}
+
+function cropCancel() {
+  document.getElementById('crop-overlay').style.display = 'none';
+  _cropImg = null;
+}
+
+function settingsClearAvatar() {
+  if (!_activeAgent) return;
+  localStorage.removeItem('sq_avatar_' + _activeAgent.id);
+  const preview = document.getElementById('settings-avatar-preview');
+  if (preview) preview.innerHTML = '<span id="settings-avatar-emoji">👤</span>';
+  toast('Photo removed', 'info');
+}
+
+function settingsSaveProfile() {
+  if (!_activeAgent) return;
+  const name = document.getElementById('settings-name-input')?.value.trim();
+  if (!name) { toast('Enter a display name', 'error'); return; }
+  localStorage.setItem('sq_displayname_' + _activeAgent.id, name);
+  // Update agent record name
+  const agents = getAgentList();
+  const idx = agents.findIndex(a => a.id === _activeAgent.id);
+  if (idx >= 0) { agents[idx].name = name; saveAgentList(agents); _activeAgent.name = name; }
+  renderSettingsPage();
+  toast('Profile saved ✅', 'success');
+  haptic('pay');
+}
+
+function settingsCopyCode() {
+  const code = _activeAgent?.lbCode || _activeAgent?.id || '';
+  if (!code) return;
+  navigator.clipboard?.writeText(code).then(() => {
+    toast('Agent code copied 📋', 'success');
+    haptic('light');
+  }).catch(() => {
+    toast(code, 'info'); // fallback — show in toast
+  });
+}
+
+function settingsSetTheme(theme) {
+  applyTheme(theme);
+  localStorage.setItem('m2_theme', theme);
+  const darkBtn  = document.getElementById('theme-btn-dark');
+  const lightBtn = document.getElementById('theme-btn-light');
+  const activeStyle  = 'background:var(--gold);color:#000;';
+  const inactiveStyle= 'background:transparent;color:var(--text3);';
+  if (darkBtn)  darkBtn.style.cssText  += theme==='dark'  ? activeStyle : inactiveStyle;
+  if (lightBtn) lightBtn.style.cssText += theme==='light' ? activeStyle : inactiveStyle;
+  haptic('light');
+}
+
+function settingsToggleHaptic(on) {
+  localStorage.setItem('sq_haptic', on ? 'on' : 'off');
+  const slider = document.getElementById('haptic-slider');
+  const knob   = document.getElementById('haptic-knob');
+  if (slider) slider.style.background = on ? 'var(--gold)' : 'var(--border2)';
+  if (knob)   knob.style.transform = on ? 'translateX(20px)' : 'translateX(0)';
+  toast('Haptic ' + (on ? 'on' : 'off'), 'info');
+}
+
+function settingsSaveTarget() {
+  const val = parseFloat(document.getElementById('settings-target-input')?.value) || 0;
+  state.monthlyTarget = val;
+  saveState();
+  updateDailyPill();
+  toast('Monthly target updated ✅', 'success');
+  haptic('pay');
+}
+
+
 
 function settingsChangePin() {
   if(!_activeAgent) return;
@@ -9702,5 +10164,38 @@ document.addEventListener('DOMContentLoaded', async () => {
 .settings-row:hover{background:var(--surface2)}
 .settings-chevron{color:var(--text3);font-size:18px;font-weight:300}
 </style>
+<!-- AVATAR CROP OVERLAY -->
+<div id="crop-overlay" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.92);flex-direction:column;align-items:center;justify-content:center">
+  <div style="font-size:13px;color:#fff;margin-bottom:12px;font-weight:600">Drag to reposition · Pinch to zoom</div>
+  <div id="crop-container" style="position:relative;width:280px;height:280px;overflow:hidden;border-radius:8px;touch-action:none;cursor:grab">
+    <canvas id="crop-canvas" style="position:absolute;top:0;left:0"></canvas>
+    <!-- Circle mask overlay -->
+    <div style="position:absolute;inset:0;pointer-events:none">
+      <svg width="280" height="280" style="position:absolute;top:0;left:0">
+        <defs>
+          <mask id="circle-mask">
+            <rect width="280" height="280" fill="white"/>
+            <circle cx="140" cy="140" r="130" fill="black"/>
+          </mask>
+        </defs>
+        <rect width="280" height="280" fill="rgba(0,0,0,0.6)" mask="url(#circle-mask)"/>
+        <circle cx="140" cy="140" r="130" fill="none" stroke="var(--gold)" stroke-width="2"/>
+      </svg>
+    </div>
+  </div>
+  <!-- Preview -->
+  <div style="margin:16px 0 8px;display:flex;align-items:center;gap:16px">
+    <div>
+      <div style="font-size:10px;color:#aaa;text-align:center;margin-bottom:6px">Preview</div>
+      <canvas id="crop-preview" width="64" height="64" style="border-radius:50%;border:2px solid var(--gold)"></canvas>
+    </div>
+    <div id="crop-info" style="font-size:11px;color:#aaa;line-height:1.8"></div>
+  </div>
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button onclick="cropCancel()" style="padding:11px 28px;border-radius:20px;border:1px solid #555;background:transparent;color:#fff;font-size:13px;cursor:pointer">Cancel</button>
+    <button onclick="cropConfirm()" style="padding:11px 28px;border-radius:20px;border:none;background:var(--gold);color:#000;font-size:13px;font-weight:700;cursor:pointer">Use Photo</button>
+  </div>
+</div>
+
 </body>
 </html>
