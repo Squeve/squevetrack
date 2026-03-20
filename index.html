@@ -983,11 +983,6 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <div id="pending-sync-label" style="display:none;font-size:11px;margin-bottom:4px"></div>
     Data saves locally · syncs to cloud
     <div style="margin-top:8px">
-      <div id="sidebar-agent-info" style="margin-bottom:8px;background:var(--surface2);border-radius:8px;padding:8px 10px;display:none">
-        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px">Agent</div>
-        <div id="sidebar-agent-name" style="font-size:12px;font-weight:700;color:var(--text)"></div>
-        <div id="sidebar-agent-stage" style="font-size:11px;margin-top:2px"></div>
-      </div>
       <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px" onclick="navigate('health')">⚙️ Settings</button>
     </div>
     <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
@@ -7550,6 +7545,7 @@ function closeQuickPayBar() {
 // PULL TO REFRESH (item 13)
 // ============================================================
 function initPullToRefresh() {
+  if (!('ontouchstart' in window) || window.innerWidth >= 900) return; // desktop: skip
   const main = document.getElementById('main');
   if (!main) return;
   let startY = 0, pulling = false;
@@ -8504,6 +8500,14 @@ function obShowComplete(importedCount) {
   }
 }
 
+function obCancel() {
+  const overlay = document.getElementById('onboarding-overlay');
+  if (overlay) overlay.style.display = 'none';
+  document.body.style.overflow = '';
+  showLockScreen();
+  haptic('light');
+}
+
 function obFinish() {
   const name = state.agentProfile?.name || document.getElementById('ob-agent-name')?.value?.trim() || 'Agent';
   // Create or update agent record
@@ -8553,33 +8557,7 @@ function obFinish() {
   toast('Welcome, ' + name + '! 🎉', 'success');
 }
 
-function updateSidebarAgentInfo() {
-  const profile = state.agentProfile || {};
-  const agent = _activeAgent || {};
-  const name = profile.name || agent.name || '';
-  const stage = profile.stage || agent.stage || 'M2';
-  const s = STAGE_CONFIG[stage] || STAGE_CONFIG.M2;
-
-  // Desktop sidebar
-  const info = document.getElementById('sidebar-agent-info');
-  const nameEl = document.getElementById('sidebar-agent-name');
-  const stageEl = document.getElementById('sidebar-agent-stage');
-  if (info) {
-    info.style.display = name ? 'block' : 'none';
-    if (nameEl) nameEl.textContent = name;
-    if (stageEl) stageEl.innerHTML = '<span style="color:' + s.colorHex + ';font-weight:700">' + s.label + '</span> — ' + s.name;
-  }
-
-  // Mobile drawer
-  const dinfo = document.getElementById('mdrawer-agent-info');
-  const dnameEl = document.getElementById('mdrawer-agent-name');
-  const dstageEl = document.getElementById('mdrawer-agent-stage');
-  if (dinfo) {
-    dinfo.style.display = name ? 'block' : 'none';
-    if (dnameEl) dnameEl.textContent = name;
-    if (dstageEl) dstageEl.innerHTML = '<span style="color:' + s.colorHex + ';font-weight:700">' + s.label + '</span> — ' + s.name;
-  }
-}
+function updateSidebarAgentInfo() { /* agent info in Settings only */ }
 
 
 // ============================================================
@@ -8633,6 +8611,7 @@ function showLockScreen() {
   renderLockAgentList();
   const ci=document.getElementById('auth-code-input'); if(ci) ci.value='';
   const pe=document.getElementById('lock-pin-error'); if(pe) pe.textContent='';
+  const st=document.getElementById('auth-status'); if(st) st.textContent='';
   const ps=document.getElementById('lock-pin-section'); if(ps) ps.style.display='none';
   const dv=document.getElementById('lock-dev-override'); if(dv) dv.style.display='none';
   updatePinDots();
@@ -8760,20 +8739,27 @@ async function processPin() {
       _activeAgent = _pinTarget;
       _sessionUnlocked = true;
       setSessionAgent(_pinTarget);
-      // Update Supabase migration stamp with the PIN hash so other devices can restore
+      // Save pinHash into the agent's own Supabase row AND the main stamp
       const db = initSupabase();
       if (db) {
         try {
-          // Update the main stamp
-          const { data: mainRow } = await db.from('app_state').select('data').eq('id','main').single();
-          if (mainRow?.data?.migratedToAgent === _pinTarget.id) {
+          // 1. Write directly into the agent's data row
+          const agentKey = 'agent_' + _pinTarget.id;
+          const { data: agentRow } = await db.from('app_state').select('data').eq('id', agentKey).maybeSingle();
+          if (agentRow?.data) {
             await db.from('app_state').upsert({
-              id: 'main',
-              data: { ...mainRow.data, pinHash: hash },
+              id: agentKey,
+              data: { ...agentRow.data, _pinHash: hash },
               updated_at: new Date().toISOString()
             });
           }
-        } catch {}
+          // 2. Also stamp main so the migratedToAgent path carries the hash
+          await db.from('app_state').upsert({
+            id: 'main',
+            data: { migratedToAgent: _pinTarget.id, pinHash: hash },
+            updated_at: new Date().toISOString()
+          });
+        } catch(e) { console.warn('PIN save to Supabase failed:', e.message); }
       }
       hideLockScreen();
       haptic('pay');
@@ -8867,20 +8853,30 @@ function authClearCode() {
   document.getElementById('lock-pin-section').style.display='none';
 }
 
+function slugifyCode(code) {
+  return code.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
 async function authSignInWithCode() {
-  const errEl=document.getElementById('lock-pin-error');
+  const errEl  = document.getElementById('lock-pin-error');
+  const statEl = document.getElementById('auth-status');
+  const setStatus = (msg, isErr) => {
+    if (statEl) { statEl.textContent = msg; statEl.style.color = isErr ? 'var(--red)' : 'var(--text2)'; }
+    if (errEl)  errEl.textContent = '';
+  };
+
   const rawCode=(document.getElementById('auth-code-input')?.value||'').trim();
-  if(!rawCode){errEl.textContent='Enter your Agent Code first';return;}
+  if(!rawCode){ setStatus('Enter your Agent Code first', true); return; }
   const slugCode=slugifyCode(rawCode);
 
   // Already cached locally?
   const localAgents=getAgentList();
   let agent=localAgents.find(a=>a.id===slugCode||slugifyCode(a.lbCode||'')===slugCode);
-  if(agent){errEl.textContent='';lockSelectAgent(agent.id);return;}
+  if(agent){ setStatus(''); lockSelectAgent(agent.id); return; }
 
   const db=initSupabase();
-  if(!db){errEl.textContent='No internet connection';return;}
-  errEl.textContent='⏳ Looking up your account...';
+  if(!db){ setStatus('No internet connection', true); return; }
+  setStatus('⏳ Looking up your account...');
 
   async function fetchRow(id){
     try{const r=await db.from('app_state').select('*').eq('id',id).maybeSingle();return r?.data||null;}
@@ -8906,7 +8902,7 @@ async function authSignInWithCode() {
   // Try 4: main row IS legacy state
   if(!row){const m=await fetchRow('main');if(m?.data?.borrowers?.length)row=m;}
 
-  if(!row){errEl.textContent='Account not found — check your code';return;}
+  if(!row){ setStatus('Account not found — check your code', true); return; }
 
   const foundData=row.data||{};
   const foundId=(row.id||'main').replace('agent_','');
@@ -8930,7 +8926,7 @@ async function authSignInWithCode() {
   const idx=localAgents.findIndex(a=>a.id===slugCode);
   if(idx>=0)localAgents[idx]=agent;else localAgents.push(agent);
   saveAgentList(localAgents);
-  errEl.textContent='';
+  setStatus('');
   lockSelectAgent(agent.id);
 }
 
@@ -9541,6 +9537,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       </div>
       <div id="ob-stage-grid" style="display:grid;gap:10px;margin-bottom:28px"></div>
       <button class="btn btn-gold" style="width:100%;padding:13px" onclick="obNextStep(2)">Continue →</button>
+      <button class="btn btn-ghost" style="width:100%;padding:10px;margin-top:8px;font-size:12px" onclick="obCancel()">← Already have an account? Sign In</button>
     </div>
 
     <!-- Step 2: Agent info -->
@@ -9650,6 +9647,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:5px">Your LoanBase agent code</div>
         <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px" onclick="authSignInWithCode()">Find My Account →</button>
       </div>
+      <div id="auth-status" style="font-size:12px;color:var(--text2);text-align:center;min-height:18px;margin-bottom:8px"></div>
       <div id="lock-pin-section" style="display:none;width:100%;text-align:center">
         <div id="lock-pin-name" style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:16px"></div>
         <div style="display:flex;justify-content:center;gap:12px;margin-bottom:20px">
