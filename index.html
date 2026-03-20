@@ -615,18 +615,25 @@ select.form-input option { background: var(--surface2); }
 /* DAILY LOG */
 .log-entry {
   display: grid;
-  grid-template-columns: 90px 1fr 100px 80px;
-  gap: 12px;
+  grid-template-columns: 80px 1fr 60px 62px 28px;
+  gap: 8px;
   align-items: center;
-  padding: 10px 0;
+  padding: 9px 0;
   border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
 }
+.log-entry:hover { background: var(--surface2); }
 .log-entry:last-child { border-bottom: none; }
-.log-date { font-family: var(--font-mono); font-size: 12px; color: var(--text3); }
+.log-entry-best { box-shadow: inset 3px 0 0 var(--gold); }
+.log-date { font-family: var(--font-mono); font-size: 11px; color: var(--text3); display: flex; align-items: center; gap: 3px; }
 .log-amount { font-family: var(--font-mono); font-weight: 600; color: var(--gold); }
 .log-bar-wrap { background: var(--surface2); border-radius: 4px; height: 6px; overflow: hidden; }
 .log-bar { height: 100%; border-radius: 4px; background: var(--gold); transition: width 0.3s; }
-.log-note { font-size: 12px; color: var(--text3); font-style: italic; }
+.log-note { font-size: 11px; color: var(--text3); font-style: italic; margin-top: 2px; }
+@media (max-width: 900px) {
+  .log-entry { grid-template-columns: 60px 1fr 54px 24px; }
+  .log-entry .log-running { display: none; }
+}
 
 /* WHATSAPP DISPATCH */
 .dispatch-item {
@@ -1004,7 +1011,6 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <span id="streak-badge-dash" class="streak-badge" style="display:none">🔥 0 day streak</span>
-        <button class="btn btn-ghost btn-xs" onclick="toggleApiKeyBar()" title="Set Claude API key for AI ranking scan">🤖 API Key</button>
         <button class="btn btn-ghost btn-sm" onclick="openRolloverModal()">📅 New Month</button>
         <button class="btn btn-gold" onclick="openAddModal()">＋ New Borrower</button>
       </div>
@@ -1020,13 +1026,6 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
         </div>
       </div>
       <div id="hit-list-items"></div>
-    </div>
-
-    <!-- API Key Quick Settings -->
-    <div id="api-key-bar" style="display:none;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <span style="font-size:11px;color:var(--text3);flex-shrink:0">🤖 Claude API Key:</span>
-      <input type="password" id="dash-api-key" class="form-input" style="flex:1;font-family:var(--font-mono);font-size:10px;padding:4px 8px;min-width:180px" placeholder="sk-ant-api03-..." onchange="saveApiKeyFromDash(this.value)">
-      <button class="btn btn-ghost btn-xs" onclick="document.getElementById('api-key-bar').style.display='none'">✕</button>
     </div>
 
     <!-- Ranking Gap Alert -->
@@ -1312,7 +1311,14 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
           </div>
           <div class="form-group">
             <label>Notes (optional)</label>
-            <input type="text" class="form-input" id="log-notes" placeholder="Any remarks for today…">
+            <input type="text" class="form-input" id="log-notes" placeholder="Any remarks for today…" onfocus="showLogNoteSuggestions()" onblur="setTimeout(()=>hideLogNoteSuggestions(),200)">
+            <div id="log-note-suggestions" style="margin-top:6px;gap:6px;flex-wrap:wrap;display:none">
+              <button class="btn btn-ghost btn-xs" style="font-size:10px" onclick="setLogNote('No collections today')">No collections today</button>
+              <button class="btn btn-ghost btn-xs" style="font-size:10px" onclick="setLogNote('Public holiday')">Public holiday</button>
+              <button class="btn btn-ghost btn-xs" style="font-size:10px" onclick="setLogNote('Strong day — follow-up planned')">Strong day</button>
+              <button class="btn btn-ghost btn-xs" style="font-size:10px" onclick="setLogNote('Weekend — minimal response')">Weekend</button>
+              <button class="btn btn-ghost btn-xs" style="font-size:10px" onclick="setLogNote('Multiple PTPs honoured today')">PTPs honoured</button>
+            </div>
           </div>
           <button class="btn btn-gold" style="width:100%" onclick="addLogEntry()">Save Entry</button>
         </div>
@@ -1510,7 +1516,15 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
           <label>Paste ranking text</label>
           <textarea class="form-input" id="ranking-paste" rows="5" placeholder="Paste screenshot text here e.g.&#10;1. Akos Mensah 87.4%&#10;2. Shadrack Agyei 83.1%&#10;3. Eric Boateng 79.2%"></textarea>
         </div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:8px">💡 Text is parsed locally — no API needed. Upload image for AI scan.</div>
+        <div class="form-group">
+          <label>Claude API Key <span style="font-size:10px;color:var(--text3);font-weight:400">— for AI image scan only, stored locally</span></label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="password" class="form-input" id="ranking-api-key-input" placeholder="sk-ant-api03-..." style="font-family:var(--font-mono);font-size:11px;flex:1" onchange="saveApiKeyFromDash(this.value)">
+            <button class="btn btn-ghost btn-xs" onclick="toggleRankingKeyVisibility()" id="rank-key-toggle" title="Show/hide key">👁</button>
+          </div>
+          <div style="font-size:10px;color:var(--text3);margin-top:3px">Key saved in your browser only. Used only when tapping 🤖 AI Scan Image.</div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px">💡 No key needed for text paste. Key required only for photo/screenshot AI scan.</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn btn-gold" onclick="scanRanking()" id="ranking-scan-btn">💾 Save from Text</button>
           <button class="btn btn-ghost" onclick="scanRankingImage()" id="ranking-ai-btn">🤖 AI Scan Image</button>
@@ -2214,9 +2228,9 @@ function renderDashboard() {
     el.addEventListener('click', function() {
       const k = el.dataset.kpi;
       if (k === 'analytics') navigate('analytics');
-      else if (k === 'all') filterAndNavigate('loans','');
-      else if (k === 'unpaid') filterAndNavigate('loans','Unpaid');
-      else if (k === 'partial') filterAndNavigate('loans','Partial');
+      else if (k === 'all') showBorrowersPopup('','','','','');
+      else if (k === 'unpaid') showBorrowersPopup('Unpaid','','','','');
+      else if (k === 'partial') showBorrowersPopup('Partial','','','','');
     });
   });
   // Animate KPI values counting up
@@ -2384,9 +2398,9 @@ function renderDashboard() {
   if (glb) glb.addEventListener('click', function() { navigate('log'); });
   // Wire alert buttons via delegation
   var ab = document.getElementById('alert-aging-btn');
-  if (ab) ab.addEventListener('click', function() { filterAndNavigate('loans','',15); });
+  if (ab) ab.addEventListener('click', function() { haptic('light'); showBorrowersPopup('','',15); });
   var cb = document.getElementById('alert-critical-btn');
-  if (cb) cb.addEventListener('click', function() { filterAndNavigate('loans','',13); });
+  if (cb) cb.addEventListener('click', function() { haptic('light'); showBorrowersPopup('','',13); });
   document.querySelectorAll('[data-payid]').forEach(function(el) {
     el.addEventListener('click', function() { openPayModal(el.dataset.payid); });
   });
@@ -2405,7 +2419,7 @@ function renderDashboard() {
   document.getElementById('dash-urgency').innerHTML = sortedOd.map(([k,v]) => {
     const cls = v.od >= 15 ? '#ef4444' : v.od >= 13 ? '#f97316' : v.od >= 11 ? '#fbbf24' : '#60a5fa';
     const w = (v.total / maxOdTotal * 100).toFixed(0);
-    return '<div class="urgency-row" style="cursor:pointer" onclick="filterAndNavigate(\'loans\',\'\',\''+v.od+'\')" title="View Day '+v.od+' accounts">'
+    return '<div class="urgency-row" style="cursor:pointer" onclick="showBorrowersPopup(\'\',\'\','+v.od+');haptic(\'light\')" title="View Day '+v.od+' accounts">'
       + '<div class="urgency-day">'+k+'</div>'
       + '<div class="urgency-bar-wrap"><div class="urgency-bar" style="width:'+w+'%;background:'+cls+'"></div></div>'
       + '<div class="urgency-amount">'+fmtC(v.total)+'</div>'
@@ -2469,10 +2483,6 @@ function renderDashboard() {
   renderGapWidget();
   renderTreadmillAlert();
   checkRankingGapAlert();
-  // Pre-fill API key if saved
-  const _savedKey = getActiveApiKey ? getActiveApiKey() : '';
-  const _apiInput = document.getElementById('dash-api-key');
-  if (_apiInput && _savedKey) _apiInput.value = _savedKey;
 }
 
 function chartColor(alpha) {
@@ -2693,17 +2703,17 @@ function renderAnalytics() {
   akGrid.innerHTML =
     '<div class="kpi-card gold" style="cursor:pointer" data-akpi="loans" title="View all borrowers">'
     + '<div class="kpi-label">Total Principal</div>'
-    + '<div class="kpi-value gold">' + fmtC(totalPrincipal) + '</div>'
+    + '<div class="kpi-value gold kpi-value-animate" data-val="' + totalPrincipal + '" data-fmt="currency">₵0</div>'
     + '<div class="kpi-sub">Active · avg OD age ' + avgOdAge + ' days · best day: <b>' + bestDayName + '</b></div>'
     + '<div style="font-size:10px;color:var(--text3);margin-top:4px">↗ view borrowers</div></div>'
     + '<div class="kpi-card red" style="cursor:pointer" data-akpi="unpaid" title="View unpaid">'
     + '<div class="kpi-label">Total Outstanding</div>'
-    + '<div class="kpi-value red">' + fmtC(totalOutstanding) + '</div>'
+    + '<div class="kpi-value red kpi-value-animate" data-val="' + totalOutstanding + '" data-fmt="currency">₵0</div>'
     + '<div class="kpi-sub">Avg per borrower: ' + fmtC(Math.round(avgOwed)) + '</div>'
     + '<div style="font-size:10px;color:var(--text3);margin-top:4px">↗ view unpaid</div></div>'
     + '<div class="kpi-card green" style="cursor:pointer" data-akpi="partial" title="View partial payers">'
     + '<div class="kpi-label">Collection Rate</div>'
-    + '<div class="kpi-value green">' + (collectionRate*100).toFixed(1) + '%</div>'
+    + '<div class="kpi-value green kpi-value-animate" data-val="' + (collectionRate*100).toFixed(1) + '" data-fmt="pct">0%</div>'
     + '<div class="kpi-sub">' + fmtC(logTotal) + ' collected · ' + paid.length + ' fully paid</div>'
     + '<div style="font-size:10px;color:var(--text3);margin-top:4px">↗ view partial</div></div>'
     + '<div class="kpi-card blue">'
@@ -2714,11 +2724,29 @@ function renderAnalytics() {
   akGrid.querySelectorAll('[data-akpi]').forEach(function(el) {
     el.addEventListener('click', function() {
       const k = el.dataset.akpi;
-      if (k === 'loans') filterAndNavigate('loans','');
-      else if (k === 'unpaid') filterAndNavigate('loans','Unpaid');
-      else if (k === 'partial') filterAndNavigate('loans','Partial');
+      if (k === 'loans') showBorrowersPopup('','','','','');
+      else if (k === 'unpaid') showBorrowersPopup('Unpaid','','','','');
+      else if (k === 'partial') showBorrowersPopup('Partial','','','','');
     });
   });
+  // Animate analytics KPIs
+  setTimeout(function() {
+    akGrid.querySelectorAll('[data-val]').forEach(function(el) {
+      const target = parseFloat(el.dataset.val) || 0;
+      const fmtType = el.dataset.fmt;
+      const dur = 500, start = performance.now();
+      function step(now) {
+        const p = Math.min((now-start)/dur, 1);
+        const ease = 1 - Math.pow(1-p, 3);
+        const cur = Math.round(target * ease);
+        if (fmtType === 'currency') el.textContent = '₵' + fmt(cur);
+        else if (fmtType === 'pct') el.textContent = (target*ease).toFixed(1) + '%';
+        if (p < 1) requestAnimationFrame(step);
+        else { if (fmtType === 'currency') el.textContent = fmtC(target); else if (fmtType === 'pct') el.textContent = target + '%'; }
+      }
+      requestAnimationFrame(step);
+    });
+  }, 60);
 
   if (charts['status']) charts['status'].destroy();
   const ctxS = document.getElementById('chart-status');
@@ -2807,7 +2835,7 @@ function renderAnalytics() {
     const tL = tb.reduce((s,b) => s+b.loanDue, 0);
     const rr = tL > 0 ? tP/tL : 0;
     return `
-      <div style="padding:12px;background:var(--surface2);border-radius:8px;margin-bottom:10px;cursor:pointer;transition:transform 0.15s" onclick="filterAndNavigate('loans','','','${t}')" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'" title="View ${t} accounts">
+      <div style="padding:12px;background:var(--surface2);border-radius:8px;margin-bottom:10px;cursor:pointer;transition:transform 0.15s" onclick="showBorrowersPopup('','','','${t}')" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'" title="View ${t} accounts">
         <div style="font-family:var(--font-head);font-weight:700;font-size:13px;margin-bottom:8px;color:${t==='LoanBase'?'var(--green)':'var(--orange)'}">${t === 'LoanBase' ? '🟢 ' : '🟠 '}${t} ↗</div>
         <div class="summary-row"><span class="summary-label">Total Active</span><span class="summary-value">${ta.length}</span></div>
         <div class="summary-row"><span class="summary-label">Fully Paid</span><span class="summary-value text-green">${tPaid.length}</span></div>
@@ -2833,7 +2861,7 @@ function renderAnalytics() {
         const grpPaid = grp.filter(b => getStatus(b)==='Partial').length;
         const risk = band.min >= 14 ? 'var(--red)' : band.min >= 12 ? 'var(--orange)' : band.min >= 10 ? '#fbbf24' : band.min >= 8 ? 'var(--blue)' : 'var(--green)';
         const pct = totalDueTodayAll > 0 ? (grpDue/totalDueTodayAll*100).toFixed(0) : 0;
-        const clickFn = 'filterAndNavigate(\'loans\',' + '\'\'' + ',' + band.min + ')';
+        const clickFn = 'showBorrowersPopup(\'\',\'\','+ band.min +');haptic(\'light\')';
         return '<div style="background:var(--surface2);border:1px solid var(--border);border-top:3px solid '+risk+';border-radius:8px;padding:12px;text-align:center;cursor:pointer;transition:transform 0.15s" onclick="'+clickFn+'" onmouseover="this.style.transform=\'scale(1.03)\'" onmouseout="this.style.transform=\'scale(1)\'">'
           + '<div style="font-size:11px;color:var(--text3);font-weight:700;letter-spacing:0.5px;margin-bottom:6px">'+band.label+'</div>'
           + '<div style="font-family:var(--font-mono);font-size:18px;font-weight:700;color:'+risk+'">'+grp.length+'</div>'
@@ -3006,7 +3034,7 @@ function renderAnalytics() {
     agHtml += '</div><div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:2px"><span>Day 6</span><span>Day 15</span></div></div>';
     agingEl.innerHTML = agHtml;
     agingEl.querySelectorAll('.ag-band').forEach(function(el){
-      el.addEventListener('click',function(){ filterAndNavigate('loans','',parseInt(el.dataset.agmin)); });
+      el.addEventListener('click',function(){ haptic('light'); showBorrowersPopup('','',parseInt(el.dataset.agmin)); });
     });
   }
 
@@ -3115,11 +3143,12 @@ function renderDispatch() {
   const unpaidN = state.borrowers.filter(b => getStatus(b) === 'Unpaid').length;
   const partialN = state.borrowers.filter(b => getStatus(b) === 'Partial').length;
   const promisedN = state.borrowers.filter(b => b.promisedToPay).length;
+  _currentDispatchIds = list.map(b => b.id);
   document.getElementById('dispatch-stats').innerHTML =
     'Unpaid: <b>' + unpaidN + '</b> &nbsp;·&nbsp; Partial: <b>' + partialN + '</b>'
     + ' &nbsp;·&nbsp; 🤝 Promised: <b>' + promisedN + '</b>'
     + ' &nbsp;·&nbsp; Showing: <b>' + list.length + '</b>'
-    + ' &nbsp;<button class="btn btn-ghost btn-xs" style="margin-left:4px;color:#25d366;border-color:#25d366" onclick="startWaQueuePersonalised(' + JSON.stringify(list.map(b=>b.id)) + ')" title="Send personalised WhatsApp to all shown">💬 Queue All (' + list.length + ')</button>';
+    + ' &nbsp;<button class="btn btn-ghost btn-xs" style="margin-left:4px;color:#25d366;border-color:#25d366" onclick="launchDispatchQueue()" title="Queue ' + list.length + ' contacts for personalised WhatsApp">💬 Queue All (' + list.length + ')</button>';
 
   if (!list.length) {
     document.getElementById('dispatch-list').innerHTML = '<div class="empty-state" style="padding:30px 0"><div class="icon">✅</div><div>All accounts cleared!</div></div>';
@@ -3183,10 +3212,14 @@ function renderLog() {
   const logs = [...state.dailyLog].sort((a,b) => a.date.localeCompare(b.date));
   const total = logs.reduce((s,e) => s + (e.collected||0), 0);
   const nonZero = logs.filter(e => (e.collected||0) > 0);
-  const zeroDays = logs.filter(e => (e.collected||0) === 0);
   const best = nonZero.length ? Math.max(...nonZero.map(e => e.collected)) : 0;
-  // Average across ALL logged days including zeros
   const avg = logs.length ? total / logs.length : 0;
+
+  // Daily required pace for pace dots
+  const nowD = new Date();
+  const dim = new Date(nowD.getFullYear(), nowD.getMonth()+1, 0).getDate();
+  const monthTarget = state.monthlyTarget || 0;
+  const requiredPerDay = monthTarget > 0 ? monthTarget / dim : 0;
 
   document.getElementById('log-total').textContent = fmtC(total);
   document.getElementById('log-best').textContent = fmtC(best);
@@ -3194,9 +3227,7 @@ function renderLog() {
   const mlEl = document.getElementById('log-month-label');
   if (mlEl) mlEl.textContent = new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 
-  // Set today's date
-  const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
+  const todayStr = nowD.toISOString().split('T')[0];
   const logDateEl = document.getElementById('log-date');
   if (logDateEl && !logDateEl.value) logDateEl.value = todayStr;
 
@@ -3209,16 +3240,13 @@ function renderLog() {
     charts['log'] = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: logs.map(e => { const d = new Date(e.date); return `${d.getDate()}`; }),
+        labels: logs.map(e => { const d = new Date(e.date); return String(d.getDate()); }),
         datasets: [{
-          label: 'Running Total (₵)',
+          label: 'Running Total',
           data: runningData,
           borderColor: '#e8a020',
           backgroundColor: 'rgba(232,160,32,0.08)',
-          fill: true,
-          tension: 0.4,
-          pointRadius: 3,
-          pointBackgroundColor: '#e8a020'
+          fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#e8a020'
         }]
       },
       options: {
@@ -3232,22 +3260,101 @@ function renderLog() {
     });
   }
 
-  // Log entries
+  if (logs.length === 0) {
+    document.getElementById('log-entries').innerHTML = '<div class="empty-state"><div class="icon">📅</div><div>No entries yet</div></div>';
+    return;
+  }
+
+  // Improvement 6: Personal best banner
+  const pbestBanner = best > 0
+    ? '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:rgba(232,160,32,0.08);border-bottom:2px solid rgba(232,160,32,0.18)">'
+      + '<span style="font-size:12px;color:var(--text2);font-weight:600">🏆 Personal Best</span>'
+      + '<span style="font-family:var(--font-mono);font-weight:800;color:var(--gold);font-size:15px">' + fmtC(best) + '</span></div>'
+    : '';
+
+  // Build entries with running total, pace dot, weekly summaries
   const maxC = best || 1;
-  document.getElementById('log-entries').innerHTML = logs.length === 0
-    ? '<div class="empty-state"><div class="icon">📅</div><div>No entries yet</div></div>'
-    : logs.map(e => {
-      const w = ((e.collected||0) / maxC * 100).toFixed(0);
-      return `<div class="log-entry">
-        <div class="log-date">${e.date.slice(5)}</div>
-        <div>
-          <div class="log-bar-wrap"><div class="log-bar" style="width:${w}%"></div></div>
-          ${e.notes ? `<div class="log-note">${e.notes}</div>` : ''}
-        </div>
-        <div class="log-amount" style="color:${(e.collected||0)===0?'var(--text3)':'var(--gold)'}">${fmtC(e.collected||0)}</div>
-        <button class="btn btn-red btn-xs" onclick="deleteLogEntry('${e.date}')">🗑</button>
-      </div>`;
-    }).join('');
+  let runningTotal = 0;
+  let weekBuf = [];
+  let weekIdx = 0;
+  let entriesHtml = '';
+
+  logs.forEach((e, i) => {
+    const val = e.collected || 0;
+    runningTotal += val;
+    weekBuf.push(e);
+
+    const w = (val / maxC * 100).toFixed(0);
+    const isToday = e.date === todayStr;
+    const isBest = val === best && val > 0;
+
+    // Improvement 3: Pace dot
+    let paceDot = '';
+    if (requiredPerDay > 0) {
+      const col = val >= requiredPerDay * 1.1 ? 'var(--green)' : val >= requiredPerDay * 0.7 ? 'var(--gold)' : val > 0 ? 'var(--red)' : 'var(--border2)';
+      const tip = val >= requiredPerDay * 1.1 ? 'Above pace' : val >= requiredPerDay * 0.7 ? 'On pace' : val > 0 ? 'Below pace' : 'Zero';
+      paceDot = '<span style="width:7px;height:7px;border-radius:50%;background:' + col + ';display:inline-block;flex-shrink:0;margin-right:3px" title="' + tip + ' (need ' + fmtC(Math.round(requiredPerDay)) + '/day)"></span>';
+    }
+
+    // Improvement 2: Running total
+    const runCol = '<div style="font-family:var(--font-mono);font-size:10px;color:var(--text3);min-width:56px;text-align:right" title="Month total so far">' + fmtC(runningTotal) + '</div>';
+
+    entriesHtml +=
+      '<div class="log-entry" data-logdate="' + e.date + '" style="' + (isToday ? 'background:rgba(232,160,32,0.04);' : '') + 'cursor:pointer" onclick="tapLogEntry(this)" title="Tap to edit">' +
+      + '<div class="log-date" style="display:flex;align-items:center;gap:0">' + paceDot + e.date.slice(5) + (isBest ? ' 🏆' : '') + '</div>'
+      + '<div style="flex:1">'
+      + '<div class="log-bar-wrap"><div class="log-bar" style="width:' + w + '%;background:' + (val === 0 ? 'var(--border)' : 'var(--gold)') + '"></div></div>'
+      + (e.notes ? '<div class="log-note">' + e.notes + '</div>' : '')
+      + '</div>'
+      + runCol
+      + '<div class="log-amount" style="color:' + (val === 0 ? 'var(--text3)' : 'var(--gold)') + ';min-width:58px;text-align:right">' + fmtC(val) + '</div>'
+      + '<button class="btn btn-red btn-xs" data-delbtn="' + e.date + '" onclick="event.stopPropagation();tapLogDelete(this)">🗑</button>'
+      + '</div>';
+
+    // Improvement 1: Weekly summary
+    const isEndOfWeek = (i + 1) % 7 === 0 || i === logs.length - 1;
+    if (isEndOfWeek && weekBuf.length > 0) {
+      weekIdx++;
+      const wkTotal = weekBuf.reduce((s,x) => s + (x.collected||0), 0);
+      const wkActive = weekBuf.filter(x => (x.collected||0) > 0).length;
+      const wkAvg = wkActive > 0 ? Math.round(wkTotal / wkActive) : 0;
+      entriesHtml +=
+        '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 14px;background:var(--surface2);border-bottom:1px solid var(--border);border-top:1px solid var(--border)">'
+        + '<span style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px">Week ' + weekIdx + '</span>'
+        + '<div style="display:flex;gap:10px;align-items:center;font-size:11px">'
+        + '<span style="color:var(--text3)">' + wkActive + '/' + weekBuf.length + ' days</span>'
+        + '<span style="font-family:var(--font-mono);color:var(--text3)">avg ' + fmtC(wkAvg) + '</span>'
+        + '<span style="font-family:var(--font-mono);font-weight:700;color:var(--gold)">' + fmtC(wkTotal) + '</span>'
+        + '</div></div>';
+      weekBuf = [];
+    }
+  });
+
+  document.getElementById('log-entries').innerHTML = pbestBanner + entriesHtml;
+}
+
+// Improvement 4: Quick note suggestions for log
+function tapLogDelete(el) {
+  const date = el.dataset.delbtn;
+  if (date) { haptic('medium'); deleteLogEntry(date); }
+}
+
+function tapLogEntry(el) {
+  const date = el.dataset.logdate;
+  if (date) { haptic('light'); openLogEntryEdit(date); }
+}
+
+function showLogNoteSuggestions() {
+  const el = document.getElementById('log-note-suggestions');
+  if (el) el.style.display = 'flex';
+}
+function hideLogNoteSuggestions() {
+  const el = document.getElementById('log-note-suggestions');
+  if (el) el.style.display = 'none';
+}
+function setLogNote(text) {
+  const el = document.getElementById('log-notes');
+  if (el) { el.value = text; el.focus(); haptic('light'); }
 }
 
 function addLogEntry() {
@@ -6500,9 +6607,11 @@ function renderRanking() {
   const body   = document.getElementById('ranking-body');
   if (!body) return;
 
-  // Pre-fill saved agent name
+  // Pre-fill saved agent name and API key
   const nameEl = document.getElementById('ranking-my-name');
   if (nameEl && !nameEl.value && myName) nameEl.value = localStorage.getItem('ranking_my_name');
+  const keyEl = document.getElementById('ranking-api-key-input');
+  if (keyEl && !keyEl.value) { const k = getActiveApiKey(); if (k) keyEl.value = k; }
 
   const history = state.rankingHistory || [];
   if (!history.length) {
@@ -7693,39 +7802,83 @@ function filterBorrowersByDow(dowIdx) {
 }
 
 // Batch WhatsApp with name personalisation
+let _currentDispatchIds = [];
+
+function waqSendAndNext() {
+  const b = window._waqBorrowers && window._waqBorrowers[window._waqIdx];
+  if (!b) return;
+  const phone = b.phone.replace(/\s/g,'').replace('+','');
+  const firstName = b.name.split(' ')[0];
+  const msg = getSmsMessage(b, false).replace(b.name, firstName);
+  window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(msg), '_blank');
+  haptic('light');
+  window._waqIdx++;
+  if (window._waqIdx < window._waqBorrowers.length) {
+    setTimeout(function() {
+      const b2 = window._waqBorrowers[window._waqIdx];
+      if (!b2) { closeModal(); toast('✅ Queue complete!', 'success'); haptic('pay'); return; }
+      const phone2 = b2.phone.replace(/\s/g,'').replace('+','');
+      const firstName2 = b2.name.split(' ')[0];
+      const msg2 = getSmsMessage(b2, false).replace(b2.name, firstName2);
+      document.getElementById('modal-title').textContent = '💬 WhatsApp Queue — ' + (window._waqIdx+1) + ' of ' + window._waqBorrowers.length;
+      document.getElementById('modal-body').innerHTML =
+        '<div style="background:rgba(37,211,102,0.08);border:1px solid rgba(37,211,102,0.25);border-radius:8px;padding:10px 12px;margin-bottom:10px">'
+        + '<div style="font-weight:700;font-size:13px">' + b2.name + '</div>'
+        + '<div style="font-size:11px;color:var(--text3)">' + b2.phone + ' · Day ' + getOdAge(b2.startDate) + ' · ' + fmtC(getDueToday(b2)) + '</div></div>'
+        + '<div style="background:var(--surface2);border-radius:8px;padding:10px;font-size:12px;color:var(--text2);line-height:1.7;max-height:150px;overflow-y:auto">' + msg2.replace(/\n/g,'<br>') + '</div>'
+        + '<div style="font-size:10px;color:var(--text3);margin-top:6px;text-align:center">' + (window._waqIdx+1) + ' of ' + window._waqBorrowers.length + ' — personalised for ' + firstName2 + '</div>';
+      document.getElementById('modal-footer').innerHTML =
+        '<button class="btn btn-ghost" onclick="closeModal()">Stop Queue</button>'
+        + '<button class="eod-btn" style="font-size:12px;padding:7px 16px" onclick="waqSendAndNext()">Open WA & Next ▶</button>';
+    }, 200);
+  } else {
+    closeModal();
+    toast('✅ All ' + window._waqBorrowers.length + ' sent!', 'success');
+    haptic('pay');
+  }
+}
+
+function launchDispatchQueue() {
+  if (!_currentDispatchIds.length) { toast('No contacts to queue', 'error'); return; }
+  startWaQueuePersonalised([..._currentDispatchIds]);
+}
+
 function startWaQueuePersonalised(ids) {
   if (!ids || !ids.length) { toast('No contacts to queue', 'error'); return; }
   const borrowers = ids.map(id => state.borrowers.find(b => b.id === id)).filter(Boolean);
   let idx = 0;
+  // Store state globally so buttons can access
+  window._waqBorrowers = borrowers;
+  window._waqIdx = 0;
   function showQueueModal() {
-    const b = borrowers[idx];
-    if (!b) { toast('WhatsApp queue complete ✅ (' + ids.length + ' sent)', 'success'); haptic('pay'); return; }
+    const b = window._waqBorrowers[window._waqIdx];
+    if (!b) { toast('✅ All ' + ids.length + ' WhatsApps sent!', 'success'); haptic('pay'); return; }
     const phone = b.phone.replace(/\s/g,'').replace('+','');
-    // Personalise message with borrower first name
     const firstName = b.name.split(' ')[0];
-    const msg = getSmsMessage(b, false).replace(/^Dear\s+\w+/i, 'Dear ' + firstName).replace(/^Hi\s+\w+/i, 'Hi ' + firstName);
-    document.getElementById('modal-title').textContent = '💬 WhatsApp Queue — ' + (idx+1) + ' of ' + borrowers.length;
+    const rawMsg = getSmsMessage(b, false);
+    const msg = rawMsg.replace(b.name, firstName);
+    document.getElementById('modal-title').textContent = '💬 WhatsApp Queue — ' + (window._waqIdx+1) + ' of ' + window._waqBorrowers.length;
     document.getElementById('modal-body').innerHTML =
-      '<div class="wa-queue-progress">Sending to: <strong>' + b.name + '</strong></div>'
-      + '<div style="background:var(--surface2);border-radius:8px;padding:10px;font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.7">' + msg.replace(/\n/g,'<br>') + '</div>'
-      + '<div style="font-size:11px;color:var(--text3)">' + b.phone + ' · Day ' + getOdAge(b.startDate) + ' · ' + fmtC(getDueToday(b)) + '</div>';
+      '<div style="background:rgba(37,211,102,0.08);border:1px solid rgba(37,211,102,0.25);border-radius:8px;padding:10px 12px;margin-bottom:10px">'
+      + '<div style="font-weight:700;font-size:13px">' + b.name + '</div>'
+      + '<div style="font-size:11px;color:var(--text3)">' + b.phone + ' · Day ' + getOdAge(b.startDate) + ' · ' + fmtC(getDueToday(b)) + '</div></div>'
+      + '<div style="background:var(--surface2);border-radius:8px;padding:10px;font-size:12px;color:var(--text2);line-height:1.7;max-height:150px;overflow-y:auto">' + msg.replace(/\n/g,'<br>') + '</div>'
+      + '<div style="font-size:10px;color:var(--text3);margin-top:6px;text-align:center">' + (window._waqIdx+1) + ' of ' + window._waqBorrowers.length + ' — message personalised for ' + firstName + '</div>';
     document.getElementById('modal-footer').innerHTML =
-      '<button class="btn btn-ghost" onclick="closeModal();toast(\'Queue stopped\',\'info\')">Stop</button>'
-      + '<button class="eod-btn" id="wa-q-send" style="font-size:12px;padding:7px 14px">Send & Next ▶</button>';
+      '<button class="btn btn-ghost" onclick="closeModal()">Stop Queue</button>'
+      + '<button class="eod-btn" style="font-size:12px;padding:7px 16px" onclick="waqSendAndNext()">Open WA & Next ▶</button>';
     document.getElementById('modal-overlay').classList.add('open');
-    setTimeout(() => {
-      const btn = document.getElementById('wa-q-send');
-      if (btn) btn.addEventListener('click', () => {
-        // Open WA for this contact
-        window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(msg), '_blank');
-        haptic('light');
-        idx++;
-        if (idx < borrowers.length) showQueueModal();
-        else { closeModal(); toast('✅ All ' + borrowers.length + ' WhatsApps queued!', 'success'); haptic('pay'); }
-      });
-    }, 0);
+    haptic('light');
   }
   showQueueModal();
+}
+
+function toggleRankingKeyVisibility() {
+  const inp = document.getElementById('ranking-api-key-input');
+  const btn = document.getElementById('rank-key-toggle');
+  if (!inp) return;
+  if (inp.type === 'password') { inp.type = 'text'; if (btn) btn.textContent = '🙈'; }
+  else { inp.type = 'password'; if (btn) btn.textContent = '👁'; }
 }
 
 function toggleApiKeyBar() {
@@ -7749,6 +7902,50 @@ function saveApiKeyFromDash(val) {
 }
 function getActiveApiKey() {
   return localStorage.getItem('claude_api_key') || (typeof CLAUDE_API_KEY !== 'undefined' ? CLAUDE_API_KEY : '');
+}
+
+// Master borrower popup — shows filtered list in a modal instead of navigating
+function showBorrowersPopup(status, loanType, odAge, odMin, odMax) {
+  let rows = state.borrowers.map(b => ({
+    ...b, status: getStatus(b), odAge: getOdAge(b.startDate),
+    dueToday: getDueToday(b)
+  }));
+  if (status) rows = rows.filter(r => r.status === status);
+  if (loanType) rows = rows.filter(r => r.loanType === loanType);
+  if (odAge) rows = rows.filter(r => r.odAge === parseInt(odAge));
+  if (odMin) rows = rows.filter(r => r.odAge >= parseInt(odMin));
+  if (odMax) rows = rows.filter(r => r.odAge <= parseInt(odMax));
+  rows = rows.sort((a,b) => b.dueToday - a.dueToday).slice(0, 50);
+
+  const label = status || (loanType ? loanType : '') || (odAge ? 'Day ' + odAge : '') || (odMin ? 'Day ' + odMin + '+' : 'All');
+  document.getElementById('modal-title').textContent = '👥 ' + label + ' — ' + rows.length + ' account' + (rows.length!==1?'s':'');
+  document.getElementById('modal-body').innerHTML = rows.length === 0
+    ? '<div class="empty-state" style="padding:20px 0"><div>No accounts match</div></div>'
+    : rows.map(b => {
+        const phone = b.phone.replace(/\s/g,'').replace('+','');
+        const ps = calcPriorityScore(b);
+        const pCls = ps>=8?'p-high':ps>=5?'p-mid':'p-low';
+        return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="closeModal();openBorrowerDetail(\'' + b.id + '\');haptic(\'light\')">'
+          + '<span class="priority-score ' + pCls + '">' + ps + '</span>'
+          + '<div style="flex:1;min-width:0">'
+          + '<div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + b.name + '</div>'
+          + '<div style="font-size:10px;color:var(--text3)">Day ' + b.odAge + ' · ' + b.phone + '</div>'
+          + '</div>'
+          + '<div style="text-align:right;flex-shrink:0">'
+          + '<div style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:' + (b.dueToday>0?'var(--red)':'var(--green)') + '">' + fmtC(b.dueToday) + '</div>'
+          + '<div>' + statusBadge(b.status) + '</div>'
+          + '</div>'
+          + '<div style="display:flex;gap:3px;flex-shrink:0">'
+          + '<button class="btn btn-green btn-xs" onclick="event.stopPropagation();closeModal();openPayModal(\'' + b.id + '\')">💰</button>'
+          + '<a href="https://wa.me/' + phone + '" target="_blank" class="btn btn-ghost btn-xs" style="color:#25d366" onclick="event.stopPropagation();haptic(\'light\')">💬</a>'
+          + '</div>'
+          + '</div>';
+      }).join('');
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost" onclick="closeModal()">Close</button>'
+    + '<button class="btn btn-ghost btn-sm" onclick="closeModal();filterAndNavigate(\'loans\',\'' + (status||'') + '\',' + (odAge||odMin||'') + ')">Open in Borrowers ↗</button>';
+  document.getElementById('modal-overlay').classList.add('open');
+  haptic('light');
 }
 
 function showSkeletons(show) {
@@ -7863,7 +8060,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       var dt = Date.now() - touchStartTime;
       var drawer = document.getElementById('mobile-drawer');
       // Open: swipe right, starting near left edge, fast enough, not too vertical
-      if (dx > 50 && dy < 100 && dt < 400 && touchStartX < 55) {
+      if (dx > 55 && dy < 80 && dt < 350 && touchStartX < 120) {
         if (drawer && !drawer.classList.contains('open')) {
           haptic('light');
           openDrawer();
