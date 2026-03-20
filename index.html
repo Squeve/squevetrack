@@ -193,9 +193,9 @@
 .wa-queue-item { display:flex; align-items:center; gap:10px; padding:8px 12px; border-bottom:1px solid var(--border); font-size:12px; }
 .wa-queue-progress { background:var(--surface2); border-radius:5px; padding:8px 14px; font-size:12px; color:var(--text2); margin-bottom:8px; font-family:var(--font-mono); }
 
-/* PTP HUB TABS */
-.ptp-tab { padding:8px 18px; border-radius:6px 6px 0 0; font-size:13px; font-weight:600; cursor:pointer; color:var(--text3); border:1px solid transparent; }
-.ptp-tab.active { color:var(--gold); background:var(--surface); border-color:var(--border2); border-bottom-color:var(--surface); }
+/* PTP HUB TABS — pill style matching nav */
+.ptp-tab { padding:7px 16px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; color:var(--text3); background:transparent; border:none; transition:all 0.15s; }
+.ptp-tab.active { color:var(--gold); background:var(--surface); box-shadow:0 1px 4px rgba(0,0,0,0.15); }
 
 /* FORECAST COLLAPSIBLE on dashboard */
 #dash-forecast-section details summary { cursor:pointer; list-style:none; display:flex; align-items:center; justify-content:space-between; }
@@ -1009,8 +1009,9 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <div class="kpi-grid" id="kpi-grid"></div>
 
     <div id="dash-target-section"></div>
+
     <!-- Collection Gap Widget -->
-    <div id="dash-gap-widget" style="display:none;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <div id="dash-gap-widget" style="display:none;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:12px 16px;margin-bottom:14px;flex-wrap:wrap;gap:8px">
       <div>
         <div style="font-size:11px;color:var(--text3);margin-bottom:2px">📐 Required per remaining working day</div>
         <div style="font-family:var(--font-mono);font-size:18px;font-weight:700" id="gap-widget-amount">₵0</div>
@@ -1021,16 +1022,6 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
 
     <!-- Treadmill Alert -->
     <div id="treadmill-alert" style="display:none;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-left:4px solid var(--red);border-radius:8px;padding:12px 18px;margin-bottom:14px"></div>
-
-    <!-- Forecast collapsible -->
-    <div id="dash-forecast-section" style="margin-bottom:14px">
-      <details>
-        <summary style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:12px 16px;font-weight:600;font-size:13px">
-          <span>📈 Collection Forecast</span><span style="color:var(--text3);font-size:11px;font-weight:400">▾ expand</span>
-        </summary>
-        <div id="dash-forecast-body" style="background:var(--surface);border:1px solid var(--border2);border-top:none;border-radius:0 0 10px 10px;padding:16px"></div>
-      </details>
-    </div>
 
     <div class="two-col">
       <div class="card">
@@ -1195,10 +1186,6 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
       <div class="card full">
         <div class="card-header"><span class="card-title">📊 OD Fee Accrual Tracker</span></div>
         <div class="card-body"><div class="chart-wrap"><canvas id="chart-odfee-accrual"></canvas></div></div>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">🔥 Zero-Day Streak</span></div>
-        <div class="card-body" id="analytics-streak"></div>
       </div>
       <div class="card">
         <div class="card-header"><span class="card-title">⚡ Collection Efficiency</span></div>
@@ -1456,23 +1443,28 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
   <!-- RANKING PAGE -->
   <section class="page" id="page-ranking">
     <div class="page-header">
-      <div><div class="page-title">🏆 Ranking Tracker</div><div class="page-sub">Scan ranking screenshot to track your position over time</div></div>
+      <div><div class="page-title">🏆 Ranking Tracker</div><div class="page-sub">Track your daily and monthly ranking positions</div></div>
     </div>
     <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">📸 Scan New Ranking</span></div>
+      <div class="card-header"><span class="card-title">📸 Log New Ranking</span></div>
       <div class="card-body">
-        <div style="margin-bottom:12px;font-size:13px;color:var(--text2)">Paste your ranking screenshot text or upload image for Claude to read. Your position and all agents will be saved automatically.</div>
+        <div style="margin-bottom:12px;font-size:12px;color:var(--text2);background:rgba(232,160,32,0.08);border:1px solid rgba(232,160,32,0.2);border-radius:8px;padding:10px 12px">
+          📐 <strong>M2 Formula:</strong> Monthly = previous monthly + (Daily × 50%). Paste your ranking text from the screenshot — names and percentages are extracted automatically.
+        </div>
         <div class="form-group">
-          <label>API Key (Claude) — saved locally, never shared</label>
-          <input type="password" class="form-input" id="ranking-api-key" placeholder="sk-ant-..." style="font-family:var(--font-mono);font-size:11px">
-          <div style="font-size:10px;color:var(--text3);margin-top:3px">Entered once, stored in localStorage</div>
+          <label>Ranking Type</label>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-gold btn-sm" id="rank-type-daily" onclick="setRankType('daily')">📅 Daily</button>
+            <button class="btn btn-ghost btn-sm" id="rank-type-monthly" onclick="setRankType('monthly')">📆 Monthly</button>
+          </div>
+          <div id="rank-type-hint" style="font-size:11px;color:var(--text3);margin-top:4px">Logging a daily scan — monthly will be recalculated automatically</div>
         </div>
         <div class="form-group">
           <label>Your Agent Name (as shown in ranking)</label>
           <input type="text" class="form-input" id="ranking-my-name" placeholder="e.g. Shadrack Agyei">
         </div>
         <div class="form-group">
-          <label>Upload screenshot <span style="color:var(--text3);font-weight:400">(image or paste text below)</span></label>
+          <label>Upload screenshot <span style="color:var(--text3);font-weight:400">(optional — or paste text below)</span></label>
           <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
             <label style="display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12px;color:var(--text2)">
               📷 Choose Image
@@ -1483,10 +1475,11 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
           <img id="ranking-image-preview" style="display:none;max-width:100%;max-height:200px;border-radius:8px;border:1px solid var(--border2);margin-bottom:8px" alt="Ranking preview">
         </div>
         <div class="form-group">
-          <label>Or paste ranking text directly</label>
+          <label>Paste ranking text</label>
           <textarea class="form-input" id="ranking-paste" rows="5" placeholder="Paste screenshot text here e.g.&#10;1. Akos Mensah 87.4%&#10;2. Shadrack Agyei 83.1%&#10;3. Eric Boateng 79.2%"></textarea>
         </div>
-        <button class="btn btn-gold" onclick="scanRanking()" id="ranking-scan-btn">🔍 Scan &amp; Save Ranking</button>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px">💡 No API key needed — text is parsed locally in your browser</div>
+        <button class="btn btn-gold" onclick="scanRanking()" id="ranking-scan-btn">💾 Save Ranking</button>
         <div id="ranking-scan-status" style="margin-top:8px;font-size:12px;color:var(--text2)"></div>
       </div>
     </div>
@@ -1636,41 +1629,18 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
   <section class="page" id="page-ptp">
     <div class="page-header">
       <div>
-        <div class="page-title">🤝 PTP Report</div>
-        <div class="page-sub">Promise to Pay — daily supervisor reports</div>
+        <div class="page-title">🤝 PTP Hub</div>
+        <div class="page-sub">Promises, outcomes &amp; supervisor reports</div>
       </div>
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-      <button class="btn btn-gold btn-sm" id="ptp-tab-morning" onclick="switchPtpTab('morning')">📋 Morning (12PM)</button>
-      <button class="btn btn-ghost btn-sm" id="ptp-tab-eod" onclick="switchPtpTab('eod')">🌙 EOD Summary (6PM)</button>
+    <!-- Tab bar — static HTML, toggled by JS -->
+    <div style="display:flex;gap:2px;margin-bottom:16px;background:var(--surface2);border-radius:8px;padding:3px;width:fit-content">
+      <button id="ptptab-report"  class="ptp-tab active" onclick="switchPtpHub('report')">🤝 Report</button>
+      <button id="ptptab-history" class="ptp-tab"        onclick="switchPtpHub('history')">📅 History</button>
+      <button id="ptptab-stats"   class="ptp-tab"        onclick="switchPtpHub('stats')">📊 Stats</button>
     </div>
-    <div id="ptp-panel-morning">
-      <div class="card" id="ptp-memo-settings" style="margin-bottom:16px;display:none">
-        <div class="card-header"><span class="card-title">&#x1F4DD; Memo Details</span><span style="font-size:11px;color:var(--text3)">Used when Formal Memo is selected</span></div>
-        <div class="card-body">
-          <div class="form-row">
-            <div class="form-group" style="margin-bottom:0"><label>Agent Name</label><input type="text" class="form-input" id="ptp-agent-name" placeholder="Your full name" oninput="renderPtp()"></div>
-            <div class="form-group" style="margin-bottom:0"><label>Supervisor / Team Lead</label><input type="text" class="form-input" id="ptp-supervisor-name" placeholder="Supervisor name" oninput="renderPtp()"></div>
-          </div>
-        </div>
-      </div>
-      <div class="card" style="margin-bottom:16px">
-        <div class="card-header"><span class="card-title">Today's PTPs</span><span style="font-size:11px;color:var(--text3)" id="ptp-morning-meta"></span></div>
-        <div class="card-body" id="ptp-morning-list"></div>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:4px;padding-bottom:8px">
-        <button class="btn btn-gold" style="flex:1" onclick="openPtpShareModal('morning')">📤 Share Morning Report</button>
-      </div>
-    </div>
-    <div id="ptp-panel-eod" style="display:none">
-      <div class="card" style="margin-bottom:16px">
-        <div class="card-header"><span class="card-title">EOD Outcomes</span><span style="font-size:11px;color:var(--text3)">Tap each customer to set outcome</span></div>
-        <div class="card-body" id="ptp-eod-list"></div>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:4px;padding-bottom:8px">
-        <button class="btn btn-gold" style="flex:1" onclick="openPtpShareModal('eod')">📤 Share EOD Summary</button>
-      </div>
-    </div>
+    <!-- Content injected here by switchPtpHub -->
+    <div id="ptp-hub-content"></div>
   </section>
 
 <!-- SUPABASE SETUP OVERLAY (shown if keys not configured) -->
@@ -2216,6 +2186,38 @@ function renderDashboard() {
   const barPct = Math.min(100, (pctOver * 100).toFixed(1));
   const barColor = pctOver >= 1 ? 'var(--green)' : pctOver >= 0.7 ? 'var(--gold)' : 'var(--red)';
 
+  // Build forecast inline
+  const nowF = new Date();
+  const dimF = new Date(nowF.getFullYear(), nowF.getMonth()+1, 0).getDate();
+  const dlF = dimF - nowF.getDate();
+  const activeDaysF = state.dailyLog.filter(e => (e.collected||0) > 0).length;
+  const avgF = activeDaysF > 0 ? logTotal / activeDaysF : 0;
+  const projectedF = Math.round(logTotal + avgF * dlF);
+  const projPct = monthTarget > 0 ? Math.min(100, projectedF / monthTarget * 100) : 0;
+  const projCol = projPct >= 100 ? 'var(--green)' : projPct >= 70 ? 'var(--gold)' : 'var(--red)';
+  const neededPerDay = dlF > 0 ? Math.ceil(Math.max(0, monthTarget - logTotal) / dlF) : 0;
+  const forecastHtml = monthTarget > 0 ? (
+    '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">'
+    + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">📈 How to Hit Your Target</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">'
+    + '<div style="background:var(--surface2);border-radius:8px;padding:8px;text-align:center">'
+    + '<div style="font-family:var(--font-mono);font-size:14px;font-weight:700;color:' + projCol + '">' + fmtC(projectedF) + '</div>'
+    + '<div style="font-size:9px;color:var(--text3);margin-top:2px">Projected</div></div>'
+    + '<div style="background:var(--surface2);border-radius:8px;padding:8px;text-align:center">'
+    + '<div style="font-family:var(--font-mono);font-size:14px;font-weight:700;color:var(--gold)">' + fmtC(neededPerDay) + '</div>'
+    + '<div style="font-size:9px;color:var(--text3);margin-top:2px">Needed/day</div></div>'
+    + '<div style="background:var(--surface2);border-radius:8px;padding:8px;text-align:center">'
+    + '<div style="font-family:var(--font-mono);font-size:14px;font-weight:700;color:var(--blue)">' + dlF + '</div>'
+    + '<div style="font-size:9px;color:var(--text3);margin-top:2px">Days left</div></div>'
+    + '</div>'
+    + '<div style="font-size:11px;color:var(--text3);line-height:1.6">'
+    + (projectedF >= monthTarget
+      ? '<span style="color:var(--green);font-weight:700">🎉 On track!</span> At current pace you\'ll hit ' + fmtC(projectedF) + ' vs target ' + fmtC(monthTarget) + '.'
+      : 'At current pace: <strong style="color:' + projCol + '">' + fmtC(projectedF) + '</strong>. You need <strong style="color:var(--gold)">' + fmtC(neededPerDay) + '/day</strong> for the remaining ' + dlF + ' days to reach ' + fmtC(monthTarget) + '.')
+    + '</div>'
+    + '</div>'
+  ) : '';
+
   document.getElementById('dash-target-section').innerHTML =
     '<div class="target-section">'
     + '<div class="target-header">'
@@ -2233,7 +2235,9 @@ function renderDashboard() {
     + '<span>Outstanding: <span style="color:var(--gold);font-family:var(--font-mono)">' + fmtC(totalOutstanding) + '</span></span>'
     + '<span>Remaining: <span style="color:' + (logTotal>=monthTarget&&monthTarget>0?'var(--green)':'var(--red)') + ';font-family:var(--font-mono)">' + (logTotal>=monthTarget&&monthTarget>0?'🎉 Hit!':fmtC(Math.max(0,monthTarget-logTotal))) + '</span></span>'
     + '<span style="margin-left:auto">' + _pacingText(logTotal, monthTarget, state.dailyLog) + '</span>'
-    + '</div></div>';
+    + '</div>'
+    + forecastHtml
+    + '</div>';
 
   // Animate progress bar after paint
   setTimeout(function() {
@@ -2387,9 +2391,6 @@ function renderDashboard() {
   renderHitList();
   renderGapWidget();
   renderTreadmillAlert();
-  // Forecast in collapsible
-  const fBody = document.getElementById('dash-forecast-body');
-  if (fBody) renderForecastOnDashboard();
 }
 
 function chartColor(alpha) {
@@ -3675,9 +3676,30 @@ function openBorrowerDetail(id) {
   var callCount = (b.callLog||[]).length;
   var badges = getBorrowerBadges(b);
 
+  // ── Live Activity — lightweight, no timers, just derived signals ──
+  var lastCall = (b.callLog||[]).slice(-1)[0];
+  var lastPay  = log.slice(-1)[0];
+  var recentCallIcon = lastCall ? ({Answered:'✅',Promised:'🤝',Refused:'🚫','No Answer':'📵',Redirected:'🔀',Busy:'📞','Requested Callback':'📅','No Commitment':'😶',Fraud:'🚨','Phone Off':'📴','Wrong Number':'🔢'}[lastCall.outcome]||'📞') : null;
+  var odTrend = od >= 13 ? '🔺 Critical' : od >= 10 ? '⚠️ High' : od >= 8 ? '🟡 Moderate' : '🟢 Early';
+  var payVelocity = log.length >= 2 ? (() => {
+    var recent = log.slice(-3).reduce((s,p)=>s+(p.delta||0),0);
+    return recent > 0 ? '📈 Paying' : '📉 Stalled';
+  })() : (log.length === 1 ? '⚡ First payment' : '—');
+  var liveActivityHtml = `<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:10px;display:flex;gap:12px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:5px;font-size:11px">
+      <span style="color:${odColor}">${odTrend}</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text3)">
+      ${payVelocity}
+    </div>
+    ${recentCallIcon ? `<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text3)">${recentCallIcon} Last: ${lastCall.outcome}</div>` : ''}
+    ${(b.callLog||[]).some(c=>c.outcome==='Fraud')?'<div style="font-size:11px;color:var(--red);font-weight:700">🚨 Fraud Flag</div>':''}
+  </div>`;
+
   document.getElementById('modal-title').textContent = b.name;
   document.getElementById('modal-body').innerHTML =
-    '<div style="background:var(--surface2);border-radius:8px;padding:14px;margin-bottom:14px">'
+    liveActivityHtml
+    + '<div style="background:var(--surface2);border-radius:8px;padding:14px;margin-bottom:14px">'
     + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px">'
     + '<div><div style="font-size:12px;color:var(--text3)">' + b.loanType + ' &middot; ' + b.phone + '</div>'
     + (b.promisedToPay ? '<div style="font-size:11px;color:var(--purple);margin-top:2px">🤝 Promise: ' + (b.promiseDate||'today') + (b.promiseNote?' — '+b.promiseNote:'') + '</div>' : '')
@@ -6159,52 +6181,114 @@ function showWaQueueModal() {
 // ============================================================
 function renderSmartClusters() {
   const active = getActiveBorrowers();
-  const high = active.filter(b => b.amountPaid > 0 && calcPriorityScore(b) <= 5);
+  const high     = active.filter(b => b.amountPaid > 0 && calcPriorityScore(b) <= 5);
   const pressure = active.filter(b => getOdAge(b.startDate) >= 8 && b.amountPaid === 0 && !b.promisedToPay);
   const escalate = active.filter(b => (b.promisedToPay && b.amountPaid === 0) || getOdAge(b.startDate) >= 13);
 
-  function clusterRows(list, max) {
-    return list.slice(0, max).map(b => {
+  function clusterRows(list, max, clusterId) {
+    const shown = list.slice(0, max);
+    const rest  = list.slice(max);
+    return shown.map(b => {
       const phone = b.phone.replace(/\s/g,'').replace('+','');
-      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+      const ps = calcPriorityScore(b);
+      const pCls = ps>=8?'p-high':ps>=5?'p-mid':'p-low';
+      return `<div class="cluster-borrower-row" onclick="openBorrowerDetail('${b.id}');haptic('light')" style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);cursor:pointer">
+        <span class="priority-score ${pCls}" style="flex-shrink:0">${ps}</span>
         <div style="flex:1;min-width:0">
           <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.name.split(' ')[0]} <span style="font-size:10px;color:var(--text3)">Day ${getOdAge(b.startDate)}</span></div>
           <div style="font-size:10px;color:var(--text3)">${fmtC(getDueToday(b))}</div>
         </div>
         <div style="display:flex;gap:4px;flex-shrink:0">
-          <button class="btn btn-green btn-xs" onclick="openPayModal('${b.id}');haptic('light')" title="Pay">💰</button>
-          <a href="https://wa.me/${phone}" target="_blank" class="btn btn-ghost btn-xs" style="color:#25d366" onclick="haptic('light')" title="WhatsApp">💬</a>
-          <button class="btn btn-ghost btn-xs" onclick="addToHitList('${b.id}');haptic('light')" title="Pin">📌</button>
+          <button class="btn btn-green btn-xs" onclick="event.stopPropagation();openPayModal('${b.id}');haptic('light')">💰</button>
+          <a href="https://wa.me/${phone}" target="_blank" class="btn btn-ghost btn-xs" style="color:#25d366" onclick="event.stopPropagation();haptic('light')">💬</a>
+          <button class="btn btn-ghost btn-xs" onclick="event.stopPropagation();addToHitList('${b.id}');haptic('light')">📌</button>
         </div>
       </div>`;
-    }).join('') + (list.length > max ? `<div style="font-size:11px;color:var(--text3);padding:6px 0">+${list.length-max} more — <span style="cursor:pointer;color:var(--gold);text-decoration:underline" onclick="filterAndNavigate('loans','')">View all</span></div>` : '');
+    }).join('')
+    + (rest.length > 0 ? `<div style="padding:7px 0;font-size:11px;color:var(--gold);cursor:pointer;text-align:center;font-weight:600" onclick="showClusterPopup('${clusterId}');haptic('light')">+${rest.length} more — tap to view all</div>` : '');
   }
 
   return `
     <div class="cluster-card high" style="margin-bottom:12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div style="font-weight:700;color:var(--green);font-size:13px">🟢 High Probability <span style="font-weight:400;font-size:11px;color:var(--text3)">${high.length} accounts</span></div>
-        <button class="btn btn-ghost btn-xs" onclick="filterAndNavigate('loans','Partial')">View ↗</button>
+        <div style="font-weight:700;color:var(--green);font-size:13px">🟢 High Probability <span style="font-weight:400;font-size:11px;color:var(--text3)">${high.length}</span></div>
+        <span style="font-size:10px;color:var(--text3)">Tap any row to open</span>
       </div>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Already paying — follow up to close today.</div>
-      ${high.length ? clusterRows(high, 4) : '<div style="font-size:11px;color:var(--text3)">No accounts in this cluster</div>'}
+      ${high.length ? clusterRows(high, 3, 'high') : '<div style="font-size:11px;color:var(--text3);padding:4px 0">No accounts</div>'}
     </div>
     <div class="cluster-card pressure" style="margin-bottom:12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div style="font-weight:700;color:var(--orange);font-size:13px">🟡 Needs Pressure <span style="font-weight:400;font-size:11px;color:var(--text3)">${pressure.length} accounts</span></div>
-        <button class="btn btn-ghost btn-xs" onclick="filterAndNavigate('loans','Unpaid',8)">View ↗</button>
+        <div style="font-weight:700;color:var(--orange);font-size:13px">🟡 Needs Pressure <span style="font-weight:400;font-size:11px;color:var(--text3)">${pressure.length}</span></div>
+        <span style="font-size:10px;color:var(--text3)">Overdue, no engagement</span>
       </div>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Overdue, no engagement. Send a WhatsApp or call now.</div>
-      ${pressure.length ? clusterRows(pressure, 4) : '<div style="font-size:11px;color:var(--text3)">No accounts in this cluster</div>'}
+      ${pressure.length ? clusterRows(pressure, 3, 'pressure') : '<div style="font-size:11px;color:var(--text3);padding:4px 0">No accounts</div>'}
     </div>
     <div class="cluster-card escalate">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div style="font-weight:700;color:var(--red);font-size:13px">🔴 Escalation Ready <span style="font-weight:400;font-size:11px;color:var(--text3)">${escalate.length} accounts</span></div>
-        <button class="btn btn-ghost btn-xs" onclick="filterAndNavigate('loans','',13)">View ↗</button>
+        <div style="font-weight:700;color:var(--red);font-size:13px">🔴 Escalation Ready <span style="font-weight:400;font-size:11px;color:var(--text3)">${escalate.length}</span></div>
+        <span style="font-size:10px;color:var(--text3)">Day 13+ or broken promise</span>
       </div>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Broken promises or Day 13+. Escalate immediately.</div>
-      ${escalate.length ? clusterRows(escalate, 4) : '<div style="font-size:11px;color:var(--text3)">No accounts in this cluster</div>'}
+      ${escalate.length ? clusterRows(escalate, 3, 'escalate') : '<div style="font-size:11px;color:var(--text3);padding:4px 0">No accounts</div>'}
     </div>`;
+}
+
+function showClusterPopup(clusterId) {
+  const active = getActiveBorrowers();
+  const map = {
+    high:     active.filter(b => b.amountPaid > 0 && calcPriorityScore(b) <= 5),
+    pressure: active.filter(b => getOdAge(b.startDate) >= 8 && b.amountPaid === 0 && !b.promisedToPay),
+    escalate: active.filter(b => (b.promisedToPay && b.amountPaid === 0) || getOdAge(b.startDate) >= 13),
+  };
+  const labels = { high:'🟢 High Probability', pressure:'🟡 Needs Pressure', escalate:'🔴 Escalation Ready' };
+  const list = map[clusterId] || [];
+  document.getElementById('modal-title').textContent = labels[clusterId] || 'Cluster';
+  document.getElementById('modal-body').innerHTML = `<div style="font-size:11px;color:var(--text3);margin-bottom:10px">${list.length} accounts — tap any to open detail</div>`
+    + list.map(b => {
+      const phone = b.phone.replace(/\s/g,'').replace('+','');
+      const ps = calcPriorityScore(b);
+      const pCls = ps>=8?'p-high':ps>=5?'p-mid':'p-low';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="closeModal();openBorrowerDetail('${b.id}');haptic('light')">
+        <span class="priority-score ${pCls}">${ps}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600">${b.name}</div>
+          <div style="font-size:10px;color:var(--text3)">Day ${getOdAge(b.startDate)} · ${b.phone}</div>
+        </div>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-green btn-xs" onclick="event.stopPropagation();closeModal();openPayModal('${b.id}')">💰</button>
+          <a href="https://wa.me/${phone}" target="_blank" class="btn btn-ghost btn-xs" style="color:#25d366" onclick="event.stopPropagation();haptic('light')">💬</a>
+        </div>
+      </div>`;
+    }).join('') || '<div style="color:var(--text3);font-size:12px;padding:8px 0">No accounts in this cluster</div>';
+  document.getElementById('modal-footer').innerHTML = `<button class="btn btn-ghost" onclick="closeModal()">Close</button>`;
+  document.getElementById('modal-overlay').classList.add('open');
+  haptic('light');
+}
+
+function showClusterPopup(cls) {
+  haptic('light');
+  const active = getActiveBorrowers();
+  let list, title;
+  if (cls === 'high')     { list = active.filter(b => b.amountPaid > 0 && calcPriorityScore(b) <= 5);  title = '🟢 High Probability'; }
+  else if (cls === 'pressure') { list = active.filter(b => getOdAge(b.startDate) >= 8 && b.amountPaid === 0 && !b.promisedToPay); title = '🟡 Needs Pressure'; }
+  else { list = active.filter(b => (b.promisedToPay && b.amountPaid === 0) || getOdAge(b.startDate) >= 13); title = '🔴 Escalation Ready'; }
+
+  document.getElementById('modal-title').textContent = title + ' (' + list.length + ')';
+  document.getElementById('modal-body').innerHTML = list.map(b => {
+    const phone = b.phone.replace(/\s/g,'').replace('+','');
+    return `<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="closeModal();openBorrowerDetail('${b.id}');haptic('light')">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:600">${b.name} <span style="font-size:10px;color:var(--text3)">Day ${getOdAge(b.startDate)}</span></div>
+        <div style="font-size:10px;color:var(--text3)">${b.phone}</div>
+      </div>
+      <div style="font-family:var(--font-mono);font-size:12px;font-weight:700;margin-right:8px">${fmtC(getDueToday(b))}</div>
+      <div style="display:flex;gap:4px" onclick="event.stopPropagation()">
+        <button class="btn btn-green btn-xs" onclick="openPayModal('${b.id}');haptic('light')">💰</button>
+        <a href="https://wa.me/${phone}" target="_blank" class="btn btn-ghost btn-xs" style="color:#25d366" onclick="haptic('light')">💬</a>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('modal-footer').innerHTML = `<button class="btn btn-ghost" onclick="closeModal()">Close</button>`;
+  document.getElementById('modal-overlay').classList.add('open');
 }
 
 // ============================================================
@@ -6303,43 +6387,84 @@ function renderRanking() {
   }
 }
 
-async function scanRanking() {
-  const apiKey = document.getElementById('ranking-api-key')?.value?.trim();
-  const myName = document.getElementById('ranking-my-name')?.value?.trim();
-  const text = document.getElementById('ranking-paste')?.value?.trim();
-  const statusEl = document.getElementById('ranking-scan-status');
-  if (!text) { if(statusEl) statusEl.textContent = '❌ Please paste your ranking text first'; return; }
-  if (apiKey) { localStorage.setItem('ranking_api_key', apiKey); }
-  if (myName) { localStorage.setItem('ranking_my_name', myName); }
-  if (statusEl) statusEl.textContent = '⏳ Scanning...';
-  const btn = document.getElementById('ranking-scan-btn');
-  if (btn) btn.disabled = true;
+let _rankType = 'daily';
+function setRankType(type) {
+  _rankType = type;
+  const daily = document.getElementById('rank-type-daily');
+  const monthly = document.getElementById('rank-type-monthly');
+  const hint = document.getElementById('rank-type-hint');
+  if (daily) { daily.className = type === 'daily' ? 'btn btn-gold btn-sm' : 'btn btn-ghost btn-sm'; }
+  if (monthly) { monthly.className = type === 'monthly' ? 'btn btn-gold btn-sm' : 'btn btn-ghost btn-sm'; }
+  if (hint) hint.textContent = type === 'daily'
+    ? 'Logging a daily scan — monthly auto-calculated as: prev monthly + (daily × 50%)'
+    : 'Logging a monthly snapshot directly';
+  haptic('light');
+}
 
-  // Parse ranking text locally (lines with name and percentage)
-  const lines = text.split('\n').filter(l => l.trim());
+function scanRanking() {
+  const myName = (document.getElementById('ranking-my-name')?.value || '').trim();
+  const text = (document.getElementById('ranking-paste')?.value || '').trim();
+  const statusEl = document.getElementById('ranking-scan-status');
+  const btn = document.getElementById('ranking-scan-btn');
+
+  if (!text) {
+    if (statusEl) statusEl.textContent = '❌ Please paste ranking text first';
+    return;
+  }
+  if (myName) localStorage.setItem('ranking_my_name', myName);
+  if (btn) btn.disabled = true;
+  haptic('light');
+
+  // Parse ranking text locally — no API call needed
   const agents = [];
+  const lines = text.split('\n').filter(l => l.trim());
   lines.forEach(line => {
-    const m = line.match(/(\d+[\.\)]\s*)?(.+?)\s+([\d.]+)%/);
+    const m = line.match(/(\d+[.)\s]*)?(.+?)\s+([\d.]+)%/);
     if (m) agents.push({ name: m[2].trim(), pct: m[3] });
   });
 
   if (agents.length === 0) {
-    if (statusEl) statusEl.textContent = '❌ Could not detect agents. Format: "Name XX.X%"';
+    if (statusEl) statusEl.textContent = '❌ No agents found. Format: "Name XX.X%" per line';
     if (btn) btn.disabled = false;
     return;
   }
 
   const today = new Date().toISOString().split('T')[0];
   if (!state.rankingHistory) state.rankingHistory = [];
-  // Remove existing scan for today
-  state.rankingHistory = state.rankingHistory.filter(s => s.date !== today);
-  state.rankingHistory.push({ date: today, agents });
+
+  if (_rankType === 'daily') {
+    // Save daily scan
+    state.rankingHistory = state.rankingHistory.filter(s => !(s.date === today && s.type === 'daily'));
+    state.rankingHistory.push({ date: today, type: 'daily', agents });
+
+    // Recalculate monthly: find last monthly entry, add daily × 50%
+    const lastMonthly = [...state.rankingHistory].filter(s => s.type === 'monthly').sort((a,b) => b.date.localeCompare(a.date))[0];
+    if (lastMonthly) {
+      const updatedAgents = agents.map(a => {
+        const prev = lastMonthly.agents.find(p => p.name === a.name);
+        const dailyPct = parseFloat(a.pct);
+        const monthlyPct = prev ? parseFloat(prev.pct) + dailyPct * 0.5 : dailyPct * 0.5;
+        return { name: a.name, pct: monthlyPct.toFixed(1), dailyPct: a.pct };
+      });
+      state.rankingHistory = state.rankingHistory.filter(s => !(s.date === today && s.type === 'monthly-calculated'));
+      state.rankingHistory.push({ date: today, type: 'monthly-calculated', agents: updatedAgents });
+    }
+  } else {
+    // Save as direct monthly snapshot
+    state.rankingHistory = state.rankingHistory.filter(s => !(s.date === today && s.type === 'monthly'));
+    state.rankingHistory.push({ date: today, type: 'monthly', agents });
+  }
+
   saveState();
-  if (statusEl) statusEl.textContent = `✅ Saved ${agents.length} agents for ${today}`;
+  haptic('pay');
+  if (statusEl) statusEl.innerHTML = `✅ Saved <strong>${agents.length}</strong> agents (${_rankType}) for ${today}`;
   if (btn) btn.disabled = false;
+  // Clear inputs
+  if (document.getElementById('ranking-paste')) document.getElementById('ranking-paste').value = '';
   renderRanking();
-  toast('Ranking scanned and saved ✅', 'success');
+  toast('Ranking saved ✅', 'success');
 }
+
 
 // ============================================================
 // SUPERVISOR REPORTS PAGE
@@ -6427,123 +6552,13 @@ function renderHealthPage() {
 // ============================================================
 // UNIFIED PTP HUB (replaces separate ptp/ptp-history/ptp-stats)
 // ============================================================
-let _ptpActiveTab = 'report';
-function renderPtpHub() {
-  const el = document.getElementById('page-ptp');
-  if (!el) return;
-  // Check if already has tab header (avoid double render)
-  if (!el.querySelector('.ptp-tab')) {
-    const header = el.querySelector('.page-header');
-    if (header) {
-      const tabBar = document.createElement('div');
-      tabBar.style.cssText = 'display:flex;gap:0;margin-bottom:-1px;padding:0 0 0 0;';
-      tabBar.innerHTML = `
-        <div class="ptp-tab active" id="ptptab-report" onclick="switchPtpHub('report')">🤝 Report</div>
-        <div class="ptp-tab" id="ptptab-history" onclick="switchPtpHub('history')">📅 History</div>
-        <div class="ptp-tab" id="ptptab-stats" onclick="switchPtpHub('stats')">📊 Stats</div>
-      `;
-      header.insertAdjacentElement('afterend', tabBar);
-    }
-  }
-  switchPtpHub(_ptpActiveTab, true);
-}
-function switchPtpHub(tab, force) {
-  if (!force && _ptpActiveTab === tab) return;
-  _ptpActiveTab = tab;
-  document.querySelectorAll('.ptp-tab').forEach(t => t.classList.remove('active'));
-  const activeTab = document.getElementById('ptptab-' + tab);
-  if (activeTab) activeTab.classList.add('active');
-  const body = document.getElementById('ptp-hub-content');
-  if (body) body.remove();
-  const el = document.getElementById('page-ptp');
-  const content = document.createElement('div');
-  content.id = 'ptp-hub-content';
-  el.appendChild(content);
-  if (tab === 'report') { content.innerHTML = getPtpReportHtml(); wirePtpReport(); }
-  else if (tab === 'history') { content.innerHTML = getPtpHistoryHtml(); }
-  else if (tab === 'stats') { content.innerHTML = getPtpStatsHtml(); }
-}
-function getPtpReportHtml() {
-  const today = new Date().toISOString().split('T')[0];
-  const ptpToday = state.borrowers.filter(b => b.promisedToPay && b.promiseDate && b.promiseDate.startsWith(today));
-  const ptpFuture = state.borrowers.filter(b => b.promisedToPay && b.promiseDate && b.promiseDate > today);
-  const ptpHonoured = ptpToday.filter(b => b.amountPaid > 0);
-  return `<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-    <button class="btn btn-gold btn-sm" id="ptp-tab-morning" onclick="switchPtpTab('morning')">📋 Morning (12PM)</button>
-    <button class="btn btn-ghost btn-sm" id="ptp-tab-eod" onclick="switchPtpTab('eod')">🌙 EOD Summary (6PM)</button>
-  </div>
-  <div class="card" style="margin-bottom:12px">
-    <div class="card-header"><span class="card-title">Today's PTPs</span><span style="font-size:11px;color:var(--text3)">${ptpToday.length} promised · ${ptpHonoured.length} honoured</span></div>
-    <div class="card-body" id="ptp-morning-list">
-      ${ptpToday.length === 0 ? '<div class="empty-state"><div>No PTPs for today</div></div>' :
-        ptpToday.map(b => `<div class="summary-row">
-          <div><div class="name-cell" style="font-size:12px">${b.name}</div>
-          <div style="font-size:10px;color:var(--text3)">${b.promiseDate||''} · ${b.phone}</div></div>
-          <div style="text-align:right">
-            <div style="font-family:var(--font-mono);font-size:13px;color:${b.amountPaid>0?'var(--green)':'var(--text2)'}">${fmtC(getDueToday(b))}</div>
-            ${statusBadge(getStatus(b))}
-          </div>
-        </div>`).join('')}
-    </div>
-  </div>
-  <div class="card" style="margin-bottom:12px">
-    <div class="card-header"><span class="card-title">Upcoming PTPs</span></div>
-    <div class="card-body">
-      ${ptpFuture.length === 0 ? '<div class="empty-state"><div>No upcoming promises</div></div>' :
-        ptpFuture.map(b => `<div class="summary-row">
-          <div><div class="name-cell" style="font-size:12px">${b.name}</div>
-          <div style="font-size:10px;color:var(--text3)">${b.promiseDate||''}</div></div>
-          <div style="font-family:var(--font-mono);font-size:13px">${fmtC(getDueToday(b))}</div>
-        </div>`).join('')}
-    </div>
-  </div>
-  <div style="display:flex;gap:8px;padding-bottom:8px">
-    <button class="btn btn-gold" style="flex:1" onclick="openPtpShareModal('morning')">📤 Share Morning Report</button>
-  </div>
-  <div id="ptp-panel-morning"></div>
-  <div id="ptp-panel-eod" style="display:none"></div>`;
-}
-function getPtpHistoryHtml() {
-  const snapshots = state.ptpSnapshots || [];
-  if (!snapshots.length) return '<div class="empty-state" style="padding:40px 0"><div class="icon">📅</div><div>No PTP snapshots yet. Share a Morning or EOD report to save a snapshot.</div></div>';
-  return snapshots.slice(-20).reverse().map(s =>
-    `<div class="card" style="margin-bottom:12px"><div class="card-header"><span class="card-title">${s.date} — ${s.type}</span></div>
-    <div class="card-body"><pre style="font-size:11px;white-space:pre-wrap;color:var(--text2)">${s.text}</pre>
-    <button class="btn btn-ghost btn-xs" style="margin-top:8px" onclick="navigator.clipboard.writeText(\`${s.text.replace(/`/g,"'")}\`).then(()=>toast('Copied!','success'))">📋 Copy</button>
-    </div></div>`
-  ).join('');
-}
-function getPtpStatsHtml() {
-  const all = state.borrowers;
-  const withPtp = all.filter(b => b.promisedToPay);
-  const honoured = withPtp.filter(b => b.amountPaid > 0);
-  const rate = withPtp.length ? ((honoured.length/withPtp.length)*100).toFixed(0) : 0;
-  const totalPtp = withPtp.reduce((s,b) => s+getDueToday(b),0);
-  const collectedPtp = honoured.reduce((s,b) => s+b.amountPaid,0);
-  return `<div class="card"><div class="card-body">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-      <div style="text-align:center;padding:12px;background:var(--surface2);border-radius:8px">
-        <div style="font-size:24px;font-weight:800;font-family:var(--font-head);color:var(--gold)">${rate}%</div>
-        <div style="font-size:11px;color:var(--text3)">PTP Conversion Rate</div>
-      </div>
-      <div style="text-align:center;padding:12px;background:var(--surface2);border-radius:8px">
-        <div style="font-size:20px;font-weight:800;font-family:var(--font-head);color:var(--green)">${honoured.length}/${withPtp.length}</div>
-        <div style="font-size:11px;color:var(--text3)">Honoured / Total</div>
-      </div>
-    </div>
-    <div class="health-row"><span>Total Promised</span><span style="font-family:var(--font-mono)">${fmtC(totalPtp)}</span></div>
-    <div class="health-row"><span>Total Collected from PTP</span><span style="font-family:var(--font-mono);color:var(--green)">${fmtC(collectedPtp)}</span></div>
-    <div class="health-row"><span>Not Yet Honoured</span><span style="font-family:var(--font-mono);color:var(--orange)">${withPtp.length - honoured.length}</span></div>
-  </div></div>`;
-}
-function wirePtpReport() {
-  setTimeout(() => {
-    const mb = document.getElementById('ptp-tab-morning');
-    const eb = document.getElementById('ptp-tab-eod');
-    if (mb) mb.addEventListener('click', () => switchPtpTab('morning'));
-    if (eb) eb.addEventListener('click', () => switchPtpTab('eod'));
-  }, 0);
-}
+
+
+
+
+
+
+
 
 // ============================================================
 // DOW (Day-of-week) CHART for Analytics
@@ -6628,93 +6643,7 @@ function previewRankingImage(input) {
   haptic('light');
 }
 
-async function scanRanking() {
-  const apiKey = (document.getElementById('ranking-api-key')?.value || '').trim();
-  const myName = (document.getElementById('ranking-my-name')?.value || '').trim();
-  const text = (document.getElementById('ranking-paste')?.value || '').trim();
-  const imageInput = document.getElementById('ranking-image-upload');
-  const imageFile = imageInput?.files?.[0];
-  const statusEl = document.getElementById('ranking-scan-status');
-  const btn = document.getElementById('ranking-scan-btn');
 
-  if (!text && !imageFile) {
-    if (statusEl) statusEl.textContent = '❌ Please paste ranking text or upload an image';
-    return;
-  }
-  if (apiKey) localStorage.setItem('ranking_api_key', apiKey);
-  if (myName) localStorage.setItem('ranking_my_name', myName);
-
-  if (statusEl) statusEl.innerHTML = '⏳ Scanning ranking...';
-  if (btn) btn.disabled = true;
-  haptic('light');
-
-  let agents = [];
-
-  // Try parsing text first (works without API key)
-  if (text) {
-    const lines = text.split('\n').filter(l => l.trim());
-    lines.forEach(line => {
-      const m = line.match(/(\d+[\.\)]\s*)?(.+?)\s+([\d.]+)%/);
-      if (m) agents.push({ name: m[2].trim(), pct: m[3] });
-    });
-  }
-
-  // If image uploaded and API key available, send to Claude vision
-  if (imageFile && apiKey && agents.length === 0) {
-    try {
-      if (statusEl) statusEl.innerHTML = '⏳ Reading image with AI...';
-      const base64 = await new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload = () => res(r.result.split(',')[1]);
-        r.onerror = rej;
-        r.readAsDataURL(imageFile);
-      });
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({
-          model: 'claude-opus-4-5',
-          max_tokens: 1024,
-          messages: [{
-            role: 'user',
-            content: [
-              { type: 'image', source: { type: 'base64', media_type: imageFile.type || 'image/png', data: base64 } },
-              { type: 'text', text: 'Extract all agent names and their percentage rates from this ranking screenshot. Return ONLY lines in this exact format, one per line:\n1. Agent Name XX.X%\nReturn nothing else — no explanation, no extra text.' }
-            ]
-          }]
-        })
-      });
-      const data = await resp.json();
-      const extracted = data?.content?.[0]?.text || '';
-      const lines = extracted.split('\n').filter(l => l.trim());
-      lines.forEach(line => {
-        const m = line.match(/(\d+[\.\)]\s*)?(.+?)\s+([\d.]+)%/);
-        if (m) agents.push({ name: m[2].trim(), pct: m[3] });
-      });
-    } catch (e) {
-      if (statusEl) statusEl.textContent = '❌ AI scan failed: ' + (e.message || 'check API key');
-      if (btn) btn.disabled = false;
-      return;
-    }
-  }
-
-  if (agents.length === 0) {
-    if (statusEl) statusEl.textContent = '❌ No agents found. Format needed: "Name XX.X%"';
-    if (btn) btn.disabled = false;
-    return;
-  }
-
-  const today = new Date().toISOString().split('T')[0];
-  if (!state.rankingHistory) state.rankingHistory = [];
-  state.rankingHistory = state.rankingHistory.filter(s => s.date !== today);
-  state.rankingHistory.push({ date: today, agents });
-  saveState();
-  haptic('pay');
-  if (statusEl) statusEl.innerHTML = `✅ Saved <strong>${agents.length}</strong> agents for ${today}`;
-  if (btn) btn.disabled = false;
-  renderRanking();
-  toast('Ranking saved ✅', 'success');
-}
 
 // ============================================================
 // DASHBOARD FORECAST CARD — show projected amount
@@ -6774,90 +6703,231 @@ function toastWithHaptic(msg, type) {
 // ============================================================
 // MODERN PTP HUB — full redesign
 // ============================================================
-function getPtpReportHtml() {
+
+
+// ============================================================
+// PTP HUB — unified, scrollable, working taps
+// ============================================================
+let _ptpTab = 'report';
+
+function renderPtpHub() {
+  // Tab styling
+  document.querySelectorAll('.ptp-tab').forEach(t => t.classList.remove('active'));
+  const at = document.getElementById('ptptab-' + _ptpTab);
+  if (at) at.classList.add('active');
+  const container = document.getElementById('ptp-hub-content');
+  if (!container) return;
+  container.style.opacity = '0';
+  container.style.transform = 'translateX(10px)';
+  if (_ptpTab === 'report')   container.innerHTML = buildPtpReportHtml();
+  else if (_ptpTab === 'history') container.innerHTML = buildPtpHistoryHtml();
+  else if (_ptpTab === 'stats')   container.innerHTML = buildPtpStatsHtml();
+  // Animate
+  setTimeout(() => {
+    container.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
+    container.style.opacity = '1';
+    container.style.transform = 'translateX(0)';
+  }, 10);
+  // Wire PTP outcome buttons via delegation (avoids inline onclick quote issues)
+  container.addEventListener('click', function(e) {
+    const btn = e.target.closest('.ptp-oc-btn');
+    if (!btn) return;
+    e.stopPropagation();
+    const bid = btn.dataset.bid;
+    const outcome = btn.dataset.outcome;
+    if (bid && outcome) {
+      haptic('medium');
+      setPtpOutcome(bid, outcome);
+    }
+  }, { once: true });
+}
+
+function switchPtpHub(tab) {
+  _ptpTab = tab;
+  haptic('light');
+  renderPtpHub();
+}
+
+// Alias for legacy calls
+function renderPtp() { if (typeof renderPtpHub === 'function') renderPtpHub(); }
+function renderPtpHistory() { _ptpTab = 'history'; renderPtpHub(); }
+function renderPtpStats()   { _ptpTab = 'stats';   renderPtpHub(); }
+
+function buildPtpReportHtml() {
   const today = new Date().toISOString().split('T')[0];
   const todayStr = new Date().toLocaleDateString('en-GB', {weekday:'short',day:'numeric',month:'short'});
-  const ptpToday = state.borrowers.filter(b => b.promisedToPay && b.promiseDate && b.promiseDate.startsWith(today));
-  const ptpFuture = state.borrowers.filter(b => b.promisedToPay && b.promiseDate && b.promiseDate > today).sort((a,b) => a.promiseDate.localeCompare(b.promiseDate));
-  const ptpHonoured = ptpToday.filter(b => b.amountPaid > 0);
-  const ptpBreached = ptpToday.filter(b => b.amountPaid === 0);
-  const totalExpected = ptpToday.reduce((s,b) => s + getDueToday(b), 0);
-  const totalHonoured = ptpHonoured.reduce((s,b) => s + b.amountPaid, 0);
-  const rate = ptpToday.length > 0 ? Math.round(ptpHonoured.length / ptpToday.length * 100) : 0;
+  const ptpToday  = state.borrowers.filter(b => b.promisedToPay && b.promiseDate && b.promiseDate.startsWith(today));
+  const ptpFuture = state.borrowers.filter(b => b.promisedToPay && b.promiseDate && b.promiseDate > today)
+                      .sort((a,b) => a.promiseDate.localeCompare(b.promiseDate));
+  const honoured  = ptpToday.filter(b => b.amountPaid > 0);
+  const rate      = ptpToday.length > 0 ? Math.round(honoured.length / ptpToday.length * 100) : 0;
+  const rateCol   = rate >= 70 ? 'var(--green)' : rate >= 40 ? 'var(--gold)' : 'var(--red)';
+  const totalExp  = ptpToday.reduce((s,b) => s + getDueToday(b), 0);
 
-  return `
-    <!-- KPI Strip -->
+  let html = `
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
       <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
         <div style="font-family:var(--font-mono);font-size:18px;font-weight:800;color:var(--gold)">${ptpToday.length}</div>
-        <div style="font-size:10px;color:var(--text3)">Today's PTPs</div>
+        <div style="font-size:10px;color:var(--text3)">Today</div>
       </div>
       <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
-        <div style="font-family:var(--font-mono);font-size:18px;font-weight:800;color:var(--green)">${ptpHonoured.length}</div>
+        <div style="font-family:var(--font-mono);font-size:18px;font-weight:800;color:var(--green)">${honoured.length}</div>
         <div style="font-size:10px;color:var(--text3)">Honoured</div>
       </div>
       <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
-        <div style="font-family:var(--font-mono);font-size:18px;font-weight:800;color:${rate>=70?'var(--green)':rate>=40?'var(--gold)':'var(--red)'}">${rate}%</div>
+        <div style="font-family:var(--font-mono);font-size:18px;font-weight:800;color:${rateCol}">${rate}%</div>
         <div style="font-size:10px;color:var(--text3)">Conv. Rate</div>
       </div>
       <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
-        <div style="font-family:var(--font-mono);font-size:14px;font-weight:800;color:var(--blue)">${fmtC(totalExpected)}</div>
+        <div style="font-family:var(--font-mono);font-size:13px;font-weight:800;color:var(--blue)">${fmtC(totalExp)}</div>
         <div style="font-size:10px;color:var(--text3)">Expected</div>
       </div>
-    </div>
+    </div>`;
 
-    <!-- Today's PTPs list -->
-    <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
-      <span>📋 ${todayStr} Promises</span>
-      <button class="btn btn-gold btn-sm" onclick="openPtpShareModal('morning')" style="font-size:11px;padding:4px 10px">📤 Share</button>
-    </div>
-    ${ptpToday.length === 0 ? `<div style="background:var(--surface2);border-radius:8px;padding:20px;text-align:center;color:var(--text3);font-size:12px;margin-bottom:14px">No promises set for today.<br><span style="font-size:11px">Go to Borrowers → 🤝 to add one.</span></div>` :
-    `<div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;overflow:hidden;margin-bottom:14px">
-      ${ptpToday.map(b => {
-        const st = getStatus(b);
-        const stColor = st==='Paid'?'var(--green)':st==='Partial'?'var(--gold)':'var(--text3)';
-        const phone = b.phone.replace(/\s/g,'').replace('+','');
-        const honoured = b.amountPaid > 0;
-        return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);${honoured?'background:rgba(34,197,94,0.04)':''}">
-          <div style="width:8px;height:8px;border-radius:50%;background:${honoured?'var(--green)':'var(--orange)'};flex-shrink:0"></div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.name}</div>
-            <div style="font-size:10px;color:var(--text3)">${b.promiseDate||''} · Day ${getOdAge(b.startDate)}</div>
-          </div>
-          <div style="text-align:right;flex-shrink:0">
-            <div style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:${stColor}">${fmtC(getDueToday(b))}</div>
-            <div style="font-size:10px;color:${honoured?'var(--green)':'var(--text3)'}">${honoured?'✅ Honoured':'⏳ Pending'}</div>
-          </div>
-          <div style="display:flex;gap:4px;flex-shrink:0">
-            <button class="btn btn-green btn-xs" onclick="openPayModal('${b.id}');haptic('light')" title="Pay">💰</button>
-            <a href="https://wa.me/${phone}" target="_blank" class="btn btn-ghost btn-xs" style="color:#25d366" onclick="haptic('light')">💬</a>
-          </div>
-        </div>`;
-      }).join('')}
-    </div>`}
+  // Today's PTPs
+  html += `<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+    <span>📋 ${todayStr} Promises</span>
+    <button class="btn btn-gold btn-sm" style="font-size:11px;padding:4px 10px" onclick="openPtpShareModal('morning');haptic('light')">📤 Share</button>
+  </div>`;
 
-    <!-- Upcoming PTPs -->
-    ${ptpFuture.length > 0 ? `
-    <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">📅 Upcoming Promises (${ptpFuture.length})</div>
-    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;overflow:hidden;margin-bottom:14px">
-      ${ptpFuture.slice(0,6).map(b => `<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border)">
+  if (ptpToday.length === 0) {
+    html += `<div style="background:var(--surface2);border-radius:8px;padding:20px;text-align:center;color:var(--text3);font-size:12px;margin-bottom:14px">
+      No promises set for today.<br><span style="font-size:11px">Go to Borrowers → 🤝 to add one.</span></div>`;
+  } else {
+    html += `<div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;overflow:hidden;margin-bottom:14px">`;
+    ptpToday.forEach(b => {
+      const isHonoured = b.amountPaid > 0;
+      const phone = b.phone.replace(/\s/g,'').replace('+','');
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);${isHonoured?'background:rgba(34,197,94,0.04)':''}">
+        <div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${isHonoured?'var(--green)':'var(--orange)'}"></div>
+        <div style="flex:1;min-width:0;cursor:pointer" onclick="openBorrowerDetail('${b.id}');haptic('light')">
+          <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.name}</div>
+          <div style="font-size:10px;color:var(--text3)">${b.promiseDate||''} · Day ${getOdAge(b.startDate)}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-right:8px">
+          <div style="font-family:var(--font-mono);font-size:12px;font-weight:700">${fmtC(getDueToday(b))}</div>
+          <div style="font-size:10px;color:${isHonoured?'var(--green)':'var(--text3)'}">${isHonoured?'✅ Honoured':'⏳ Pending'}</div>
+        </div>
+        <button class="btn btn-green btn-xs" style="flex-shrink:0" onclick="openPayModal('${b.id}');haptic('light')">💰</button>
+        <a href="https://wa.me/${phone}" target="_blank" class="btn btn-ghost btn-xs" style="color:#25d366;flex-shrink:0" onclick="haptic('light')">💬</a>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // EOD outcome picker — inline, no modal needed
+  html += `<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+    <span>🌙 EOD Outcomes</span>
+    <button class="btn btn-ghost btn-sm" style="font-size:11px;padding:4px 10px" onclick="openPtpShareModal('eod');haptic('light')">📤 EOD Report</button>
+  </div>`;
+  if (ptpToday.length === 0) {
+    html += `<div style="font-size:12px;color:var(--text3);margin-bottom:14px">No PTPs to log outcomes for today.</div>`;
+  } else {
+    html += `<div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;overflow:hidden;margin-bottom:14px">`;
+    ptpToday.forEach(b => {
+      const oc = b.ptpOutcome || '';
+      const outcomes = [
+        { val:'paid',    label:'✅ Paid',       col:'var(--green)' },
+        { val:'partial', label:'⚡ Partial',    col:'var(--gold)' },
+        { val:'broken',  label:'❌ Broken',     col:'var(--red)' },
+        { val:'reschedule', label:'📅 Reschedule', col:'var(--blue)' },
+      ];
+      html += `<div style="padding:10px 14px;border-bottom:1px solid var(--border)" data-borrower-id="${b.id}">
+        <div style="font-size:12px;font-weight:600;margin-bottom:6px">${b.name.split(' ')[0]} <span style="font-size:10px;color:var(--text3);font-weight:400">${fmtC(getDueToday(b))}</span></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap" class="ptp-outcome-row" data-bid="${b.id}">
+          ${outcomes.map(o => {
+            const active = oc === o.val;
+            return `<button class="ptp-oc-btn" data-bid="${b.id}" data-outcome="${o.val}" style="padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid ${active?o.col:'var(--border2)'};background:${active?o.col+'33':'var(--surface2)'};color:${active?o.col:'var(--text2)'};">${o.label}</button>`;
+          }).join('')}
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Upcoming PTPs
+  if (ptpFuture.length > 0) {
+    html += `<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">📅 Upcoming (${ptpFuture.length})</div>
+    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;overflow:hidden;margin-bottom:14px">`;
+    ptpFuture.slice(0,8).forEach(b => {
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer" onclick="openBorrowerDetail('${b.id}');haptic('light')">
         <div style="flex:1;min-width:0">
           <div style="font-size:12px;font-weight:600">${b.name.split(' ')[0]}</div>
           <div style="font-size:10px;color:var(--text3)">${b.promiseDate}</div>
         </div>
         <div style="font-family:var(--font-mono);font-size:12px;color:var(--text2)">${fmtC(getDueToday(b))}</div>
-        <button class="btn btn-ghost btn-xs" onclick="togglePromise('${b.id}');haptic('light')" title="Clear promise" style="color:var(--text3)">✕</button>
-      </div>`).join('')}
-      ${ptpFuture.length > 6 ? `<div style="padding:8px 14px;font-size:11px;color:var(--text3)">+${ptpFuture.length-6} more upcoming</div>` : ''}
-    </div>` : ''}
+      </div>`;
+    });
+    if (ptpFuture.length > 8) html += `<div style="padding:8px 14px;font-size:11px;color:var(--text3)">+${ptpFuture.length-8} more upcoming</div>`;
+    html += `</div>`;
+  }
 
-    <!-- Quick action bar -->
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-gold btn-sm" style="flex:1" onclick="openPtpShareModal('morning')">📋 Morning Report</button>
-      <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openPtpShareModal('eod')">🌙 EOD Report</button>
+  return html;
+}
+
+function setPtpOutcome(id, outcome) {
+  const b = state.borrowers.find(x => x.id === id);
+  if (!b) return;
+  b.ptpOutcome = outcome;
+  if (outcome === 'paid') {
+    const full = getDueToday(b) + b.amountPaid;
+    b.amountPaid = full; b.isPaid = true;
+    if (!b.payLog) b.payLog = [];
+    b.payLog.push({ date: new Date().toISOString().split('T')[0], amount: full, delta: full - (b.amountPaid||0), note: 'PTP honoured', isPaid: true });
+  } else if (outcome === 'partial') {
+    openPayModal(id); return;
+  }
+  saveState(); renderPtpHub();
+  toast(b.name.split(' ')[0] + ': ' + outcome, 'success');
+}
+
+function buildPtpHistoryHtml() {
+  const snaps = state.ptpSnapshots || [];
+  if (!snaps.length) return `<div style="padding:40px 0;text-align:center;color:var(--text3);font-size:12px">
+    No PTP snapshots saved yet.<br><span style="font-size:11px">Share a Morning or EOD report to auto-save a snapshot.</span></div>`;
+  return snaps.slice(-20).reverse().map(s => `
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-header"><span class="card-title">${s.date} — ${s.type}</span>
+        <button class="btn btn-ghost btn-xs" onclick="navigator.clipboard.writeText(this.closest('.card').querySelector('pre').textContent).then(()=>{toast('Copied!','success');haptic('light')})">📋 Copy</button>
+      </div>
+      <div class="card-body"><pre style="font-size:11px;white-space:pre-wrap;color:var(--text2);line-height:1.7">${s.text}</pre></div>
+    </div>`).join('');
+}
+
+function buildPtpStatsHtml() {
+  const all = state.borrowers;
+  const withPtp = all.filter(b => b.promisedToPay);
+  const hon = withPtp.filter(b => b.amountPaid > 0);
+  const rate = withPtp.length ? Math.round(hon.length / withPtp.length * 100) : 0;
+  const rateCol = rate >= 70 ? 'var(--green)' : rate >= 40 ? 'var(--gold)' : 'var(--red)';
+  const totalPtp = withPtp.reduce((s,b) => s + getDueToday(b), 0);
+  const collPtp  = hon.reduce((s,b) => s + b.amountPaid, 0);
+  const byOutcome = {};
+  all.filter(b => b.ptpOutcome).forEach(b => { byOutcome[b.ptpOutcome] = (byOutcome[b.ptpOutcome]||0)+1; });
+
+  return `<div class="card" style="margin-bottom:12px"><div class="card-body">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div style="text-align:center;padding:14px;background:var(--surface2);border-radius:8px">
+        <div style="font-size:28px;font-weight:800;font-family:var(--font-head);color:${rateCol}">${rate}%</div>
+        <div style="font-size:11px;color:var(--text3)">Conversion Rate</div>
+      </div>
+      <div style="text-align:center;padding:14px;background:var(--surface2);border-radius:8px">
+        <div style="font-size:22px;font-weight:800;font-family:var(--font-head);color:var(--green)">${hon.length}/${withPtp.length}</div>
+        <div style="font-size:11px;color:var(--text3)">Honoured / Set</div>
+      </div>
     </div>
-    <div id="ptp-panel-morning" style="margin-top:8px"></div>
-    <div id="ptp-panel-eod" style="display:none;margin-top:8px"></div>`;
+    <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Breakdown</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;padding:7px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text2)">Total Promised</span><span style="font-family:var(--font-mono);font-weight:700">${fmtC(totalPtp)}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;padding:7px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text2)">Collected from PTP</span><span style="font-family:var(--font-mono);font-weight:700;color:var(--green)">${fmtC(collPtp)}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;padding:7px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text2)">Not Yet Honoured</span><span style="font-family:var(--font-mono);font-weight:700;color:var(--orange)">${withPtp.length - hon.length}</span></div>
+      ${Object.entries(byOutcome).map(([k,v]) => `<div style="display:flex;justify-content:space-between;font-size:12px;padding:7px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text2);text-transform:capitalize">${k}</span><span style="font-family:var(--font-mono);font-weight:700">${v}</span></div>`).join('')}
+    </div>
+  </div></div>`;
 }
 
 // ============================================================
@@ -6940,6 +7010,59 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('online',  function() { _setOfflineStatus(false); toast('Back online - syncing...', 'success'); _pushToSupabase && _pushToSupabase(); });
   window.addEventListener('offline', function() { _setOfflineStatus(true);  toast('Offline - changes saved locally', 'info'); });
   if (!navigator.onLine) _setOfflineStatus(true);
+
+  // ── Swipe Right → Open Drawer ──────────────────────────────
+  (function() {
+    var touchStartX = 0, touchStartY = 0;
+    document.addEventListener('touchstart', function(e) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+    document.addEventListener('touchend', function(e) {
+      var dx = e.changedTouches[0].clientX - touchStartX;
+      var dy = Math.abs(e.changedTouches[0].clientY - touchStartY);
+      // Swipe right from left edge (within 60px) OR wide swipe from anywhere near left
+      if (dx > 60 && dy < 80 && touchStartX < 50) {
+        var drawer = document.getElementById('mobile-drawer');
+        if (drawer && !drawer.classList.contains('open')) {
+          haptic('light');
+          openDrawer();
+        }
+      }
+    }, { passive: true });
+  })();
+
+  // ── Back Button → Previous Page (not app exit) ─────────────
+  (function() {
+    var pageHistory = ['dashboard'];
+    var _navOverride = window.navigate;
+    window.navigate = function(page) {
+      if (page !== pageHistory[pageHistory.length - 1]) {
+        pageHistory.push(page);
+        history.pushState({ page: page }, '', '');
+      }
+      _navOverride(page);
+    };
+    // Push initial state
+    history.replaceState({ page: 'dashboard' }, '', '');
+    window.addEventListener('popstate', function(e) {
+      if (pageHistory.length > 1) {
+        pageHistory.pop();
+        var prev = pageHistory[pageHistory.length - 1];
+        haptic('light');
+        _navOverride(prev); // use original navigate, not override
+      } else {
+        // Double-back to close — push state so next back will trigger confirm
+        if (window._backPressTime && Date.now() - window._backPressTime < 2000) {
+          // Second back within 2s — let it close
+        } else {
+          window._backPressTime = Date.now();
+          history.pushState({ page: 'dashboard' }, '', '');
+          toast('Press back again to exit', 'info');
+        }
+      }
+    });
+  })();
 
   // Register service worker for PWA install support
   // Lock orientation to portrait when running as installed PWA
