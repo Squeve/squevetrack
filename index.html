@@ -8874,7 +8874,8 @@ function hideLockScreen() {
 function renderLockAgentList() {
   const el = document.getElementById('lock-agent-list');
   if (!el) return;
-  const agents = getAgentList();
+  // Only show agents with a real name — filter out UUID/slug-only ghost entries
+  let agents = getAgentList().filter(a => a.lbCode || (a.name && !a.name.match(/^[0-9a-f-]{30,}$/)));
   if (!agents.length) {
     el.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:13px;padding:20px 0">No agents set up yet.<br>Add a new agent below.</div>';
     return;
@@ -8888,12 +8889,12 @@ function renderLockAgentList() {
       <button class="lock-agent-card" style="width:100%;margin-bottom:0;${isActive?'border-color:var(--gold);':''}padding-right:48px" onclick="lockSelectAgent('${a.id}')">
         <div class="lock-agent-avatar" style="background:${col}22;color:${col}">${initials}</div>
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.name}${isActive ? ' <span style="font-size:10px;color:var(--green);font-weight:600">● Active</span>' : ''}</div>
+          <div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.lbCode || a.name}${isActive ? ' <span style="font-size:10px;color:var(--green);font-weight:600">● Active</span>' : ''}</div>
           <div style="font-size:11px;color:var(--text3)">${a.stage||'M2'} · ${a.stage ? (STAGE_CONFIG[a.stage]?.name||'') : 'Active Default'}</div>
         </div>
         <div style="font-size:18px;color:var(--text3)">${isActive ? '🔓' : '🔒'}</div>
       </button>
-      <button onclick="promptDeleteAgent('${a.id}','${a.name.replace(/'/g,"\\'")}',${isActive})" title="Delete agent" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:6px;border-radius:6px;color:var(--text3);font-size:14px;transition:color 0.15s,background 0.15s;z-index:2" onmouseover="this.style.color='var(--red)';this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.color='var(--text3)';this.style.background='none'" title="Delete this agent">🗑</button>
+      <button onclick="promptDeleteAgent('${a.id}','${a.name.replace(/'/g,"'")}',${isActive ? 'true' : 'false'})" title="Delete agent" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:6px;border-radius:6px;color:var(--text3);font-size:14px;transition:color 0.15s,background 0.15s;z-index:2" onmouseover="this.style.color='var(--red)';this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.color='var(--text3)';this.style.background='none'" title="Delete this agent">🗑</button>
     </div>`;
   }).join('');
 }
@@ -9244,6 +9245,7 @@ async function migrateFromLegacyIfNeeded() {
 
 // ── Agent deletion ────────────────────────────────────────────
 function promptDeleteAgent(id, name, isActive) {
+  isActive = (isActive === true || isActive === 'true');
   if (isActive) {
     // Can't delete active agent — must lock first
     document.getElementById('modal-title').textContent = '⚠️ Cannot Delete Active Session';
@@ -9362,20 +9364,21 @@ function restoreAgedOut() {
 async function cleanupGhostRows() {
   const db = initSupabase();
   if (!db || !_activeAgent?.id) return;
-  // Only clean up rows we know are empty ghosts (no borrowers, created today)
-  // We do NOT touch agent_shadrack-agyei-oct25 if it has data
   try {
-    const { data: rows } = await db.from('app_state').select('id, data').neq('id', 'agent_' + _activeAgent.id).neq('id', 'main');
+    const { data: rows } = await db.from('app_state').select('id, data')
+      .like('id', 'agent_%')
+      .neq('id', 'agent_' + _activeAgent.id);
     if (!rows) return;
     const ghostIds = rows
       .filter(r => {
-        const d = r.data;
-        return (!d?.borrowers?.length) && r.id.startsWith('agent_') && r.id !== 'agent_' + _activeAgent.id;
+        const hasBorrowers = (r.data?.borrowers?.length || 0) > 0;
+        const hasLbCode = !!(r.data?.agentProfile?.lbCode);
+        // Delete if: no borrowers AND no lbCode (clearly a ghost)
+        return !hasBorrowers && !hasLbCode;
       })
       .map(r => r.id);
     if (ghostIds.length) {
       await db.from('app_state').delete().in('id', ghostIds);
-      console.log('Cleaned up ghost rows:', ghostIds);
     }
   } catch {}
 }
@@ -9493,26 +9496,58 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       const { data: rows } = await db.from('app_state').select('id, data').like('id', 'agent_%');
       if (rows && rows.length > 0) {
-        // Found existing agents on Supabase — restore them to localStorage and show lock screen
+        const ghostIds = [];
+        const validAgents = [];
+
         rows.forEach(row => {
           const profile = row.data?.agentProfile || {};
-          const agentId = row.id.replace('agent_', '');
-          const existing = getAgentList();
-          if (!existing.find(a => a.id === agentId)) {
-            existing.push({
-              id: agentId,
-              name: profile.name || agentId,
-              stage: profile.stage || 'M2',
-              lbCode: profile.lbCode || '',
-              pinHash: row.data?._pinHash || null,
-              createdAt: profile.createdAt || new Date().toISOString(),
-            });
-            saveAgentList(existing);
-            localStorage.setItem('squevetrack_' + agentId, JSON.stringify(row.data));
+          const lbCode = profile.lbCode || '';
+          const hasBorrowers = (row.data?.borrowers?.length || 0) > 0;
+          const hasName = !!(profile.name);
+          const isUuidKey = /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(row.id.replace('agent_',''));
+          const isSqvKey = row.id.replace('agent_','').startsWith('sqv-');
+
+          // Only restore agents with a real LoanBase code OR real borrower data
+          if (lbCode && hasName) {
+            validAgents.push({ row, profile, lbCode });
+          } else if (!hasBorrowers && (isUuidKey || isSqvKey)) {
+            // Ghost row — no real data, UUID or auto-generated key
+            ghostIds.push(row.id);
+          } else if (hasBorrowers) {
+            // Has borrowers but no lbCode — keep it (Shadrack's migrated data case)
+            validAgents.push({ row, profile, lbCode });
           }
         });
-        showLockScreen();
-        return;
+
+        // Auto-delete ghost rows silently
+        if (ghostIds.length) {
+          try { await db.from('app_state').delete().in('id', ghostIds); } catch {}
+        }
+
+        if (validAgents.length > 0) {
+          const existingList = getAgentList();
+          validAgents.forEach(({ row, profile, lbCode }) => {
+            const agentId = row.id.replace('agent_', '');
+            if (!existingList.find(a => a.id === agentId)) {
+              existingList.push({
+                id: agentId,
+                name: profile.name || (lbCode || agentId),
+                stage: profile.stage || 'M2',
+                lbCode: lbCode,
+                pinHash: row.data?._pinHash || null,
+                createdAt: profile.createdAt || new Date().toISOString(),
+              });
+            }
+          });
+          saveAgentList(existingList);
+          // Cache data locally
+          validAgents.forEach(({ row }) => {
+            const agentId = row.id.replace('agent_', '');
+            localStorage.setItem('squevetrack_' + agentId, JSON.stringify(row.data));
+          });
+          showLockScreen();
+          return;
+        }
       }
     } catch {}
   }
