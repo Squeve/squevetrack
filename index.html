@@ -2057,8 +2057,14 @@ async function loadState() {
         .single();
       if (!error && data && data.data) {
         state = migrateState(data.data);
+        if (state._skipPurgeOnce) {
+          delete state._skipPurgeOnce;
+          // Save immediately to clear the flag so next load purges normally
+          setTimeout(_pushToSupabase, 1000);
+        } else if (state.agentProfile?.setupComplete) {
+          purgeAgedOut();
+        }
         localStorage.setItem(getStateKey(), JSON.stringify(state)); // warm cache
-        purgeAgedOut();
         setSyncStatus('saved');
         showSkeletons(false);
         return;
@@ -2072,7 +2078,7 @@ async function loadState() {
   if (raw) {
     try {
       state = migrateState(JSON.parse(raw));
-      purgeAgedOut();
+      if (state.agentProfile?.setupComplete && !state._skipPurgeOnce) purgeAgedOut();
       // Push local state up to Supabase if available
       if (_db) _pushToSupabase();
       return;
@@ -2081,7 +2087,6 @@ async function loadState() {
 
   // 3. First-ever load — use seed data
   state = initState();
-  purgeAgedOut();
   if (_db) _pushToSupabase();
   else saveState();
 }
@@ -2570,6 +2575,7 @@ function renderDashboard() {
   checkRankingGapAlert();
   checkPtpBreaches();
   updateDailyPill();
+  showAgedOutBanner();
 }
 
 function chartColor(alpha) {
@@ -5196,6 +5202,20 @@ function openHistoryModal(id) {
 // ============================================================
 // OD AGE ADVANCE NOTIFICATION
 // ============================================================
+function showAgedOutBanner() {
+  if (!state.agedOutLog?.length) return;
+  const banner = document.getElementById('dash-alerts');
+  if (!banner) return;
+  const current = banner.innerHTML || '';
+  if (current.includes('aged-out-restore')) return; // already showing
+  const extra = '<div id="aged-out-restore" style="background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.25);border-left:4px solid var(--blue);border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
+    + '<div style="flex:1;font-size:13px;color:var(--text2)"><strong>' + state.agedOutLog.length + ' accounts</strong> moved to Aged Out since your last session.</div>'
+    + '<button class="btn btn-ghost btn-sm" style="color:var(--blue);border-color:rgba(96,165,250,0.4)" onclick="restoreAgedOut()">↩ Restore All</button>'
+    + '<button class="btn btn-ghost btn-xs" style="color:var(--text3)" onclick="document.getElementById(\'aged-out-restore\').remove()">✕</button>'
+    + '</div>';
+  banner.innerHTML = extra + current;
+}
+
 function checkOdAdvance() {
   const lastCheck = localStorage.getItem('last_od_check');
   const today = new Date().toISOString().split('T')[0];
@@ -8718,27 +8738,88 @@ async function authSignInWithCode() {
     if (!db) { document.getElementById('lock-pin-error').textContent = 'Need internet to sign in on a new device'; return; }
     document.getElementById('lock-pin-error').textContent = '⏳ Looking up your account...';
     try {
-      const { data, error } = await db.from('app_state').select('data').eq('id', 'agent_' + slugCode).single();
-      if (error || !data?.data) {
-        document.getElementById('lock-pin-error').textContent = 'Code not found. Check spelling — e.g. "Shadrack Agyei OCT25"';
+      // Try 1: Look up by slug key (new format)
+      let foundData = null;
+      let foundUuid = null;
+      const { data: slugData, error: slugErr } = await db.from('app_state').select('data').eq('id', 'agent_' + slugCode).single();
+      if (!slugErr && slugData?.data) {
+        foundData = slugData.data;
+      }
+
+      // Try 2: Look up via the 'main' migration stamp → agent_UUID key
+      let mainRowData = null;
+      if (!foundData) {
+        try {
+          const r = await db.from('app_state').select('data').eq('id','main').single();
+          mainRowData = r?.data?.data || null;
+        } catch {}
+        if (mainRowData?.migratedToAgent) {
+          const uuid = mainRowData.migratedToAgent;
+          try {
+            const r = await db.from('app_state').select('data').eq('id','agent_' + uuid).single();
+            if (r?.data?.data) { foundData = r.data.data; foundUuid = uuid; }
+          } catch {}
+        }
+      }
+
+      // Try 3: 'main' row IS the legacy app state (original format, no migration ran yet)
+      if (!foundData) {
+        if (!mainRowData) {
+          try {
+            const r = await db.from('app_state').select('data').eq('id','main').single();
+            mainRowData = r?.data?.data || null;
+          } catch {}
+        }
+        // Legacy main row has borrowers array directly
+        if (mainRowData?.borrowers) {
+          foundData = mainRowData;
+          foundUuid = 'legacy-main';
+        }
+      }
+
+      if (!foundData) {
+        document.getElementById('lock-pin-error').textContent = 'Account not found. If you are new, tap "New Agent" to sign up first.';
         return;
       }
-      const profile = data.data.agentProfile || {};
+
+      const profile = foundData.agentProfile || {};
+      // Migrate: link LoanBase code and save under personal slug key
+      if (foundUuid) {
+        foundData.agentProfile = { ...profile, lbCode: rawCode, id: slugCode, setupComplete: true };
+        // Mark skip-purge so first login after migration shows all data
+        foundData._skipPurgeOnce = true;
+        // Save under new personal key
+        await db.from('app_state').upsert({ id: 'agent_' + slugCode, data: foundData, updated_at: new Date().toISOString() });
+        // Stamp the main row so future devices know migration is done
+        await db.from('app_state').upsert({ id: 'main', data: { migratedToAgent: slugCode, pinHash: foundData._pinHash || null }, updated_at: new Date().toISOString() });
+        // Clean up old UUID key if applicable
+        if (foundUuid !== 'legacy-main') {
+          try { await db.from('app_state').delete().eq('id', 'agent_' + foundUuid); } catch {}
+          const oldLocal = localStorage.getItem('squevetrack_' + foundUuid);
+          if (oldLocal) { localStorage.setItem('squevetrack_' + slugCode, oldLocal); localStorage.removeItem('squevetrack_' + foundUuid); }
+        }
+        localStorage.setItem('squevetrack_' + slugCode, JSON.stringify(foundData));
+      }
+
       agent = {
         id: slugCode,
         name: profile.name || rawCode,
         stage: profile.stage || 'M2',
-        lbCode: profile.lbCode || rawCode,
+        lbCode: rawCode,
         supervisor: profile.supervisor || '',
-        pinHash: data.data._pinHash || null,
+        pinHash: foundData._pinHash || null,
         createdAt: profile.createdAt || new Date().toISOString(),
       };
-      // Cache locally on this device
-      localAgents.push(agent);
+      // Cache agent locally
+      const existingIdx = localAgents.findIndex(a => a.id === slugCode || a.id === foundUuid);
+      if (existingIdx >= 0) localAgents[existingIdx] = agent;
+      else localAgents.push(agent);
       saveAgentList(localAgents);
-      localStorage.setItem('squevetrack_' + slugCode, JSON.stringify(data.data));
+      if (!localStorage.getItem('squevetrack_' + slugCode)) {
+        localStorage.setItem('squevetrack_' + slugCode, JSON.stringify(foundData));
+      }
     } catch(e) {
-      document.getElementById('lock-pin-error').textContent = 'Sign in failed: ' + (e.message || 'check connection');
+      document.getElementById('lock-pin-error').textContent = 'Sign in failed: ' + (e.message || 'check your connection');
       return;
     }
   }
@@ -8915,11 +8996,12 @@ async function processPin() {
             });
           // Also store pinHash directly in the agent data row so cross-device sign-in can retrieve it
           const agentKey = 'agent_' + _pinTarget.id;
-          const { data: agentRow } = await db.from('app_state').select('data').eq('id', agentKey).single().catch(() => ({ data: null }));
-          if (agentRow?.data) {
+          let agentRow = null;
+          try { const r = await db.from('app_state').select('data').eq('id', agentKey).single(); agentRow = r.data; } catch {}
+          if (agentRow) {
             await db.from('app_state').upsert({
               id: agentKey,
-              data: { ...agentRow.data, _pinHash: hash },
+              data: { ...agentRow, _pinHash: hash },
               updated_at: new Date().toISOString()
             });
           }
@@ -9230,6 +9312,36 @@ function lockApp() {
   haptic('medium');
 }
 
+
+// ── Restore aged-out accounts back to active borrowers ────────
+function restoreAgedOut() {
+  if (!state.agedOutLog?.length) { toast('No aged-out accounts to restore', 'info'); return; }
+  const today = new Date().toISOString().split('T')[0];
+  const restored = [];
+  state.agedOutLog.forEach(a => {
+    if (!state.borrowers.find(b => b.id === a.id)) {
+      state.borrowers.push({
+        id: a.id, name: a.name, phone: a.phone || '',
+        loanType: a.loanType || 'LoanBase',
+        loanDue: a.loanDue || 0, principal: a.principal || Math.round((a.loanDue||0)*0.7),
+        amountPaid: a.amountPaid || 0,
+        startDate: today, // reset to today so they are Day 0 — agent can update
+        notes: 'Restored from aged-out log', promisedToPay: false,
+        isPaid: false, payLog: [], callLog: [], ptpBreached: false
+      });
+      restored.push(a.name);
+    }
+  });
+  if (restored.length) {
+    state.agedOutLog = [];
+    saveState();
+    renderCurrentPage();
+    toast(restored.length + ' accounts restored ✅', 'success');
+    haptic('pay');
+  } else {
+    toast('All aged-out accounts are already in your list', 'info');
+  }
+}
 
 function showSkeletons(show) {
   const kpiGrid = document.getElementById('kpi-grid');
