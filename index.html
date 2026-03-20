@@ -2079,13 +2079,22 @@ async function loadState() {
     try {
       state = migrateState(JSON.parse(raw));
       if (state.agentProfile?.setupComplete && !state._skipPurgeOnce) purgeAgedOut();
-      // Push local state up to Supabase if available
-      if (_db) _pushToSupabase();
+      // Only push to Supabase if this local state has real data (not empty)
+      if (_db && state.borrowers?.length) _pushToSupabase();
       return;
     } catch(e) {}
   }
 
-  // 3. First-ever load — use seed data
+  // 3. No data found anywhere — only create fresh if this is brand new signup
+  // If an agent is active (returning user), something went wrong — don't overwrite
+  if (_activeAgent?.id) {
+    // Returning agent but data missing — show error, do NOT create empty state
+    state = initState();
+    state.agentProfile = { name: _activeAgent.name, stage: _activeAgent.stage, id: _activeAgent.id, lbCode: _activeAgent.lbCode };
+    toast('Could not load your data — check your connection and try again', 'error');
+    return;
+  }
+  // Truly new agent (just finished onboarding) — safe to create
   state = initState();
   if (_db) _pushToSupabase();
   else saveState();
@@ -8810,14 +8819,13 @@ async function authSignInWithCode() {
         pinHash: foundData._pinHash || null,
         createdAt: profile.createdAt || new Date().toISOString(),
       };
-      // Cache agent locally
+      // Cache agent and data locally so loadState finds it in localStorage
       const existingIdx = localAgents.findIndex(a => a.id === slugCode || a.id === foundUuid);
       if (existingIdx >= 0) localAgents[existingIdx] = agent;
       else localAgents.push(agent);
       saveAgentList(localAgents);
-      if (!localStorage.getItem('squevetrack_' + slugCode)) {
-        localStorage.setItem('squevetrack_' + slugCode, JSON.stringify(foundData));
-      }
+      // Always cache the fetched data locally — this is what loadState will use
+      localStorage.setItem('squevetrack_' + slugCode, JSON.stringify(foundData));
     } catch(e) {
       document.getElementById('lock-pin-error').textContent = 'Sign in failed: ' + (e.message || 'check your connection');
       return;
@@ -9063,7 +9071,13 @@ function lockAddNewAgent() {
 
 // ── Load state for the just-unlocked agent ────────────────────
 async function loadStateForAgent() {
+  // Data was cached to localStorage during sign-in — loadState will find it there
+  // This prevents any risk of writing empty state to Supabase before data loads
   await loadState();
+  // Only push to Supabase if we actually have borrower data
+  if (state.borrowers?.length && _db) {
+    setTimeout(_pushToSupabase, 2000); // gentle resync after load
+  }
   updateBadges();
   checkOdAdvance();
   checkRankingGapAlert();
@@ -9072,6 +9086,7 @@ async function loadStateForAgent() {
   updateSidebarAgentInfo();
   renderDashboard();
   showSkeletons(false);
+  if (state.borrowers?.length) setTimeout(cleanupGhostRows, 3000);
 }
 
 // ── One-time migration from legacy key ───────────────────────
@@ -9343,6 +9358,28 @@ function restoreAgedOut() {
   }
 }
 
+// ── One-time cleanup: remove ghost empty rows this device created ──
+async function cleanupGhostRows() {
+  const db = initSupabase();
+  if (!db || !_activeAgent?.id) return;
+  // Only clean up rows we know are empty ghosts (no borrowers, created today)
+  // We do NOT touch agent_shadrack-agyei-oct25 if it has data
+  try {
+    const { data: rows } = await db.from('app_state').select('id, data').neq('id', 'agent_' + _activeAgent.id).neq('id', 'main');
+    if (!rows) return;
+    const ghostIds = rows
+      .filter(r => {
+        const d = r.data;
+        return (!d?.borrowers?.length) && r.id.startsWith('agent_') && r.id !== 'agent_' + _activeAgent.id;
+      })
+      .map(r => r.id);
+    if (ghostIds.length) {
+      await db.from('app_state').delete().in('id', ghostIds);
+      console.log('Cleaned up ghost rows:', ghostIds);
+    }
+  } catch {}
+}
+
 function showSkeletons(show) {
   const kpiGrid = document.getElementById('kpi-grid');
   if (!kpiGrid) return;
@@ -9425,36 +9462,37 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // ── AUTH GATE ─────────────────────────────────────────────
-  // Check for session (tab already unlocked this session)
-  const sessionAgent = getActiveAgentFromSession();
+  initPullToRefresh();
   const agentList = getAgentList();
 
-  if (sessionAgent && agentList.find(a => a.id === sessionAgent.id)) {
-    // Session still valid — restore agent and load their data
-    _activeAgent = agentList.find(a => a.id === sessionAgent.id);
-    _sessionUnlocked = true;
-    await loadState();
-    updateSidebarAgentInfo();
-    if (!state.agentProfile?.setupComplete) {
-      setTimeout(() => startOnboarding(false), 350);
+  // Rule 1: if any agents are registered on this device → always show lock screen first
+  // This handles refresh, tab re-open, new device — everything except brand new install
+  if (agentList.length > 0) {
+    // Check if session is still valid (same tab, not refreshed away)
+    const sessionAgent = getActiveAgentFromSession();
+    const matched = sessionAgent && agentList.find(a => a.id === sessionAgent.id);
+    if (matched) {
+      // Valid session — load straight to dashboard
+      _activeAgent = agentList.find(a => a.id === sessionAgent.id);
+      _sessionUnlocked = true;
+      await loadState();
+      updateSidebarAgentInfo();
+      updateBadges(); checkOdAdvance(); checkRankingGapAlert();
+      checkPtpBreaches(); updateDailyPill(); renderDashboard();
+    } else {
+      // No valid session — show lock screen (covers refresh, new tab, new device)
+      showLockScreen();
     }
-    updateBadges(); checkOdAdvance(); checkRankingGapAlert();
-    checkPtpBreaches(); updateDailyPill(); renderDashboard(); initPullToRefresh();
-  } else {
-    // No session — check for migration then show lock screen
-    const migrated = await migrateFromLegacyIfNeeded();
-    if (!migrated) {
-      // Fresh install or returning without session
-      if (agentList.length > 0) {
-        showLockScreen(); // existing agents — show lock
-      } else {
-        // Brand new install — go straight to onboarding
-        state = initState();
-        startOnboarding(false, true);
-      }
-    }
-    initPullToRefresh();
+    return;
   }
+
+  // Rule 2: no agents on this device — check if Supabase has legacy data to migrate
+  const migrated = await migrateFromLegacyIfNeeded();
+  if (migrated) return;
+
+  // Rule 3: truly fresh install — go to onboarding
+  state = initState();
+  startOnboarding(false, true);
 
   // Offline indicator
   function _setOfflineStatus(offline) {
