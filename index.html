@@ -993,7 +993,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
         <div id="sidebar-agent-stage" style="font-size:11px;margin-top:2px"></div>
       </div>
       <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px" onclick="navigate('health')">🔒 Data Health</button>
-      <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-top:4px" onclick="startOnboarding(true)">⚙️ Agent Setup / Switch Stage</button>
+      <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-top:4px" onclick="navigate('health')">⚙️ Settings</button>
     </div>
     <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
       <div style="font-size:8px;color:var(--text3);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:2px">Developed by</div>
@@ -1594,9 +1594,37 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
 
   <!-- DATA HEALTH PAGE (accessed from settings) -->
   <section class="page" id="page-health">
-    <div class="page-header"><div><div class="page-title">🔒 Data Health</div><div class="page-sub">Storage, sync, and data integrity</div></div></div>
-    <div class="card">
+    <div class="page-header"><div><div class="page-title">⚙️ Settings</div><div class="page-sub">Account, security and data</div></div></div>
+    <!-- Agent card -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-body" id="settings-agent-card"></div>
+    </div>
+    <!-- Settings groups -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-header"><span class="card-title">🔐 Security</span></div>
+      <div class="card-body" style="padding:0">
+        <button class="settings-row" onclick="settingsChangePin()">
+          <span>🔑 Change PIN</span><span class="settings-chevron">›</span>
+        </button>
+        <button class="settings-row" onclick="startOnboarding(true)">
+          <span>⚙️ Agent Setup / Switch Stage</span><span class="settings-chevron">›</span>
+        </button>
+        <button class="settings-row" onclick="settingsLockApp()">
+          <span>🔒 Lock App</span><span class="settings-chevron">›</span>
+        </button>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-header"><span class="card-title">📊 Data</span></div>
       <div class="card-body" id="health-body"></div>
+    </div>
+    <div class="card" style="margin-bottom:14px;border-color:rgba(239,68,68,0.3)">
+      <div class="card-header"><span class="card-title" style="color:var(--red)">⚠️ Danger Zone</span></div>
+      <div class="card-body" style="padding:0">
+        <button class="settings-row" style="color:var(--red)" onclick="settingsDeleteAccount()">
+          <span>🗑 Delete My Account &amp; All Data</span><span class="settings-chevron">›</span>
+        </button>
+      </div>
     </div>
   </section>
 
@@ -1680,7 +1708,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
       <div id="mdrawer-agent-name" style="font-size:12px;font-weight:700;color:var(--text)"></div>
       <div id="mdrawer-agent-stage" style="font-size:11px;margin-top:1px"></div>
     </div>
-    <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-bottom:6px" onclick="closeDrawer();startOnboarding(true)">⚙️ Agent Setup / Switch Stage</button>
+    <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-bottom:6px" onclick="closeDrawer();navigate('health')">⚙️ Settings</button>
     <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-bottom:8px;color:var(--red);border-color:rgba(239,68,68,0.3)" onclick="closeDrawer();lockApp()">🔒 Lock App</button>
     <div id="mdrawer-sync" style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
       <span style="width:7px;height:7px;border-radius:50%;background:var(--text3);display:inline-block" id="mdrawer-sync-dot"></span>
@@ -4944,7 +4972,7 @@ function renderCurrentPage() {
   else if (currentPage === 'segments') renderSegments();
   else if (currentPage === 'ranking') renderRanking();
   else if (currentPage === 'reports') renderReportsPage();
-  else if (currentPage === 'health') renderHealthPage();
+  else if (currentPage === 'health') renderSettingsPage();
 }
 
 function updateBadges() {
@@ -8676,8 +8704,11 @@ let _pinMode = 'unlock'; // 'unlock' | 'set' | 'confirm'
 let _pinSetBuffer = '';
 
 // ── Crypto helpers ────────────────────────────────────────────
-async function hashPin(pin, salt) {
-  const data = new TextEncoder().encode(pin + ':' + salt);
+const PIN_SALT = 'squevetrack-v1'; // fixed salt for all agents — simpler, consistent
+async function hashPin(pin, _ignored) {
+  // Use fixed app-level salt — agent ID changes between devices/migrations
+  // so we must use a constant salt for cross-device PIN verification
+  const data = new TextEncoder().encode(pin + ':' + PIN_SALT);
   const buf  = await crypto.subtle.digest('SHA-256', data);
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
@@ -8874,8 +8905,13 @@ function hideLockScreen() {
 function renderLockAgentList() {
   const el = document.getElementById('lock-agent-list');
   if (!el) return;
-  // Only show agents with a real name — filter out UUID/slug-only ghost entries
-  let agents = getAgentList().filter(a => a.lbCode || (a.name && !a.name.match(/^[0-9a-f-]{30,}$/)));
+  // Only show agents that have a pinHash set (meaning they've completed setup on this device)
+  // and have a real lbCode. Don't show anything pulled from Supabase scan until PIN confirmed.
+  const sessionId = getActiveAgentFromSession()?.id;
+  let agents = getAgentList().filter(a =>
+    a.pinHash &&
+    (a.lbCode || (a.name && !a.name.match(/^[0-9a-f-]{30,}$/)))
+  );
   if (!agents.length) {
     el.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:13px;padding:20px 0">No agents set up yet.<br>Add a new agent below.</div>';
     return;
@@ -9383,6 +9419,153 @@ async function cleanupGhostRows() {
   } catch {}
 }
 
+// ============================================================
+// SETTINGS PAGE
+// ============================================================
+function renderSettingsPage() {
+  // Agent card
+  const cardEl = document.getElementById('settings-agent-card');
+  if (cardEl && _activeAgent) {
+    const s = STAGE_CONFIG[_activeAgent.stage] || STAGE_CONFIG.M2;
+    cardEl.innerHTML =
+      '<div style="display:flex;align-items:center;gap:14px;padding:4px 0">'
+      + '<div style="width:52px;height:52px;border-radius:50%;background:' + s.colorHex + '22;color:' + s.colorHex + ';display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;font-family:var(--font-head);flex-shrink:0">'
+      + (_activeAgent.name||'A').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()
+      + '</div>'
+      + '<div style="flex:1;min-width:0">'
+      + '<div style="font-weight:700;font-size:15px">' + (_activeAgent.lbCode || _activeAgent.name) + '</div>'
+      + '<div style="font-size:12px;color:var(--text3);margin-top:2px">' + _activeAgent.name + '</div>'
+      + '<div style="margin-top:4px"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:' + s.colorHex + '22;color:' + s.colorHex + '">' + s.label + ' — ' + s.name + '</span></div>'
+      + '</div>'
+      + '<div style="font-size:9px;color:var(--text3);text-align:right;font-family:var(--font-mono)">'
+      + '<div style="margin-bottom:2px">Agent Code</div>'
+      + '<div style="color:var(--gold);font-weight:700;font-size:11px;user-select:all">' + (_activeAgent.lbCode || _activeAgent.id) + '</div>'
+      + '</div>'
+      + '</div>';
+  }
+  // Data health section
+  renderHealthPage();
+}
+
+function settingsChangePin() {
+  if (!_activeAgent) return;
+  _pinTarget = _activeAgent;
+  _pinBuffer = '';
+  _pinSetBuffer = '';
+  _pinMode = 'set';
+  document.getElementById('modal-title').textContent = '🔑 Change PIN';
+  document.getElementById('modal-body').innerHTML =
+    '<div style="text-align:center;padding:10px 0">'
+    + '<div style="font-size:13px;color:var(--text2);margin-bottom:20px">Enter a new 4-digit PIN for your account.</div>'
+    + '<div style="display:flex;justify-content:center;gap:12px;margin-bottom:20px">'
+    + '<div class="pin-dot" id="modal-pindot-0"></div><div class="pin-dot" id="modal-pindot-1"></div>'
+    + '<div class="pin-dot" id="modal-pindot-2"></div><div class="pin-dot" id="modal-pindot-3"></div>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto 12px">'
+    + [1,2,3,4,5,6,7,8,9,'',0,'⌫'].map((k,i) =>
+        i === 9 ? '<div></div>'
+        : '<button class="pin-key" data-spk="' + k + '" onclick="settingsPinPress(this.dataset.spk)">' + k + '</button>'
+      ).join('')
+    + '</div>'
+    + '<div id="settings-pin-error" style="font-size:12px;color:var(--red);min-height:18px"></div>'
+    + '</div>';
+  document.getElementById('modal-footer').innerHTML = '<button class="btn btn-ghost" onclick="closeModal();_pinBuffer=\'\';_pinSetBuffer=\'\';_pinMode=\'unlock\'">Cancel</button>';
+  document.getElementById('modal-overlay').classList.add('open');
+  haptic('light');
+}
+
+function settingsPinPress(k) {
+  const errorEl = document.getElementById('settings-pin-error');
+  if (k === '⌫') { _pinBuffer = _pinBuffer.slice(0,-1); }
+  else if (_pinBuffer.length < 4) { _pinBuffer += String(k); }
+  // Update modal dots
+  for (let i = 0; i < 4; i++) {
+    const d = document.getElementById('modal-pindot-' + i);
+    if (d) d.classList.toggle('filled', i < _pinBuffer.length);
+  }
+  if (_pinBuffer.length === 4) {
+    setTimeout(async () => {
+      if (_pinMode === 'set') {
+        _pinSetBuffer = _pinBuffer; _pinBuffer = ''; _pinMode = 'confirm';
+        if (errorEl) errorEl.textContent = 'Enter the same PIN again to confirm';
+        for (let i = 0; i < 4; i++) { const d = document.getElementById('modal-pindot-' + i); if(d) d.classList.remove('filled'); }
+      } else if (_pinMode === 'confirm') {
+        if (_pinBuffer === _pinSetBuffer) {
+          const hash = await hashPin(_pinBuffer, _pinTarget.id);
+          const agents = getAgentList();
+          const idx = agents.findIndex(a => a.id === _pinTarget.id);
+          if (idx >= 0) { agents[idx].pinHash = hash; saveAgentList(agents); _pinTarget.pinHash = hash; _activeAgent.pinHash = hash; }
+          // Update Supabase
+          const db = initSupabase();
+          if (db) {
+            try {
+              await db.from('app_state').upsert({ id: 'agent_' + _pinTarget.id, data: { ...state, _pinHash: hash }, updated_at: new Date().toISOString() });
+              await db.from('app_state').upsert({ id: 'main', data: { migratedToAgent: _pinTarget.id, pinHash: hash }, updated_at: new Date().toISOString() });
+            } catch {}
+          }
+          closeModal(); haptic('pay');
+          toast('PIN changed successfully ✅', 'success');
+          _pinBuffer = ''; _pinSetBuffer = ''; _pinMode = 'unlock';
+        } else {
+          _pinBuffer = ''; _pinSetBuffer = ''; _pinMode = 'set';
+          if (errorEl) errorEl.textContent = 'PINs did not match — try again';
+          for (let i = 0; i < 4; i++) { const d = document.getElementById('modal-pindot-' + i); if(d) d.classList.remove('filled'); }
+          haptic('medium');
+        }
+      }
+    }, 100);
+  }
+}
+
+function settingsLockApp() {
+  closeModal && closeModal();
+  lockApp();
+}
+
+function settingsDeleteAccount() {
+  if (!_activeAgent) return;
+  document.getElementById('modal-title').textContent = '🗑 Delete Account';
+  document.getElementById('modal-body').innerHTML =
+    '<div style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:14px">'
+    + 'This permanently deletes <strong>' + (_activeAgent.lbCode || _activeAgent.name) + '</strong> '
+    + 'and ALL your data from this device and Supabase.<br><br>'
+    + '<span style="color:var(--red);font-weight:600">This cannot be undone.</span></div>'
+    + '<div class="form-group"><label>Type DELETE to confirm</label>'
+    + '<input type="text" class="form-input" id="delete-confirm-input" placeholder="DELETE" autocomplete="off" '
+    + 'style="font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase"></div>';
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
+    + '<button class="btn btn-red" onclick="settingsConfirmDelete()">Delete My Account</button>';
+  document.getElementById('modal-overlay').classList.add('open');
+  haptic('light');
+}
+
+async function settingsConfirmDelete() {
+  const val = document.getElementById('delete-confirm-input')?.value.trim().toUpperCase();
+  if (val !== 'DELETE') { toast('Type DELETE to confirm', 'error'); haptic('medium'); return; }
+  closeModal();
+  const id = _activeAgent.id;
+  // Remove from localStorage
+  const agents = getAgentList().filter(a => a.id !== id);
+  saveAgentList(agents);
+  localStorage.removeItem('squevetrack_' + id);
+  // Remove from Supabase
+  const db = initSupabase();
+  if (db) {
+    try {
+      await db.from('app_state').delete().eq('id', 'agent_' + id);
+      await db.from('app_state').delete().eq('id', 'main');
+    } catch {}
+  }
+  clearSession();
+  _activeAgent = null;
+  _sessionUnlocked = false;
+  state = initState();
+  haptic('pay');
+  toast('Account deleted', 'success');
+  showLockScreen();
+}
+
 function showSkeletons(show) {
   const kpiGrid = document.getElementById('kpi-grid');
   if (!kpiGrid) return;
@@ -9585,7 +9768,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       var dt = Date.now() - touchStartTime;
       var drawer = document.getElementById('mobile-drawer');
       // Open: swipe right, starting near left edge, fast enough, not too vertical
-      if (dx > 55 && dy < 80 && dt < 350 && touchStartX < 120) {
+      const lockVisible = document.getElementById('lock-screen')?.style.display !== 'none';
+      if (!lockVisible && dx > 55 && dy < 80 && dt < 350 && touchStartX < 120) {
         if (drawer && !drawer.classList.contains('open')) {
           haptic('light');
           openDrawer();
@@ -9802,6 +9986,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 <style>
 .ob-dot { width:8px;height:8px;border-radius:50%;background:var(--border2);display:inline-block;transition:background 0.2s }
 .ob-dot.active { background:var(--gold) }
+.settings-row { display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px 20px;background:none;border:none;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;color:var(--text2);text-align:left;transition:background 0.1s;font-family:var(--font-body) }
+.settings-row:last-child { border-bottom:none }
+.settings-row:hover { background:var(--surface2) }
+.settings-chevron { color:var(--text3);font-size:18px;font-weight:300 }
 .ob-stage-card { background:var(--surface2);border:2px solid var(--border2);border-radius:10px;padding:14px 16px;cursor:pointer;transition:all 0.15s;text-align:left }
 .ob-stage-card.selected { border-color:var(--gold);background:rgba(232,160,32,0.06) }
 .ob-stage-card:hover { border-color:var(--gold) }
