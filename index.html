@@ -2093,20 +2093,21 @@ async function loadState() {
   }
   // Truly new agent (just finished onboarding) — safe to create
   state = initState();
-  if (_db) _pushToSupabase();
-  else saveState();
+  // Path 3 is only for brand-new agents completing onboarding
+  // Don't push here — obFinish/loadStateForAgent handles the first save
 }
 
 // ── Save: localStorage immediately + Supabase debounced ──────
 function saveState() {
-  // Always write to localStorage instantly (instant UI feedback)
+  if (!_activeAgent?.id) return; // never save without a signed-in agent
   localStorage.setItem(getStateKey(), JSON.stringify(state));
-  // Debounce cloud save (300ms) so rapid taps don't flood API
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(_pushToSupabase, 300);
 }
 
 async function _pushToSupabase() {
+  if (!_activeAgent?.id) return; // no agent — skip
+  if (!_db) _db = initSupabase();
   if (!_db) return;
   setSyncStatus('saving');
   try {
@@ -9627,17 +9628,15 @@ document.addEventListener('DOMContentLoaded', async () => {
           const lbCode = profile.lbCode || '';
           const hasBorrowers = (row.data?.borrowers?.length || 0) > 0;
           const hasName = !!(profile.name);
-          const isUuidKey = /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(row.id.replace('agent_',''));
-          const isSqvKey = row.id.replace('agent_','').startsWith('sqv-');
-
-          // Only restore agents with a real LoanBase code OR real borrower data
-          if (lbCode && hasName) {
-            validAgents.push({ row, profile, lbCode });
-          } else if (!hasBorrowers && (isUuidKey || isSqvKey)) {
-            // Ghost row — no real data, UUID or auto-generated key
+          const rawId = row.id.replace('agent_','');
+          const isUuidKey = /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(rawId);
+          const isSqvKey = rawId.startsWith('sqv-');
+          // Ghost: no name, no borrowers, and a UUID or auto-gen key
+          const isGhost = !hasName && !hasBorrowers && (isUuidKey || isSqvKey);
+          if (isGhost) {
             ghostIds.push(row.id);
-          } else if (hasBorrowers) {
-            // Has borrowers but no lbCode — keep it (Shadrack's migrated data case)
+          } else {
+            // Keep all slug keys, named agents, and agents with data
             validAgents.push({ row, profile, lbCode });
           }
         });
@@ -9679,9 +9678,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const migrated = await migrateFromLegacyIfNeeded();
   if (migrated) return;
 
-  // Rule 3: truly fresh install — go to onboarding
+  // Rule 3: no data found — show auth screen (Sign In / New Agent)
+  // Never go straight to onboarding; the user may just be on a new browser
   state = initState();
-  startOnboarding(false, true);
+  showLockScreen();
 
   // Offline indicator
   function _setOfflineStatus(offline) {
