@@ -8705,105 +8705,100 @@ function authShowTab(tab) {
 }
 
 async function authSignInWithCode() {
+  const errEl = document.getElementById('lock-pin-error');
   const rawCode = (document.getElementById('auth-code-input')?.value || '').trim();
-  if (!rawCode) { document.getElementById('lock-pin-error').textContent = 'Enter your Agent Code first'; return; }
-  const slugCode = slugifyCode(rawCode);  // "Shadrack Agyei OCT25" → "shadrack-agyei-oct25"
+  if (!rawCode) { errEl.textContent = 'Enter your Agent Code first'; return; }
+  const slugCode = slugifyCode(rawCode);
 
-  // Check if agent already cached on this device (match by slug OR raw lbCode)
+  // Already cached on this device?
   const localAgents = getAgentList();
   let agent = localAgents.find(a => a.id === slugCode || slugifyCode(a.lbCode || '') === slugCode);
+  if (agent) { errEl.textContent = ''; lockSelectAgent(agent.id); return; }
 
-  if (!agent) {
-    // Not on this device — look up from Supabase
-    const db = initSupabase();
-    if (!db) { document.getElementById('lock-pin-error').textContent = 'Need internet to sign in on a new device'; return; }
-    document.getElementById('lock-pin-error').textContent = '⏳ Looking up your account...';
+  // Not cached — fetch from Supabase
+  const db = initSupabase();
+  if (!db) { errEl.textContent = 'No internet connection'; return; }
+
+  errEl.textContent = '⏳ Looking up your account...';
+
+  // Helper: safe fetch of a single row — never throws, returns null on miss
+  async function fetchRow(id) {
     try {
-      // Try 1: Look up by slug key (new format)
-      let foundData = null;
-      let foundUuid = null;
-      const { data: slugData, error: slugErr } = await db.from('app_state').select('data').eq('id', 'agent_' + slugCode).single();
-      if (!slugErr && slugData?.data) {
-        foundData = slugData.data;
-      }
-
-      // Try 2: Look up via the 'main' migration stamp → agent_UUID key
-      let mainRowData = null;
-      if (!foundData) {
-        try {
-          const r = await db.from('app_state').select('data').eq('id','main').single();
-          mainRowData = r?.data?.data || null;
-        } catch {}
-        if (mainRowData?.migratedToAgent) {
-          const uuid = mainRowData.migratedToAgent;
-          try {
-            const r = await db.from('app_state').select('data').eq('id','agent_' + uuid).single();
-            if (r?.data?.data) { foundData = r.data.data; foundUuid = uuid; }
-          } catch {}
-        }
-      }
-
-      // Try 3: 'main' row IS the legacy app state (original format, no migration ran yet)
-      if (!foundData) {
-        if (!mainRowData) {
-          try {
-            const r = await db.from('app_state').select('data').eq('id','main').single();
-            mainRowData = r?.data?.data || null;
-          } catch {}
-        }
-        // Legacy main row has borrowers array directly
-        if (mainRowData?.borrowers) {
-          foundData = mainRowData;
-          foundUuid = 'legacy-main';
-        }
-      }
-
-      if (!foundData) {
-        document.getElementById('lock-pin-error').textContent = 'Account not found. If you are new, tap "New Agent" to sign up first.';
-        return;
-      }
-
-      const profile = foundData.agentProfile || {};
-      // Migrate: link LoanBase code and save under personal slug key
-      if (foundUuid) {
-        foundData.agentProfile = { ...profile, lbCode: rawCode, id: slugCode, setupComplete: true };
-        // Mark skip-purge so first login after migration shows all data
-        foundData._skipPurgeOnce = true;
-        // Save under new personal key
-        await db.from('app_state').upsert({ id: 'agent_' + slugCode, data: foundData, updated_at: new Date().toISOString() });
-        // Stamp the main row so future devices know migration is done
-        await db.from('app_state').upsert({ id: 'main', data: { migratedToAgent: slugCode, pinHash: foundData._pinHash || null }, updated_at: new Date().toISOString() });
-        // Clean up old UUID key if applicable
-        if (foundUuid !== 'legacy-main') {
-          try { await db.from('app_state').delete().eq('id', 'agent_' + foundUuid); } catch {}
-          const oldLocal = localStorage.getItem('squevetrack_' + foundUuid);
-          if (oldLocal) { localStorage.setItem('squevetrack_' + slugCode, oldLocal); localStorage.removeItem('squevetrack_' + foundUuid); }
-        }
-        localStorage.setItem('squevetrack_' + slugCode, JSON.stringify(foundData));
-      }
-
-      agent = {
-        id: slugCode,
-        name: profile.name || rawCode,
-        stage: profile.stage || 'M2',
-        lbCode: rawCode,
-        supervisor: profile.supervisor || '',
-        pinHash: foundData._pinHash || null,
-        createdAt: profile.createdAt || new Date().toISOString(),
-      };
-      // Cache agent and data locally so loadState finds it in localStorage
-      const existingIdx = localAgents.findIndex(a => a.id === slugCode || a.id === foundUuid);
-      if (existingIdx >= 0) localAgents[existingIdx] = agent;
-      else localAgents.push(agent);
-      saveAgentList(localAgents);
-      // Always cache the fetched data locally — this is what loadState will use
-      localStorage.setItem('squevetrack_' + slugCode, JSON.stringify(foundData));
-    } catch(e) {
-      document.getElementById('lock-pin-error').textContent = 'Sign in failed: ' + (e.message || 'check your connection');
-      return;
-    }
+      const res = await db.from('app_state').select('*').eq('id', id).maybeSingle();
+      return res?.data || null;
+    } catch { return null; }
   }
-  document.getElementById('lock-pin-error').textContent = '';
+
+  // Try 1: direct slug key  e.g. agent_shadrack-agyei-oct25
+  let row = await fetchRow('agent_' + slugCode);
+
+  // Try 2: all agent rows — find one where agentProfile.lbCode slugifies to match
+  if (!row) {
+    try {
+      const res = await db.from('app_state').select('*').like('id', 'agent_%');
+      const rows = res?.data || [];
+      row = rows.find(r => {
+        const lb = r.data?.agentProfile?.lbCode || '';
+        return lb && slugifyCode(lb) === slugCode;
+      }) || null;
+    } catch {}
+  }
+
+  // Try 3: main stamp points to a UUID row
+  if (!row) {
+    const mainRow = await fetchRow('main');
+    const pointed = mainRow?.data?.migratedToAgent;
+    if (pointed) row = await fetchRow('agent_' + pointed);
+  }
+
+  // Try 4: main row IS the legacy state (borrowers directly on main)
+  if (!row) {
+    const mainRow = await fetchRow('main');
+    if (mainRow?.data?.borrowers?.length) row = mainRow;
+  }
+
+  if (!row) {
+    errEl.textContent = 'Account not found — check your code or tap "New Agent" to sign up';
+    return;
+  }
+
+  // We have the row — extract data and pinHash
+  const foundData = row.data || {};
+  const foundId   = (row.id || 'main').replace('agent_', '');
+  const isMigration = foundId !== slugCode; // row was under a different key
+  const profile   = foundData.agentProfile || {};
+  const pinHash   = foundData._pinHash || row.pinHash || null;
+
+  // If the row was under a different key, migrate it now
+  if (isMigration) {
+    foundData.agentProfile = { ...profile, lbCode: rawCode, id: slugCode, setupComplete: true };
+    foundData._skipPurgeOnce = true;
+    try {
+      await db.from('app_state').upsert({ id: 'agent_' + slugCode, data: foundData, updated_at: new Date().toISOString() });
+      await db.from('app_state').upsert({ id: 'main', data: { migratedToAgent: slugCode, pinHash }, updated_at: new Date().toISOString() });
+      if (foundId !== 'main') {
+        await db.from('app_state').delete().eq('id', 'agent_' + foundId);
+      }
+    } catch {}
+  }
+
+  // Cache locally
+  localStorage.setItem('squevetrack_' + slugCode, JSON.stringify(foundData));
+
+  agent = {
+    id: slugCode,
+    lbCode: rawCode,
+    name: profile.name || rawCode,
+    stage: profile.stage || 'M2',
+    supervisor: profile.supervisor || '',
+    pinHash: pinHash,
+    createdAt: profile.createdAt || new Date().toISOString(),
+  };
+  const idx = localAgents.findIndex(a => a.id === slugCode);
+  if (idx >= 0) localAgents[idx] = agent; else localAgents.push(agent);
+  saveAgentList(localAgents);
+
+  errEl.textContent = '';
   lockSelectAgent(agent.id);
 }
 
