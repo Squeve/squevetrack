@@ -204,6 +204,8 @@ tr.row-swiped td:first-child div, tr.row-swiped td { transition: background 0.15
 .wa-queue-progress { background:var(--surface2); border-radius:5px; padding:8px 14px; font-size:12px; color:var(--text2); margin-bottom:8px; font-family:var(--font-mono); }
 
 /* PTP HUB TABS — pill style matching nav */
+.ptp-tab { padding:7px 16px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; color:var(--text3); background:transparent; border:none; transition:all 0.15s; }
+.ptp-tab.active { color:var(--gold); background:var(--surface); box-shadow:0 1px 4px rgba(0,0,0,0.15); }
 
 /* FORECAST COLLAPSIBLE on dashboard */
 #dash-forecast-section details summary { cursor:pointer; list-style:none; display:flex; align-items:center; justify-content:space-between; }
@@ -958,6 +960,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <span class="nav-icon">📅</span> Daily Log
   </div>
   <div class="nav-item" data-page="ptp">
+    <span class="nav-icon">🤝</span> PTP Hub
     <span class="nav-badge" id="badge-ptp" style="display:none;background:var(--purple)"></span>
   </div>
   <div class="nav-item" data-page="segments">
@@ -984,7 +987,13 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <div id="pending-sync-label" style="display:none;font-size:11px;margin-bottom:4px"></div>
     Data saves locally · syncs to cloud
     <div style="margin-top:8px">
-      <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px" onclick="navigate('health')">⚙️ Settings</button>
+      <div id="sidebar-agent-info" style="margin-bottom:8px;background:var(--surface2);border-radius:8px;padding:8px 10px;display:none">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px">Agent</div>
+        <div id="sidebar-agent-name" style="font-size:12px;font-weight:700;color:var(--text)"></div>
+        <div id="sidebar-agent-stage" style="font-size:11px;margin-top:2px"></div>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px" onclick="navigate('health')">🔒 Data Health</button>
+      <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-top:4px" onclick="startOnboarding(true)">⚙️ Agent Setup / Switch Stage</button>
     </div>
     <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
       <div style="font-size:8px;color:var(--text3);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:2px">Developed by</div>
@@ -1585,37 +1594,9 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
 
   <!-- DATA HEALTH PAGE (accessed from settings) -->
   <section class="page" id="page-health">
-    <div class="page-header"><div><div class="page-title">⚙️ Settings</div><div class="page-sub">Account, security and data</div></div></div>
-    <!-- Agent card -->
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-body" id="settings-agent-card"></div>
-    </div>
-    <!-- Settings groups -->
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-header"><span class="card-title">🔐 Security</span></div>
-      <div class="card-body" style="padding:0">
-        <button class="settings-row" onclick="settingsChangePin()">
-          <span>🔑 Change PIN</span><span class="settings-chevron">›</span>
-        </button>
-        <button class="settings-row" onclick="startOnboarding(true)">
-          <span>⚙️ Agent Setup / Switch Stage</span><span class="settings-chevron">›</span>
-        </button>
-        <button class="settings-row" onclick="settingsLockApp()">
-          <span>🔒 Lock App</span><span class="settings-chevron">›</span>
-        </button>
-      </div>
-    </div>
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-header"><span class="card-title">📊 Data</span></div>
+    <div class="page-header"><div><div class="page-title">🔒 Data Health</div><div class="page-sub">Storage, sync, and data integrity</div></div></div>
+    <div class="card">
       <div class="card-body" id="health-body"></div>
-    </div>
-    <div class="card" style="margin-bottom:14px;border-color:rgba(239,68,68,0.3)">
-      <div class="card-header"><span class="card-title" style="color:var(--red)">⚠️ Danger Zone</span></div>
-      <div class="card-body" style="padding:0">
-        <button class="settings-row" style="color:var(--red)" onclick="settingsDeleteAccount()">
-          <span>🗑 Delete My Account &amp; All Data</span><span class="settings-chevron">›</span>
-        </button>
-      </div>
     </div>
   </section>
 
@@ -1676,7 +1657,10 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
   <div class="mdrawer-item" data-page="log" onclick="navigateDrawer('log')">
     <span class="mdrawer-icon">📅</span> Daily Log
   </div>
-
+  <div class="mdrawer-item" data-page="ptp" onclick="navigateDrawer('ptp')">
+    <span class="mdrawer-icon">🤝</span> PTP Hub
+    <span class="mdrawer-badge" id="mbadge-ptp" style="display:none;background:var(--purple)"></span>
+  </div>
   <div class="mdrawer-item" data-page="segments" onclick="navigateDrawer('segments')">
     <span class="mdrawer-icon">🗂️</span> Segments
   </div>
@@ -1687,10 +1671,16 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <span class="mdrawer-icon">📋</span> Reports
   </div>
   <div class="mdrawer-item" data-page="health" onclick="navigateDrawer('health')">
-    <span class="mdrawer-icon">⚙️</span> Settings
+    <span class="mdrawer-icon">🔒</span> Data Health
   </div>
   <div class="mdrawer-footer">
-    <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-bottom:6px" onclick="closeDrawer();navigate('health')">⚙️ Settings</button>
+    <!-- Agent info in mobile drawer -->
+    <div id="mdrawer-agent-info" style="background:var(--surface2);border-radius:8px;padding:9px 11px;margin-bottom:10px;display:none">
+      <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px">Signed in as</div>
+      <div id="mdrawer-agent-name" style="font-size:12px;font-weight:700;color:var(--text)"></div>
+      <div id="mdrawer-agent-stage" style="font-size:11px;margin-top:1px"></div>
+    </div>
+    <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-bottom:6px" onclick="closeDrawer();startOnboarding(true)">⚙️ Agent Setup / Switch Stage</button>
     <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-bottom:8px;color:var(--red);border-color:rgba(239,68,68,0.3)" onclick="closeDrawer();lockApp()">🔒 Lock App</button>
     <div id="mdrawer-sync" style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
       <span style="width:7px;height:7px;border-radius:50%;background:var(--text3);display:inline-block" id="mdrawer-sync-dot"></span>
@@ -1709,7 +1699,24 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
 </nav>
 
   <!-- PTP REPORT -->
-
+  <section class="page" id="page-ptp">
+    <div class="page-header">
+      <div>
+        <div class="page-title">🤝 PTP Hub</div>
+        <div class="page-sub">Promises, outcomes &amp; supervisor reports</div>
+      </div>
+    </div>
+        <!-- Tab bar — sticky so it stays visible while scrolling -->
+    <div style="position:sticky;top:0;z-index:40;background:var(--bg);padding:4px 0 10px;margin:-4px 0 12px">
+      <div style="display:flex;gap:2px;background:var(--surface2);border-radius:8px;padding:3px;width:fit-content">
+        <button id="ptptab-report"  class="ptp-tab active" onclick="switchPtpHub('report')">🤝 Report</button>
+        <button id="ptptab-history" class="ptp-tab"        onclick="switchPtpHub('history')">📅 History</button>
+        <button id="ptptab-stats"   class="ptp-tab"        onclick="switchPtpHub('stats')">📊 Stats</button>
+      </div>
+    </div>
+    <!-- Content injected here by switchPtpHub -->
+    <div id="ptp-hub-content"></div>
+  </section>
 
 <!-- SUPABASE SETUP OVERLAY (shown if keys not configured) -->
 <div id="setup-overlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9000;align-items:center;justify-content:center;padding:20px">
@@ -1883,8 +1890,8 @@ const SEED_LOG = [
 // SUPABASE CONFIG
 // Paste your values from supabase.com > Project Settings > API
 // ============================================================
-const SUPABASE_URL = 'https://bbjpifrkzvzskwvjbhot.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJianBpZnJrenZ6c2t3dmpiaG90Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3OTMzMzMsImV4cCI6MjA4OTM2OTMzM30.DMB1T7njYCMRKvPXuUiy-8T0wYuYQSo0fn5c0TPQQes';
+const SUPABASE_URL  = 'https://bbjpifrkzvzskwvjbhot.supabase.co';
+const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJianBpZnJrenZ6c2t3dmpiaG90Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3OTMzMzMsImV4cCI6MjA4OTM2OTMzM30.DMB1T7njYCMRKvPXuUiy-8T0wYuYQSo0fn5c0TPQQes';
 const CLAUDE_API_KEY = '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';
 let _offlineQueue = [];   // actions queued while offline
 
@@ -2050,14 +2057,8 @@ async function loadState() {
         .single();
       if (!error && data && data.data) {
         state = migrateState(data.data);
-        if (state._skipPurgeOnce) {
-          delete state._skipPurgeOnce;
-          // Save immediately to clear the flag so next load purges normally
-          setTimeout(_pushToSupabase, 1000);
-        } else if (state.agentProfile?.setupComplete) {
-          purgeAgedOut();
-        }
         localStorage.setItem(getStateKey(), JSON.stringify(state)); // warm cache
+        purgeAgedOut();
         setSyncStatus('saved');
         showSkeletons(false);
         return;
@@ -2071,39 +2072,30 @@ async function loadState() {
   if (raw) {
     try {
       state = migrateState(JSON.parse(raw));
-      if (state.agentProfile?.setupComplete && !state._skipPurgeOnce) purgeAgedOut();
-      // Only push to Supabase if this local state has real data (not empty)
-      if (_db && state.borrowers?.length) _pushToSupabase();
+      purgeAgedOut();
+      // Push local state up to Supabase if available
+      if (_db) _pushToSupabase();
       return;
     } catch(e) {}
   }
 
-  // 3. No data found anywhere — only create fresh if this is brand new signup
-  // If an agent is active (returning user), something went wrong — don't overwrite
-  if (_activeAgent?.id) {
-    // Returning agent but data missing — show error, do NOT create empty state
-    state = initState();
-    state.agentProfile = { name: _activeAgent.name, stage: _activeAgent.stage, id: _activeAgent.id, lbCode: _activeAgent.lbCode };
-    toast('Could not load your data — check your connection and try again', 'error');
-    return;
-  }
-  // Truly new agent (just finished onboarding) — safe to create
+  // 3. First-ever load — use seed data
   state = initState();
-  // Path 3 is only for brand-new agents completing onboarding
-  // Don't push here — obFinish/loadStateForAgent handles the first save
+  purgeAgedOut();
+  if (_db) _pushToSupabase();
+  else saveState();
 }
 
 // ── Save: localStorage immediately + Supabase debounced ──────
 function saveState() {
-  if (!_activeAgent?.id) return; // never save without a signed-in agent
+  // Always write to localStorage instantly (instant UI feedback)
   localStorage.setItem(getStateKey(), JSON.stringify(state));
+  // Debounce cloud save (300ms) so rapid taps don't flood API
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(_pushToSupabase, 300);
 }
 
 async function _pushToSupabase() {
-  if (!_activeAgent?.id) return; // no agent — skip
-  if (!_db) _db = initSupabase();
   if (!_db) return;
   setSyncStatus('saving');
   try {
@@ -2578,7 +2570,6 @@ function renderDashboard() {
   checkRankingGapAlert();
   checkPtpBreaches();
   updateDailyPill();
-  showAgedOutBanner();
 }
 
 function chartColor(alpha) {
@@ -4931,13 +4922,14 @@ function renderCurrentPage() {
   else if (currentPage === 'log') renderLog();
   else if (currentPage === 'smsblast') renderSmsBlast();
   else if (currentPage === 'agedout') renderAgedOut();
-  else if (currentPage === 'ptp-history') { navigate('reports'); }
-  else if (currentPage === 'ptp-stats') { navigate('reports'); }
+  else if (currentPage === 'ptp') renderPtpHub();
+  else if (currentPage === 'ptp-history') { navigate('ptp'); }
+  else if (currentPage === 'ptp-stats') { navigate('ptp'); }
   else if (currentPage === 'forecast') { navigate('dashboard'); }
   else if (currentPage === 'segments') renderSegments();
   else if (currentPage === 'ranking') renderRanking();
   else if (currentPage === 'reports') renderReportsPage();
-  else if (currentPage === 'health') renderSettingsPage();
+  else if (currentPage === 'health') renderHealthPage();
 }
 
 function updateBadges() {
@@ -5204,20 +5196,6 @@ function openHistoryModal(id) {
 // ============================================================
 // OD AGE ADVANCE NOTIFICATION
 // ============================================================
-function showAgedOutBanner() {
-  if (!state.agedOutLog?.length) return;
-  const banner = document.getElementById('dash-alerts');
-  if (!banner) return;
-  const current = banner.innerHTML || '';
-  if (current.includes('aged-out-restore')) return; // already showing
-  const extra = '<div id="aged-out-restore" style="background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.25);border-left:4px solid var(--blue);border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
-    + '<div style="flex:1;font-size:13px;color:var(--text2)"><strong>' + state.agedOutLog.length + ' accounts</strong> moved to Aged Out since your last session.</div>'
-    + '<button class="btn btn-ghost btn-sm" style="color:var(--blue);border-color:rgba(96,165,250,0.4)" onclick="restoreAgedOut()">↩ Restore All</button>'
-    + '<button class="btn btn-ghost btn-xs" style="color:var(--text3)" onclick="document.getElementById(\'aged-out-restore\').remove()">✕</button>'
-    + '</div>';
-  banner.innerHTML = extra + current;
-}
-
 function checkOdAdvance() {
   const lastCheck = localStorage.getItem('last_od_check');
   const today = new Date().toISOString().split('T')[0];
@@ -5619,6 +5597,8 @@ function _buildPtpText(ptps, fmt, isEod) {
 }
 function renderPtp() {
   const ptps = getTodayPtps();
+  // Redirect to unified PTP Hub
+  if (typeof renderPtpHub === "function") { renderPtpHub(); return; }
   const groups = groupPtpsByTime(ptps);
 
   // Update badge
@@ -5765,6 +5745,8 @@ function openGlobalSearch() {
 // ============================================================
 function renderPtpHistory() {
   var el = document.getElementById('ptp-history-body');
+  // Redirect to unified PTP Hub
+  if (typeof renderPtpHub === "function") { switchPtpHub("history", true); return; }
   if (!el) return;
   // Build history from borrowers payLog + ptpOutcomes stored in state
   var history = state.ptpHistory || [];
@@ -5823,6 +5805,8 @@ function savePtpSnapshot() {
 // ============================================================
 function renderPtpStats() {
   var el = document.getElementById('ptp-stats-body');
+  // Redirect to unified PTP Hub
+  if (typeof renderPtpHub === "function") { switchPtpHub("stats", true); return; }
   if (!el) return;
   var history = state.ptpHistory || [];
   if (!history.length) {
@@ -7583,7 +7567,6 @@ function closeQuickPayBar() {
 // PULL TO REFRESH (item 13)
 // ============================================================
 function initPullToRefresh() {
-  if (!('ontouchstart' in window) || window.innerWidth >= 900) return; // desktop: skip
   const main = document.getElementById('main');
   if (!main) return;
   let startY = 0, pulling = false;
@@ -7943,45 +7926,38 @@ function filterBorrowersByDow(dowIdx) {
 // Batch WhatsApp with name personalisation
 let _currentDispatchIds = [];
 
-function waqRenderModal() {
-  const b = window._waqBorrowers[window._waqIdx];
-  if (!b) { closeModal(); toast('✅ Queue complete!', 'success'); haptic('pay'); return; }
-  const useGenerous = window._waqGenerous === true;
-  const firstName = b.name.split(' ')[0];
-  const msg = getSmsMessage(b, useGenerous).replace(b.name, firstName);
-  const total = window._waqBorrowers.length;
-  const idx = window._waqIdx;
-  document.getElementById('modal-title').textContent = '💬 WhatsApp Queue — ' + (idx+1) + ' of ' + total;
-  document.getElementById('modal-body').innerHTML =
-    // Mode toggle
-    '<div style="display:flex;gap:6px;margin-bottom:10px">'
-    + '<button id="waq-mode-full" onclick="window._waqGenerous=false;waqRenderModal()" style="flex:1;padding:7px;border-radius:8px;border:1.5px solid '+(useGenerous?'var(--border)':'var(--gold)')+';background:'+(useGenerous?'transparent':'rgba(232,160,32,0.1)')+';color:'+(useGenerous?'var(--text3)':'var(--gold)')+';font-size:12px;font-weight:700;cursor:pointer">Full Balance</button>'
-    + '<button id="waq-mode-gen" onclick="window._waqGenerous=true;waqRenderModal()" style="flex:1;padding:7px;border-radius:8px;border:1.5px solid '+(useGenerous?'var(--green)':'var(--border)')+';background:'+(useGenerous?'rgba(34,197,94,0.1)':'transparent')+';color:'+(useGenerous?'var(--green)':'var(--text3)')+';font-size:12px;font-weight:700;cursor:pointer">Generous Offer</button>'
-    + '</div>'
-    // Borrower card
-    + '<div style="background:rgba(37,211,102,0.08);border:1px solid rgba(37,211,102,0.25);border-radius:8px;padding:10px 12px;margin-bottom:10px">'
-    + '<div style="font-weight:700;font-size:13px">' + b.name + '</div>'
-    + '<div style="font-size:11px;color:var(--text3)">' + b.phone + ' · Day ' + getOdAge(b.startDate) + ' · Due: ' + fmtC(getDueToday(b)) + (useGenerous?' · Offer: '+fmtC(getGenerous(b)):'') + '</div>'
-    + '</div>'
-    // Message preview
-    + '<div style="background:var(--surface2);border-radius:8px;padding:10px;font-size:12px;color:var(--text2);line-height:1.7;max-height:150px;overflow-y:auto">' + msg.replace(/\n/g,'<br>') + '</div>'
-    + '<div style="font-size:10px;color:var(--text3);margin-top:6px;text-align:center">' + (idx+1) + ' of ' + total + ' · ' + (useGenerous?'Generous offer':'Full balance') + '</div>';
-  document.getElementById('modal-footer').innerHTML =
-    '<button class="btn btn-ghost" onclick="closeModal()">Stop</button>'
-    + '<button class="eod-btn" style="font-size:12px;padding:7px 16px" onclick="waqSendAndNext()">Open WA & Next ▶</button>';
-}
-
 function waqSendAndNext() {
   const b = window._waqBorrowers && window._waqBorrowers[window._waqIdx];
   if (!b) return;
-  const useGenerous = window._waqGenerous === true;
   const phone = b.phone.replace(/\s/g,'').replace('+','');
   const firstName = b.name.split(' ')[0];
-  const msg = getSmsMessage(b, useGenerous).replace(b.name, firstName);
+  const msg = getSmsMessage(b, false).replace(b.name, firstName);
   window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(msg), '_blank');
   haptic('light');
   window._waqIdx++;
-  setTimeout(waqRenderModal, 200);
+  if (window._waqIdx < window._waqBorrowers.length) {
+    setTimeout(function() {
+      const b2 = window._waqBorrowers[window._waqIdx];
+      if (!b2) { closeModal(); toast('✅ Queue complete!', 'success'); haptic('pay'); return; }
+      const phone2 = b2.phone.replace(/\s/g,'').replace('+','');
+      const firstName2 = b2.name.split(' ')[0];
+      const msg2 = getSmsMessage(b2, false).replace(b2.name, firstName2);
+      document.getElementById('modal-title').textContent = '💬 WhatsApp Queue — ' + (window._waqIdx+1) + ' of ' + window._waqBorrowers.length;
+      document.getElementById('modal-body').innerHTML =
+        '<div style="background:rgba(37,211,102,0.08);border:1px solid rgba(37,211,102,0.25);border-radius:8px;padding:10px 12px;margin-bottom:10px">'
+        + '<div style="font-weight:700;font-size:13px">' + b2.name + '</div>'
+        + '<div style="font-size:11px;color:var(--text3)">' + b2.phone + ' · Day ' + getOdAge(b2.startDate) + ' · ' + fmtC(getDueToday(b2)) + '</div></div>'
+        + '<div style="background:var(--surface2);border-radius:8px;padding:10px;font-size:12px;color:var(--text2);line-height:1.7;max-height:150px;overflow-y:auto">' + msg2.replace(/\n/g,'<br>') + '</div>'
+        + '<div style="font-size:10px;color:var(--text3);margin-top:6px;text-align:center">' + (window._waqIdx+1) + ' of ' + window._waqBorrowers.length + ' — personalised for ' + firstName2 + '</div>';
+      document.getElementById('modal-footer').innerHTML =
+        '<button class="btn btn-ghost" onclick="closeModal()">Stop Queue</button>'
+        + '<button class="eod-btn" style="font-size:12px;padding:7px 16px" onclick="waqSendAndNext()">Open WA & Next ▶</button>';
+    }, 200);
+  } else {
+    closeModal();
+    toast('✅ All ' + window._waqBorrowers.length + ' sent!', 'success');
+    haptic('pay');
+  }
 }
 
 function launchDispatchQueue() {
@@ -7996,8 +7972,6 @@ function startWaQueuePersonalised(ids) {
   // Store state globally so buttons can access
   window._waqBorrowers = borrowers;
   window._waqIdx = 0;
-  window._waqGenerous = false;
-  window._waqGenerous = false; // default: full balance
   function showQueueModal() {
     const b = window._waqBorrowers[window._waqIdx];
     if (!b) { toast('✅ All ' + ids.length + ' WhatsApps sent!', 'success'); haptic('pay'); return; }
@@ -8334,62 +8308,28 @@ function obGoToStep(n) {
   document.querySelectorAll('.ob-dot').forEach((d, i) => d.classList.toggle('active', i < n));
   // Pre-fill step 2 from existing profile
   if (n === 2 && state.agentProfile) {
-    const codeEl = document.getElementById('ob-agent-code');
     const nameEl = document.getElementById('ob-agent-name');
-    const supEl  = document.getElementById('ob-supervisor');
-    const tgtEl  = document.getElementById('ob-target');
-    if (codeEl && state.agentProfile.lbCode) codeEl.value = state.agentProfile.lbCode;
-    if (nameEl && state.agentProfile.name)   nameEl.value = state.agentProfile.name;
-    if (supEl  && state.agentProfile.supervisor) supEl.value = state.agentProfile.supervisor;
-    if (tgtEl  && state.agentProfile.target) tgtEl.value = state.agentProfile.target;
+    const supEl = document.getElementById('ob-supervisor');
+    const tgtEl = document.getElementById('ob-target');
+    if (nameEl && state.agentProfile.name) nameEl.value = state.agentProfile.name;
+    if (supEl && state.agentProfile.supervisor) supEl.value = state.agentProfile.supervisor;
+    if (tgtEl && state.agentProfile.target) tgtEl.value = state.agentProfile.target;
   }
 }
 
-async function obNextStep(n) {
+function obNextStep(n) {
   if (n === 2) {
     if (!_obSelectedStage) { toast('Please select a stage', 'error'); return; }
   }
   if (n === 3) {
-    const lbCode = document.getElementById('ob-agent-code')?.value.trim();
-    const name   = document.getElementById('ob-agent-name')?.value.trim();
-    const sup    = document.getElementById('ob-supervisor')?.value.trim();
-    const tgt    = parseFloat(document.getElementById('ob-target')?.value) || 0;
-    if (!lbCode) { toast('Please enter your LoanBase Agent Code', 'error'); return; }
-    if (!name)   { toast('Please enter your name', 'error'); return; }
-    const agentId = slugifyCode(lbCode);
-    // Check if this code already exists in Supabase → treat as sign-in
-    const db = initSupabase();
-    if (db) {
-      try {
-        const { data } = await db.from('app_state').select('data').eq('id', 'agent_' + agentId).single();
-        if (data?.data?.agentProfile) {
-          // Code already registered — sign in instead of creating duplicate
-          const existingAgents = getAgentList();
-          if (!existingAgents.find(a => a.id === agentId)) {
-            const ep = data.data.agentProfile;
-            existingAgents.push({ id: agentId, name: ep.name || name, stage: ep.stage || _obSelectedStage, pinHash: data.data._pinHash || null, createdAt: ep.createdAt || new Date().toISOString() });
-            saveAgentList(existingAgents);
-            localStorage.setItem('squevetrack_' + agentId, JSON.stringify(data.data));
-          }
-          // Close onboarding and go to PIN
-          const overlay = document.getElementById('onboarding-overlay');
-          if (overlay) overlay.style.display = 'none';
-          document.body.style.overflow = '';
-          _activeAgent = getAgentList().find(a => a.id === agentId);
-          _pinTarget = _activeAgent;
-          showLockScreen();
-          lockSelectAgent(agentId);
-          toast('This code is already registered — enter your PIN to sign in', 'success');
-          return;
-        }
-      } catch {}
-    }
-    // New agent — set the ID from their LoanBase code
-    if (!_activeAgent) _activeAgent = { id: agentId };
-    else _activeAgent.id = agentId;
+    const name = document.getElementById('ob-agent-name')?.value.trim();
+    const sup = document.getElementById('ob-supervisor')?.value.trim();
+    const tgt = parseFloat(document.getElementById('ob-target')?.value) || 0;
+    if (!name) { toast('Please enter your name', 'error'); return; }
+    // Save to profile
     state.agentProfile = {
       ...state.agentProfile,
-      id: agentId, lbCode: lbCode, name, supervisor: sup || '', target: tgt, stage: _obSelectedStage
+      name, supervisor: sup || '', target: tgt, stage: _obSelectedStage
     };
     state.monthlyTarget = tgt;
     saveState();
@@ -8580,20 +8520,21 @@ function obShowComplete(importedCount) {
 }
 
 function obFinish() {
-  const name   = state.agentProfile?.name || document.getElementById('ob-agent-name')?.value?.trim() || 'Agent';
-  const lbCode = state.agentProfile?.lbCode || document.getElementById('ob-agent-code')?.value?.trim() || '';
-  const agentId = lbCode ? slugifyCode(lbCode) : (_activeAgent?.id || genAgentId());
+  const name = state.agentProfile?.name || document.getElementById('ob-agent-name')?.value?.trim() || 'Agent';
   // Create or update agent record
   const agents = getAgentList();
-  let agentRecord = agents.find(a => a.id === agentId);
+  let agentRecord = agents.find(a => a.id === _activeAgent?.id);
   if (!agentRecord) {
-    agentRecord = { id: agentId, name, stage: _obSelectedStage, lbCode, createdAt: new Date().toISOString(), pinHash: null };
+    // New agent
+    const newId = _activeAgent?.id || genAgentId();
+    agentRecord = { id: newId, name, stage: _obSelectedStage, createdAt: new Date().toISOString(), pinHash: null };
     agents.push(agentRecord);
     saveAgentList(agents);
     _activeAgent = agentRecord;
     _pinTarget = agentRecord;
   } else {
-    agentRecord.name = name; agentRecord.stage = _obSelectedStage; agentRecord.lbCode = lbCode;
+    agentRecord.name = name;
+    agentRecord.stage = _obSelectedStage;
     saveAgentList(agents);
     _activeAgent = agentRecord;
   }
@@ -8628,7 +8569,31 @@ function obFinish() {
 }
 
 function updateSidebarAgentInfo() {
-  // Agent info now lives in Settings page only — no-op for sidebar/drawer
+  const profile = state.agentProfile || {};
+  const agent = _activeAgent || {};
+  const name = profile.name || agent.name || '';
+  const stage = profile.stage || agent.stage || 'M2';
+  const s = STAGE_CONFIG[stage] || STAGE_CONFIG.M2;
+
+  // Desktop sidebar
+  const info = document.getElementById('sidebar-agent-info');
+  const nameEl = document.getElementById('sidebar-agent-name');
+  const stageEl = document.getElementById('sidebar-agent-stage');
+  if (info) {
+    info.style.display = name ? 'block' : 'none';
+    if (nameEl) nameEl.textContent = name;
+    if (stageEl) stageEl.innerHTML = '<span style="color:' + s.colorHex + ';font-weight:700">' + s.label + '</span> — ' + s.name;
+  }
+
+  // Mobile drawer
+  const dinfo = document.getElementById('mdrawer-agent-info');
+  const dnameEl = document.getElementById('mdrawer-agent-name');
+  const dstageEl = document.getElementById('mdrawer-agent-stage');
+  if (dinfo) {
+    dinfo.style.display = name ? 'block' : 'none';
+    if (dnameEl) dnameEl.textContent = name;
+    if (dstageEl) dstageEl.innerHTML = '<span style="color:' + s.colorHex + ';font-weight:700">' + s.label + '</span> — ' + s.name;
+  }
 }
 
 
@@ -8641,25 +8606,17 @@ let _pinMode = 'unlock'; // 'unlock' | 'set' | 'confirm'
 let _pinSetBuffer = '';
 
 // ── Crypto helpers ────────────────────────────────────────────
-const PIN_SALT = 'squevetrack-v1'; // fixed salt for all agents — simpler, consistent
-async function hashPin(pin, _ignored) {
-  // Use fixed app-level salt — agent ID changes between devices/migrations
-  // so we must use a constant salt for cross-device PIN verification
-  const data = new TextEncoder().encode(pin + ':' + PIN_SALT);
+async function hashPin(pin, salt) {
+  const data = new TextEncoder().encode(pin + ':' + salt);
   const buf  = await crypto.subtle.digest('SHA-256', data);
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
-function slugifyCode(code) {
-  // "Shadrack Agyei OCT25" → "shadrack-agyei-oct25"
-  return code.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-}
 function genAgentId() {
-  // Fallback only — real ID comes from LoanBase code entered during onboarding
-  const chars = 'abcdefghjklmnpqrstuvwxyz23456789';
-  let code = 'sqv-';
-  for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
-  return code;
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random()*16|0;
+    return (c==='x'?r:(r&0x3|0x8)).toString(16);
+  });
 }
 
 // ── Agent list management ─────────────────────────────────────
@@ -8680,162 +8637,6 @@ function clearSession() {
 }
 
 // ── Show lock screen ──────────────────────────────────────────
-
-function authShowTab(tab) {
-  const signinPanel = document.getElementById('auth-signin-panel');
-  const signupPanel = document.getElementById('auth-signup-panel');
-  const tabSignin   = document.getElementById('tab-signin');
-  const tabSignup   = document.getElementById('tab-signup');
-  if (!signinPanel) return;
-  if (tab === 'signin') {
-    signinPanel.style.display = 'block';
-    signupPanel.style.display = 'none';
-    tabSignin.style.background = 'var(--surface)'; tabSignin.style.color = 'var(--gold)'; tabSignin.style.fontWeight = '700';
-    tabSignup.style.background = 'transparent'; tabSignup.style.color = 'var(--text3)'; tabSignup.style.fontWeight = '600';
-  } else {
-    signinPanel.style.display = 'none';
-    signupPanel.style.display = 'block';
-    tabSignin.style.background = 'transparent'; tabSignin.style.color = 'var(--text3)'; tabSignin.style.fontWeight = '600';
-    tabSignup.style.background = 'var(--surface)'; tabSignup.style.color = 'var(--gold)'; tabSignup.style.fontWeight = '700';
-  }
-}
-
-async function authSignInWithCode() {
-  const errEl = document.getElementById('lock-pin-error');
-  const rawCode = (document.getElementById('auth-code-input')?.value || '').trim();
-  if (!rawCode) { errEl.textContent = 'Enter your Agent Code first'; return; }
-  const slugCode = slugifyCode(rawCode);
-
-  // Already cached on this device?
-  const localAgents = getAgentList();
-  let agent = localAgents.find(a => a.id === slugCode || slugifyCode(a.lbCode || '') === slugCode);
-  if (agent) { errEl.textContent = ''; lockSelectAgent(agent.id); return; }
-
-  // Not cached — fetch from Supabase
-  const db = initSupabase();
-  if (!db) { errEl.textContent = 'No internet connection'; return; }
-
-  errEl.textContent = '⏳ Looking up your account...';
-
-  // Helper: safe fetch of a single row — never throws, returns null on miss
-  async function fetchRow(id) {
-    try {
-      const res = await db.from('app_state').select('*').eq('id', id).maybeSingle();
-      return res?.data || null;
-    } catch(e) {
-      console.warn('fetchRow error for', id, e?.message);
-      return null;
-    }
-  }
-
-  // Debug: confirm db is working at all
-  let dbOk = false;
-  try {
-    const test = await db.from('app_state').select('id').limit(1);
-    dbOk = !test.error;
-    console.log('DB test:', dbOk, test.error?.message, 'rows:', test.data?.length);
-  } catch(e) { console.warn('DB test threw:', e?.message); }
-
-  if (!dbOk) {
-    errEl.textContent = 'Cannot reach Supabase — check your internet connection';
-    return;
-  }
-
-  // Try 1: direct slug key  e.g. agent_shadrack-agyei-oct25
-  let row = await fetchRow('agent_' + slugCode);
-  console.log('Try1 agent_'+slugCode+':', row ? 'FOUND' : 'null');
-
-  // Try 2: scan all agent rows for matching lbCode
-  if (!row) {
-    try {
-      const res = await db.from('app_state').select('*').like('id', 'agent_%');
-      const rows = res?.data || [];
-      console.log('Try2 scan: found', rows.length, 'agent rows');
-      row = rows.find(r => {
-        const lb = r.data?.agentProfile?.lbCode || '';
-        return lb && slugifyCode(lb) === slugCode;
-      }) || null;
-      if (!row && rows.length > 0) {
-        // Show what we found for debugging
-        console.log('Try2 rows:', rows.map(r => r.id + ' lbCode=' + (r.data?.agentProfile?.lbCode||'none')));
-        // Last resort: if only one agent row exists, it's probably theirs
-        if (rows.length === 1) { row = rows[0]; console.log('Try2 fallback: using sole agent row', rows[0].id); }
-      }
-    } catch(e) { console.warn('Try2 error:', e?.message); }
-  }
-
-  // Try 3: main stamp → UUID row
-  if (!row) {
-    const mainRow = await fetchRow('main');
-    const pointed = mainRow?.data?.migratedToAgent;
-    console.log('Try3 main stamp points to:', pointed);
-    if (pointed) row = await fetchRow('agent_' + pointed);
-  }
-
-  // Try 4: main row IS legacy state
-  if (!row) {
-    const mainRow = await fetchRow('main');
-    if (mainRow?.data?.borrowers?.length) { row = mainRow; console.log('Try4: using legacy main row'); }
-  }
-
-  if (!row) {
-    errEl.textContent = 'Account not found — check your code or tap "New Agent" to sign up';
-    console.warn('All 4 lookups failed for slugCode:', slugCode);
-    return;
-  }
-  console.log('Found row:', row.id);
-
-  // We have the row — extract data and pinHash
-  const foundData = row.data || {};
-  const foundId   = (row.id || 'main').replace('agent_', '');
-  const isMigration = foundId !== slugCode; // row was under a different key
-  const profile   = foundData.agentProfile || {};
-  const pinHash   = foundData._pinHash || row.pinHash || null;
-
-  // If the row was under a different key, migrate it now
-  if (isMigration) {
-    foundData.agentProfile = { ...profile, lbCode: rawCode, id: slugCode, setupComplete: true };
-    foundData._skipPurgeOnce = true;
-    try {
-      await db.from('app_state').upsert({ id: 'agent_' + slugCode, data: foundData, updated_at: new Date().toISOString() });
-      await db.from('app_state').upsert({ id: 'main', data: { migratedToAgent: slugCode, pinHash }, updated_at: new Date().toISOString() });
-      if (foundId !== 'main') {
-        await db.from('app_state').delete().eq('id', 'agent_' + foundId);
-      }
-    } catch {}
-  }
-
-  // Cache locally
-  localStorage.setItem('squevetrack_' + slugCode, JSON.stringify(foundData));
-
-  agent = {
-    id: slugCode,
-    lbCode: rawCode,
-    name: profile.name || rawCode,
-    stage: profile.stage || 'M2',
-    supervisor: profile.supervisor || '',
-    pinHash: pinHash,
-    createdAt: profile.createdAt || new Date().toISOString(),
-  };
-  const idx = localAgents.findIndex(a => a.id === slugCode);
-  if (idx >= 0) localAgents[idx] = agent; else localAgents.push(agent);
-  saveAgentList(localAgents);
-
-  errEl.textContent = '';
-  lockSelectAgent(agent.id);
-}
-
-function authClearCode() {
-  const input = document.getElementById('auth-code-input');
-  if (input) input.value = '';
-  _pinTarget = null;
-  _pinBuffer = '';
-  updatePinDots();
-  document.getElementById('lock-pin-name').textContent = '';
-  document.getElementById('lock-pin-stage').textContent = '';
-  document.getElementById('lock-pin-error').textContent = '';
-}
-
 function showLockScreen() {
   const ls = document.getElementById('lock-screen');
   if (!ls) return;
@@ -8843,16 +8644,8 @@ function showLockScreen() {
   document.body.style.overflow = 'hidden';
   _pinBuffer = '';
   _pinTarget = null;
-  authShowTab('signin');
   renderLockAgentList();
-  document.getElementById('lock-pin-name').textContent = '';
-  document.getElementById('lock-pin-stage').textContent = '';
-  document.getElementById('lock-pin-error').textContent = '';
-  document.getElementById('lock-dev-override').style.display = 'none';
-  // If code input has value, pre-fill and try lookup
-  const codeInput = document.getElementById('auth-code-input');
-  if (codeInput) codeInput.value = '';
-  updatePinDots();
+  document.getElementById('lock-pin-section').style.display = 'none';
 }
 
 function hideLockScreen() {
@@ -8864,13 +8657,7 @@ function hideLockScreen() {
 function renderLockAgentList() {
   const el = document.getElementById('lock-agent-list');
   if (!el) return;
-  // Only show agents that have a pinHash set (meaning they've completed setup on this device)
-  // and have a real lbCode. Don't show anything pulled from Supabase scan until PIN confirmed.
-  const sessionId = getActiveAgentFromSession()?.id;
-  let agents = getAgentList().filter(a =>
-    a.pinHash &&
-    (a.lbCode || (a.name && !a.name.match(/^[0-9a-f-]{30,}$/)))
-  );
+  const agents = getAgentList();
   if (!agents.length) {
     el.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:13px;padding:20px 0">No agents set up yet.<br>Add a new agent below.</div>';
     return;
@@ -8884,12 +8671,12 @@ function renderLockAgentList() {
       <button class="lock-agent-card" style="width:100%;margin-bottom:0;${isActive?'border-color:var(--gold);':''}padding-right:48px" onclick="lockSelectAgent('${a.id}')">
         <div class="lock-agent-avatar" style="background:${col}22;color:${col}">${initials}</div>
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.lbCode || a.name}${isActive ? ' <span style="font-size:10px;color:var(--green);font-weight:600">● Active</span>' : ''}</div>
+          <div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.name}${isActive ? ' <span style="font-size:10px;color:var(--green);font-weight:600">● Active</span>' : ''}</div>
           <div style="font-size:11px;color:var(--text3)">${a.stage||'M2'} · ${a.stage ? (STAGE_CONFIG[a.stage]?.name||'') : 'Active Default'}</div>
         </div>
         <div style="font-size:18px;color:var(--text3)">${isActive ? '🔓' : '🔒'}</div>
       </button>
-      <button onclick="promptDeleteAgent('${a.id}','${a.name.replace(/'/g,"'")}',${isActive ? 'true' : 'false'})" title="Delete agent" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:6px;border-radius:6px;color:var(--text3);font-size:14px;transition:color 0.15s,background 0.15s;z-index:2" onmouseover="this.style.color='var(--red)';this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.color='var(--text3)';this.style.background='none'" title="Delete this agent">🗑</button>
+      <button onclick="promptDeleteAgent('${a.id}','${a.name.replace(/'/g,"\\'")}',${isActive})" title="Delete agent" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:6px;border-radius:6px;color:var(--text3);font-size:14px;transition:color 0.15s,background 0.15s;z-index:2" onmouseover="this.style.color='var(--red)';this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.color='var(--text3)';this.style.background='none'" title="Delete this agent">🗑</button>
     </div>`;
   }).join('');
 }
@@ -8956,7 +8743,6 @@ async function processPin() {
       setSessionAgent(_pinTarget);
       hideLockScreen();
       haptic('pay');
-      await migrateUuidToSlugIfNeeded(_activeAgent);
       await loadStateForAgent();
     } else {
       // Wrong PIN
@@ -8979,7 +8765,7 @@ async function processPin() {
   } else if (_pinMode === 'confirm') {
     if (_pinBuffer === _pinSetBuffer) {
       // PINs match — save
-      const hash = await hashPin(_pinBuffer, null); // fixed salt
+      const hash = await hashPin(_pinBuffer, _pinTarget.id);
       const agents = getAgentList();
       const idx = agents.findIndex(a => a.id === _pinTarget.id);
       if (idx >= 0) { agents[idx].pinHash = hash; saveAgentList(agents); _pinTarget.pinHash = hash; }
@@ -8998,17 +8784,6 @@ async function processPin() {
               data: { ...mainRow.data, pinHash: hash },
               updated_at: new Date().toISOString()
             });
-          // Also store pinHash directly in the agent data row so cross-device sign-in can retrieve it
-          const agentKey = 'agent_' + _pinTarget.id;
-          let agentRow = null;
-          try { const r = await db.from('app_state').select('data').eq('id', agentKey).single(); agentRow = r.data; } catch {}
-          if (agentRow) {
-            await db.from('app_state').upsert({
-              id: agentKey,
-              data: { ...agentRow, _pinHash: hash },
-              updated_at: new Date().toISOString()
-            });
-          }
           }
         } catch {}
       }
@@ -9067,13 +8842,7 @@ function lockAddNewAgent() {
 
 // ── Load state for the just-unlocked agent ────────────────────
 async function loadStateForAgent() {
-  // Data was cached to localStorage during sign-in — loadState will find it there
-  // This prevents any risk of writing empty state to Supabase before data loads
   await loadState();
-  // Only push to Supabase if we actually have borrower data
-  if (state.borrowers?.length && _db) {
-    setTimeout(_pushToSupabase, 2000); // gentle resync after load
-  }
   updateBadges();
   checkOdAdvance();
   checkRankingGapAlert();
@@ -9082,45 +8851,9 @@ async function loadStateForAgent() {
   updateSidebarAgentInfo();
   renderDashboard();
   showSkeletons(false);
-  if (state.borrowers?.length) setTimeout(cleanupGhostRows, 3000);
 }
 
 // ── One-time migration from legacy key ───────────────────────
-
-// ── One-time migration: UUID key → LoanBase slug key ────────
-// Called after PIN confirmed when agent has a lbCode but data still under old UUID
-async function migrateUuidToSlugIfNeeded(agent) {
-  if (!agent?.lbCode) return;
-  const slugKey = 'agent_' + slugifyCode(agent.lbCode);
-  const uuidKey = 'agent_' + (agent._oldUuid || '');
-  if (!agent._oldUuid || slugKey === uuidKey) return; // nothing to migrate
-
-  const db = initSupabase();
-  if (!db) return;
-  try {
-    // Read data from old UUID key
-    const { data: oldData } = await db.from('app_state').select('data').eq('id', uuidKey).single();
-    if (!oldData?.data) return;
-    // Write under new slug key
-    await db.from('app_state').upsert({ id: slugKey, data: { ...oldData.data, agentProfile: { ...oldData.data.agentProfile, id: agent.id, lbCode: agent.lbCode } }, updated_at: new Date().toISOString() });
-    // Delete old UUID key
-    await db.from('app_state').delete().eq('id', uuidKey);
-    // Update main stamp if it pointed to old UUID
-    const { data: mainRow } = await db.from('app_state').select('data').eq('id','main').single();
-    if (mainRow?.data?.migratedToAgent === agent._oldUuid) {
-      await db.from('app_state').upsert({ id:'main', data:{ ...mainRow.data, migratedToAgent: agent.id }, updated_at: new Date().toISOString() });
-    }
-    // Update local cache key
-    const oldLocal = localStorage.getItem('squevetrack_' + agent._oldUuid);
-    if (oldLocal) { localStorage.setItem('squevetrack_' + agent.id, oldLocal); localStorage.removeItem('squevetrack_' + agent._oldUuid); }
-    // Remove _oldUuid from agent record
-    const agents = getAgentList();
-    const idx = agents.findIndex(a => a.id === agent.id);
-    if (idx >= 0) { delete agents[idx]._oldUuid; saveAgentList(agents); }
-    toast('Account migrated to your LoanBase code ✅', 'success');
-  } catch(e) { console.warn('Migration error:', e); }
-}
-
 async function migrateFromLegacyIfNeeded() {
   // This device already has agents registered — nothing to do
   const localAgents = getAgentList();
@@ -9184,15 +8917,10 @@ async function migrateFromLegacyIfNeeded() {
     // ── First-ever migration on first device ──────────────────
     const agentId = genAgentId();
     const profile = legacyState.agentProfile || {};
-    // Check if agent has a LoanBase code in their profile
-    const lbCode = profile.lbCode || '';
-    const realId = lbCode ? slugifyCode(lbCode) : agentId;
     const agentRecord = {
-      id: realId,
-      _oldUuid: realId !== agentId ? agentId : undefined, // track UUID for migration
+      id: agentId,
       name: profile.name || 'Shadrack Agyei Arthur',
       stage: profile.stage || 'M2',
-      lbCode: lbCode,
       supervisor: profile.supervisor || '',
       pinHash: null,
       createdAt: new Date().toISOString(),
@@ -9240,7 +8968,6 @@ async function migrateFromLegacyIfNeeded() {
 
 // ── Agent deletion ────────────────────────────────────────────
 function promptDeleteAgent(id, name, isActive) {
-  isActive = (isActive === true || isActive === 'true');
   if (isActive) {
     // Can't delete active agent — must lock first
     document.getElementById('modal-title').textContent = '⚠️ Cannot Delete Active Session';
@@ -9325,206 +9052,6 @@ function lockApp() {
 }
 
 
-// ── Restore aged-out accounts back to active borrowers ────────
-function restoreAgedOut() {
-  if (!state.agedOutLog?.length) { toast('No aged-out accounts to restore', 'info'); return; }
-  const today = new Date().toISOString().split('T')[0];
-  const restored = [];
-  state.agedOutLog.forEach(a => {
-    if (!state.borrowers.find(b => b.id === a.id)) {
-      state.borrowers.push({
-        id: a.id, name: a.name, phone: a.phone || '',
-        loanType: a.loanType || 'LoanBase',
-        loanDue: a.loanDue || 0, principal: a.principal || Math.round((a.loanDue||0)*0.7),
-        amountPaid: a.amountPaid || 0,
-        startDate: today, // reset to today so they are Day 0 — agent can update
-        notes: 'Restored from aged-out log', promisedToPay: false,
-        isPaid: false, payLog: [], callLog: [], ptpBreached: false
-      });
-      restored.push(a.name);
-    }
-  });
-  if (restored.length) {
-    state.agedOutLog = [];
-    saveState();
-    renderCurrentPage();
-    toast(restored.length + ' accounts restored ✅', 'success');
-    haptic('pay');
-  } else {
-    toast('All aged-out accounts are already in your list', 'info');
-  }
-}
-
-// ── One-time cleanup: remove ghost empty rows this device created ──
-async function cleanupGhostRows() {
-  const db = initSupabase();
-  if (!db || !_activeAgent?.id) return;
-  try {
-    const { data: rows } = await db.from('app_state').select('id, data')
-      .like('id', 'agent_%')
-      .neq('id', 'agent_' + _activeAgent.id);
-    if (!rows) return;
-    const ghostIds = rows
-      .filter(r => {
-        const hasBorrowers = (r.data?.borrowers?.length || 0) > 0;
-        const hasLbCode = !!(r.data?.agentProfile?.lbCode);
-        // Delete if: no borrowers AND no lbCode (clearly a ghost)
-        return !hasBorrowers && !hasLbCode;
-      })
-      .map(r => r.id);
-    if (ghostIds.length) {
-      await db.from('app_state').delete().in('id', ghostIds);
-    }
-  } catch {}
-}
-
-// ============================================================
-// SETTINGS PAGE
-// ============================================================
-function renderSettingsPage() {
-  // Agent card
-  const cardEl = document.getElementById('settings-agent-card');
-  if (cardEl && _activeAgent) {
-    const s = STAGE_CONFIG[_activeAgent.stage] || STAGE_CONFIG.M2;
-    cardEl.innerHTML =
-      '<div style="display:flex;align-items:center;gap:14px;padding:4px 0">'
-      + '<div style="width:52px;height:52px;border-radius:50%;background:' + s.colorHex + '22;color:' + s.colorHex + ';display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;font-family:var(--font-head);flex-shrink:0">'
-      + (_activeAgent.name||'A').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()
-      + '</div>'
-      + '<div style="flex:1;min-width:0">'
-      + '<div style="font-weight:700;font-size:15px">' + (_activeAgent.lbCode || _activeAgent.name) + '</div>'
-      + '<div style="font-size:12px;color:var(--text3);margin-top:2px">' + _activeAgent.name + '</div>'
-      + '<div style="margin-top:4px"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:' + s.colorHex + '22;color:' + s.colorHex + '">' + s.label + ' — ' + s.name + '</span></div>'
-      + '</div>'
-      + '<div style="font-size:9px;color:var(--text3);text-align:right;font-family:var(--font-mono)">'
-      + '<div style="margin-bottom:2px">Agent Code</div>'
-      + '<div style="color:var(--gold);font-weight:700;font-size:11px;user-select:all">' + (_activeAgent.lbCode || _activeAgent.id) + '</div>'
-      + '</div>'
-      + '</div>';
-  }
-  // Data health section
-  renderHealthPage();
-}
-
-function settingsChangePin() {
-  if (!_activeAgent) return;
-  _pinTarget = _activeAgent;
-  _pinBuffer = '';
-  _pinSetBuffer = '';
-  _pinMode = 'set';
-  document.getElementById('modal-title').textContent = '🔑 Change PIN';
-  document.getElementById('modal-body').innerHTML =
-    '<div style="text-align:center;padding:10px 0">'
-    + '<div style="font-size:13px;color:var(--text2);margin-bottom:20px">Enter a new 4-digit PIN for your account.</div>'
-    + '<div style="display:flex;justify-content:center;gap:12px;margin-bottom:20px">'
-    + '<div class="pin-dot" id="modal-pindot-0"></div><div class="pin-dot" id="modal-pindot-1"></div>'
-    + '<div class="pin-dot" id="modal-pindot-2"></div><div class="pin-dot" id="modal-pindot-3"></div>'
-    + '</div>'
-    + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto 12px">'
-    + [1,2,3,4,5,6,7,8,9,'',0,'⌫'].map((k,i) =>
-        i === 9 ? '<div></div>'
-        : '<button class="pin-key" data-spk="' + k + '" onclick="settingsPinPress(this.dataset.spk)">' + k + '</button>'
-      ).join('')
-    + '</div>'
-    + '<div id="settings-pin-error" style="font-size:12px;color:var(--red);min-height:18px"></div>'
-    + '</div>';
-  document.getElementById('modal-footer').innerHTML = '<button class="btn btn-ghost" onclick="closeModal();_pinBuffer=\'\';_pinSetBuffer=\'\';_pinMode=\'unlock\'">Cancel</button>';
-  document.getElementById('modal-overlay').classList.add('open');
-  haptic('light');
-}
-
-function settingsPinPress(k) {
-  const errorEl = document.getElementById('settings-pin-error');
-  if (k === '⌫') { _pinBuffer = _pinBuffer.slice(0,-1); }
-  else if (_pinBuffer.length < 4) { _pinBuffer += String(k); }
-  // Update modal dots
-  for (let i = 0; i < 4; i++) {
-    const d = document.getElementById('modal-pindot-' + i);
-    if (d) d.classList.toggle('filled', i < _pinBuffer.length);
-  }
-  if (_pinBuffer.length === 4) {
-    setTimeout(async () => {
-      if (_pinMode === 'set') {
-        _pinSetBuffer = _pinBuffer; _pinBuffer = ''; _pinMode = 'confirm';
-        if (errorEl) errorEl.textContent = 'Enter the same PIN again to confirm';
-        for (let i = 0; i < 4; i++) { const d = document.getElementById('modal-pindot-' + i); if(d) d.classList.remove('filled'); }
-      } else if (_pinMode === 'confirm') {
-        if (_pinBuffer === _pinSetBuffer) {
-          const hash = await hashPin(_pinBuffer, _pinTarget.id);
-          const agents = getAgentList();
-          const idx = agents.findIndex(a => a.id === _pinTarget.id);
-          if (idx >= 0) { agents[idx].pinHash = hash; saveAgentList(agents); _pinTarget.pinHash = hash; _activeAgent.pinHash = hash; }
-          // Update Supabase
-          const db = initSupabase();
-          if (db) {
-            try {
-              await db.from('app_state').upsert({ id: 'agent_' + _pinTarget.id, data: { ...state, _pinHash: hash }, updated_at: new Date().toISOString() });
-              await db.from('app_state').upsert({ id: 'main', data: { migratedToAgent: _pinTarget.id, pinHash: hash }, updated_at: new Date().toISOString() });
-            } catch {}
-          }
-          closeModal(); haptic('pay');
-          toast('PIN changed successfully ✅', 'success');
-          _pinBuffer = ''; _pinSetBuffer = ''; _pinMode = 'unlock';
-        } else {
-          _pinBuffer = ''; _pinSetBuffer = ''; _pinMode = 'set';
-          if (errorEl) errorEl.textContent = 'PINs did not match — try again';
-          for (let i = 0; i < 4; i++) { const d = document.getElementById('modal-pindot-' + i); if(d) d.classList.remove('filled'); }
-          haptic('medium');
-        }
-      }
-    }, 100);
-  }
-}
-
-function settingsLockApp() {
-  closeModal && closeModal();
-  lockApp();
-}
-
-function settingsDeleteAccount() {
-  if (!_activeAgent) return;
-  document.getElementById('modal-title').textContent = '🗑 Delete Account';
-  document.getElementById('modal-body').innerHTML =
-    '<div style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:14px">'
-    + 'This permanently deletes <strong>' + (_activeAgent.lbCode || _activeAgent.name) + '</strong> '
-    + 'and ALL your data from this device and Supabase.<br><br>'
-    + '<span style="color:var(--red);font-weight:600">This cannot be undone.</span></div>'
-    + '<div class="form-group"><label>Type DELETE to confirm</label>'
-    + '<input type="text" class="form-input" id="delete-confirm-input" placeholder="DELETE" autocomplete="off" '
-    + 'style="font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase"></div>';
-  document.getElementById('modal-footer').innerHTML =
-    '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
-    + '<button class="btn btn-red" onclick="settingsConfirmDelete()">Delete My Account</button>';
-  document.getElementById('modal-overlay').classList.add('open');
-  haptic('light');
-}
-
-async function settingsConfirmDelete() {
-  const val = document.getElementById('delete-confirm-input')?.value.trim().toUpperCase();
-  if (val !== 'DELETE') { toast('Type DELETE to confirm', 'error'); haptic('medium'); return; }
-  closeModal();
-  const id = _activeAgent.id;
-  // Remove from localStorage
-  const agents = getAgentList().filter(a => a.id !== id);
-  saveAgentList(agents);
-  localStorage.removeItem('squevetrack_' + id);
-  // Remove from Supabase
-  const db = initSupabase();
-  if (db) {
-    try {
-      await db.from('app_state').delete().eq('id', 'agent_' + id);
-      await db.from('app_state').delete().eq('id', 'main');
-    } catch {}
-  }
-  clearSession();
-  _activeAgent = null;
-  _sessionUnlocked = false;
-  state = initState();
-  haptic('pay');
-  toast('Account deleted', 'success');
-  showLockScreen();
-}
-
 function showSkeletons(show) {
   const kpiGrid = document.getElementById('kpi-grid');
   if (!kpiGrid) return;
@@ -9607,99 +9134,36 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // ── AUTH GATE ─────────────────────────────────────────────
-  initPullToRefresh();
+  // Check for session (tab already unlocked this session)
+  const sessionAgent = getActiveAgentFromSession();
   const agentList = getAgentList();
 
-  // Rule 1: if any agents are registered on this device → always show lock screen first
-  // This handles refresh, tab re-open, new device — everything except brand new install
-  if (agentList.length > 0) {
-    // Check if session is still valid (same tab, not refreshed away)
-    const sessionAgent = getActiveAgentFromSession();
-    const matched = sessionAgent && agentList.find(a => a.id === sessionAgent.id);
-    if (matched) {
-      // Valid session — load straight to dashboard
-      _activeAgent = agentList.find(a => a.id === sessionAgent.id);
-      _sessionUnlocked = true;
-      await loadState();
-      updateSidebarAgentInfo();
-      updateBadges(); checkOdAdvance(); checkRankingGapAlert();
-      checkPtpBreaches(); updateDailyPill(); renderDashboard();
-    } else {
-      // No valid session — show lock screen (covers refresh, new tab, new device)
-      showLockScreen();
+  if (sessionAgent && agentList.find(a => a.id === sessionAgent.id)) {
+    // Session still valid — restore agent and load their data
+    _activeAgent = agentList.find(a => a.id === sessionAgent.id);
+    _sessionUnlocked = true;
+    await loadState();
+    updateSidebarAgentInfo();
+    if (!state.agentProfile?.setupComplete) {
+      setTimeout(() => startOnboarding(false), 350);
     }
-    return;
-  }
-
-  // Rule 2: no agents on this device — check Supabase for ANY existing agent
-  // This is the new-browser case: localStorage empty but data exists on Supabase
-  const db = initSupabase();
-  if (db) {
-    try {
-      const { data: rows } = await db.from('app_state').select('id, data').like('id', 'agent_%');
-      if (rows && rows.length > 0) {
-        const ghostIds = [];
-        const validAgents = [];
-
-        rows.forEach(row => {
-          const profile = row.data?.agentProfile || {};
-          const lbCode = profile.lbCode || '';
-          const hasBorrowers = (row.data?.borrowers?.length || 0) > 0;
-          const hasName = !!(profile.name);
-          const rawId = row.id.replace('agent_','');
-          const isUuidKey = /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(rawId);
-          const isSqvKey = rawId.startsWith('sqv-');
-          // Ghost: no name, no borrowers, and a UUID or auto-gen key
-          const isGhost = !hasName && !hasBorrowers && (isUuidKey || isSqvKey);
-          if (isGhost) {
-            ghostIds.push(row.id);
-          } else {
-            // Keep all slug keys, named agents, and agents with data
-            validAgents.push({ row, profile, lbCode });
-          }
-        });
-
-        // Auto-delete ghost rows silently
-        if (ghostIds.length) {
-          try { await db.from('app_state').delete().in('id', ghostIds); } catch {}
-        }
-
-        if (validAgents.length > 0) {
-          const existingList = getAgentList();
-          validAgents.forEach(({ row, profile, lbCode }) => {
-            const agentId = row.id.replace('agent_', '');
-            if (!existingList.find(a => a.id === agentId)) {
-              existingList.push({
-                id: agentId,
-                name: profile.name || (lbCode || agentId),
-                stage: profile.stage || 'M2',
-                lbCode: lbCode,
-                pinHash: row.data?._pinHash || null,
-                createdAt: profile.createdAt || new Date().toISOString(),
-              });
-            }
-          });
-          saveAgentList(existingList);
-          // Cache data locally
-          validAgents.forEach(({ row }) => {
-            const agentId = row.id.replace('agent_', '');
-            localStorage.setItem('squevetrack_' + agentId, JSON.stringify(row.data));
-          });
-          showLockScreen();
-          return;
-        }
+    updateBadges(); checkOdAdvance(); checkRankingGapAlert();
+    checkPtpBreaches(); updateDailyPill(); renderDashboard(); initPullToRefresh();
+  } else {
+    // No session — check for migration then show lock screen
+    const migrated = await migrateFromLegacyIfNeeded();
+    if (!migrated) {
+      // Fresh install or returning without session
+      if (agentList.length > 0) {
+        showLockScreen(); // existing agents — show lock
+      } else {
+        // Brand new install — go straight to onboarding
+        state = initState();
+        startOnboarding(false, true);
       }
-    } catch {}
+    }
+    initPullToRefresh();
   }
-
-  // Check legacy migration just in case
-  const migrated = await migrateFromLegacyIfNeeded();
-  if (migrated) return;
-
-  // Rule 3: no data found — show auth screen (Sign In / New Agent)
-  // Never go straight to onboarding; the user may just be on a new browser
-  state = initState();
-  showLockScreen();
 
   // Offline indicator
   function _setOfflineStatus(offline) {
@@ -9726,8 +9190,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       var dt = Date.now() - touchStartTime;
       var drawer = document.getElementById('mobile-drawer');
       // Open: swipe right, starting near left edge, fast enough, not too vertical
-      const lockVisible = document.getElementById('lock-screen')?.style.display !== 'none';
-      if (!lockVisible && dx > 55 && dy < 80 && dt < 350 && touchStartX < 120) {
+      if (dx > 55 && dy < 80 && dt < 350 && touchStartX < 120) {
         if (drawer && !drawer.classList.contains('open')) {
           haptic('light');
           openDrawer();
@@ -9868,14 +9331,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     <div id="ob-step-2" style="display:none">
       <div style="text-align:center;margin-bottom:24px">
         <div style="font-family:var(--font-head);font-size:22px;font-weight:800;color:var(--text)">Your profile</div>
-        <div style="font-size:13px;color:var(--text3);margin-top:4px">Used to identify you across all devices</div>
+        <div style="font-size:13px;color:var(--text3);margin-top:4px">Used in reports and EOD summaries</div>
       </div>
-      <div class="form-group">
-        <label>LoanBase Agent Code <span style="color:var(--red)">*</span></label>
-        <input type="text" class="form-input" id="ob-agent-code" placeholder="e.g. Shadrack Agyei OCT25" style="font-weight:600">
-        <div style="font-size:11px;color:var(--text3);margin-top:4px">This is your unique LoanBase identity. Use the exact code assigned to you — this is how you sign in on any device.</div>
-      </div>
-      <div class="form-group"><label>Your Full Name</label><input type="text" class="form-input" id="ob-agent-name" placeholder="e.g. Shadrack Agyei Arthur"></div>
+      <div class="form-group"><label>Your Name</label><input type="text" class="form-input" id="ob-agent-name" placeholder="e.g. Shadrack Agyei Arthur"></div>
       <div class="form-group"><label>Supervisor Name</label><input type="text" class="form-input" id="ob-supervisor" placeholder="e.g. Nana Osae Emmanuel"></div>
       <div class="form-group"><label>Monthly Collection Target (₵)</label><input type="number" class="form-input" id="ob-target" placeholder="e.g. 50000" min="0"></div>
       <div style="display:flex;gap:10px">
@@ -9944,10 +9402,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 <style>
 .ob-dot { width:8px;height:8px;border-radius:50%;background:var(--border2);display:inline-block;transition:background 0.2s }
 .ob-dot.active { background:var(--gold) }
-.settings-row { display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px 20px;background:none;border:none;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;color:var(--text2);text-align:left;transition:background 0.1s;font-family:var(--font-body) }
-.settings-row:last-child { border-bottom:none }
-.settings-row:hover { background:var(--surface2) }
-.settings-chevron { color:var(--text3);font-size:18px;font-weight:300 }
 .ob-stage-card { background:var(--surface2);border:2px solid var(--border2);border-radius:10px;padding:14px 16px;cursor:pointer;transition:all 0.15s;text-align:left }
 .ob-stage-card.selected { border-color:var(--gold);background:rgba(232,160,32,0.06) }
 .ob-stage-card:hover { border-color:var(--gold) }
@@ -9956,81 +9410,49 @@ document.addEventListener('DOMContentLoaded', async () => {
 <!-- LOCK SCREEN                                                  -->
 <!-- ============================================================ -->
 <div id="lock-screen" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);overflow-y:auto">
-  <div style="max-width:420px;margin:0 auto;padding:40px 20px 80px;min-height:100vh;display:flex;flex-direction:column;align-items:center">
+  <div style="max-width:400px;margin:0 auto;padding:40px 20px 80px;min-height:100vh;display:flex;flex-direction:column;align-items:center">
 
-    <!-- Logo -->
-    <div style="font-family:var(--font-head);font-size:30px;font-weight:800;color:var(--gold);margin-bottom:4px;letter-spacing:-0.5px">SqueveTrack</div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:32px">LoanBase Recovery Suite</div>
+    <!-- App logo / title -->
+    <div style="font-family:var(--font-head);font-size:28px;font-weight:800;color:var(--gold);margin-bottom:4px;letter-spacing:-0.5px">SqueveTrack</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:36px">LoanBase Recovery · Secured</div>
 
-    <!-- Tab switcher: Sign In / Sign Up -->
-    <div id="auth-tabs" style="display:flex;background:var(--surface2);border-radius:10px;padding:3px;width:100%;margin-bottom:24px">
-      <button id="tab-signin" onclick="authShowTab('signin')" style="flex:1;padding:9px;border:none;cursor:pointer;border-radius:8px;font-size:13px;font-weight:700;background:var(--surface);color:var(--gold);transition:all 0.15s;font-family:var(--font-body)">Sign In</button>
-      <button id="tab-signup" onclick="authShowTab('signup')" style="flex:1;padding:9px;border:none;cursor:pointer;border-radius:8px;font-size:13px;font-weight:600;background:transparent;color:var(--text3);transition:all 0.15s;font-family:var(--font-body)">New Agent</button>
+    <!-- Agent list -->
+    <div id="lock-agent-list" style="width:100%;margin-bottom:28px"></div>
+
+    <!-- PIN pad (hidden until agent selected) -->
+    <div id="lock-pin-section" style="display:none;width:100%;text-align:center">
+      <div id="lock-pin-name" style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px"></div>
+      <div id="lock-pin-stage" style="font-size:11px;margin-bottom:20px"></div>
+      <!-- PIN dots -->
+      <div style="display:flex;justify-content:center;gap:12px;margin-bottom:24px">
+        <div class="pin-dot" id="pindot-0"></div>
+        <div class="pin-dot" id="pindot-1"></div>
+        <div class="pin-dot" id="pindot-2"></div>
+        <div class="pin-dot" id="pindot-3"></div>
+      </div>
+      <!-- PIN keypad -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto 16px">
+        <button class="pin-key" onclick="pinPress('1')">1</button>
+        <button class="pin-key" onclick="pinPress('2')">2</button>
+        <button class="pin-key" onclick="pinPress('3')">3</button>
+        <button class="pin-key" onclick="pinPress('4')">4</button>
+        <button class="pin-key" onclick="pinPress('5')">5</button>
+        <button class="pin-key" onclick="pinPress('6')">6</button>
+        <button class="pin-key" onclick="pinPress('7')">7</button>
+        <button class="pin-key" onclick="pinPress('8')">8</button>
+        <button class="pin-key" onclick="pinPress('9')">9</button>
+        <button class="pin-key pin-key-ghost" onclick="lockSelectAgent(null)">←</button>
+        <button class="pin-key" onclick="pinPress('0')">0</button>
+        <button class="pin-key pin-key-ghost" onclick="pinBackspace()">⌫</button>
+      </div>
+      <div id="lock-pin-error" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:8px"></div>
+      <button class="btn btn-ghost btn-xs" onclick="showDevOverride()" style="font-size:10px;color:var(--text3)">Locked out? Contact developer</button>
     </div>
 
-    <!-- SIGN IN panel -->
-    <div id="auth-signin-panel" style="width:100%">
-      <!-- Known agents on this device -->
-      <div id="lock-agent-list" style="width:100%;margin-bottom:16px"></div>
-
-      <!-- Divider -->
-      <div id="auth-or-divider" style="display:flex;align-items:center;gap:10px;margin-bottom:16px;width:100%">
-        <div style="flex:1;height:1px;background:var(--border)"></div>
-        <span style="font-size:11px;color:var(--text3)">or sign in with your Agent Code</span>
-        <div style="flex:1;height:1px;background:var(--border)"></div>
-      </div>
-
-      <!-- Agent code entry -->
-      <div style="margin-bottom:14px">
-        <input type="text" id="auth-code-input" class="form-input" placeholder="e.g. Shadrack Agyei OCT25"
-          style="text-align:center;font-family:var(--font-mono);letter-spacing:2px;font-size:15px;text-transform:uppercase"
-           onkeydown="if(event.key==='Enter')authSignInWithCode()">
-        <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:5px">Your LoanBase agent code — e.g. "Shadrack Agyei OCT25"</div>
-        <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px" onclick="authSignInWithCode()">Find My Account →</button>
-      </div>
-
-      <!-- PIN pad -->
-      <div id="lock-pin-section" style="width:100%;text-align:center">
-        <div id="lock-pin-name" style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px"></div>
-        <div id="lock-pin-stage" style="font-size:11px;color:var(--text3);margin-bottom:16px"></div>
-        <div style="display:flex;justify-content:center;gap:12px;margin-bottom:20px">
-          <div class="pin-dot" id="pindot-0"></div>
-          <div class="pin-dot" id="pindot-1"></div>
-          <div class="pin-dot" id="pindot-2"></div>
-          <div class="pin-dot" id="pindot-3"></div>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto 14px">
-          <button class="pin-key" onclick="pinPress('1')">1</button>
-          <button class="pin-key" onclick="pinPress('2')">2</button>
-          <button class="pin-key" onclick="pinPress('3')">3</button>
-          <button class="pin-key" onclick="pinPress('4')">4</button>
-          <button class="pin-key" onclick="pinPress('5')">5</button>
-          <button class="pin-key" onclick="pinPress('6')">6</button>
-          <button class="pin-key" onclick="pinPress('7')">7</button>
-          <button class="pin-key" onclick="pinPress('8')">8</button>
-          <button class="pin-key" onclick="pinPress('9')">9</button>
-          <button class="pin-key pin-key-ghost" onclick="authClearCode()">←</button>
-          <button class="pin-key" onclick="pinPress('0')">0</button>
-          <button class="pin-key pin-key-ghost" onclick="pinBackspace()">⌫</button>
-        </div>
-        <div id="lock-pin-error" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:8px"></div>
-        <button class="btn btn-ghost btn-xs" onclick="showDevOverride()" style="font-size:10px;color:var(--text3)">Locked out? Contact developer</button>
-      </div>
-    </div>
-
-    <!-- SIGN UP panel (hidden) -->
-    <div id="auth-signup-panel" style="display:none;width:100%;text-align:center">
-      <div style="font-size:14px;color:var(--text2);margin-bottom:20px;line-height:1.7">Create your personal SqueveTrack account.<br>Your data will be private and PIN-protected.</div>
-      <button class="btn btn-gold" style="width:100%;padding:14px;font-size:15px" onclick="authShowTab('signin');lockAddNewAgent()">Start Setup →</button>
-      <div style="font-size:11px;color:var(--text3);margin-top:12px">You'll choose your stage, enter your details,<br>and optionally upload your LoanBase data.</div>
-    </div>
-
-    <!-- Dev override (hidden) -->
+    <!-- Dev override input (hidden) -->
     <div id="lock-dev-override" style="display:none;width:100%;text-align:center;margin-top:16px">
       <div style="font-size:12px;color:var(--text2);margin-bottom:8px">Enter developer override code</div>
-      <input type="text" class="form-input" id="dev-override-input" placeholder="SQV-XXX-XXXX"
-        style="text-align:center;font-family:var(--font-mono);letter-spacing:2px;font-size:14px;margin-bottom:8px"
-        onkeydown="if(event.key==='Enter')checkDevOverride()">
+      <input type="text" class="form-input" id="dev-override-input" placeholder="SQV-XXX-XXXX" style="text-align:center;font-family:var(--font-mono);letter-spacing:2px;font-size:14px;margin-bottom:8px" onkeydown="if(event.key==='Enter')checkDevOverride()">
       <div style="display:flex;gap:8px;justify-content:center">
         <button class="btn btn-ghost btn-sm" onclick="document.getElementById('lock-dev-override').style.display='none'">Cancel</button>
         <button class="btn btn-red btn-sm" onclick="checkDevOverride()">Unlock</button>
@@ -10038,6 +9460,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       <div id="dev-override-error" style="font-size:11px;color:var(--red);margin-top:6px;min-height:16px"></div>
     </div>
 
+    <!-- Add new agent button -->
+    <div style="margin-top:auto;padding-top:32px;width:100%;text-align:center">
+      <button class="btn btn-ghost btn-sm" style="width:100%" onclick="lockAddNewAgent()">＋ Add New Agent</button>
+    </div>
   </div>
 </div>
 
@@ -10049,9 +9475,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 .pin-key { background:var(--surface2);border:1px solid var(--border);border-radius:12px;font-size:20px;font-weight:600;padding:16px;cursor:pointer;color:var(--text);transition:all 0.1s;font-family:var(--font-head) }
 .pin-key:active { background:var(--gold);color:#000;transform:scale(0.94) }
 .pin-key-ghost { background:transparent;border-color:transparent;font-size:16px }
-.lock-agent-card { display:flex;align-items:center;gap:12px;background:var(--surface2);border:2px solid var(--border2);border-radius:12px;padding:12px 14px;cursor:pointer;transition:all 0.15s;width:100%;text-align:left;margin-bottom:8px }
+.lock-agent-card { display:flex;align-items:center;gap:12px;background:var(--surface2);border:2px solid var(--border2);border-radius:12px;padding:14px 16px;cursor:pointer;transition:all 0.15s;width:100%;text-align:left;margin-bottom:8px }
 .lock-agent-card:hover,.lock-agent-card.selected { border-color:var(--gold) }
-.lock-agent-avatar { width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0;font-family:var(--font-head) }
+.lock-agent-avatar { width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0;font-family:var(--font-head) }
 </style>
 
 </body>
