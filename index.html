@@ -1995,15 +1995,10 @@ function setSyncStatus(status) {
 }
 
 function initState() {
-  const borrowers = SEED_BORROWERS.map((b, i) => ({
-    id: 'b' + i, name: b.n, phone: b.p,
-    principal: b.pr, loanDue: b.ld, overdueFeee: b.of,
-    amountPaid: b.ap, startDate: b.sd, loanType: b.lt,
-    notes: '', promisedToPay: false, isPaid: b.ap >= b.ld && b.ap > 0
-  }));
-  return { borrowers, dailyLog: SEED_LOG, month: 'March 2026',
-    discountRate: 0.30, monthlyTarget: 0, agedOutLog: [],
-    hitList: [], callLog: {}, rankingHistory: [], undoHistory: [], pendingSyncCount: 0 };
+  return { borrowers: [], dailyLog: [], month: new Date().toLocaleDateString('en-GB',{month:'long',year:'numeric'}),
+    discountRate: 0.30, monthlyTarget: 0, agedOutLog: [], archive: [],
+    hitList: [], callLog: {}, rankingHistory: [], undoHistory: [], pendingSyncCount: 0,
+    agentProfile: {} };
 }
 
 function migrateState(s) {
@@ -8313,28 +8308,62 @@ function obGoToStep(n) {
   document.querySelectorAll('.ob-dot').forEach((d, i) => d.classList.toggle('active', i < n));
   // Pre-fill step 2 from existing profile
   if (n === 2 && state.agentProfile) {
+    const codeEl = document.getElementById('ob-agent-code');
     const nameEl = document.getElementById('ob-agent-name');
-    const supEl = document.getElementById('ob-supervisor');
-    const tgtEl = document.getElementById('ob-target');
-    if (nameEl && state.agentProfile.name) nameEl.value = state.agentProfile.name;
-    if (supEl && state.agentProfile.supervisor) supEl.value = state.agentProfile.supervisor;
-    if (tgtEl && state.agentProfile.target) tgtEl.value = state.agentProfile.target;
+    const supEl  = document.getElementById('ob-supervisor');
+    const tgtEl  = document.getElementById('ob-target');
+    if (codeEl && state.agentProfile.lbCode) codeEl.value = state.agentProfile.lbCode;
+    if (nameEl && state.agentProfile.name)   nameEl.value = state.agentProfile.name;
+    if (supEl  && state.agentProfile.supervisor) supEl.value = state.agentProfile.supervisor;
+    if (tgtEl  && state.agentProfile.target) tgtEl.value = state.agentProfile.target;
   }
 }
 
-function obNextStep(n) {
+async function obNextStep(n) {
   if (n === 2) {
     if (!_obSelectedStage) { toast('Please select a stage', 'error'); return; }
   }
   if (n === 3) {
-    const name = document.getElementById('ob-agent-name')?.value.trim();
-    const sup = document.getElementById('ob-supervisor')?.value.trim();
-    const tgt = parseFloat(document.getElementById('ob-target')?.value) || 0;
-    if (!name) { toast('Please enter your name', 'error'); return; }
-    // Save to profile
+    const lbCode = document.getElementById('ob-agent-code')?.value.trim();
+    const name   = document.getElementById('ob-agent-name')?.value.trim();
+    const sup    = document.getElementById('ob-supervisor')?.value.trim();
+    const tgt    = parseFloat(document.getElementById('ob-target')?.value) || 0;
+    if (!lbCode) { toast('Please enter your LoanBase Agent Code', 'error'); return; }
+    if (!name)   { toast('Please enter your name', 'error'); return; }
+    const agentId = slugifyCode(lbCode);
+    // Check if this code already exists in Supabase → treat as sign-in
+    const db = initSupabase();
+    if (db) {
+      try {
+        const { data } = await db.from('app_state').select('data').eq('id', 'agent_' + agentId).single();
+        if (data?.data?.agentProfile) {
+          // Code already registered — sign in instead of creating duplicate
+          const existingAgents = getAgentList();
+          if (!existingAgents.find(a => a.id === agentId)) {
+            const ep = data.data.agentProfile;
+            existingAgents.push({ id: agentId, name: ep.name || name, stage: ep.stage || _obSelectedStage, pinHash: data.data._pinHash || null, createdAt: ep.createdAt || new Date().toISOString() });
+            saveAgentList(existingAgents);
+            localStorage.setItem('squevetrack_' + agentId, JSON.stringify(data.data));
+          }
+          // Close onboarding and go to PIN
+          const overlay = document.getElementById('onboarding-overlay');
+          if (overlay) overlay.style.display = 'none';
+          document.body.style.overflow = '';
+          _activeAgent = getAgentList().find(a => a.id === agentId);
+          _pinTarget = _activeAgent;
+          showLockScreen();
+          lockSelectAgent(agentId);
+          toast('This code is already registered — enter your PIN to sign in', 'success');
+          return;
+        }
+      } catch {}
+    }
+    // New agent — set the ID from their LoanBase code
+    if (!_activeAgent) _activeAgent = { id: agentId };
+    else _activeAgent.id = agentId;
     state.agentProfile = {
       ...state.agentProfile,
-      name, supervisor: sup || '', target: tgt, stage: _obSelectedStage
+      id: agentId, lbCode: lbCode, name, supervisor: sup || '', target: tgt, stage: _obSelectedStage
     };
     state.monthlyTarget = tgt;
     saveState();
@@ -8525,21 +8554,20 @@ function obShowComplete(importedCount) {
 }
 
 function obFinish() {
-  const name = state.agentProfile?.name || document.getElementById('ob-agent-name')?.value?.trim() || 'Agent';
+  const name   = state.agentProfile?.name || document.getElementById('ob-agent-name')?.value?.trim() || 'Agent';
+  const lbCode = state.agentProfile?.lbCode || document.getElementById('ob-agent-code')?.value?.trim() || '';
+  const agentId = lbCode ? slugifyCode(lbCode) : (_activeAgent?.id || genAgentId());
   // Create or update agent record
   const agents = getAgentList();
-  let agentRecord = agents.find(a => a.id === _activeAgent?.id);
+  let agentRecord = agents.find(a => a.id === agentId);
   if (!agentRecord) {
-    // New agent
-    const newId = _activeAgent?.id || genAgentId();
-    agentRecord = { id: newId, name, stage: _obSelectedStage, createdAt: new Date().toISOString(), pinHash: null };
+    agentRecord = { id: agentId, name, stage: _obSelectedStage, lbCode, createdAt: new Date().toISOString(), pinHash: null };
     agents.push(agentRecord);
     saveAgentList(agents);
     _activeAgent = agentRecord;
     _pinTarget = agentRecord;
   } else {
-    agentRecord.name = name;
-    agentRecord.stage = _obSelectedStage;
+    agentRecord.name = name; agentRecord.stage = _obSelectedStage; agentRecord.lbCode = lbCode;
     saveAgentList(agents);
     _activeAgent = agentRecord;
   }
@@ -8578,7 +8606,11 @@ function updateSidebarAgentInfo() {
   const agent = _activeAgent || {};
   const name = profile.name || agent.name || '';
   const stage = profile.stage || agent.stage || 'M2';
+  const agentCode = agent.id || profile.id || '';
   const s = STAGE_CONFIG[stage] || STAGE_CONFIG.M2;
+  const codeHtml = agentCode
+    ? '<div style="font-family:var(--font-mono);font-size:10px;color:var(--text3);margin-top:3px;letter-spacing:0.5px">Code: <span style="color:var(--gold);font-weight:700;user-select:all" title="Your sign-in code — share with no one">' + agentCode + '</span></div>'
+    : '';
 
   // Desktop sidebar
   const info = document.getElementById('sidebar-agent-info');
@@ -8587,7 +8619,9 @@ function updateSidebarAgentInfo() {
   if (info) {
     info.style.display = name ? 'block' : 'none';
     if (nameEl) nameEl.textContent = name;
-    if (stageEl) stageEl.innerHTML = '<span style="color:' + s.colorHex + ';font-weight:700">' + s.label + '</span> — ' + s.name;
+    if (stageEl) stageEl.innerHTML =
+      '<span style="color:' + s.colorHex + ';font-weight:700">' + s.label + '</span> — ' + s.name
+      + codeHtml;
   }
 
   // Mobile drawer
@@ -8597,7 +8631,9 @@ function updateSidebarAgentInfo() {
   if (dinfo) {
     dinfo.style.display = name ? 'block' : 'none';
     if (dnameEl) dnameEl.textContent = name;
-    if (dstageEl) dstageEl.innerHTML = '<span style="color:' + s.colorHex + ';font-weight:700">' + s.label + '</span> — ' + s.name;
+    if (dstageEl) dstageEl.innerHTML =
+      '<span style="color:' + s.colorHex + ';font-weight:700">' + s.label + '</span> — ' + s.name
+      + codeHtml;
   }
 }
 
@@ -8617,11 +8653,16 @@ async function hashPin(pin, salt) {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
+function slugifyCode(code) {
+  // "Shadrack Agyei OCT25" → "shadrack-agyei-oct25"
+  return code.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
 function genAgentId() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-    const r = Math.random()*16|0;
-    return (c==='x'?r:(r&0x3|0x8)).toString(16);
-  });
+  // Fallback only — real ID comes from LoanBase code entered during onboarding
+  const chars = 'abcdefghjklmnpqrstuvwxyz23456789';
+  let code = 'sqv-';
+  for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
 }
 
 // ── Agent list management ─────────────────────────────────────
@@ -8642,6 +8683,80 @@ function clearSession() {
 }
 
 // ── Show lock screen ──────────────────────────────────────────
+
+function authShowTab(tab) {
+  const signinPanel = document.getElementById('auth-signin-panel');
+  const signupPanel = document.getElementById('auth-signup-panel');
+  const tabSignin   = document.getElementById('tab-signin');
+  const tabSignup   = document.getElementById('tab-signup');
+  if (!signinPanel) return;
+  if (tab === 'signin') {
+    signinPanel.style.display = 'block';
+    signupPanel.style.display = 'none';
+    tabSignin.style.background = 'var(--surface)'; tabSignin.style.color = 'var(--gold)'; tabSignin.style.fontWeight = '700';
+    tabSignup.style.background = 'transparent'; tabSignup.style.color = 'var(--text3)'; tabSignup.style.fontWeight = '600';
+  } else {
+    signinPanel.style.display = 'none';
+    signupPanel.style.display = 'block';
+    tabSignin.style.background = 'transparent'; tabSignin.style.color = 'var(--text3)'; tabSignin.style.fontWeight = '600';
+    tabSignup.style.background = 'var(--surface)'; tabSignup.style.color = 'var(--gold)'; tabSignup.style.fontWeight = '700';
+  }
+}
+
+async function authSignInWithCode() {
+  const rawCode = (document.getElementById('auth-code-input')?.value || '').trim();
+  if (!rawCode) { document.getElementById('lock-pin-error').textContent = 'Enter your Agent Code first'; return; }
+  const slugCode = slugifyCode(rawCode);  // "Shadrack Agyei OCT25" → "shadrack-agyei-oct25"
+
+  // Check if agent already cached on this device (match by slug OR raw lbCode)
+  const localAgents = getAgentList();
+  let agent = localAgents.find(a => a.id === slugCode || slugifyCode(a.lbCode || '') === slugCode);
+
+  if (!agent) {
+    // Not on this device — look up from Supabase
+    const db = initSupabase();
+    if (!db) { document.getElementById('lock-pin-error').textContent = 'Need internet to sign in on a new device'; return; }
+    document.getElementById('lock-pin-error').textContent = '⏳ Looking up your account...';
+    try {
+      const { data, error } = await db.from('app_state').select('data').eq('id', 'agent_' + slugCode).single();
+      if (error || !data?.data) {
+        document.getElementById('lock-pin-error').textContent = 'Code not found. Check spelling — e.g. "Shadrack Agyei OCT25"';
+        return;
+      }
+      const profile = data.data.agentProfile || {};
+      agent = {
+        id: slugCode,
+        name: profile.name || rawCode,
+        stage: profile.stage || 'M2',
+        lbCode: profile.lbCode || rawCode,
+        supervisor: profile.supervisor || '',
+        pinHash: data.data._pinHash || null,
+        createdAt: profile.createdAt || new Date().toISOString(),
+      };
+      // Cache locally on this device
+      localAgents.push(agent);
+      saveAgentList(localAgents);
+      localStorage.setItem('squevetrack_' + slugCode, JSON.stringify(data.data));
+    } catch(e) {
+      document.getElementById('lock-pin-error').textContent = 'Sign in failed: ' + (e.message || 'check connection');
+      return;
+    }
+  }
+  document.getElementById('lock-pin-error').textContent = '';
+  lockSelectAgent(agent.id);
+}
+
+function authClearCode() {
+  const input = document.getElementById('auth-code-input');
+  if (input) input.value = '';
+  _pinTarget = null;
+  _pinBuffer = '';
+  updatePinDots();
+  document.getElementById('lock-pin-name').textContent = '';
+  document.getElementById('lock-pin-stage').textContent = '';
+  document.getElementById('lock-pin-error').textContent = '';
+}
+
 function showLockScreen() {
   const ls = document.getElementById('lock-screen');
   if (!ls) return;
@@ -8649,8 +8764,16 @@ function showLockScreen() {
   document.body.style.overflow = 'hidden';
   _pinBuffer = '';
   _pinTarget = null;
+  authShowTab('signin');
   renderLockAgentList();
-  document.getElementById('lock-pin-section').style.display = 'none';
+  document.getElementById('lock-pin-name').textContent = '';
+  document.getElementById('lock-pin-stage').textContent = '';
+  document.getElementById('lock-pin-error').textContent = '';
+  document.getElementById('lock-dev-override').style.display = 'none';
+  // If code input has value, pre-fill and try lookup
+  const codeInput = document.getElementById('auth-code-input');
+  if (codeInput) codeInput.value = '';
+  updatePinDots();
 }
 
 function hideLockScreen() {
@@ -8671,14 +8794,18 @@ function renderLockAgentList() {
   el.innerHTML = agents.map(a => {
     const col = stageColors[a.stage] || '#e8a020';
     const initials = (a.name||'A').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    return `<button class="lock-agent-card" onclick="lockSelectAgent('${a.id}')">
-      <div class="lock-agent-avatar" style="background:${col}22;color:${col}">${initials}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.name}</div>
-        <div style="font-size:11px;color:var(--text3)">${a.stage||'M2'} · ${a.stage ? (STAGE_CONFIG[a.stage]?.name||'') : 'Active Default'}</div>
-      </div>
-      <div style="font-size:18px;color:var(--text3)">🔒</div>
-    </button>`;
+    const isActive = _activeAgent?.id === a.id;
+    return `<div style="position:relative;margin-bottom:8px">
+      <button class="lock-agent-card" style="width:100%;margin-bottom:0;${isActive?'border-color:var(--gold);':''}padding-right:48px" onclick="lockSelectAgent('${a.id}')">
+        <div class="lock-agent-avatar" style="background:${col}22;color:${col}">${initials}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.name}${isActive ? ' <span style="font-size:10px;color:var(--green);font-weight:600">● Active</span>' : ''}</div>
+          <div style="font-size:11px;color:var(--text3)">${a.stage||'M2'} · ${a.stage ? (STAGE_CONFIG[a.stage]?.name||'') : 'Active Default'}</div>
+        </div>
+        <div style="font-size:18px;color:var(--text3)">${isActive ? '🔓' : '🔒'}</div>
+      </button>
+      <button onclick="promptDeleteAgent('${a.id}','${a.name.replace(/'/g,"\\'")}',${isActive})" title="Delete agent" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:6px;border-radius:6px;color:var(--text3);font-size:14px;transition:color 0.15s,background 0.15s;z-index:2" onmouseover="this.style.color='var(--red)';this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.color='var(--text3)';this.style.background='none'" title="Delete this agent">🗑</button>
+    </div>`;
   }).join('');
 }
 
@@ -8744,6 +8871,7 @@ async function processPin() {
       setSessionAgent(_pinTarget);
       hideLockScreen();
       haptic('pay');
+      await migrateUuidToSlugIfNeeded(_activeAgent);
       await loadStateForAgent();
     } else {
       // Wrong PIN
@@ -8785,6 +8913,16 @@ async function processPin() {
               data: { ...mainRow.data, pinHash: hash },
               updated_at: new Date().toISOString()
             });
+          // Also store pinHash directly in the agent data row so cross-device sign-in can retrieve it
+          const agentKey = 'agent_' + _pinTarget.id;
+          const { data: agentRow } = await db.from('app_state').select('data').eq('id', agentKey).single().catch(() => ({ data: null }));
+          if (agentRow?.data) {
+            await db.from('app_state').upsert({
+              id: agentKey,
+              data: { ...agentRow.data, _pinHash: hash },
+              updated_at: new Date().toISOString()
+            });
+          }
           }
         } catch {}
       }
@@ -8855,6 +8993,41 @@ async function loadStateForAgent() {
 }
 
 // ── One-time migration from legacy key ───────────────────────
+
+// ── One-time migration: UUID key → LoanBase slug key ────────
+// Called after PIN confirmed when agent has a lbCode but data still under old UUID
+async function migrateUuidToSlugIfNeeded(agent) {
+  if (!agent?.lbCode) return;
+  const slugKey = 'agent_' + slugifyCode(agent.lbCode);
+  const uuidKey = 'agent_' + (agent._oldUuid || '');
+  if (!agent._oldUuid || slugKey === uuidKey) return; // nothing to migrate
+
+  const db = initSupabase();
+  if (!db) return;
+  try {
+    // Read data from old UUID key
+    const { data: oldData } = await db.from('app_state').select('data').eq('id', uuidKey).single();
+    if (!oldData?.data) return;
+    // Write under new slug key
+    await db.from('app_state').upsert({ id: slugKey, data: { ...oldData.data, agentProfile: { ...oldData.data.agentProfile, id: agent.id, lbCode: agent.lbCode } }, updated_at: new Date().toISOString() });
+    // Delete old UUID key
+    await db.from('app_state').delete().eq('id', uuidKey);
+    // Update main stamp if it pointed to old UUID
+    const { data: mainRow } = await db.from('app_state').select('data').eq('id','main').single();
+    if (mainRow?.data?.migratedToAgent === agent._oldUuid) {
+      await db.from('app_state').upsert({ id:'main', data:{ ...mainRow.data, migratedToAgent: agent.id }, updated_at: new Date().toISOString() });
+    }
+    // Update local cache key
+    const oldLocal = localStorage.getItem('squevetrack_' + agent._oldUuid);
+    if (oldLocal) { localStorage.setItem('squevetrack_' + agent.id, oldLocal); localStorage.removeItem('squevetrack_' + agent._oldUuid); }
+    // Remove _oldUuid from agent record
+    const agents = getAgentList();
+    const idx = agents.findIndex(a => a.id === agent.id);
+    if (idx >= 0) { delete agents[idx]._oldUuid; saveAgentList(agents); }
+    toast('Account migrated to your LoanBase code ✅', 'success');
+  } catch(e) { console.warn('Migration error:', e); }
+}
+
 async function migrateFromLegacyIfNeeded() {
   // This device already has agents registered — nothing to do
   const localAgents = getAgentList();
@@ -8918,10 +9091,15 @@ async function migrateFromLegacyIfNeeded() {
     // ── First-ever migration on first device ──────────────────
     const agentId = genAgentId();
     const profile = legacyState.agentProfile || {};
+    // Check if agent has a LoanBase code in their profile
+    const lbCode = profile.lbCode || '';
+    const realId = lbCode ? slugifyCode(lbCode) : agentId;
     const agentRecord = {
-      id: agentId,
+      id: realId,
+      _oldUuid: realId !== agentId ? agentId : undefined, // track UUID for migration
       name: profile.name || 'Shadrack Agyei Arthur',
       stage: profile.stage || 'M2',
+      lbCode: lbCode,
       supervisor: profile.supervisor || '',
       pinHash: null,
       createdAt: new Date().toISOString(),
@@ -8966,6 +9144,82 @@ async function migrateFromLegacyIfNeeded() {
   return false; // truly fresh install — no legacy data anywhere
 }
 
+
+// ── Agent deletion ────────────────────────────────────────────
+function promptDeleteAgent(id, name, isActive) {
+  if (isActive) {
+    // Can't delete active agent — must lock first
+    document.getElementById('modal-title').textContent = '⚠️ Cannot Delete Active Session';
+    document.getElementById('modal-body').innerHTML =
+      '<div style="font-size:13px;color:var(--text2);line-height:1.8">'
+      + 'You are currently signed in as <strong>' + name + '</strong>.<br><br>'
+      + 'To delete this agent, first tap <strong>🔒 Lock App</strong> from the drawer, '
+      + 'then delete from the lock screen.</div>';
+    document.getElementById('modal-footer').innerHTML = '<button class="btn btn-ghost" onclick="closeModal()">OK</button>';
+    document.getElementById('modal-overlay').classList.add('open');
+    return;
+  }
+  // Confirm deletion
+  document.getElementById('modal-title').textContent = '🗑 Delete Agent';
+  document.getElementById('modal-body').innerHTML =
+    '<div style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:14px">'
+    + 'This will permanently delete <strong>' + name + '</strong> and all their data '
+    + 'from this device and Supabase.<br><br>'
+    + '<span style="color:var(--red);font-weight:600">This cannot be undone.</span></div>'
+    + '<div class="form-group"><label>Type DELETE to confirm</label>'
+    + '<input type="text" class="form-input" id="delete-confirm-input" placeholder="DELETE" autocomplete="off" style="font-family:var(--font-mono);letter-spacing:1px"></div>';
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
+    + '<button class="btn btn-red" onclick="deleteAgent(\'' + id + '\')">Delete Permanently</button>';
+  document.getElementById('modal-overlay').classList.add('open');
+  haptic('light');
+}
+
+async function deleteAgent(id) {
+  const confirmEl = document.getElementById('delete-confirm-input');
+  if (!confirmEl || confirmEl.value.trim().toUpperCase() !== 'DELETE') {
+    confirmEl?.classList.add('shake');
+    setTimeout(() => confirmEl?.classList.remove('shake'), 400);
+    toast('Type DELETE to confirm', 'error');
+    haptic('medium');
+    return;
+  }
+
+  closeModal();
+  const agents = getAgentList();
+  const agent = agents.find(a => a.id === id);
+  if (!agent) return;
+
+  // 1. Remove from localStorage (agent list + their state)
+  const filteredAgents = agents.filter(a => a.id !== id);
+  saveAgentList(filteredAgents);
+  localStorage.removeItem('squevetrack_' + id);
+
+  // 2. Delete from Supabase
+  const db = initSupabase();
+  if (db) {
+    try {
+      await db.from('app_state').delete().eq('id', 'agent_' + id);
+      // If this was the migrated agent, also clear the migration stamp
+      const { data: mainRow } = await db.from('app_state').select('data').eq('id','main').single();
+      if (mainRow?.data?.migratedToAgent === id) {
+        await db.from('app_state').delete().eq('id','main');
+      }
+    } catch(e) { console.warn('Supabase delete error:', e); }
+  }
+
+  haptic('pay');
+  toast(agent.name + ' deleted', 'success');
+  renderLockAgentList();
+
+  // If no agents left, show "Add New Agent" prompt
+  if (!filteredAgents.length) {
+    setTimeout(() => {
+      document.getElementById('lock-pin-section').style.display = 'none';
+      _pinTarget = null;
+    }, 100);
+  }
+}
 
 function lockApp() {
   clearSession();
@@ -9256,9 +9510,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     <div id="ob-step-2" style="display:none">
       <div style="text-align:center;margin-bottom:24px">
         <div style="font-family:var(--font-head);font-size:22px;font-weight:800;color:var(--text)">Your profile</div>
-        <div style="font-size:13px;color:var(--text3);margin-top:4px">Used in reports and EOD summaries</div>
+        <div style="font-size:13px;color:var(--text3);margin-top:4px">Used to identify you across all devices</div>
       </div>
-      <div class="form-group"><label>Your Name</label><input type="text" class="form-input" id="ob-agent-name" placeholder="e.g. Shadrack Agyei Arthur"></div>
+      <div class="form-group">
+        <label>LoanBase Agent Code <span style="color:var(--red)">*</span></label>
+        <input type="text" class="form-input" id="ob-agent-code" placeholder="e.g. Shadrack Agyei OCT25" style="font-weight:600">
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">This is your unique LoanBase identity. Use the exact code assigned to you — this is how you sign in on any device.</div>
+      </div>
+      <div class="form-group"><label>Your Full Name</label><input type="text" class="form-input" id="ob-agent-name" placeholder="e.g. Shadrack Agyei Arthur"></div>
       <div class="form-group"><label>Supervisor Name</label><input type="text" class="form-input" id="ob-supervisor" placeholder="e.g. Nana Osae Emmanuel"></div>
       <div class="form-group"><label>Monthly Collection Target (₵)</label><input type="number" class="form-input" id="ob-target" placeholder="e.g. 50000" min="0"></div>
       <div style="display:flex;gap:10px">
@@ -9335,49 +9594,81 @@ document.addEventListener('DOMContentLoaded', async () => {
 <!-- LOCK SCREEN                                                  -->
 <!-- ============================================================ -->
 <div id="lock-screen" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);overflow-y:auto">
-  <div style="max-width:400px;margin:0 auto;padding:40px 20px 80px;min-height:100vh;display:flex;flex-direction:column;align-items:center">
+  <div style="max-width:420px;margin:0 auto;padding:40px 20px 80px;min-height:100vh;display:flex;flex-direction:column;align-items:center">
 
-    <!-- App logo / title -->
-    <div style="font-family:var(--font-head);font-size:28px;font-weight:800;color:var(--gold);margin-bottom:4px;letter-spacing:-0.5px">SqueveTrack</div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:36px">LoanBase Recovery · Secured</div>
+    <!-- Logo -->
+    <div style="font-family:var(--font-head);font-size:30px;font-weight:800;color:var(--gold);margin-bottom:4px;letter-spacing:-0.5px">SqueveTrack</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:32px">LoanBase Recovery Suite</div>
 
-    <!-- Agent list -->
-    <div id="lock-agent-list" style="width:100%;margin-bottom:28px"></div>
-
-    <!-- PIN pad (hidden until agent selected) -->
-    <div id="lock-pin-section" style="display:none;width:100%;text-align:center">
-      <div id="lock-pin-name" style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px"></div>
-      <div id="lock-pin-stage" style="font-size:11px;margin-bottom:20px"></div>
-      <!-- PIN dots -->
-      <div style="display:flex;justify-content:center;gap:12px;margin-bottom:24px">
-        <div class="pin-dot" id="pindot-0"></div>
-        <div class="pin-dot" id="pindot-1"></div>
-        <div class="pin-dot" id="pindot-2"></div>
-        <div class="pin-dot" id="pindot-3"></div>
-      </div>
-      <!-- PIN keypad -->
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto 16px">
-        <button class="pin-key" onclick="pinPress('1')">1</button>
-        <button class="pin-key" onclick="pinPress('2')">2</button>
-        <button class="pin-key" onclick="pinPress('3')">3</button>
-        <button class="pin-key" onclick="pinPress('4')">4</button>
-        <button class="pin-key" onclick="pinPress('5')">5</button>
-        <button class="pin-key" onclick="pinPress('6')">6</button>
-        <button class="pin-key" onclick="pinPress('7')">7</button>
-        <button class="pin-key" onclick="pinPress('8')">8</button>
-        <button class="pin-key" onclick="pinPress('9')">9</button>
-        <button class="pin-key pin-key-ghost" onclick="lockSelectAgent(null)">←</button>
-        <button class="pin-key" onclick="pinPress('0')">0</button>
-        <button class="pin-key pin-key-ghost" onclick="pinBackspace()">⌫</button>
-      </div>
-      <div id="lock-pin-error" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:8px"></div>
-      <button class="btn btn-ghost btn-xs" onclick="showDevOverride()" style="font-size:10px;color:var(--text3)">Locked out? Contact developer</button>
+    <!-- Tab switcher: Sign In / Sign Up -->
+    <div id="auth-tabs" style="display:flex;background:var(--surface2);border-radius:10px;padding:3px;width:100%;margin-bottom:24px">
+      <button id="tab-signin" onclick="authShowTab('signin')" style="flex:1;padding:9px;border:none;cursor:pointer;border-radius:8px;font-size:13px;font-weight:700;background:var(--surface);color:var(--gold);transition:all 0.15s;font-family:var(--font-body)">Sign In</button>
+      <button id="tab-signup" onclick="authShowTab('signup')" style="flex:1;padding:9px;border:none;cursor:pointer;border-radius:8px;font-size:13px;font-weight:600;background:transparent;color:var(--text3);transition:all 0.15s;font-family:var(--font-body)">New Agent</button>
     </div>
 
-    <!-- Dev override input (hidden) -->
+    <!-- SIGN IN panel -->
+    <div id="auth-signin-panel" style="width:100%">
+      <!-- Known agents on this device -->
+      <div id="lock-agent-list" style="width:100%;margin-bottom:16px"></div>
+
+      <!-- Divider -->
+      <div id="auth-or-divider" style="display:flex;align-items:center;gap:10px;margin-bottom:16px;width:100%">
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+        <span style="font-size:11px;color:var(--text3)">or sign in with your Agent Code</span>
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+      </div>
+
+      <!-- Agent code entry -->
+      <div style="margin-bottom:14px">
+        <input type="text" id="auth-code-input" class="form-input" placeholder="e.g. Shadrack Agyei OCT25"
+          style="text-align:center;font-family:var(--font-mono);letter-spacing:2px;font-size:15px;text-transform:uppercase"
+           onkeydown="if(event.key==='Enter')authSignInWithCode()">
+        <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:5px">Your LoanBase agent code — e.g. "Shadrack Agyei OCT25"</div>
+        <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px" onclick="authSignInWithCode()">Find My Account →</button>
+      </div>
+
+      <!-- PIN pad -->
+      <div id="lock-pin-section" style="width:100%;text-align:center">
+        <div id="lock-pin-name" style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px"></div>
+        <div id="lock-pin-stage" style="font-size:11px;color:var(--text3);margin-bottom:16px"></div>
+        <div style="display:flex;justify-content:center;gap:12px;margin-bottom:20px">
+          <div class="pin-dot" id="pindot-0"></div>
+          <div class="pin-dot" id="pindot-1"></div>
+          <div class="pin-dot" id="pindot-2"></div>
+          <div class="pin-dot" id="pindot-3"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto 14px">
+          <button class="pin-key" onclick="pinPress('1')">1</button>
+          <button class="pin-key" onclick="pinPress('2')">2</button>
+          <button class="pin-key" onclick="pinPress('3')">3</button>
+          <button class="pin-key" onclick="pinPress('4')">4</button>
+          <button class="pin-key" onclick="pinPress('5')">5</button>
+          <button class="pin-key" onclick="pinPress('6')">6</button>
+          <button class="pin-key" onclick="pinPress('7')">7</button>
+          <button class="pin-key" onclick="pinPress('8')">8</button>
+          <button class="pin-key" onclick="pinPress('9')">9</button>
+          <button class="pin-key pin-key-ghost" onclick="authClearCode()">←</button>
+          <button class="pin-key" onclick="pinPress('0')">0</button>
+          <button class="pin-key pin-key-ghost" onclick="pinBackspace()">⌫</button>
+        </div>
+        <div id="lock-pin-error" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:8px"></div>
+        <button class="btn btn-ghost btn-xs" onclick="showDevOverride()" style="font-size:10px;color:var(--text3)">Locked out? Contact developer</button>
+      </div>
+    </div>
+
+    <!-- SIGN UP panel (hidden) -->
+    <div id="auth-signup-panel" style="display:none;width:100%;text-align:center">
+      <div style="font-size:14px;color:var(--text2);margin-bottom:20px;line-height:1.7">Create your personal SqueveTrack account.<br>Your data will be private and PIN-protected.</div>
+      <button class="btn btn-gold" style="width:100%;padding:14px;font-size:15px" onclick="authShowTab('signin');lockAddNewAgent()">Start Setup →</button>
+      <div style="font-size:11px;color:var(--text3);margin-top:12px">You'll choose your stage, enter your details,<br>and optionally upload your LoanBase data.</div>
+    </div>
+
+    <!-- Dev override (hidden) -->
     <div id="lock-dev-override" style="display:none;width:100%;text-align:center;margin-top:16px">
       <div style="font-size:12px;color:var(--text2);margin-bottom:8px">Enter developer override code</div>
-      <input type="text" class="form-input" id="dev-override-input" placeholder="SQV-XXX-XXXX" style="text-align:center;font-family:var(--font-mono);letter-spacing:2px;font-size:14px;margin-bottom:8px" onkeydown="if(event.key==='Enter')checkDevOverride()">
+      <input type="text" class="form-input" id="dev-override-input" placeholder="SQV-XXX-XXXX"
+        style="text-align:center;font-family:var(--font-mono);letter-spacing:2px;font-size:14px;margin-bottom:8px"
+        onkeydown="if(event.key==='Enter')checkDevOverride()">
       <div style="display:flex;gap:8px;justify-content:center">
         <button class="btn btn-ghost btn-sm" onclick="document.getElementById('lock-dev-override').style.display='none'">Cancel</button>
         <button class="btn btn-red btn-sm" onclick="checkDevOverride()">Unlock</button>
@@ -9385,10 +9676,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       <div id="dev-override-error" style="font-size:11px;color:var(--red);margin-top:6px;min-height:16px"></div>
     </div>
 
-    <!-- Add new agent button -->
-    <div style="margin-top:auto;padding-top:32px;width:100%;text-align:center">
-      <button class="btn btn-ghost btn-sm" style="width:100%" onclick="lockAddNewAgent()">＋ Add New Agent</button>
-    </div>
   </div>
 </div>
 
@@ -9400,9 +9687,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 .pin-key { background:var(--surface2);border:1px solid var(--border);border-radius:12px;font-size:20px;font-weight:600;padding:16px;cursor:pointer;color:var(--text);transition:all 0.1s;font-family:var(--font-head) }
 .pin-key:active { background:var(--gold);color:#000;transform:scale(0.94) }
 .pin-key-ghost { background:transparent;border-color:transparent;font-size:16px }
-.lock-agent-card { display:flex;align-items:center;gap:12px;background:var(--surface2);border:2px solid var(--border2);border-radius:12px;padding:14px 16px;cursor:pointer;transition:all 0.15s;width:100%;text-align:left;margin-bottom:8px }
+.lock-agent-card { display:flex;align-items:center;gap:12px;background:var(--surface2);border:2px solid var(--border2);border-radius:12px;padding:12px 14px;cursor:pointer;transition:all 0.15s;width:100%;text-align:left;margin-bottom:8px }
 .lock-agent-card:hover,.lock-agent-card.selected { border-color:var(--gold) }
-.lock-agent-avatar { width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0;font-family:var(--font-head) }
+.lock-agent-avatar { width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0;font-family:var(--font-head) }
 </style>
 
 </body>
