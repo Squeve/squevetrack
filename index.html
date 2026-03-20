@@ -959,10 +959,6 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
   <div class="nav-item" data-page="log">
     <span class="nav-icon">📅</span> Daily Log
   </div>
-  <div class="nav-item" data-page="ptp">
-    <span class="nav-icon">🤝</span> PTP Hub
-    <span class="nav-badge" id="badge-ptp" style="display:none;background:var(--purple)"></span>
-  </div>
   <div class="nav-item" data-page="segments">
     <span class="nav-icon">🗂️</span> Segments
   </div>
@@ -992,8 +988,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
         <div id="sidebar-agent-name" style="font-size:12px;font-weight:700;color:var(--text)"></div>
         <div id="sidebar-agent-stage" style="font-size:11px;margin-top:2px"></div>
       </div>
-      <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px" onclick="navigate('health')">🔒 Data Health</button>
-      <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-top:4px" onclick="startOnboarding(true)">⚙️ Agent Setup / Switch Stage</button>
+      <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px" onclick="navigate('health')">⚙️ Settings</button>
     </div>
     <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
       <div style="font-size:8px;color:var(--text3);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:2px">Developed by</div>
@@ -1594,9 +1589,25 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
 
   <!-- DATA HEALTH PAGE (accessed from settings) -->
   <section class="page" id="page-health">
-    <div class="page-header"><div><div class="page-title">🔒 Data Health</div><div class="page-sub">Storage, sync, and data integrity</div></div></div>
-    <div class="card">
+    <div class="page-header"><div><div class="page-title">⚙️ Settings</div><div class="page-sub">Account, security and data</div></div></div>
+    <div class="card" style="margin-bottom:14px"><div class="card-body" id="settings-agent-card"></div></div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-header"><span class="card-title">🔐 Security</span></div>
+      <div class="card-body" style="padding:0">
+        <button class="settings-row" onclick="settingsChangePin()"><span>🔑 Change PIN</span><span class="settings-chevron">›</span></button>
+        <button class="settings-row" onclick="startOnboarding(true)"><span>⚙️ Agent Setup / Switch Stage</span><span class="settings-chevron">›</span></button>
+        <button class="settings-row" onclick="settingsLockApp()"><span>🔒 Lock App</span><span class="settings-chevron">›</span></button>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-header"><span class="card-title">📊 Data</span></div>
       <div class="card-body" id="health-body"></div>
+    </div>
+    <div class="card" style="margin-bottom:14px;border-color:rgba(239,68,68,0.3)">
+      <div class="card-header"><span class="card-title" style="color:var(--red)">⚠️ Danger Zone</span></div>
+      <div class="card-body" style="padding:0">
+        <button class="settings-row" style="color:var(--red)" onclick="settingsDeleteAccount()"><span>🗑 Delete My Account &amp; All Data</span><span class="settings-chevron">›</span></button>
+      </div>
     </div>
   </section>
 
@@ -1657,10 +1668,6 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
   <div class="mdrawer-item" data-page="log" onclick="navigateDrawer('log')">
     <span class="mdrawer-icon">📅</span> Daily Log
   </div>
-  <div class="mdrawer-item" data-page="ptp" onclick="navigateDrawer('ptp')">
-    <span class="mdrawer-icon">🤝</span> PTP Hub
-    <span class="mdrawer-badge" id="mbadge-ptp" style="display:none;background:var(--purple)"></span>
-  </div>
   <div class="mdrawer-item" data-page="segments" onclick="navigateDrawer('segments')">
     <span class="mdrawer-icon">🗂️</span> Segments
   </div>
@@ -1671,7 +1678,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <span class="mdrawer-icon">📋</span> Reports
   </div>
   <div class="mdrawer-item" data-page="health" onclick="navigateDrawer('health')">
-    <span class="mdrawer-icon">🔒</span> Data Health
+    <span class="mdrawer-icon">⚙️</span> Settings
   </div>
   <div class="mdrawer-footer">
     <!-- Agent info in mobile drawer -->
@@ -1680,7 +1687,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
       <div id="mdrawer-agent-name" style="font-size:12px;font-weight:700;color:var(--text)"></div>
       <div id="mdrawer-agent-stage" style="font-size:11px;margin-top:1px"></div>
     </div>
-    <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-bottom:6px" onclick="closeDrawer();startOnboarding(true)">⚙️ Agent Setup / Switch Stage</button>
+    <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-bottom:6px" onclick="closeDrawer();navigate('health')">⚙️ Settings</button>
     <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-bottom:8px;color:var(--red);border-color:rgba(239,68,68,0.3)" onclick="closeDrawer();lockApp()">🔒 Lock App</button>
     <div id="mdrawer-sync" style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
       <span style="width:7px;height:7px;border-radius:50%;background:var(--text3);display:inline-block" id="mdrawer-sync-dot"></span>
@@ -1699,24 +1706,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
 </nav>
 
   <!-- PTP REPORT -->
-  <section class="page" id="page-ptp">
-    <div class="page-header">
-      <div>
-        <div class="page-title">🤝 PTP Hub</div>
-        <div class="page-sub">Promises, outcomes &amp; supervisor reports</div>
-      </div>
-    </div>
-        <!-- Tab bar — sticky so it stays visible while scrolling -->
-    <div style="position:sticky;top:0;z-index:40;background:var(--bg);padding:4px 0 10px;margin:-4px 0 12px">
-      <div style="display:flex;gap:2px;background:var(--surface2);border-radius:8px;padding:3px;width:fit-content">
-        <button id="ptptab-report"  class="ptp-tab active" onclick="switchPtpHub('report')">🤝 Report</button>
-        <button id="ptptab-history" class="ptp-tab"        onclick="switchPtpHub('history')">📅 History</button>
-        <button id="ptptab-stats"   class="ptp-tab"        onclick="switchPtpHub('stats')">📊 Stats</button>
-      </div>
-    </div>
-    <!-- Content injected here by switchPtpHub -->
-    <div id="ptp-hub-content"></div>
-  </section>
+
 
 <!-- SUPABASE SETUP OVERLAY (shown if keys not configured) -->
 <div id="setup-overlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9000;align-items:center;justify-content:center;padding:20px">
@@ -4922,14 +4912,13 @@ function renderCurrentPage() {
   else if (currentPage === 'log') renderLog();
   else if (currentPage === 'smsblast') renderSmsBlast();
   else if (currentPage === 'agedout') renderAgedOut();
-  else if (currentPage === 'ptp') renderPtpHub();
-  else if (currentPage === 'ptp-history') { navigate('ptp'); }
-  else if (currentPage === 'ptp-stats') { navigate('ptp'); }
+  else if (currentPage === 'ptp-history') { navigate('reports'); }
+  else if (currentPage === 'ptp-stats') { navigate('reports'); }
   else if (currentPage === 'forecast') { navigate('dashboard'); }
   else if (currentPage === 'segments') renderSegments();
   else if (currentPage === 'ranking') renderRanking();
   else if (currentPage === 'reports') renderReportsPage();
-  else if (currentPage === 'health') renderHealthPage();
+  else if (currentPage === 'health') renderSettingsPage();
 }
 
 function updateBadges() {
@@ -5597,8 +5586,6 @@ function _buildPtpText(ptps, fmt, isEod) {
 }
 function renderPtp() {
   const ptps = getTodayPtps();
-  // Redirect to unified PTP Hub
-  if (typeof renderPtpHub === "function") { renderPtpHub(); return; }
   const groups = groupPtpsByTime(ptps);
 
   // Update badge
@@ -5745,8 +5732,6 @@ function openGlobalSearch() {
 // ============================================================
 function renderPtpHistory() {
   var el = document.getElementById('ptp-history-body');
-  // Redirect to unified PTP Hub
-  if (typeof renderPtpHub === "function") { switchPtpHub("history", true); return; }
   if (!el) return;
   // Build history from borrowers payLog + ptpOutcomes stored in state
   var history = state.ptpHistory || [];
@@ -5805,8 +5790,6 @@ function savePtpSnapshot() {
 // ============================================================
 function renderPtpStats() {
   var el = document.getElementById('ptp-stats-body');
-  // Redirect to unified PTP Hub
-  if (typeof renderPtpHub === "function") { switchPtpHub("stats", true); return; }
   if (!el) return;
   var history = state.ptpHistory || [];
   if (!history.length) {
@@ -7931,7 +7914,8 @@ function waqSendAndNext() {
   if (!b) return;
   const phone = b.phone.replace(/\s/g,'').replace('+','');
   const firstName = b.name.split(' ')[0];
-  const msg = getSmsMessage(b, false).replace(b.name, firstName);
+  const useGenerous = window._waqGenerous === true;
+  const msg = getSmsMessage(b, useGenerous).replace(b.name, firstName);
   window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(msg), '_blank');
   haptic('light');
   window._waqIdx++;
@@ -7965,34 +7949,35 @@ function launchDispatchQueue() {
   startWaQueuePersonalised([..._currentDispatchIds]);
 }
 
+function waqRenderModal() {
+  const b=window._waqBorrowers[window._waqIdx];
+  if(!b){closeModal();toast('✅ Queue complete!','success');haptic('pay');return;}
+  const ug=window._waqGenerous===true;
+  const fn=b.name.split(' ')[0];
+  const msg=getSmsMessage(b,ug).replace(b.name,fn);
+  const tot=window._waqBorrowers.length, idx=window._waqIdx;
+  document.getElementById('modal-title').textContent='💬 WhatsApp Queue — '+(idx+1)+' of '+tot;
+  document.getElementById('modal-body').innerHTML=
+    '<div style="display:flex;gap:6px;margin-bottom:10px">'
+    +'<button onclick="window._waqGenerous=false;waqRenderModal()" style="flex:1;padding:7px;border-radius:8px;border:1.5px solid '+(ug?'var(--border)':'var(--gold)')+';background:'+(ug?'transparent':'rgba(232,160,32,0.1)')+';color:'+(ug?'var(--text3)':'var(--gold)')+';font-size:12px;font-weight:700;cursor:pointer">Full Balance</button>'
+    +'<button onclick="window._waqGenerous=true;waqRenderModal()" style="flex:1;padding:7px;border-radius:8px;border:1.5px solid '+(ug?'var(--green)':'var(--border)')+';background:'+(ug?'rgba(34,197,94,0.1)':'transparent')+';color:'+(ug?'var(--green)':'var(--text3)')+';font-size:12px;font-weight:700;cursor:pointer">Generous Offer</button>'
+    +'</div>'
+    +'<div style="background:rgba(37,211,102,0.08);border:1px solid rgba(37,211,102,0.25);border-radius:8px;padding:10px 12px;margin-bottom:10px">'
+    +'<div style="font-weight:700;font-size:13px">'+b.name+'</div>'
+    +'<div style="font-size:11px;color:var(--text3)">'+b.phone+' · Day '+getOdAge(b.startDate)+' · Due: '+fmtC(getDueToday(b))+(ug?' · Offer: '+fmtC(getGenerous(b)):'')+' </div></div>'
+    +'<div style="background:var(--surface2);border-radius:8px;padding:10px;font-size:12px;color:var(--text2);line-height:1.7;max-height:150px;overflow-y:auto">'+msg.replace(/\n/g,'<br>')+'</div>'
+    +'<div style="font-size:10px;color:var(--text3);margin-top:6px;text-align:center">'+(idx+1)+' of '+tot+' · '+(ug?'Generous offer':'Full balance')+'</div>';
+  document.getElementById('modal-footer').innerHTML=
+    '<button class="btn btn-ghost" onclick="closeModal()">Stop</button>'
+    +'<button class="eod-btn" style="font-size:12px;padding:7px 16px" onclick="waqSendAndNext()">Open WA & Next ▶</button>';
+}
+
 function startWaQueuePersonalised(ids) {
-  if (!ids || !ids.length) { toast('No contacts to queue', 'error'); return; }
-  const borrowers = ids.map(id => state.borrowers.find(b => b.id === id)).filter(Boolean);
-  let idx = 0;
-  // Store state globally so buttons can access
-  window._waqBorrowers = borrowers;
-  window._waqIdx = 0;
-  function showQueueModal() {
-    const b = window._waqBorrowers[window._waqIdx];
-    if (!b) { toast('✅ All ' + ids.length + ' WhatsApps sent!', 'success'); haptic('pay'); return; }
-    const phone = b.phone.replace(/\s/g,'').replace('+','');
-    const firstName = b.name.split(' ')[0];
-    const rawMsg = getSmsMessage(b, false);
-    const msg = rawMsg.replace(b.name, firstName);
-    document.getElementById('modal-title').textContent = '💬 WhatsApp Queue — ' + (window._waqIdx+1) + ' of ' + window._waqBorrowers.length;
-    document.getElementById('modal-body').innerHTML =
-      '<div style="background:rgba(37,211,102,0.08);border:1px solid rgba(37,211,102,0.25);border-radius:8px;padding:10px 12px;margin-bottom:10px">'
-      + '<div style="font-weight:700;font-size:13px">' + b.name + '</div>'
-      + '<div style="font-size:11px;color:var(--text3)">' + b.phone + ' · Day ' + getOdAge(b.startDate) + ' · ' + fmtC(getDueToday(b)) + '</div></div>'
-      + '<div style="background:var(--surface2);border-radius:8px;padding:10px;font-size:12px;color:var(--text2);line-height:1.7;max-height:150px;overflow-y:auto">' + msg.replace(/\n/g,'<br>') + '</div>'
-      + '<div style="font-size:10px;color:var(--text3);margin-top:6px;text-align:center">' + (window._waqIdx+1) + ' of ' + window._waqBorrowers.length + ' — message personalised for ' + firstName + '</div>';
-    document.getElementById('modal-footer').innerHTML =
-      '<button class="btn btn-ghost" onclick="closeModal()">Stop Queue</button>'
-      + '<button class="eod-btn" style="font-size:12px;padding:7px 16px" onclick="waqSendAndNext()">Open WA & Next ▶</button>';
-    document.getElementById('modal-overlay').classList.add('open');
-    haptic('light');
-  }
-  showQueueModal();
+  if(!ids||!ids.length){toast('No contacts to queue','error');return;}
+  const borrowers=ids.map(id=>state.borrowers.find(b=>b.id===id)).filter(Boolean);
+  window._waqBorrowers=borrowers; window._waqIdx=0; window._waqGenerous=false;
+  document.getElementById('modal-overlay').classList.add('open');
+  haptic('light'); waqRenderModal();
 }
 
 function toggleRankingKeyVisibility() {
@@ -8606,8 +8591,9 @@ let _pinMode = 'unlock'; // 'unlock' | 'set' | 'confirm'
 let _pinSetBuffer = '';
 
 // ── Crypto helpers ────────────────────────────────────────────
-async function hashPin(pin, salt) {
-  const data = new TextEncoder().encode(pin + ':' + salt);
+async function hashPin(pin, _ignored) {
+  // Fixed salt ensures PIN works identically on every device
+  const data = new TextEncoder().encode(pin + ':' + PIN_SALT);
   const buf  = await crypto.subtle.digest('SHA-256', data);
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
@@ -8642,10 +8628,14 @@ function showLockScreen() {
   if (!ls) return;
   ls.style.display = 'block';
   document.body.style.overflow = 'hidden';
-  _pinBuffer = '';
-  _pinTarget = null;
+  _pinBuffer = ''; _pinTarget = null;
+  authShowTab('signin');
   renderLockAgentList();
-  document.getElementById('lock-pin-section').style.display = 'none';
+  const ci=document.getElementById('auth-code-input'); if(ci) ci.value='';
+  const pe=document.getElementById('lock-pin-error'); if(pe) pe.textContent='';
+  const ps=document.getElementById('lock-pin-section'); if(ps) ps.style.display='none';
+  const dv=document.getElementById('lock-dev-override'); if(dv) dv.style.display='none';
+  updatePinDots();
 }
 
 function hideLockScreen() {
@@ -8657,11 +8647,9 @@ function hideLockScreen() {
 function renderLockAgentList() {
   const el = document.getElementById('lock-agent-list');
   if (!el) return;
-  const agents = getAgentList();
-  if (!agents.length) {
-    el.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:13px;padding:20px 0">No agents set up yet.<br>Add a new agent below.</div>';
-    return;
-  }
+  // Only show agents confirmed on this device (have a pinHash)
+  const agents = getAgentList().filter(a => a.pinHash);
+  if (!agents.length) { el.innerHTML = ''; return; }
   const stageColors = { M0:'#3b82f6',M1:'#22c55e',M2:'#e8a020',M3:'#f97316',M4:'#ef4444',M5:'#7c3aed' };
   el.innerHTML = agents.map(a => {
     const col = stageColors[a.stage] || '#e8a020';
@@ -8671,7 +8659,7 @@ function renderLockAgentList() {
       <button class="lock-agent-card" style="width:100%;margin-bottom:0;${isActive?'border-color:var(--gold);':''}padding-right:48px" onclick="lockSelectAgent('${a.id}')">
         <div class="lock-agent-avatar" style="background:${col}22;color:${col}">${initials}</div>
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.name}${isActive ? ' <span style="font-size:10px;color:var(--green);font-weight:600">● Active</span>' : ''}</div>
+          <div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.lbCode||a.name}${isActive ? ' <span style="font-size:10px;color:var(--green);font-weight:600">● Active</span>' : ''}</div>
           <div style="font-size:11px;color:var(--text3)">${a.stage||'M2'} · ${a.stage ? (STAGE_CONFIG[a.stage]?.name||'') : 'Active Default'}</div>
         </div>
         <div style="font-size:18px;color:var(--text3)">${isActive ? '🔓' : '🔒'}</div>
@@ -8854,6 +8842,198 @@ async function loadStateForAgent() {
 }
 
 // ── One-time migration from legacy key ───────────────────────
+const PIN_SALT = 'squevetrack-v1';
+
+function authShowTab(tab) {
+  const sp=document.getElementById('auth-signin-panel'), up=document.getElementById('auth-signup-panel');
+  const ts=document.getElementById('tab-signin'), tu=document.getElementById('tab-signup');
+  if(!sp) return;
+  if(tab==='signin'){
+    sp.style.display='block'; up.style.display='none';
+    ts.style.background='var(--surface)'; ts.style.color='var(--gold)'; ts.style.fontWeight='700';
+    tu.style.background='transparent'; tu.style.color='var(--text3)'; tu.style.fontWeight='600';
+  } else {
+    sp.style.display='none'; up.style.display='block';
+    ts.style.background='transparent'; ts.style.color='var(--text3)'; ts.style.fontWeight='600';
+    tu.style.background='var(--surface)'; tu.style.color='var(--gold)'; tu.style.fontWeight='700';
+  }
+}
+
+function authClearCode() {
+  const i=document.getElementById('auth-code-input'); if(i) i.value='';
+  _pinTarget=null; _pinBuffer=''; updatePinDots();
+  const pn=document.getElementById('lock-pin-name'); if(pn) pn.textContent='';
+  const pe=document.getElementById('lock-pin-error'); if(pe) pe.textContent='';
+  document.getElementById('lock-pin-section').style.display='none';
+}
+
+async function authSignInWithCode() {
+  const errEl=document.getElementById('lock-pin-error');
+  const rawCode=(document.getElementById('auth-code-input')?.value||'').trim();
+  if(!rawCode){errEl.textContent='Enter your Agent Code first';return;}
+  const slugCode=slugifyCode(rawCode);
+
+  // Already cached locally?
+  const localAgents=getAgentList();
+  let agent=localAgents.find(a=>a.id===slugCode||slugifyCode(a.lbCode||'')===slugCode);
+  if(agent){errEl.textContent='';lockSelectAgent(agent.id);return;}
+
+  const db=initSupabase();
+  if(!db){errEl.textContent='No internet connection';return;}
+  errEl.textContent='⏳ Looking up your account...';
+
+  async function fetchRow(id){
+    try{const r=await db.from('app_state').select('*').eq('id',id).maybeSingle();return r?.data||null;}
+    catch(e){console.warn('fetchRow',id,e?.message);return null;}
+  }
+
+  // Try 1: direct slug key
+  let row=await fetchRow('agent_'+slugCode);
+
+  // Try 2: scan all agent rows for matching lbCode
+  if(!row){
+    try{
+      const res=await db.from('app_state').select('*').like('id','agent_%');
+      const rows=res?.data||[];
+      row=rows.find(r=>{const lb=r.data?.agentProfile?.lbCode||'';return lb&&slugifyCode(lb)===slugCode;})||null;
+      if(!row&&rows.length===1) row=rows[0]; // sole row = must be theirs
+    }catch{}
+  }
+
+  // Try 3: main stamp → UUID row
+  if(!row){const m=await fetchRow('main');const p=m?.data?.migratedToAgent;if(p)row=await fetchRow('agent_'+p);}
+
+  // Try 4: main row IS legacy state
+  if(!row){const m=await fetchRow('main');if(m?.data?.borrowers?.length)row=m;}
+
+  if(!row){errEl.textContent='Account not found — check your code';return;}
+
+  const foundData=row.data||{};
+  const foundId=(row.id||'main').replace('agent_','');
+  const profile=foundData.agentProfile||{};
+  const pinHash=foundData._pinHash||null;
+
+  // Migrate to slug key if needed
+  if(foundId!==slugCode){
+    foundData.agentProfile={...profile,lbCode:rawCode,id:slugCode,setupComplete:true};
+    foundData._skipPurgeOnce=true;
+    try{
+      await db.from('app_state').upsert({id:'agent_'+slugCode,data:foundData,updated_at:new Date().toISOString()});
+      await db.from('app_state').upsert({id:'main',data:{migratedToAgent:slugCode,pinHash},updated_at:new Date().toISOString()});
+      if(foundId!=='main') await db.from('app_state').delete().eq('id','agent_'+foundId);
+    }catch{}
+  }
+  localStorage.setItem('squevetrack_'+slugCode,JSON.stringify(foundData));
+
+  agent={id:slugCode,lbCode:rawCode,name:profile.name||rawCode,stage:profile.stage||'M2',
+    supervisor:profile.supervisor||'',pinHash,createdAt:profile.createdAt||new Date().toISOString()};
+  const idx=localAgents.findIndex(a=>a.id===slugCode);
+  if(idx>=0)localAgents[idx]=agent;else localAgents.push(agent);
+  saveAgentList(localAgents);
+  errEl.textContent='';
+  lockSelectAgent(agent.id);
+}
+
+// Settings page functions
+function renderSettingsPage() {
+  const cardEl=document.getElementById('settings-agent-card');
+  if(cardEl&&_activeAgent){
+    const s=STAGE_CONFIG[_activeAgent.stage]||STAGE_CONFIG.M2;
+    cardEl.innerHTML='<div style="display:flex;align-items:center;gap:14px;padding:4px 0">'
+      +'<div style="width:52px;height:52px;border-radius:50%;background:'+s.colorHex+'22;color:'+s.colorHex+';display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;font-family:var(--font-head);flex-shrink:0">'
+      +(_activeAgent.name||'A').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()+'</div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-weight:700;font-size:15px">'+(_activeAgent.lbCode||_activeAgent.name)+'</div>'
+      +'<div style="font-size:12px;color:var(--text3);margin-top:2px">'+_activeAgent.name+'</div>'
+      +'<div style="margin-top:4px"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:'+s.colorHex+'22;color:'+s.colorHex+'">'+s.label+' — '+s.name+'</span></div>'
+      +'</div>'
+      +'<div style="font-size:9px;color:var(--text3);text-align:right;font-family:var(--font-mono)">'
+      +'<div style="margin-bottom:2px">Agent Code</div>'
+      +'<div style="color:var(--gold);font-weight:700;font-size:11px;user-select:all">'+(_activeAgent.lbCode||_activeAgent.id)+'</div>'
+      +'</div></div>';
+  }
+  renderHealthPage();
+}
+
+function settingsChangePin() {
+  if(!_activeAgent) return;
+  _pinTarget=_activeAgent; _pinBuffer=''; _pinSetBuffer=''; _pinMode='set';
+  document.getElementById('modal-title').textContent='🔑 Change PIN';
+  document.getElementById('modal-body').innerHTML=
+    '<div style="text-align:center;padding:10px 0">'
+    +'<div style="font-size:13px;color:var(--text2);margin-bottom:20px">Enter a new 4-digit PIN.</div>'
+    +'<div style="display:flex;justify-content:center;gap:12px;margin-bottom:20px">'
+    +'<div class="pin-dot" id="modal-pindot-0"></div><div class="pin-dot" id="modal-pindot-1"></div>'
+    +'<div class="pin-dot" id="modal-pindot-2"></div><div class="pin-dot" id="modal-pindot-3"></div>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto 12px">'
+    +[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map((k,i)=>i===9?'<div></div>'
+      :'<button class="pin-key" data-spk="'+k+'" onclick="settingsPinPress(this.dataset.spk)">'+k+'</button>').join('')
+    +'</div>'
+    +'<div id="settings-pin-error" style="font-size:12px;color:var(--red);min-height:18px"></div></div>';
+  document.getElementById('modal-footer').innerHTML='<button class="btn btn-ghost" onclick="closeModal();_pinBuffer=\'\';_pinSetBuffer=\'\';_pinMode=\'unlock\'">Cancel</button>';
+  document.getElementById('modal-overlay').classList.add('open'); haptic('light');
+}
+
+function settingsPinPress(k) {
+  const errEl=document.getElementById('settings-pin-error');
+  if(k==='⌫')_pinBuffer=_pinBuffer.slice(0,-1); else if(_pinBuffer.length<4)_pinBuffer+=String(k);
+  for(let i=0;i<4;i++){const d=document.getElementById('modal-pindot-'+i);if(d)d.classList.toggle('filled',i<_pinBuffer.length);}
+  if(_pinBuffer.length===4){setTimeout(async()=>{
+    if(_pinMode==='set'){_pinSetBuffer=_pinBuffer;_pinBuffer='';_pinMode='confirm';
+      if(errEl)errEl.textContent='Enter the same PIN again to confirm';
+      for(let i=0;i<4;i++){const d=document.getElementById('modal-pindot-'+i);if(d)d.classList.remove('filled');}
+    }else if(_pinMode==='confirm'){
+      if(_pinBuffer===_pinSetBuffer){
+        const hash=await hashPin(_pinBuffer,null);
+        const agents=getAgentList();const idx=agents.findIndex(a=>a.id===_pinTarget.id);
+        if(idx>=0){agents[idx].pinHash=hash;saveAgentList(agents);_pinTarget.pinHash=hash;if(_activeAgent)_activeAgent.pinHash=hash;}
+        state._pinHash=hash;
+        const db=initSupabase();if(db){try{
+          await db.from('app_state').upsert({id:'agent_'+_pinTarget.id,data:{...state,_pinHash:hash},updated_at:new Date().toISOString()});
+          await db.from('app_state').upsert({id:'main',data:{migratedToAgent:_pinTarget.id,pinHash:hash},updated_at:new Date().toISOString()});
+        }catch{}}
+        closeModal();haptic('pay');toast('PIN changed ✅','success');
+        _pinBuffer='';_pinSetBuffer='';_pinMode='unlock';
+      }else{
+        _pinBuffer='';_pinSetBuffer='';_pinMode='set';
+        if(errEl)errEl.textContent='PINs did not match — try again';
+        for(let i=0;i<4;i++){const d=document.getElementById('modal-pindot-'+i);if(d)d.classList.remove('filled');}
+        haptic('medium');
+      }
+    }
+  },100);}
+}
+
+function settingsLockApp(){lockApp();}
+
+function settingsDeleteAccount(){
+  if(!_activeAgent)return;
+  document.getElementById('modal-title').textContent='🗑 Delete Account';
+  document.getElementById('modal-body').innerHTML=
+    '<div style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:14px">Permanently deletes <strong>'+(_activeAgent.lbCode||_activeAgent.name)+'</strong> and ALL data.<br><span style="color:var(--red);font-weight:600">Cannot be undone.</span></div>'
+    +'<div class="form-group"><label>Type DELETE to confirm</label><input type="text" class="form-input" id="delete-confirm-input" placeholder="DELETE" autocomplete="off" style="font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase"></div>';
+  document.getElementById('modal-footer').innerHTML=
+    '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
+    +'<button class="btn btn-red" onclick="settingsConfirmDelete()">Delete My Account</button>';
+  document.getElementById('modal-overlay').classList.add('open'); haptic('light');
+}
+
+async function settingsConfirmDelete(){
+  if((document.getElementById('delete-confirm-input')?.value||'').trim().toUpperCase()!=='DELETE'){toast('Type DELETE to confirm','error');haptic('medium');return;}
+  closeModal();
+  const id=_activeAgent.id;
+  saveAgentList(getAgentList().filter(a=>a.id!==id));
+  localStorage.removeItem('squevetrack_'+id);
+  const db=initSupabase();if(db){try{
+    await db.from('app_state').delete().eq('id','agent_'+id);
+    await db.from('app_state').delete().eq('id','main');
+  }catch{}}
+  clearSession();_activeAgent=null;_sessionUnlocked=false;state=initState();
+  haptic('pay');toast('Account deleted','success');showLockScreen();
+}
+
+
 async function migrateFromLegacyIfNeeded() {
   // This device already has agents registered — nothing to do
   const localAgents = getAgentList();
@@ -9153,13 +9333,49 @@ document.addEventListener('DOMContentLoaded', async () => {
     // No session — check for migration then show lock screen
     const migrated = await migrateFromLegacyIfNeeded();
     if (!migrated) {
-      // Fresh install or returning without session
       if (agentList.length > 0) {
-        showLockScreen(); // existing agents — show lock
+        showLockScreen();
       } else {
-        // Brand new install — go straight to onboarding
-        state = initState();
-        startOnboarding(false, true);
+        // No local agents — scan Supabase before going to onboarding
+        const db = initSupabase();
+        let foundRemote = false;
+        if (db) {
+          try {
+            const res = await db.from('app_state').select('id, data').like('id', 'agent_%');
+            const rows = res?.data || [];
+            const valid = rows.filter(r => {
+              const raw = r.id.replace('agent_','');
+              const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(raw);
+              const isSqv  = raw.startsWith('sqv-');
+              const hasName = !!(r.data?.agentProfile?.name);
+              const hasBorr = (r.data?.borrowers?.length||0) > 0;
+              return !((isUuid||isSqv) && !hasName && !hasBorr);
+            });
+            const ghosts = rows.filter(r => !valid.includes(r)).map(r => r.id);
+            if (ghosts.length) { try { await db.from('app_state').delete().in('id', ghosts); } catch {} }
+            if (valid.length > 0) {
+              const list = getAgentList();
+              valid.forEach(r => {
+                const aid = r.id.replace('agent_','');
+                if (!list.find(a => a.id === aid)) {
+                  const p = r.data?.agentProfile || {};
+                  list.push({ id: aid, name: p.name||aid, stage: p.stage||'M2', lbCode: p.lbCode||'',
+                    pinHash: r.data?._pinHash||null, createdAt: p.createdAt||new Date().toISOString() });
+                  localStorage.setItem('squevetrack_'+aid, JSON.stringify(r.data));
+                }
+              });
+              saveAgentList(list);
+              foundRemote = true;
+            }
+          } catch(e) { console.warn('Supabase scan:', e.message); }
+        }
+        if (foundRemote) {
+          showLockScreen();
+        } else {
+          // Truly fresh — show auth screen (Sign In / New Agent)
+          state = initState();
+          showLockScreen();
+        }
       }
     }
     initPullToRefresh();
@@ -9333,7 +9549,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div style="font-family:var(--font-head);font-size:22px;font-weight:800;color:var(--text)">Your profile</div>
         <div style="font-size:13px;color:var(--text3);margin-top:4px">Used in reports and EOD summaries</div>
       </div>
-      <div class="form-group"><label>Your Name</label><input type="text" class="form-input" id="ob-agent-name" placeholder="e.g. Shadrack Agyei Arthur"></div>
+      <div class="form-group">
+        <label>LoanBase Agent Code <span style="color:var(--red)">*</span></label>
+        <input type="text" class="form-input" id="ob-agent-code" placeholder="e.g. Shadrack Agyei OCT25" style="font-weight:600">
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Your unique LoanBase identity — used to sign in on any device.</div>
+      </div>
+      <div class="form-group"><label>Your Full Name</label><input type="text" class="form-input" id="ob-agent-name" placeholder="e.g. Shadrack Agyei Arthur"></div>
       <div class="form-group"><label>Supervisor Name</label><input type="text" class="form-input" id="ob-supervisor" placeholder="e.g. Nana Osae Emmanuel"></div>
       <div class="form-group"><label>Monthly Collection Target (₵)</label><input type="number" class="form-input" id="ob-target" placeholder="e.g. 50000" min="0"></div>
       <div style="display:flex;gap:10px">
@@ -9406,50 +9627,54 @@ document.addEventListener('DOMContentLoaded', async () => {
 .ob-stage-card.selected { border-color:var(--gold);background:rgba(232,160,32,0.06) }
 .ob-stage-card:hover { border-color:var(--gold) }
 </style>
-<!-- ============================================================ -->
-<!-- LOCK SCREEN                                                  -->
-<!-- ============================================================ -->
+<!-- LOCK SCREEN -->
 <div id="lock-screen" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);overflow-y:auto">
-  <div style="max-width:400px;margin:0 auto;padding:40px 20px 80px;min-height:100vh;display:flex;flex-direction:column;align-items:center">
-
-    <!-- App logo / title -->
-    <div style="font-family:var(--font-head);font-size:28px;font-weight:800;color:var(--gold);margin-bottom:4px;letter-spacing:-0.5px">SqueveTrack</div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:36px">LoanBase Recovery · Secured</div>
-
-    <!-- Agent list -->
-    <div id="lock-agent-list" style="width:100%;margin-bottom:28px"></div>
-
-    <!-- PIN pad (hidden until agent selected) -->
-    <div id="lock-pin-section" style="display:none;width:100%;text-align:center">
-      <div id="lock-pin-name" style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px"></div>
-      <div id="lock-pin-stage" style="font-size:11px;margin-bottom:20px"></div>
-      <!-- PIN dots -->
-      <div style="display:flex;justify-content:center;gap:12px;margin-bottom:24px">
-        <div class="pin-dot" id="pindot-0"></div>
-        <div class="pin-dot" id="pindot-1"></div>
-        <div class="pin-dot" id="pindot-2"></div>
-        <div class="pin-dot" id="pindot-3"></div>
-      </div>
-      <!-- PIN keypad -->
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto 16px">
-        <button class="pin-key" onclick="pinPress('1')">1</button>
-        <button class="pin-key" onclick="pinPress('2')">2</button>
-        <button class="pin-key" onclick="pinPress('3')">3</button>
-        <button class="pin-key" onclick="pinPress('4')">4</button>
-        <button class="pin-key" onclick="pinPress('5')">5</button>
-        <button class="pin-key" onclick="pinPress('6')">6</button>
-        <button class="pin-key" onclick="pinPress('7')">7</button>
-        <button class="pin-key" onclick="pinPress('8')">8</button>
-        <button class="pin-key" onclick="pinPress('9')">9</button>
-        <button class="pin-key pin-key-ghost" onclick="lockSelectAgent(null)">←</button>
-        <button class="pin-key" onclick="pinPress('0')">0</button>
-        <button class="pin-key pin-key-ghost" onclick="pinBackspace()">⌫</button>
-      </div>
-      <div id="lock-pin-error" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:8px"></div>
-      <button class="btn btn-ghost btn-xs" onclick="showDevOverride()" style="font-size:10px;color:var(--text3)">Locked out? Contact developer</button>
+  <div style="max-width:420px;margin:0 auto;padding:40px 20px 80px;min-height:100vh;display:flex;flex-direction:column;align-items:center">
+    <div style="font-family:var(--font-head);font-size:30px;font-weight:800;color:var(--gold);margin-bottom:4px;letter-spacing:-0.5px">SqueveTrack</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:32px">LoanBase Recovery Suite</div>
+    <!-- Tabs -->
+    <div style="display:flex;background:var(--surface2);border-radius:10px;padding:3px;width:100%;margin-bottom:24px">
+      <button id="tab-signin" onclick="authShowTab('signin')" style="flex:1;padding:9px;border:none;cursor:pointer;border-radius:8px;font-size:13px;font-weight:700;background:var(--surface);color:var(--gold);transition:all 0.15s;font-family:var(--font-body)">Sign In</button>
+      <button id="tab-signup" onclick="authShowTab('signup')" style="flex:1;padding:9px;border:none;cursor:pointer;border-radius:8px;font-size:13px;font-weight:600;background:transparent;color:var(--text3);transition:all 0.15s;font-family:var(--font-body)">New Agent</button>
     </div>
-
-    <!-- Dev override input (hidden) -->
+    <!-- Sign In Panel -->
+    <div id="auth-signin-panel" style="width:100%">
+      <div id="lock-agent-list" style="width:100%;margin-bottom:16px"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;width:100%">
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+        <span style="font-size:11px;color:var(--text3)">or sign in with your Agent Code</span>
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+      </div>
+      <div style="margin-bottom:14px">
+        <input type="text" id="auth-code-input" class="form-input" placeholder='e.g. Shadrack Agyei OCT25' style="text-align:center;font-size:14px;font-weight:600" onkeydown="if(event.key==='Enter')authSignInWithCode()">
+        <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:5px">Your LoanBase agent code</div>
+        <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px" onclick="authSignInWithCode()">Find My Account →</button>
+      </div>
+      <div id="lock-pin-section" style="display:none;width:100%;text-align:center">
+        <div id="lock-pin-name" style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:16px"></div>
+        <div style="display:flex;justify-content:center;gap:12px;margin-bottom:20px">
+          <div class="pin-dot" id="pindot-0"></div><div class="pin-dot" id="pindot-1"></div>
+          <div class="pin-dot" id="pindot-2"></div><div class="pin-dot" id="pindot-3"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto 14px">
+          <button class="pin-key" onclick="pinPress('1')">1</button><button class="pin-key" onclick="pinPress('2')">2</button><button class="pin-key" onclick="pinPress('3')">3</button>
+          <button class="pin-key" onclick="pinPress('4')">4</button><button class="pin-key" onclick="pinPress('5')">5</button><button class="pin-key" onclick="pinPress('6')">6</button>
+          <button class="pin-key" onclick="pinPress('7')">7</button><button class="pin-key" onclick="pinPress('8')">8</button><button class="pin-key" onclick="pinPress('9')">9</button>
+          <button class="pin-key pin-key-ghost" onclick="authClearCode()">←</button>
+          <button class="pin-key" onclick="pinPress('0')">0</button>
+          <button class="pin-key pin-key-ghost" onclick="pinBackspace()">⌫</button>
+        </div>
+        <div id="lock-pin-error" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:8px"></div>
+        <button class="btn btn-ghost btn-xs" onclick="showDevOverride()" style="font-size:10px;color:var(--text3)">Locked out? Contact developer</button>
+      </div>
+    </div>
+    <!-- New Agent Panel -->
+    <div id="auth-signup-panel" style="display:none;width:100%;text-align:center">
+      <div style="font-size:14px;color:var(--text2);margin-bottom:20px;line-height:1.7">Create your personal SqueveTrack account.<br>Your data will be private and PIN-protected.</div>
+      <button class="btn btn-gold" style="width:100%;padding:14px;font-size:15px" onclick="authShowTab('signin');lockAddNewAgent()">Start Setup →</button>
+      <div style="font-size:11px;color:var(--text3);margin-top:12px">Choose your stage, enter your details,<br>and optionally upload your LoanBase data.</div>
+    </div>
+    <!-- Dev override -->
     <div id="lock-dev-override" style="display:none;width:100%;text-align:center;margin-top:16px">
       <div style="font-size:12px;color:var(--text2);margin-bottom:8px">Enter developer override code</div>
       <input type="text" class="form-input" id="dev-override-input" placeholder="SQV-XXX-XXXX" style="text-align:center;font-family:var(--font-mono);letter-spacing:2px;font-size:14px;margin-bottom:8px" onkeydown="if(event.key==='Enter')checkDevOverride()">
@@ -9459,26 +9684,23 @@ document.addEventListener('DOMContentLoaded', async () => {
       </div>
       <div id="dev-override-error" style="font-size:11px;color:var(--red);margin-top:6px;min-height:16px"></div>
     </div>
-
-    <!-- Add new agent button -->
-    <div style="margin-top:auto;padding-top:32px;width:100%;text-align:center">
-      <button class="btn btn-ghost btn-sm" style="width:100%" onclick="lockAddNewAgent()">＋ Add New Agent</button>
-    </div>
   </div>
 </div>
-
 <style>
-.pin-dot { width:14px;height:14px;border-radius:50%;border:2px solid var(--border2);background:transparent;transition:background 0.1s,border-color 0.1s }
-.pin-dot.filled { background:var(--gold);border-color:var(--gold) }
-.pin-dot.shake { animation:pinShake 0.4s ease }
-@keyframes pinShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
-.pin-key { background:var(--surface2);border:1px solid var(--border);border-radius:12px;font-size:20px;font-weight:600;padding:16px;cursor:pointer;color:var(--text);transition:all 0.1s;font-family:var(--font-head) }
-.pin-key:active { background:var(--gold);color:#000;transform:scale(0.94) }
-.pin-key-ghost { background:transparent;border-color:transparent;font-size:16px }
-.lock-agent-card { display:flex;align-items:center;gap:12px;background:var(--surface2);border:2px solid var(--border2);border-radius:12px;padding:14px 16px;cursor:pointer;transition:all 0.15s;width:100%;text-align:left;margin-bottom:8px }
-.lock-agent-card:hover,.lock-agent-card.selected { border-color:var(--gold) }
-.lock-agent-avatar { width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0;font-family:var(--font-head) }
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border2);background:transparent;transition:background 0.1s,border-color 0.1s}
+.pin-dot.filled{background:var(--gold);border-color:var(--gold)}
+.pin-dot.shake{animation:pinShake 0.4s ease}
+@keyframes pinShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.pin-key{background:var(--surface2);border:1px solid var(--border);border-radius:12px;font-size:20px;font-weight:600;padding:16px;cursor:pointer;color:var(--text);transition:all 0.1s;font-family:var(--font-head)}
+.pin-key:active{background:var(--gold);color:#000;transform:scale(0.94)}
+.pin-key-ghost{background:transparent;border-color:transparent;font-size:16px}
+.lock-agent-card{display:flex;align-items:center;gap:12px;background:var(--surface2);border:2px solid var(--border2);border-radius:12px;padding:12px 14px;cursor:pointer;transition:all 0.15s;text-align:left;width:100%}
+.lock-agent-card:hover{border-color:var(--gold)}
+.lock-agent-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0;font-family:var(--font-head)}
+.settings-row{display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px 20px;background:none;border:none;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;color:var(--text2);text-align:left;transition:background 0.1s;font-family:var(--font-body)}
+.settings-row:last-child{border-bottom:none}
+.settings-row:hover{background:var(--surface2)}
+.settings-chevron{color:var(--text3);font-size:18px;font-weight:300}
 </style>
-
 </body>
 </html>
