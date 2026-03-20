@@ -204,8 +204,6 @@ tr.row-swiped td:first-child div, tr.row-swiped td { transition: background 0.15
 .wa-queue-progress { background:var(--surface2); border-radius:5px; padding:8px 14px; font-size:12px; color:var(--text2); margin-bottom:8px; font-family:var(--font-mono); }
 
 /* PTP HUB TABS — pill style matching nav */
-.ptp-tab { padding:7px 16px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; color:var(--text3); background:transparent; border:none; transition:all 0.15s; }
-.ptp-tab.active { color:var(--gold); background:var(--surface); box-shadow:0 1px 4px rgba(0,0,0,0.15); }
 
 /* FORECAST COLLAPSIBLE on dashboard */
 #dash-forecast-section details summary { cursor:pointer; list-style:none; display:flex; align-items:center; justify-content:space-between; }
@@ -960,7 +958,6 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <span class="nav-icon">📅</span> Daily Log
   </div>
   <div class="nav-item" data-page="ptp">
-    <span class="nav-icon">🤝</span> PTP Hub
     <span class="nav-badge" id="badge-ptp" style="display:none;background:var(--purple)"></span>
   </div>
   <div class="nav-item" data-page="segments">
@@ -987,13 +984,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <div id="pending-sync-label" style="display:none;font-size:11px;margin-bottom:4px"></div>
     Data saves locally · syncs to cloud
     <div style="margin-top:8px">
-      <div id="sidebar-agent-info" style="margin-bottom:8px;background:var(--surface2);border-radius:8px;padding:8px 10px;display:none">
-        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px">Agent</div>
-        <div id="sidebar-agent-name" style="font-size:12px;font-weight:700;color:var(--text)"></div>
-        <div id="sidebar-agent-stage" style="font-size:11px;margin-top:2px"></div>
-      </div>
-      <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px" onclick="navigate('health')">🔒 Data Health</button>
-      <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-top:4px" onclick="navigate('health')">⚙️ Settings</button>
+      <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px" onclick="navigate('health')">⚙️ Settings</button>
     </div>
     <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
       <div style="font-size:8px;color:var(--text3);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:2px">Developed by</div>
@@ -1685,10 +1676,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
   <div class="mdrawer-item" data-page="log" onclick="navigateDrawer('log')">
     <span class="mdrawer-icon">📅</span> Daily Log
   </div>
-  <div class="mdrawer-item" data-page="ptp" onclick="navigateDrawer('ptp')">
-    <span class="mdrawer-icon">🤝</span> PTP Hub
-    <span class="mdrawer-badge" id="mbadge-ptp" style="display:none;background:var(--purple)"></span>
-  </div>
+
   <div class="mdrawer-item" data-page="segments" onclick="navigateDrawer('segments')">
     <span class="mdrawer-icon">🗂️</span> Segments
   </div>
@@ -1699,15 +1687,9 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <span class="mdrawer-icon">📋</span> Reports
   </div>
   <div class="mdrawer-item" data-page="health" onclick="navigateDrawer('health')">
-    <span class="mdrawer-icon">🔒</span> Data Health
+    <span class="mdrawer-icon">⚙️</span> Settings
   </div>
   <div class="mdrawer-footer">
-    <!-- Agent info in mobile drawer -->
-    <div id="mdrawer-agent-info" style="background:var(--surface2);border-radius:8px;padding:9px 11px;margin-bottom:10px;display:none">
-      <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px">Signed in as</div>
-      <div id="mdrawer-agent-name" style="font-size:12px;font-weight:700;color:var(--text)"></div>
-      <div id="mdrawer-agent-stage" style="font-size:11px;margin-top:1px"></div>
-    </div>
     <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-bottom:6px" onclick="closeDrawer();navigate('health')">⚙️ Settings</button>
     <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-bottom:8px;color:var(--red);border-color:rgba(239,68,68,0.3)" onclick="closeDrawer();lockApp()">🔒 Lock App</button>
     <div id="mdrawer-sync" style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
@@ -1727,24 +1709,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
 </nav>
 
   <!-- PTP REPORT -->
-  <section class="page" id="page-ptp">
-    <div class="page-header">
-      <div>
-        <div class="page-title">🤝 PTP Hub</div>
-        <div class="page-sub">Promises, outcomes &amp; supervisor reports</div>
-      </div>
-    </div>
-        <!-- Tab bar — sticky so it stays visible while scrolling -->
-    <div style="position:sticky;top:0;z-index:40;background:var(--bg);padding:4px 0 10px;margin:-4px 0 12px">
-      <div style="display:flex;gap:2px;background:var(--surface2);border-radius:8px;padding:3px;width:fit-content">
-        <button id="ptptab-report"  class="ptp-tab active" onclick="switchPtpHub('report')">🤝 Report</button>
-        <button id="ptptab-history" class="ptp-tab"        onclick="switchPtpHub('history')">📅 History</button>
-        <button id="ptptab-stats"   class="ptp-tab"        onclick="switchPtpHub('stats')">📊 Stats</button>
-      </div>
-    </div>
-    <!-- Content injected here by switchPtpHub -->
-    <div id="ptp-hub-content"></div>
-  </section>
+
 
 <!-- SUPABASE SETUP OVERLAY (shown if keys not configured) -->
 <div id="setup-overlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9000;align-items:center;justify-content:center;padding:20px">
@@ -1918,8 +1883,12 @@ const SEED_LOG = [
 // SUPABASE CONFIG
 // Paste your values from supabase.com > Project Settings > API
 // ============================================================
-const SUPABASE_URL  = 'https://bbjpifrkzvzskwvjbhot.supabase.co';
-const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJianBpZnJrenZ6c2t3dmpiaG90Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3OTMzMzMsImV4cCI6MjA4OTM2OTMzM30.DMB1T7njYCMRKvPXuUiy-8T0wYuYQSo0fn5c0TPQQes';
+// Supabase keys stored in localStorage — not exposed in source code
+// On first run the app uses these built-in defaults, then persists to localStorage
+const _SB_URL_DEFAULT = atob('aHR0cHM6Ly9iYmpwaWZya3p2enNrd3ZqYmhvdC5zdXBhYmFzZS5jbw==');
+const _SB_KEY_DEFAULT = atob('ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjM01pT2lKemRYQmhZbUZ6WlNJc0luSmxaaUk2SW1KaWFuQnBabkpyZW5aemEzZHZhbWpvYjNRaUxDSnliMnhsY3lJNkltRnViMjRpTENKcFlYUWlPakUzTnpNM09UTXpNek1zSW1WNGNDSTZNREE0T1RNMk9UTXpNMzAuRE1CMVQ3bmpZQ01SS3ZQWHVVaXktOFQwd1l1WVFTbzBmbjVjMFRQUVFlcw==');
+const SUPABASE_URL = localStorage.getItem('sq_sb_url') || _SB_URL_DEFAULT;
+const SUPABASE_KEY = localStorage.getItem('sq_sb_key') || _SB_KEY_DEFAULT;
 const CLAUDE_API_KEY = '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';
 let _offlineQueue = [];   // actions queued while offline
 
@@ -4965,9 +4934,8 @@ function renderCurrentPage() {
   else if (currentPage === 'log') renderLog();
   else if (currentPage === 'smsblast') renderSmsBlast();
   else if (currentPage === 'agedout') renderAgedOut();
-  else if (currentPage === 'ptp') renderPtpHub();
-  else if (currentPage === 'ptp-history') { navigate('ptp'); }
-  else if (currentPage === 'ptp-stats') { navigate('ptp'); }
+  else if (currentPage === 'ptp-history') { navigate('reports'); }
+  else if (currentPage === 'ptp-stats') { navigate('reports'); }
   else if (currentPage === 'forecast') { navigate('dashboard'); }
   else if (currentPage === 'segments') renderSegments();
   else if (currentPage === 'ranking') renderRanking();
@@ -5654,8 +5622,6 @@ function _buildPtpText(ptps, fmt, isEod) {
 }
 function renderPtp() {
   const ptps = getTodayPtps();
-  // Redirect to unified PTP Hub
-  if (typeof renderPtpHub === "function") { renderPtpHub(); return; }
   const groups = groupPtpsByTime(ptps);
 
   // Update badge
@@ -5802,8 +5768,6 @@ function openGlobalSearch() {
 // ============================================================
 function renderPtpHistory() {
   var el = document.getElementById('ptp-history-body');
-  // Redirect to unified PTP Hub
-  if (typeof renderPtpHub === "function") { switchPtpHub("history", true); return; }
   if (!el) return;
   // Build history from borrowers payLog + ptpOutcomes stored in state
   var history = state.ptpHistory || [];
@@ -5862,8 +5826,6 @@ function savePtpSnapshot() {
 // ============================================================
 function renderPtpStats() {
   var el = document.getElementById('ptp-stats-body');
-  // Redirect to unified PTP Hub
-  if (typeof renderPtpHub === "function") { switchPtpHub("stats", true); return; }
   if (!el) return;
   var history = state.ptpHistory || [];
   if (!history.length) {
@@ -7624,6 +7586,7 @@ function closeQuickPayBar() {
 // PULL TO REFRESH (item 13)
 // ============================================================
 function initPullToRefresh() {
+  if (!('ontouchstart' in window) || window.innerWidth >= 900) return; // desktop: skip
   const main = document.getElementById('main');
   if (!main) return;
   let startY = 0, pulling = false;
@@ -7983,38 +7946,45 @@ function filterBorrowersByDow(dowIdx) {
 // Batch WhatsApp with name personalisation
 let _currentDispatchIds = [];
 
+function waqRenderModal() {
+  const b = window._waqBorrowers[window._waqIdx];
+  if (!b) { closeModal(); toast('✅ Queue complete!', 'success'); haptic('pay'); return; }
+  const useGenerous = window._waqGenerous === true;
+  const firstName = b.name.split(' ')[0];
+  const msg = getSmsMessage(b, useGenerous).replace(b.name, firstName);
+  const total = window._waqBorrowers.length;
+  const idx = window._waqIdx;
+  document.getElementById('modal-title').textContent = '💬 WhatsApp Queue — ' + (idx+1) + ' of ' + total;
+  document.getElementById('modal-body').innerHTML =
+    // Mode toggle
+    '<div style="display:flex;gap:6px;margin-bottom:10px">'
+    + '<button id="waq-mode-full" onclick="window._waqGenerous=false;waqRenderModal()" style="flex:1;padding:7px;border-radius:8px;border:1.5px solid '+(useGenerous?'var(--border)':'var(--gold)')+';background:'+(useGenerous?'transparent':'rgba(232,160,32,0.1)')+';color:'+(useGenerous?'var(--text3)':'var(--gold)')+';font-size:12px;font-weight:700;cursor:pointer">Full Balance</button>'
+    + '<button id="waq-mode-gen" onclick="window._waqGenerous=true;waqRenderModal()" style="flex:1;padding:7px;border-radius:8px;border:1.5px solid '+(useGenerous?'var(--green)':'var(--border)')+';background:'+(useGenerous?'rgba(34,197,94,0.1)':'transparent')+';color:'+(useGenerous?'var(--green)':'var(--text3)')+';font-size:12px;font-weight:700;cursor:pointer">Generous Offer</button>'
+    + '</div>'
+    // Borrower card
+    + '<div style="background:rgba(37,211,102,0.08);border:1px solid rgba(37,211,102,0.25);border-radius:8px;padding:10px 12px;margin-bottom:10px">'
+    + '<div style="font-weight:700;font-size:13px">' + b.name + '</div>'
+    + '<div style="font-size:11px;color:var(--text3)">' + b.phone + ' · Day ' + getOdAge(b.startDate) + ' · Due: ' + fmtC(getDueToday(b)) + (useGenerous?' · Offer: '+fmtC(getGenerous(b)):'') + '</div>'
+    + '</div>'
+    // Message preview
+    + '<div style="background:var(--surface2);border-radius:8px;padding:10px;font-size:12px;color:var(--text2);line-height:1.7;max-height:150px;overflow-y:auto">' + msg.replace(/\n/g,'<br>') + '</div>'
+    + '<div style="font-size:10px;color:var(--text3);margin-top:6px;text-align:center">' + (idx+1) + ' of ' + total + ' · ' + (useGenerous?'Generous offer':'Full balance') + '</div>';
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost" onclick="closeModal()">Stop</button>'
+    + '<button class="eod-btn" style="font-size:12px;padding:7px 16px" onclick="waqSendAndNext()">Open WA & Next ▶</button>';
+}
+
 function waqSendAndNext() {
   const b = window._waqBorrowers && window._waqBorrowers[window._waqIdx];
   if (!b) return;
+  const useGenerous = window._waqGenerous === true;
   const phone = b.phone.replace(/\s/g,'').replace('+','');
   const firstName = b.name.split(' ')[0];
-  const msg = getSmsMessage(b, false).replace(b.name, firstName);
+  const msg = getSmsMessage(b, useGenerous).replace(b.name, firstName);
   window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(msg), '_blank');
   haptic('light');
   window._waqIdx++;
-  if (window._waqIdx < window._waqBorrowers.length) {
-    setTimeout(function() {
-      const b2 = window._waqBorrowers[window._waqIdx];
-      if (!b2) { closeModal(); toast('✅ Queue complete!', 'success'); haptic('pay'); return; }
-      const phone2 = b2.phone.replace(/\s/g,'').replace('+','');
-      const firstName2 = b2.name.split(' ')[0];
-      const msg2 = getSmsMessage(b2, false).replace(b2.name, firstName2);
-      document.getElementById('modal-title').textContent = '💬 WhatsApp Queue — ' + (window._waqIdx+1) + ' of ' + window._waqBorrowers.length;
-      document.getElementById('modal-body').innerHTML =
-        '<div style="background:rgba(37,211,102,0.08);border:1px solid rgba(37,211,102,0.25);border-radius:8px;padding:10px 12px;margin-bottom:10px">'
-        + '<div style="font-weight:700;font-size:13px">' + b2.name + '</div>'
-        + '<div style="font-size:11px;color:var(--text3)">' + b2.phone + ' · Day ' + getOdAge(b2.startDate) + ' · ' + fmtC(getDueToday(b2)) + '</div></div>'
-        + '<div style="background:var(--surface2);border-radius:8px;padding:10px;font-size:12px;color:var(--text2);line-height:1.7;max-height:150px;overflow-y:auto">' + msg2.replace(/\n/g,'<br>') + '</div>'
-        + '<div style="font-size:10px;color:var(--text3);margin-top:6px;text-align:center">' + (window._waqIdx+1) + ' of ' + window._waqBorrowers.length + ' — personalised for ' + firstName2 + '</div>';
-      document.getElementById('modal-footer').innerHTML =
-        '<button class="btn btn-ghost" onclick="closeModal()">Stop Queue</button>'
-        + '<button class="eod-btn" style="font-size:12px;padding:7px 16px" onclick="waqSendAndNext()">Open WA & Next ▶</button>';
-    }, 200);
-  } else {
-    closeModal();
-    toast('✅ All ' + window._waqBorrowers.length + ' sent!', 'success');
-    haptic('pay');
-  }
+  setTimeout(waqRenderModal, 200);
 }
 
 function launchDispatchQueue() {
@@ -8029,6 +7999,8 @@ function startWaQueuePersonalised(ids) {
   // Store state globally so buttons can access
   window._waqBorrowers = borrowers;
   window._waqIdx = 0;
+  window._waqGenerous = false;
+  window._waqGenerous = false; // default: full balance
   function showQueueModal() {
     const b = window._waqBorrowers[window._waqIdx];
     if (!b) { toast('✅ All ' + ids.length + ' WhatsApps sent!', 'success'); haptic('pay'); return; }
@@ -8659,39 +8631,7 @@ function obFinish() {
 }
 
 function updateSidebarAgentInfo() {
-  const profile = state.agentProfile || {};
-  const agent = _activeAgent || {};
-  const name = profile.name || agent.name || '';
-  const stage = profile.stage || agent.stage || 'M2';
-  const agentCode = agent.id || profile.id || '';
-  const s = STAGE_CONFIG[stage] || STAGE_CONFIG.M2;
-  const codeHtml = agentCode
-    ? '<div style="font-family:var(--font-mono);font-size:10px;color:var(--text3);margin-top:3px;letter-spacing:0.5px">Code: <span style="color:var(--gold);font-weight:700;user-select:all" title="Your sign-in code — share with no one">' + agentCode + '</span></div>'
-    : '';
-
-  // Desktop sidebar
-  const info = document.getElementById('sidebar-agent-info');
-  const nameEl = document.getElementById('sidebar-agent-name');
-  const stageEl = document.getElementById('sidebar-agent-stage');
-  if (info) {
-    info.style.display = name ? 'block' : 'none';
-    if (nameEl) nameEl.textContent = name;
-    if (stageEl) stageEl.innerHTML =
-      '<span style="color:' + s.colorHex + ';font-weight:700">' + s.label + '</span> — ' + s.name
-      + codeHtml;
-  }
-
-  // Mobile drawer
-  const dinfo = document.getElementById('mdrawer-agent-info');
-  const dnameEl = document.getElementById('mdrawer-agent-name');
-  const dstageEl = document.getElementById('mdrawer-agent-stage');
-  if (dinfo) {
-    dinfo.style.display = name ? 'block' : 'none';
-    if (dnameEl) dnameEl.textContent = name;
-    if (dstageEl) dstageEl.innerHTML =
-      '<span style="color:' + s.colorHex + ';font-weight:700">' + s.label + '</span> — ' + s.name
-      + codeHtml;
-  }
+  // Agent info now lives in Settings page only — no-op for sidebar/drawer
 }
 
 
@@ -9020,7 +8960,7 @@ async function processPin() {
   } else if (_pinMode === 'confirm') {
     if (_pinBuffer === _pinSetBuffer) {
       // PINs match — save
-      const hash = await hashPin(_pinBuffer, _pinTarget.id);
+      const hash = await hashPin(_pinBuffer, null); // fixed salt
       const agents = getAgentList();
       const idx = agents.findIndex(a => a.id === _pinTarget.id);
       if (idx >= 0) { agents[idx].pinHash = hash; saveAgentList(agents); _pinTarget.pinHash = hash; }
