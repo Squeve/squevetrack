@@ -1219,6 +1219,10 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
         <div class="card-body" id="analytics-efficiency"></div>
       </div>
       <div class="card">
+        <div class="card-header"><span class="card-title">📊 Month vs Last Month</span><span style="font-size:10px;color:var(--text3)">side-by-side</span></div>
+        <div class="card-body" id="analytics-month-compare" style="padding:0 4px"></div>
+      </div>
+      <div class="card">
         <div class="card-header"><span class="card-title">📅 Day of Week Performance</span><span style="font-size:11px;color:var(--text3)">When you collect most</span></div>
         <div class="card-body" id="analytics-dow"></div>
       </div>
@@ -1257,9 +1261,14 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
       <div style="padding:12px 20px;border-bottom:1px solid var(--border);display:flex;gap:16px;flex-wrap:wrap;align-items:center">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span style="font-size:12px;color:var(--text2)">📱 <span id="dispatch-stats"></span></span>
-          <div style="position:relative;display:inline-flex;align-items:center;margin-left:auto">
-            <input class="search-input" id="dispatch-search" placeholder="🔍 Search name..." oninput="renderDispatch()" style="font-size:12px;padding-right:24px;width:160px">
-            <button onclick="clearSearch('dispatch-search',renderDispatch)" style="position:absolute;right:6px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:0;line-height:1">✕</button>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <div style="position:relative;display:inline-flex;align-items:center">
+              <input class="search-input" id="dispatch-search" placeholder="🔍 Search name..." oninput="renderDispatch()" style="font-size:12px;padding-right:24px;width:130px">
+              <button onclick="clearSearch('dispatch-search',renderDispatch)" style="position:absolute;right:6px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:0;line-height:1">✕</button>
+            </div>
+            <input type="number" class="filter-select" id="dispatch-min-amount" placeholder="₵ Min" oninput="renderDispatch()" style="width:68px;font-size:11px" min="0">
+            <span style="font-size:11px;color:var(--text3)">–</span>
+            <input type="number" class="filter-select" id="dispatch-max-amount" placeholder="₵ Max" oninput="renderDispatch()" style="width:68px;font-size:11px" min="0">
           </div>
         </div>
         <span style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
@@ -1725,6 +1734,13 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
 <!-- CONFETTI CANVAS -->
 <canvas id="confetti-canvas"></canvas>
 
+<!-- F8: Floating Daily Target Pill -->
+<div id="daily-target-pill" style="display:none;position:fixed;bottom:80px;right:16px;z-index:300;background:var(--surface);border:1.5px solid var(--border2);border-radius:24px;padding:8px 14px;box-shadow:0 4px 16px rgba(0,0,0,0.25);cursor:pointer;text-align:center;min-width:110px;animation:fadeUp 0.3s ease both;flex-direction:column;align-items:center" onclick="navigate('log');haptic('light')">
+  <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px">Need today</div>
+  <div id="daily-pill-amount" style="font-family:var(--font-mono);font-weight:800;font-size:16px;color:var(--gold)">₵0</div>
+  <div id="daily-pill-sub" style="font-size:9px;color:var(--text3);margin-top:1px">tap to log</div>
+</div>
+
 <!-- TOAST AREA -->
 <div id="toast-area"></div>
 
@@ -1868,8 +1884,8 @@ let _offlineQueue = [];   // actions queued while offline
 const STATE_KEY = 'mar_tracker_v3';
 let state = null;
 let currentModal = null;
-let loanSortCol = 'odAge';
-let loanSortDir = 1;
+let loanSortCol = localStorage.getItem('sort_col') || 'odAge';
+let loanSortDir = parseInt(localStorage.getItem('sort_dir') || '1') || 1;
 let charts = {};
 let dispatchMode = 'generous';
 let _saveTimer = null;           // debounce handle
@@ -1947,6 +1963,7 @@ function migrateState(s) {
     if (b.isPaid === undefined) b.isPaid = (b.amountPaid >= b.loanDue && b.amountPaid > 0);
     if (!b.payLog) b.payLog = [];
     if (!b.callLog) b.callLog = [];
+    if (b.ptpBreached === undefined) b.ptpBreached = false;
     if (b.priorityScore === undefined) b.priorityScore = 5;
   });
   return s;
@@ -2483,6 +2500,8 @@ function renderDashboard() {
   renderGapWidget();
   renderTreadmillAlert();
   checkRankingGapAlert();
+  checkPtpBreaches();
+  updateDailyPill();
 }
 
 function chartColor(alpha) {
@@ -2617,7 +2636,11 @@ function renderLoansTable() {
     tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="icon">🔍</div><div>No borrowers match your filters</div></div></td></tr>`;
     return;
   }
-  tbody.innerHTML = rows.map((r, i) => {
+  // F2: Lazy render — 30 rows at a time
+  window._loanRows = rows;
+  function _renderLoanChunk(start, append) {
+    const chunk = window._loanRows.slice(start, start + 30);
+    const html = chunk.map(function(r, ci) { var i = start + ci; return (function(r, i) {
     const typeBadge = r.loanType === 'LoanBase Pro'
       ? `<span class="badge badge-pro">Pro</span>`
       : `<span class="badge badge-loanbase">Base</span>`;
@@ -2657,12 +2680,28 @@ function renderLoansTable() {
         </div>
       </td>
     </tr>`;
-  }).join('');
+    })(r, i); }).join('');
+    if (!append) tbody.innerHTML = html;
+    else { var t = tbody.querySelector('.load-more-row'); if(t) t.remove(); tbody.insertAdjacentHTML('beforeend', html); }
+    var t2 = tbody.querySelector('.load-more-row'); if(t2) t2.remove();
+    var loaded = start + chunk.length;
+    if (loaded < window._loanRows.length) {
+      var rem = window._loanRows.length - loaded;
+      tbody.insertAdjacentHTML('beforeend',
+        '<tr class="load-more-row"><td colspan="12" style="text-align:center;padding:10px;border-top:1px solid var(--border)">' +
+        '<button class="btn btn-ghost btn-sm" onclick="_renderLoanChunk(' + loaded + ',true);haptic(\'light\')">Show ' + Math.min(30,rem) + ' more · ' + rem + ' remaining</button>' +
+        '</td></tr>'
+      );
+    }
+  }
+  _renderLoanChunk(0, false);
 }
 
 function sortLoans(col) {
   if (loanSortCol === col) loanSortDir *= -1;
   else { loanSortCol = col; loanSortDir = 1; }
+  localStorage.setItem('sort_col', loanSortCol);
+  localStorage.setItem('sort_dir', String(loanSortDir));
   renderLoansTable();
   initRowSwipe();
 }
@@ -2748,6 +2787,7 @@ function renderAnalytics() {
     });
   }, 60);
 
+  renderMonthComparison();
   if (charts['status']) charts['status'].destroy();
   const ctxS = document.getElementById('chart-status');
   if (ctxS) {
@@ -3958,6 +3998,8 @@ function openBorrowerDetail(id) {
     if (elH)   elH.onclick   = function(){ haptic('light'); closeModal(); openHistoryModal(id); };
     if (elE)   elE.onclick   = function(){ haptic('light'); closeModal(); openEditModal(id); };
     if (elCL)  elCL.onclick  = function(){ haptic('light'); closeModal(); openCallLogModal(id); };
+    var elTL = document.getElementById('bd-timeline');
+    if (elTL) elTL.onclick = function(){ haptic('light'); closeModal(); openBorrowerTimeline(id); };
     if (elHL)  elHL.onclick  = function(){ haptic('medium'); addToHitList(id); elHL.textContent = '📌 In Hit List'; };
     if (elD)   elD.onclick   = function(){
       if (confirm('Delete ' + b.name + '?')){ closeModal(); deleteBorrower(id); }
@@ -6254,8 +6296,9 @@ function calcPriorityScore(b) {
   if (rem > 2000) score += 3;
   else if (rem > 1000) score += 2;
   else if (rem > 500) score += 1;
-  // Broken promises (max 2 pts)
-  if (b.promisedToPay && b.amountPaid === 0) score += 2;
+  // PTP breach (3pts) or unfulfilled promise (2pts)
+  if (b.ptpBreached && b.amountPaid === 0) score += 3;
+  else if (b.promisedToPay && b.amountPaid === 0) score += 2;
   // No payment at all (1 pt)
   if (!b.amountPaid) score += 1;
   return Math.min(10, score);
@@ -6272,6 +6315,9 @@ function getBorrowerBadges(b) {
   else if (payRatio >= 0.5 && b.amountPaid > 0) badges.push('<span class="badge-star" title="Reliable payer (50%+)">⭐</span>');
   if (b.promisedToPay && b.amountPaid === 0) badges.push('<span class="badge-warn" title="Promise not yet honoured">⚠️</span>');
   if ((b.callLog||[]).some(c => c.outcome === 'Fraud')) badges.push('<span title="Fraud suspected" style="font-size:10px">🚨</span>');
+  if (b.ptpBreached && b.amountPaid === 0) badges.push('<span title="PTP Breached" style="font-size:10px">🔴</span>');
+  const _3d = new Date(Date.now()-3*86400000).toISOString().split('T')[0];
+  if ((b.payLog||[]).some(p=>p.date>=_3d&&(p.delta||0)>0) && getStatus(b)!=='Paid') badges.push('<span title="🔥 Active — paid in last 3 days" style="font-size:10px">🔥</span>');
   return badges.length ? ' ' + badges.join('') : '';
 }
 
@@ -7947,6 +7993,185 @@ function showBorrowersPopup(status, loanType, odAge, odMin, odMax) {
   document.getElementById('modal-overlay').classList.add('open');
   haptic('light');
 }
+
+// ── F4: Borrower Contact Timeline ───────────────────────────
+function openBorrowerTimeline(id) {
+  const b = state.borrowers.find(x => x.id === id);
+  if (!b) return;
+  const events = [];
+  (b.payLog||[]).forEach(p => events.push({
+    date: p.date, time: p.time||'', type: 'pay',
+    icon: p.isPaid ? '✅' : '💰',
+    label: (p.delta >= 0 ? '+' : '') + fmtC(p.delta||0) + ' → total ' + fmtC(p.amount),
+    sub: p.note || ''
+  }));
+  (b.callLog||[]).forEach(cl => {
+    const icons = { Answered:'✅','No Answer':'📵',Promised:'🤝',Refused:'🚫',Redirected:'🔀',
+      Busy:'📞','Requested Callback':'📅','No Commitment':'😶',Fraud:'🚨','Phone Off':'📴','Wrong Number':'🔢' };
+    const rawDate = cl.timestamp || '';
+    const d = rawDate.includes('/') ? rawDate.split(',')[0].split('/').reverse().join('-') : rawDate.split('T')[0];
+    events.push({ date: d, time: rawDate, type: 'call', icon: icons[cl.outcome]||'📞', label: 'Call: ' + cl.outcome, sub: rawDate });
+  });
+  if (b.promisedToPay && b.promiseDate) {
+    events.push({ date: b.promiseDate.split(' ')[0], type: 'ptp', icon: '🤝', label: 'PTP set for ' + b.promiseDate, sub: b.promiseNote||'' });
+  }
+  if (b.ptpBreached) events.push({ date: b.promiseDate?.split(' ')[0]||'', type: 'breach', icon: '🔴', label: 'PTP Breached — no payment made on promised date', sub: '' });
+  if (b.notes) events.push({ date: '', type: 'note', icon: '📝', label: b.notes, sub: '' });
+  events.sort((a, z) => (z.date||'').localeCompare(a.date||'') || (z.time||'').localeCompare(a.time||''));
+  const typeColors = { pay:'var(--green)', call:'var(--blue)', ptp:'var(--purple)', breach:'var(--red)', note:'var(--gold)' };
+  document.getElementById('modal-title').textContent = '📜 Timeline — ' + b.name.split(' ')[0];
+  document.getElementById('modal-body').innerHTML = !events.length
+    ? '<div class="empty-state" style="padding:20px 0"><div>No activity recorded yet</div></div>'
+    : events.map(ev =>
+        '<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);align-items:flex-start">'
+        + '<span style="font-size:18px;flex-shrink:0;line-height:1.3">' + ev.icon + '</span>'
+        + '<div style="flex:1;min-width:0">'
+        + '<div style="font-size:12px;font-weight:600;color:' + (typeColors[ev.type]||'var(--text2)') + '">' + ev.label + '</div>'
+        + (ev.sub ? '<div style="font-size:10px;color:var(--text3)">' + ev.sub + '</div>' : '')
+        + '</div>'
+        + '<div style="font-size:10px;color:var(--text3);flex-shrink:0">' + (ev.date||'—') + '</div>'
+        + '</div>'
+      ).join('');
+  document.getElementById('modal-footer').innerHTML = '<button class="btn btn-ghost" onclick="closeModal()">Close</button>';
+  document.getElementById('modal-overlay').classList.add('open');
+  haptic('light');
+}
+
+// ── F5: OD Fee Breakdown Modal ───────────────────────────────
+function openOdFeeModal(id) {
+  const b = state.borrowers.find(x => x.id === id);
+  if (!b) return;
+  const od = getOdAge(b.startDate);
+  const rawFee = getOdFee(b);
+  const dailyRate = od > 0 ? rawFee / od : 0;
+  const discounted = Math.round(rawFee * (state.discountRate||0.30));
+  const rows = [
+    ['Principal', fmtC(b.principal||0)],
+    ['Loan Due', fmtC(b.loanDue)],
+    ['OD Age', 'Day ' + od],
+    ['Daily Accrual Rate', fmtC(Math.round(dailyRate)) + ' / day'],
+    ['Total OD Fee', fmtC(rawFee)],
+    ['Generous Discount (' + Math.round((state.discountRate||0.30)*100) + '% of fee)', fmtC(discounted)],
+    ['Full Settlement Today', fmtC(getDueToday(b) + b.amountPaid)],
+  ];
+  document.getElementById('modal-title').textContent = '📐 OD Fee Breakdown — ' + b.name.split(' ')[0];
+  document.getElementById('modal-body').innerHTML =
+    '<div style="background:var(--surface2);border-radius:8px;padding:12px;margin-bottom:12px">'
+    + rows.map(([label, val]) =>
+        '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">'
+        + '<span style="color:var(--text3)">' + label + '</span>'
+        + '<span style="font-family:var(--font-mono);font-weight:600">' + val + '</span>'
+        + '</div>'
+      ).join('')
+    + '</div>'
+    + '<div style="font-size:11px;color:var(--text3);line-height:1.8">Fee accrues from Day 6. At current pace this account adds <strong style="color:var(--red)">' + fmtC(Math.round(dailyRate)) + '</strong> per day.</div>';
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost" onclick="closeModal()">Close</button>'
+    + '<button class="btn btn-green" onclick="closeModal();openPayModal(\'' + id + '\')" >💰 Record Payment</button>';
+  document.getElementById('modal-overlay').classList.add('open');
+  haptic('light');
+}
+
+// ── F7: PTP Breach Checker ───────────────────────────────────
+function checkPtpBreaches() {
+  const today = new Date().toISOString().split('T')[0];
+  let changed = false;
+  state.borrowers.forEach(b => {
+    if (b.promisedToPay && b.promiseDate && b.promiseDate.split(' ')[0] < today && b.amountPaid === 0) {
+      if (!b.ptpBreached) { b.ptpBreached = true; changed = true; }
+    }
+  });
+  if (changed) saveState();
+}
+
+// ── F8: Floating Daily Target Pill ───────────────────────────
+function updateDailyPill() {
+  const pill = document.getElementById('daily-target-pill');
+  const amtEl = document.getElementById('daily-pill-amount');
+  const subEl = document.getElementById('daily-pill-sub');
+  if (!pill || !amtEl) return;
+  const target = state.monthlyTarget || 0;
+  if (!target) { pill.style.display = 'none'; return; }
+  const now = new Date();
+  const dim = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  const todayStr = now.toISOString().split('T')[0];
+  const todayEntry = state.dailyLog.find(e => e.date === todayStr);
+  const todayCollected = todayEntry ? (todayEntry.collected||0) : 0;
+  const totalCollected = state.dailyLog.reduce((s,e) => s+(e.collected||0), 0);
+  const daysLeft = Math.max(1, dim - now.getDate() + 1);
+  const needed = Math.ceil(Math.max(0, target - totalCollected) / daysLeft);
+  const stillNeeded = Math.max(0, needed - todayCollected);
+  pill.style.display = 'flex';
+  if (stillNeeded === 0 && todayCollected > 0) {
+    pill.style.borderColor = 'var(--green)';
+    amtEl.style.color = 'var(--green)';
+    amtEl.textContent = '✅ Done';
+    if (subEl) subEl.textContent = fmtC(todayCollected) + ' today';
+  } else {
+    pill.style.borderColor = stillNeeded > 2000 ? 'var(--red)' : 'var(--border2)';
+    amtEl.style.color = stillNeeded > 2000 ? 'var(--red)' : 'var(--gold)';
+    amtEl.textContent = fmtC(stillNeeded);
+    if (subEl) subEl.textContent = 'needed today';
+  }
+}
+
+// ── F10: Monthly Comparison Card ─────────────────────────────
+function renderMonthComparison() {
+  const el = document.getElementById('analytics-month-compare');
+  if (!el) return;
+  const now = new Date();
+  const thisStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  const lastStart = new Date(now.getFullYear(), now.getMonth()-1, 1).toISOString().split('T')[0];
+  const lastEnd   = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
+  const tLogs = state.dailyLog.filter(e => e.date >= thisStart);
+  const lLogs = state.dailyLog.filter(e => e.date >= lastStart && e.date <= lastEnd);
+  const tTotal = tLogs.reduce((s,e) => s+(e.collected||0), 0);
+  const lTotal = lLogs.reduce((s,e) => s+(e.collected||0), 0);
+  const tBest  = tLogs.length ? Math.max(...tLogs.map(e => e.collected||0)) : 0;
+  const lBest  = lLogs.length ? Math.max(...lLogs.map(e => e.collected||0)) : 0;
+  const tDays  = tLogs.filter(e => (e.collected||0) > 0).length;
+  const lDays  = lLogs.filter(e => (e.collected||0) > 0).length;
+  const tAvg   = tDays ? Math.round(tTotal/tDays) : 0;
+  const lAvg   = lDays ? Math.round(lTotal/lDays) : 0;
+  function delta(a, b) {
+    if (!b) return '';
+    const d = a - b; const pct = Math.abs(((d/b)*100)).toFixed(0);
+    const col = d >= 0 ? 'var(--green)' : 'var(--red)';
+    return '<span style="font-size:10px;color:' + col + ';font-weight:700">' + (d>=0?'▲':'▼') + pct + '%</span>';
+  }
+  const tMon = now.toLocaleDateString('en-GB',{month:'short'});
+  const lMon = new Date(now.getFullYear(),now.getMonth()-1,1).toLocaleDateString('en-GB',{month:'short'});
+  const rows = [
+    ['Total Collected', fmtC(tTotal), fmtC(lTotal), delta(tTotal, lTotal)],
+    ['Active Days',     tDays+'',     lDays+'',     delta(tDays, lDays)],
+    ['Best Single Day', fmtC(tBest),  fmtC(lBest),  delta(tBest, lBest)],
+    ['Avg per Day',     fmtC(tAvg),   fmtC(lAvg),   delta(tAvg, lAvg)],
+  ];
+  el.innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 78px 72px 38px;gap:2px 4px;font-size:11px;align-items:center">'
+    + '<div style="color:var(--text3);font-weight:700;padding:4px 0 6px;border-bottom:1px solid var(--border)">Metric</div>'
+    + '<div style="color:var(--gold);font-weight:700;text-align:right;padding:4px 0 6px;border-bottom:1px solid var(--border)">' + tMon + ' ▲</div>'
+    + '<div style="color:var(--text3);text-align:right;padding:4px 0 6px;border-bottom:1px solid var(--border)">' + lMon + '</div>'
+    + '<div style="padding:4px 0 6px;border-bottom:1px solid var(--border)"></div>'
+    + rows.map(([lbl,tv,lv,dv]) =>
+        '<div style="color:var(--text2);padding:5px 0;border-bottom:1px solid var(--border)">' + lbl + '</div>'
+        + '<div style="font-family:var(--font-mono);font-weight:700;text-align:right;padding:5px 0;border-bottom:1px solid var(--border)">' + tv + '</div>'
+        + '<div style="font-family:var(--font-mono);color:var(--text3);text-align:right;padding:5px 0;border-bottom:1px solid var(--border)">' + lv + '</div>'
+        + '<div style="text-align:center;padding:5px 0;border-bottom:1px solid var(--border)">' + dv + '</div>'
+      ).join('')
+    + '</div>'
+    + (lTotal === 0 ? '<div style="font-size:10px;color:var(--text3);margin-top:8px">Log entries from last month will appear here automatically.</div>' : '');
+}
+
+// ── F5: Key toggle ───────────────────────────────────────────
+function toggleRankingKeyVisibility() {
+  const inp = document.getElementById('ranking-api-key-input');
+  const btn = document.getElementById('rank-key-toggle');
+  if (!inp) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  if (btn) btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
 
 function showSkeletons(show) {
   const kpiGrid = document.getElementById('kpi-grid');
