@@ -987,7 +987,13 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <div id="pending-sync-label" style="display:none;font-size:11px;margin-bottom:4px"></div>
     Data saves locally · syncs to cloud
     <div style="margin-top:8px">
+      <div id="sidebar-agent-info" style="margin-bottom:8px;background:var(--surface2);border-radius:8px;padding:8px 10px;display:none">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px">Agent</div>
+        <div id="sidebar-agent-name" style="font-size:12px;font-weight:700;color:var(--text)"></div>
+        <div id="sidebar-agent-stage" style="font-size:11px;margin-top:2px"></div>
+      </div>
       <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px" onclick="navigate('health')">🔒 Data Health</button>
+      <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-top:4px" onclick="startOnboarding(true)">⚙️ Agent Setup / Switch Stage</button>
     </div>
     <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
       <div style="font-size:8px;color:var(--text3);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:2px">Developed by</div>
@@ -1881,7 +1887,52 @@ const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const CLAUDE_API_KEY = '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';
 let _offlineQueue = [];   // actions queued while offline
 
-const STATE_KEY = 'mar_tracker_v3';
+// ============================================================
+// STAGE CONFIGURATION — M0 through M5
+// ============================================================
+const STAGE_CONFIG = {
+  M0: { label:'M0', name:'Pre-Due / Due Today',    days:[-1,0],  treadmillDay:0,  odBand:[0,0],   color:'var(--blue)',   colorHex:'#3b82f6', tone:'Positive reminder',  legalNote:'No legal exposure yet',           desc:'Loan due today. No default yet. Cheapest moment to close.' },
+  M1: { label:'M1', name:'Early Default',          days:[1,5],   treadmillDay:1,  odBand:[1,5],   color:'var(--green)',  colorHex:'#22c55e', tone:'Urgent, open',       legalNote:'Bureau being prepared (Act 726)',  desc:'Missed due date. Still private. Close before Day 6.' },
+  M2: { label:'M2', name:'Active Default',         days:[6,15],  treadmillDay:6,  odBand:[6,15],  color:'var(--gold)',   colorHex:'#e8a020', tone:'Active pressure',    legalNote:'Bureau imminent · Field active',   desc:'Formal default. Daily contact. Close before Day 16.' },
+  M3: { label:'M3', name:'Formal Escalation',      days:[16,40], treadmillDay:16, odBand:[16,40], color:'var(--orange)', colorHex:'#f97316', tone:'Formal, legal',      legalNote:'Bureau filed · Court filing live', desc:'Legal territory. Court filing active. No more soft angles.' },
+  M4: { label:'M4', name:'Full Enforcement',       days:[41,60], treadmillDay:41, odBand:[41,60], color:'var(--red)',    colorHex:'#ef4444', tone:'Cold, all tools',     legalNote:'Judgment obtained · Wages garnished', desc:'All tools deployed. Judgment active. Wages being deducted.' },
+  M5: { label:'M5', name:'Total Enforcement',      days:[61,89], treadmillDay:61, odBand:[61,89], color:'#7c3aed',      colorHex:'#7c3aed', tone:'Final, factual',      legalNote:'Full execution · Asset seizure next', desc:'Final stage. Pay to begin resolution. Asset recovery next.' },
+};
+
+function getAccountStage(b) {
+  const od = getOdAge(b.startDate);
+  if (od <= 0) return STAGE_CONFIG.M0;
+  if (od <= 5) return STAGE_CONFIG.M1;
+  if (od <= 15) return STAGE_CONFIG.M2;
+  if (od <= 40) return STAGE_CONFIG.M3;
+  if (od <= 60) return STAGE_CONFIG.M4;
+  return STAGE_CONFIG.M5;
+}
+
+function getStageBadgeHtml(b) {
+  const s = getAccountStage(b);
+  return '<span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;background:'+s.colorHex+'22;color:'+s.colorHex+';border:1px solid '+s.colorHex+'55;flex-shrink:0;letter-spacing:0.3px" title="'+s.name+' · '+s.tone+'">'+s.label+'</span>';
+}
+
+function getAgentStage() {
+  return state.agentProfile?.stage || 'M2';
+}
+
+
+
+const LEGACY_STATE_KEY = 'mar_tracker_v3'; // for one-time migration
+const AGENTS_LS_KEY   = 'sq_agents';        // localStorage key for agent list
+const DEV_OVERRIDE    = 'SQV-DEV-2025';    // developer recovery code
+
+let _activeAgent = null;   // currently unlocked agent object
+let _sessionUnlocked = false;
+
+function getStateKey() {
+  return _activeAgent ? 'squevetrack_' + _activeAgent.id : LEGACY_STATE_KEY;
+}
+function getSupabaseId() {
+  return _activeAgent ? 'agent_' + _activeAgent.id : 'main';
+}
 let state = null;
 let currentModal = null;
 let loanSortCol = localStorage.getItem('sort_col') || 'odAge';
@@ -1956,6 +2007,7 @@ function migrateState(s) {
   if (!s.hitList) s.hitList = [];
   if (!s.callLog) s.callLog = {};
   if (!s.rankingHistory) s.rankingHistory = [];
+  if (!s.agentProfile) s.agentProfile = {};
   if (!s.undoHistory) s.undoHistory = [];
   if (!s.pendingSyncCount) s.pendingSyncCount = 0;
   (s.borrowers||[]).forEach(b => {
@@ -1998,11 +2050,11 @@ async function loadState() {
       const { data, error } = await _db
         .from('app_state')
         .select('data')
-        .eq('id', 'main')
+        .eq('id', getSupabaseId())
         .single();
       if (!error && data && data.data) {
         state = migrateState(data.data);
-        localStorage.setItem(STATE_KEY, JSON.stringify(state)); // warm cache
+        localStorage.setItem(getStateKey(), JSON.stringify(state)); // warm cache
         purgeAgedOut();
         setSyncStatus('saved');
         showSkeletons(false);
@@ -2013,7 +2065,7 @@ async function loadState() {
   }
 
   // 2. Fall back to localStorage
-  const raw = localStorage.getItem(STATE_KEY);
+  const raw = localStorage.getItem(getStateKey());
   if (raw) {
     try {
       state = migrateState(JSON.parse(raw));
@@ -2034,7 +2086,7 @@ async function loadState() {
 // ── Save: localStorage immediately + Supabase debounced ──────
 function saveState() {
   // Always write to localStorage instantly (instant UI feedback)
-  localStorage.setItem(STATE_KEY, JSON.stringify(state));
+  localStorage.setItem(getStateKey(), JSON.stringify(state));
   // Debounce cloud save (300ms) so rapid taps don't flood API
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(_pushToSupabase, 300);
@@ -2045,7 +2097,7 @@ async function _pushToSupabase() {
   setSyncStatus('saving');
   try {
     const { error } = await _db.from('app_state').upsert({
-      id: 'main',
+      id: getSupabaseId(),
       data: state,
       updated_at: new Date().toISOString()
     });
@@ -2109,6 +2161,19 @@ function getFirstName(b) { return b.name.split(' ')[0]; }
 function payGuide(b) {
   const serial = b.loanType === 'LoanBase Pro' ? '2' : '1';
   return '\n\nPAYMENT GUIDE:\nDial *714*674# > Enter loan number > Select ' + serial + ' (' + b.loanType + ') > Enter amount > Confirm payment.\n\nMake payment or contact us IMMEDIATELY.';
+}
+
+function getStageTonePrefix(b) {
+  const s = getAccountStage(b);
+  const prefixes = {
+    M0: 'REMINDER: ',
+    M1: 'URGENT: ',
+    M2: 'IMPORTANT — ',
+    M3: 'FORMAL NOTICE — ',
+    M4: 'FINAL WARNING — ',
+    M5: 'ENFORCEMENT NOTICE — ',
+  };
+  return prefixes[s.label] || '';
 }
 
 function getSmsMessage(b, useGenerous) {
@@ -2657,7 +2722,7 @@ function renderLoansTable() {
       <td style="cursor:pointer" onclick="openBorrowerDetail('${r.id}')">
         <div style="display:flex;align-items:center;gap:5px">
           <span class="priority-score ${pCls}" title="Priority: ${pScore}/10">${pScore}</span>
-          <div><div class="name-cell">${r.name}${borrowerBadges}</div><div style="font-size:10px;color:var(--text3);margin-top:1px;display:flex;gap:5px;align-items:center">${r.phone} ${getBestCallIndicator(r)}</div></div>
+          <div><div class="name-cell" style="display:flex;align-items:center;gap:4px">${r.name}${borrowerBadges} ${getStageBadgeHtml(r)}</div><div style="font-size:10px;color:var(--text3);margin-top:1px;display:flex;gap:5px;align-items:center">${r.phone} ${getBestCallIndicator(r)}</div></div>
         </div>
       </td>
       <td class="phone-cell" style="display:none">${r.phone}</td>
@@ -8183,6 +8248,648 @@ function toggleRankingKeyVisibility() {
 }
 
 
+// ============================================================
+// ONBOARDING WIZARD
+// ============================================================
+let _obSelectedStage = 'M2';
+let _obParsedRows = [];
+let _obColumnMap = {};
+let _obHeaders = [];
+
+function startOnboarding(isReset, isNewAgent) {
+  if (isReset && !isNewAgent) {
+    // Reset profile only (keep borrower data)
+    state.agentProfile = {};
+    saveState();
+  }
+  const overlay = document.getElementById('onboarding-overlay');
+  if (!overlay) return;
+  overlay.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  _obSelectedStage = state.agentProfile?.stage || 'M2';
+  obBuildStageGrid();
+  obGoToStep(1);
+  haptic('light');
+}
+
+function obBuildStageGrid() {
+  const grid = document.getElementById('ob-stage-grid');
+  if (!grid) return;
+  grid.innerHTML = Object.entries(STAGE_CONFIG).map(([key, s]) => `
+    <div class="ob-stage-card ${_obSelectedStage === key ? 'selected' : ''}" onclick="obSelectStage('${key}')">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <span style="font-family:var(--font-mono);font-weight:800;font-size:15px;color:${s.colorHex}">${s.label}</span>
+        <span style="font-weight:700;font-size:13px">${s.name}</span>
+        <span style="font-size:10px;color:var(--text3);margin-left:auto">Day ${s.days[0] < 0 ? s.days[0] : s.days[0]}–${s.days[1]}</span>
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:3px">${s.desc}</div>
+      <div style="font-size:10px;color:var(--text3)">${s.legalNote}</div>
+    </div>
+  `).join('');
+}
+
+function obSelectStage(key) {
+  _obSelectedStage = key;
+  document.querySelectorAll('.ob-stage-card').forEach((el, i) => {
+    el.classList.toggle('selected', Object.keys(STAGE_CONFIG)[i] === key);
+  });
+  haptic('light');
+}
+
+function obGoToStep(n) {
+  [1,2,3,4].forEach(i => {
+    const el = document.getElementById('ob-step-' + i);
+    if (el) el.style.display = i === n ? 'block' : 'none';
+  });
+  // Update dots
+  document.querySelectorAll('.ob-dot').forEach((d, i) => d.classList.toggle('active', i < n));
+  // Pre-fill step 2 from existing profile
+  if (n === 2 && state.agentProfile) {
+    const nameEl = document.getElementById('ob-agent-name');
+    const supEl = document.getElementById('ob-supervisor');
+    const tgtEl = document.getElementById('ob-target');
+    if (nameEl && state.agentProfile.name) nameEl.value = state.agentProfile.name;
+    if (supEl && state.agentProfile.supervisor) supEl.value = state.agentProfile.supervisor;
+    if (tgtEl && state.agentProfile.target) tgtEl.value = state.agentProfile.target;
+  }
+}
+
+function obNextStep(n) {
+  if (n === 2) {
+    if (!_obSelectedStage) { toast('Please select a stage', 'error'); return; }
+  }
+  if (n === 3) {
+    const name = document.getElementById('ob-agent-name')?.value.trim();
+    const sup = document.getElementById('ob-supervisor')?.value.trim();
+    const tgt = parseFloat(document.getElementById('ob-target')?.value) || 0;
+    if (!name) { toast('Please enter your name', 'error'); return; }
+    // Save to profile
+    state.agentProfile = {
+      ...state.agentProfile,
+      name, supervisor: sup || '', target: tgt, stage: _obSelectedStage
+    };
+    state.monthlyTarget = tgt;
+    saveState();
+  }
+  if (n === 4 && document.getElementById('ob-step-3').style.display !== 'none') {
+    // Coming from step 3 via "skip" — go to complete
+    obShowComplete();
+    return;
+  }
+  obGoToStep(n);
+  haptic('light');
+}
+
+function obHandleFileUpload(input, type) {
+  const file = input.files?.[0];
+  if (!file) return;
+  const statusEl = document.getElementById('ob-upload-status');
+  if (statusEl) statusEl.textContent = '⏳ Reading file...';
+  haptic('light');
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      let rows = [];
+      if (type === 'excel') {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      } else {
+        const text = e.target.result;
+        rows = text.split('\n').map(r => r.split(',').map(cell => cell.trim().replace(/^"|"$/g, '')));
+      }
+      if (rows.length < 2) { if (statusEl) statusEl.textContent = '❌ File appears empty'; return; }
+      _obHeaders = rows[0].map(String);
+      _obParsedRows = rows.slice(1).filter(r => r.some(cell => String(cell).trim()));
+      if (statusEl) statusEl.textContent = '✅ Found ' + _obParsedRows.length + ' rows — map your columns below';
+      obShowColumnMapper();
+    } catch(err) {
+      if (statusEl) statusEl.textContent = '❌ Error reading file: ' + err.message;
+    }
+  };
+  if (type === 'excel') reader.readAsArrayBuffer(file);
+  else reader.readAsText(file);
+}
+
+function obShowColumnMapper() {
+  const mapperEl = document.getElementById('ob-column-mapper');
+  const rowsEl = document.getElementById('ob-mapper-rows');
+  if (!mapperEl || !rowsEl) return;
+
+  // Auto-detect common column names
+  const autoMap = {
+    name: _obHeaders.findIndex(h => /name|customer|borrower|client/i.test(h)),
+    phone: _obHeaders.findIndex(h => /phone|mobile|tel|contact/i.test(h)),
+    loanDue: _obHeaders.findIndex(h => /loan.*due|due.*amount|total.*due|amount.*due|repay/i.test(h)),
+    principal: _obHeaders.findIndex(h => /principal|amount.*loan|loan.*amount|disburs/i.test(h)),
+    startDate: _obHeaders.findIndex(h => /start|due.*date|maturity|overdue.*date|od.*date/i.test(h)),
+    loanType: _obHeaders.findIndex(h => /type|product|loan.*type/i.test(h)),
+  };
+
+  const fields = [
+    { key: 'name',      label: 'Full Name',       required: true  },
+    { key: 'phone',     label: 'Phone Number',     required: true  },
+    { key: 'loanDue',   label: 'Loan Due (₵)',     required: true  },
+    { key: 'principal', label: 'Principal (₵)',    required: false },
+    { key: 'startDate', label: 'OD Start Date',    required: true  },
+    { key: 'loanType',  label: 'Loan Type',        required: false },
+  ];
+
+  rowsEl.innerHTML = fields.map(f => `
+    <div style="display:grid;grid-template-columns:140px 1fr;gap:8px;align-items:center">
+      <label style="font-size:12px;color:var(--text2);font-weight:600">${f.label}${f.required ? ' *' : ''}</label>
+      <select class="filter-select" id="ob-map-${f.key}" onchange="obUpdatePreview()" style="font-size:11px">
+        <option value="">— not mapped —</option>
+        ${_obHeaders.map((h, i) => `<option value="${i}" ${autoMap[f.key] === i ? 'selected' : ''}>${h || 'Column ' + (i+1)}</option>`).join('')}
+      </select>
+    </div>
+  `).join('');
+
+  mapperEl.style.display = 'block';
+  obUpdatePreview();
+}
+
+function obUpdatePreview() {
+  const fields = ['name','phone','loanDue','principal','startDate','loanType'];
+  _obColumnMap = {};
+  fields.forEach(f => {
+    const sel = document.getElementById('ob-map-' + f);
+    if (sel?.value !== '') _obColumnMap[f] = parseInt(sel.value);
+  });
+
+  // Preview first 3 rows
+  const previewEl = document.getElementById('ob-preview-table');
+  const countEl = document.getElementById('ob-import-count');
+  const validRows = _obParsedRows.filter(r => {
+    const name = _obColumnMap.name !== undefined ? String(r[_obColumnMap.name]).trim() : '';
+    const phone = _obColumnMap.phone !== undefined ? String(r[_obColumnMap.phone]).trim() : '';
+    return name && phone;
+  });
+  if (countEl) countEl.textContent = validRows.length;
+
+  if (!previewEl) return;
+  const preview3 = validRows.slice(0, 3);
+  if (!preview3.length) { previewEl.innerHTML = '<div style="color:var(--text3);font-size:11px">No valid rows found — check column mapping</div>'; return; }
+
+  previewEl.innerHTML = '<div style="font-size:10px;color:var(--text3);margin-bottom:6px">Preview (first 3 rows):</div>'
+    + '<table style="width:100%;border-collapse:collapse">'
+    + '<tr>' + ['Name','Phone','Loan Due','OD Date'].map(h => '<th style="font-size:10px;text-align:left;padding:3px 6px;border-bottom:1px solid var(--border);color:var(--text3)">' + h + '</th>').join('') + '</tr>'
+    + preview3.map(r => '<tr>'
+        + '<td style="font-size:10px;padding:3px 6px;border-bottom:1px solid var(--border)">' + (_obColumnMap.name !== undefined ? String(r[_obColumnMap.name]).trim().slice(0,20) : '—') + '</td>'
+        + '<td style="font-size:10px;padding:3px 6px;border-bottom:1px solid var(--border)">' + (_obColumnMap.phone !== undefined ? String(r[_obColumnMap.phone]).trim() : '—') + '</td>'
+        + '<td style="font-size:10px;padding:3px 6px;border-bottom:1px solid var(--border)">' + (_obColumnMap.loanDue !== undefined ? '₵' + String(r[_obColumnMap.loanDue]).trim() : '—') + '</td>'
+        + '<td style="font-size:10px;padding:3px 6px;border-bottom:1px solid var(--border)">' + (_obColumnMap.startDate !== undefined ? String(r[_obColumnMap.startDate]).trim().slice(0,12) : '—') + '</td>'
+      + '</tr>').join('')
+    + '</table>';
+}
+
+function obImportMapped() {
+  const fields = ['name','phone','loanDue','principal','startDate','loanType'];
+  if (_obColumnMap.name === undefined || _obColumnMap.phone === undefined) {
+    toast('Name and Phone columns are required', 'error'); return;
+  }
+
+  let imported = 0, skipped = 0, dupes = 0;
+  _obParsedRows.forEach(row => {
+    const name = String(row[_obColumnMap.name] || '').trim();
+    const phone = String(row[_obColumnMap.phone] || '').trim().replace(/\s/g, '');
+    if (!name || !phone) { skipped++; return; }
+    // Duplicate check by phone
+    if (state.borrowers.some(b => b.phone.replace(/\s/g,'') === phone)) { dupes++; return; }
+
+    const loanDue = parseFloat(String(row[_obColumnMap.loanDue] || '').replace(/[^0-9.]/g,'')) || 0;
+    const principal = _obColumnMap.principal !== undefined
+      ? parseFloat(String(row[_obColumnMap.principal] || '').replace(/[^0-9.]/g,'')) || Math.round(loanDue * 0.7)
+      : Math.round(loanDue * 0.7);
+
+    // Parse start date
+    let startDate = new Date().toISOString().split('T')[0];
+    if (_obColumnMap.startDate !== undefined) {
+      const raw = String(row[_obColumnMap.startDate] || '').trim();
+      // Try various date formats
+      const d = new Date(raw);
+      if (!isNaN(d.getTime())) startDate = d.toISOString().split('T')[0];
+      else {
+        // Try DD/MM/YYYY
+        const parts = raw.split(/[\/\-\.]/);
+        if (parts.length === 3) {
+          const attempt = new Date(parts[2] + '-' + parts[1].padStart(2,'0') + '-' + parts[0].padStart(2,'0'));
+          if (!isNaN(attempt.getTime())) startDate = attempt.toISOString().split('T')[0];
+        }
+      }
+    }
+
+    const loanType = _obColumnMap.loanType !== undefined
+      ? (String(row[_obColumnMap.loanType] || '').toLowerCase().includes('pro') ? 'LoanBase Pro' : 'LoanBase')
+      : 'LoanBase';
+
+    state.borrowers.push({
+      id: 'b_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+      name, phone, principal, loanDue, amountPaid: 0, startDate,
+      loanType, notes: '', payLog: [], callLog: [],
+      promisedToPay: false, ptpBreached: false, isPaid: false
+    });
+    imported++;
+  });
+
+  saveState();
+  haptic('pay');
+  const statusEl = document.getElementById('ob-upload-status');
+  if (statusEl) statusEl.textContent = '✅ Imported ' + imported + ' borrowers' + (dupes > 0 ? ' (' + dupes + ' duplicates skipped)' : '') + (skipped > 0 ? ' · ' + skipped + ' rows skipped' : '');
+  document.getElementById('ob-column-mapper').style.display = 'none';
+  obShowComplete(imported);
+}
+
+function obShowComplete(importedCount) {
+  obGoToStep(4);
+  const profile = state.agentProfile;
+  const stageCfg = STAGE_CONFIG[_obSelectedStage] || STAGE_CONFIG.M2;
+  const summaryEl = document.getElementById('ob-complete-summary');
+  if (summaryEl) {
+    summaryEl.innerHTML =
+      '<strong>' + (profile?.name || 'Agent') + '</strong> · '
+      + '<span style="color:' + stageCfg.colorHex + ';font-weight:700">' + stageCfg.label + ' — ' + stageCfg.name + '</span><br>'
+      + 'Monthly target: <strong>' + fmtC(profile?.target || 0) + '</strong><br>'
+      + (importedCount ? importedCount + ' borrowers imported<br>' : 'Add borrowers manually from the dashboard<br>')
+      + '<span style="font-size:11px;color:var(--text3)">You can update these anytime from the sidebar menu</span>';
+  }
+}
+
+function obFinish() {
+  const name = state.agentProfile?.name || document.getElementById('ob-agent-name')?.value?.trim() || 'Agent';
+  // Create or update agent record
+  const agents = getAgentList();
+  let agentRecord = agents.find(a => a.id === _activeAgent?.id);
+  if (!agentRecord) {
+    // New agent
+    const newId = _activeAgent?.id || genAgentId();
+    agentRecord = { id: newId, name, stage: _obSelectedStage, createdAt: new Date().toISOString(), pinHash: null };
+    agents.push(agentRecord);
+    saveAgentList(agents);
+    _activeAgent = agentRecord;
+    _pinTarget = agentRecord;
+  } else {
+    agentRecord.name = name;
+    agentRecord.stage = _obSelectedStage;
+    saveAgentList(agents);
+    _activeAgent = agentRecord;
+  }
+
+  state.agentProfile = { ...state.agentProfile, id: _activeAgent.id, name, stage: _obSelectedStage, setupComplete: true };
+  saveState();
+
+  const overlay = document.getElementById('onboarding-overlay');
+  if (overlay) overlay.style.display = 'none';
+  document.body.style.overflow = '';
+
+  // If agent has no PIN yet, go to PIN setup
+  if (!agentRecord.pinHash) {
+    showLockScreen();
+    lockSelectAgent(agentRecord.id);
+    _pinBuffer = '';
+    _pinMode = 'set';
+    updatePinDots();
+    document.getElementById('lock-pin-section').style.display = 'block';
+    document.getElementById('lock-pin-name').textContent = name;
+    document.getElementById('lock-pin-error').textContent = 'Set a 4-digit PIN to protect your data.';
+    return;
+  }
+
+  setSessionAgent(_activeAgent);
+  _sessionUnlocked = true;
+  updateSidebarAgentInfo();
+  updateBadges();
+  renderDashboard();
+  haptic('pay');
+  toast('Welcome, ' + name + '! 🎉', 'success');
+}
+
+function updateSidebarAgentInfo() {
+  const info = document.getElementById('sidebar-agent-info');
+  const nameEl = document.getElementById('sidebar-agent-name');
+  const stageEl = document.getElementById('sidebar-agent-stage');
+  const profile = state.agentProfile || {};
+  if (!info) return;
+  if (profile.name) {
+    info.style.display = 'block';
+    if (nameEl) nameEl.textContent = profile.name;
+    if (stageEl) {
+      const s = STAGE_CONFIG[profile.stage] || STAGE_CONFIG.M2;
+      stageEl.innerHTML = '<span style="color:' + s.colorHex + ';font-weight:700">' + s.label + '</span> — ' + s.name;
+    }
+  } else {
+    info.style.display = 'none';
+  }
+}
+
+
+// ============================================================
+// AGENT AUTH — PIN PROTECTION & MULTI-AGENT MANAGEMENT
+// ============================================================
+let _pinBuffer = '';
+let _pinTarget = null;   // agent being unlocked
+let _pinMode = 'unlock'; // 'unlock' | 'set' | 'confirm'
+let _pinSetBuffer = '';
+
+// ── Crypto helpers ────────────────────────────────────────────
+async function hashPin(pin, salt) {
+  const data = new TextEncoder().encode(pin + ':' + salt);
+  const buf  = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function genAgentId() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random()*16|0;
+    return (c==='x'?r:(r&0x3|0x8)).toString(16);
+  });
+}
+
+// ── Agent list management ─────────────────────────────────────
+function getAgentList() {
+  try { return JSON.parse(localStorage.getItem(AGENTS_LS_KEY) || '[]'); } catch { return []; }
+}
+function saveAgentList(list) {
+  localStorage.setItem(AGENTS_LS_KEY, JSON.stringify(list));
+}
+function getActiveAgentFromSession() {
+  try { const s = sessionStorage.getItem('sq_unlocked'); return s ? JSON.parse(s) : null; } catch { return null; }
+}
+function setSessionAgent(agent) {
+  sessionStorage.setItem('sq_unlocked', JSON.stringify({ id: agent.id, name: agent.name, ts: Date.now() }));
+}
+function clearSession() {
+  sessionStorage.removeItem('sq_unlocked');
+}
+
+// ── Show lock screen ──────────────────────────────────────────
+function showLockScreen() {
+  const ls = document.getElementById('lock-screen');
+  if (!ls) return;
+  ls.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  _pinBuffer = '';
+  _pinTarget = null;
+  renderLockAgentList();
+  document.getElementById('lock-pin-section').style.display = 'none';
+}
+
+function hideLockScreen() {
+  const ls = document.getElementById('lock-screen');
+  if (ls) ls.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function renderLockAgentList() {
+  const el = document.getElementById('lock-agent-list');
+  if (!el) return;
+  const agents = getAgentList();
+  if (!agents.length) {
+    el.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:13px;padding:20px 0">No agents set up yet.<br>Add a new agent below.</div>';
+    return;
+  }
+  const stageColors = { M0:'#3b82f6',M1:'#22c55e',M2:'#e8a020',M3:'#f97316',M4:'#ef4444',M5:'#7c3aed' };
+  el.innerHTML = agents.map(a => {
+    const col = stageColors[a.stage] || '#e8a020';
+    const initials = (a.name||'A').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    return `<button class="lock-agent-card" onclick="lockSelectAgent('${a.id}')">
+      <div class="lock-agent-avatar" style="background:${col}22;color:${col}">${initials}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.name}</div>
+        <div style="font-size:11px;color:var(--text3)">${a.stage||'M2'} · ${a.stage ? (STAGE_CONFIG[a.stage]?.name||'') : 'Active Default'}</div>
+      </div>
+      <div style="font-size:18px;color:var(--text3)">🔒</div>
+    </button>`;
+  }).join('');
+}
+
+function lockSelectAgent(id) {
+  if (!id) {
+    document.getElementById('lock-pin-section').style.display = 'none';
+    _pinTarget = null;
+    _pinBuffer = '';
+    updatePinDots();
+    return;
+  }
+  const agents = getAgentList();
+  _pinTarget = agents.find(a => a.id === id);
+  if (!_pinTarget) return;
+  _pinBuffer = '';
+  _pinMode = 'unlock';
+  document.getElementById('lock-pin-section').style.display = 'block';
+  document.getElementById('lock-pin-name').textContent = _pinTarget.name;
+  const col = { M0:'#3b82f6',M1:'#22c55e',M2:'#e8a020',M3:'#f97316',M4:'#ef4444',M5:'#7c3aed' }[_pinTarget.stage] || '#e8a020';
+  document.getElementById('lock-pin-stage').innerHTML = '<span style="color:'+col+';font-weight:700">'+(_pinTarget.stage||'M2')+'</span> — '+(_pinTarget.stage ? (STAGE_CONFIG[_pinTarget.stage]?.name||'') : 'Active Default');
+  document.getElementById('lock-pin-error').textContent = '';
+  document.getElementById('lock-dev-override').style.display = 'none';
+  updatePinDots();
+  haptic('light');
+  // Highlight selected card
+  document.querySelectorAll('.lock-agent-card').forEach(card => card.classList.remove('selected'));
+  event?.currentTarget?.classList.add('selected');
+}
+
+function pinPress(digit) {
+  if (_pinBuffer.length >= 4) return;
+  _pinBuffer += digit;
+  haptic('light');
+  updatePinDots();
+  if (_pinBuffer.length === 4) {
+    setTimeout(() => processPin(), 100);
+  }
+}
+function pinBackspace() {
+  _pinBuffer = _pinBuffer.slice(0,-1);
+  updatePinDots();
+  haptic('light');
+}
+function updatePinDots() {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('pindot-'+i);
+    if (dot) {
+      dot.classList.toggle('filled', i < _pinBuffer.length);
+      dot.classList.remove('shake');
+    }
+  }
+}
+
+async function processPin() {
+  if (!_pinTarget) return;
+
+  if (_pinMode === 'unlock') {
+    const hash = await hashPin(_pinBuffer, _pinTarget.id);
+    if (hash === _pinTarget.pinHash) {
+      // Correct PIN — unlock
+      _activeAgent = _pinTarget;
+      _sessionUnlocked = true;
+      setSessionAgent(_pinTarget);
+      hideLockScreen();
+      haptic('pay');
+      await loadStateForAgent();
+    } else {
+      // Wrong PIN
+      _pinBuffer = '';
+      updatePinDots();
+      for (let i = 0; i < 4; i++) {
+        const dot = document.getElementById('pindot-'+i);
+        if (dot) { void dot.offsetWidth; dot.classList.add('shake'); }
+      }
+      document.getElementById('lock-pin-error').textContent = 'Incorrect PIN. Try again.';
+      haptic('medium');
+    }
+  } else if (_pinMode === 'set') {
+    _pinSetBuffer = _pinBuffer;
+    _pinBuffer = '';
+    _pinMode = 'confirm';
+    updatePinDots();
+    document.getElementById('lock-pin-error').textContent = 'Enter PIN again to confirm';
+    document.getElementById('lock-pin-name').textContent = 'Confirm your PIN';
+  } else if (_pinMode === 'confirm') {
+    if (_pinBuffer === _pinSetBuffer) {
+      // PINs match — save
+      const hash = await hashPin(_pinBuffer, _pinTarget.id);
+      const agents = getAgentList();
+      const idx = agents.findIndex(a => a.id === _pinTarget.id);
+      if (idx >= 0) { agents[idx].pinHash = hash; saveAgentList(agents); _pinTarget.pinHash = hash; }
+      _activeAgent = _pinTarget;
+      _sessionUnlocked = true;
+      setSessionAgent(_pinTarget);
+      hideLockScreen();
+      haptic('pay');
+      toast('PIN set! Welcome, ' + _activeAgent.name, 'success');
+      await loadStateForAgent();
+    } else {
+      _pinBuffer = ''; _pinSetBuffer = ''; _pinMode = 'set';
+      updatePinDots();
+      for (let i = 0; i < 4; i++) {
+        const dot = document.getElementById('pindot-'+i);
+        if (dot) { void dot.offsetWidth; dot.classList.add('shake'); }
+      }
+      document.getElementById('lock-pin-error').textContent = 'PINs did not match. Start over.';
+      haptic('medium');
+    }
+  }
+}
+
+function showDevOverride() {
+  document.getElementById('lock-dev-override').style.display = 'block';
+  document.getElementById('dev-override-error').textContent = '';
+  document.getElementById('dev-override-input').value = '';
+  document.getElementById('dev-override-input').focus();
+}
+function checkDevOverride() {
+  const code = document.getElementById('dev-override-input')?.value.trim().toUpperCase();
+  if (code === DEV_OVERRIDE) {
+    // Valid — set new PIN mode for this agent
+    if (!_pinTarget) { document.getElementById('dev-override-error').textContent = 'Select an agent first'; return; }
+    document.getElementById('lock-dev-override').style.display = 'none';
+    _pinBuffer = '';
+    _pinMode = 'set';
+    updatePinDots();
+    document.getElementById('lock-pin-error').textContent = 'Enter a new 4-digit PIN';
+    document.getElementById('lock-pin-name').textContent = 'Set new PIN — ' + _pinTarget.name;
+    haptic('medium');
+    toast('Override accepted — set a new PIN', 'success');
+  } else {
+    document.getElementById('dev-override-error').textContent = 'Invalid override code';
+    haptic('medium');
+  }
+}
+
+// ── Add new agent (triggers onboarding for new agent) ─────────
+function lockAddNewAgent() {
+  hideLockScreen();
+  // Temporarily clear active agent so onboarding creates a new one
+  const prevAgent = _activeAgent;
+  _activeAgent = null;
+  _sessionUnlocked = false;
+  state = initState();
+  startOnboarding(false, true); // true = newAgent mode
+}
+
+// ── Load state for the just-unlocked agent ────────────────────
+async function loadStateForAgent() {
+  await loadState();
+  updateBadges();
+  checkOdAdvance();
+  checkRankingGapAlert();
+  checkPtpBreaches();
+  updateDailyPill();
+  updateSidebarAgentInfo();
+  renderDashboard();
+  showSkeletons(false);
+}
+
+// ── One-time migration from legacy key ───────────────────────
+async function migrateFromLegacyIfNeeded() {
+  const agents = getAgentList();
+  if (agents.length > 0) return; // already migrated or fresh install
+
+  // Check if legacy Supabase data exists
+  const db = initSupabase();
+  let legacyState = null;
+
+  if (db) {
+    try {
+      const { data } = await db.from('app_state').select('data').eq('id','main').single();
+      if (data?.data?.borrowers?.length) legacyState = data.data;
+    } catch {}
+  }
+  if (!legacyState) {
+    // Check localStorage fallback
+    try {
+      const raw = localStorage.getItem(LEGACY_STATE_KEY);
+      if (raw) { const parsed = JSON.parse(raw); if (parsed?.borrowers?.length) legacyState = parsed; }
+    } catch {}
+  }
+
+  if (legacyState) {
+    // Found legacy data — create Shadrack's agent, migrate it
+    const agentId = genAgentId();
+    const profile = legacyState.agentProfile || {};
+    const agentRecord = {
+      id: agentId,
+      name: profile.name || 'Shadrack Agyei Arthur',
+      stage: profile.stage || 'M2',
+      supervisor: profile.supervisor || '',
+      pinHash: null, // will be set during PIN setup
+      createdAt: new Date().toISOString(),
+      migrated: true
+    };
+    saveAgentList([agentRecord]);
+    _activeAgent = agentRecord;
+    _pinTarget = agentRecord;
+
+    // Save legacy data under new agent key
+    state = migrateState(legacyState);
+    state.agentProfile = { ...state.agentProfile, ...profile, id: agentId, setupComplete: true };
+    localStorage.setItem(getStateKey(), JSON.stringify(state));
+
+    // Push to Supabase under new key
+    if (db) {
+      try {
+        await db.from('app_state').upsert({ id: getSupabaseId(), data: state, updated_at: new Date().toISOString() });
+        toast('Your data has been migrated to your personal account ✅', 'success');
+      } catch {}
+    }
+
+    // Now ask them to set a PIN
+    showLockScreen();
+    lockSelectAgent(agentId);
+    _pinBuffer = '';
+    _pinMode = 'set';
+    updatePinDots();
+    document.getElementById('lock-pin-section').style.display = 'block';
+    document.getElementById('lock-pin-name').textContent = agentRecord.name + ' — set your PIN';
+    document.getElementById('lock-pin-error').textContent = 'Your data has been migrated. Set a 4-digit PIN to secure it.';
+    return true; // migration handled
+  }
+
+  return false; // no legacy data, fresh install
+}
+
+
 function showSkeletons(show) {
   const kpiGrid = document.getElementById('kpi-grid');
   if (!kpiGrid) return;
@@ -8264,11 +8971,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     setSyncStatus('saved');
   }
 
-  updateBadges();
-  checkOdAdvance();
-  checkRankingGapAlert();
-  renderDashboard();
-  initPullToRefresh();
+  // ── AUTH GATE ─────────────────────────────────────────────
+  // Check for session (tab already unlocked this session)
+  const sessionAgent = getActiveAgentFromSession();
+  const agentList = getAgentList();
+
+  if (sessionAgent && agentList.find(a => a.id === sessionAgent.id)) {
+    // Session still valid — restore agent and load their data
+    _activeAgent = agentList.find(a => a.id === sessionAgent.id);
+    _sessionUnlocked = true;
+    await loadState();
+    updateSidebarAgentInfo();
+    if (!state.agentProfile?.setupComplete) {
+      setTimeout(() => startOnboarding(false), 350);
+    }
+    updateBadges(); checkOdAdvance(); checkRankingGapAlert();
+    checkPtpBreaches(); updateDailyPill(); renderDashboard(); initPullToRefresh();
+  } else {
+    // No session — check for migration then show lock screen
+    const migrated = await migrateFromLegacyIfNeeded();
+    if (!migrated) {
+      // Fresh install or returning without session
+      if (agentList.length > 0) {
+        showLockScreen(); // existing agents — show lock
+      } else {
+        // Brand new install — go straight to onboarding
+        state = initState();
+        startOnboarding(false, true);
+      }
+    }
+    initPullToRefresh();
+  }
 
   // Offline indicator
   function _setOfflineStatus(offline) {
@@ -8409,5 +9142,181 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 });
 </script>
+<!-- ============================================================ -->
+<!-- ONBOARDING OVERLAY                                           -->
+<!-- ============================================================ -->
+<div id="onboarding-overlay" style="display:none;position:fixed;inset:0;z-index:9000;background:var(--bg);overflow-y:auto">
+  <div style="max-width:520px;margin:0 auto;padding:24px 20px 60px">
+    <!-- Progress dots -->
+    <div id="ob-dots" style="display:flex;justify-content:center;gap:8px;margin-bottom:28px;padding-top:16px">
+      <span class="ob-dot active"></span>
+      <span class="ob-dot"></span>
+      <span class="ob-dot"></span>
+      <span class="ob-dot"></span>
+    </div>
+
+    <!-- Step 1: Stage select -->
+    <div id="ob-step-1">
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="font-family:var(--font-head);font-size:26px;font-weight:800;color:var(--gold);margin-bottom:6px">Welcome to SqueveTrack</div>
+        <div style="font-size:14px;color:var(--text2)">First, which LoanBase recovery stage are you working?</div>
+      </div>
+      <div id="ob-stage-grid" style="display:grid;gap:10px;margin-bottom:28px"></div>
+      <button class="btn btn-gold" style="width:100%;padding:13px" onclick="obNextStep(2)">Continue →</button>
+    </div>
+
+    <!-- Step 2: Agent info -->
+    <div id="ob-step-2" style="display:none">
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="font-family:var(--font-head);font-size:22px;font-weight:800;color:var(--text)">Your profile</div>
+        <div style="font-size:13px;color:var(--text3);margin-top:4px">Used in reports and EOD summaries</div>
+      </div>
+      <div class="form-group"><label>Your Name</label><input type="text" class="form-input" id="ob-agent-name" placeholder="e.g. Shadrack Agyei Arthur"></div>
+      <div class="form-group"><label>Supervisor Name</label><input type="text" class="form-input" id="ob-supervisor" placeholder="e.g. Nana Osae Emmanuel"></div>
+      <div class="form-group"><label>Monthly Collection Target (₵)</label><input type="number" class="form-input" id="ob-target" placeholder="e.g. 50000" min="0"></div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-ghost" style="flex:1;padding:12px" onclick="obNextStep(1)">← Back</button>
+        <button class="btn btn-gold" style="flex:2;padding:12px" onclick="obNextStep(3)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Data upload -->
+    <div id="ob-step-3" style="display:none">
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="font-family:var(--font-head);font-size:22px;font-weight:800;color:var(--text)">Load your borrowers</div>
+        <div style="font-size:13px;color:var(--text3);margin-top:4px">Import from LoanBase export or add manually</div>
+      </div>
+      <!-- Upload options -->
+      <div style="display:grid;gap:10px;margin-bottom:20px">
+        <label style="display:flex;align-items:center;gap:12px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:14px 16px;cursor:pointer;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border2)'">
+          <span style="font-size:22px">📊</span>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:13px">Upload Excel file</div>
+            <div style="font-size:11px;color:var(--text3)">.xlsx export from LoanBase</div>
+          </div>
+          <input type="file" id="ob-excel-upload" accept=".xlsx,.xls" style="display:none" onchange="obHandleFileUpload(this,'excel')">
+          <span class="btn btn-ghost btn-sm" onclick="document.getElementById('ob-excel-upload').click()">Choose file</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:12px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:14px 16px;cursor:pointer;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border2)'">
+          <span style="font-size:22px">📄</span>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:13px">Upload CSV file</div>
+            <div style="font-size:11px;color:var(--text3)">Comma-separated export</div>
+          </div>
+          <input type="file" id="ob-csv-upload" accept=".csv" style="display:none" onchange="obHandleFileUpload(this,'csv')">
+          <span class="btn btn-ghost btn-sm" onclick="document.getElementById('ob-csv-upload').click()">Choose file</span>
+        </label>
+        <button style="display:flex;align-items:center;gap:12px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:14px 16px;cursor:pointer;width:100%;text-align:left;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border2)'" onclick="obNextStep(4)">
+          <span style="font-size:22px">✏️</span>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:13px">Add borrowers manually</div>
+            <div style="font-size:11px;color:var(--text3)">Use the Add Borrower form after setup</div>
+          </div>
+          <span style="font-size:12px;color:var(--text3)">→ Skip upload</span>
+        </button>
+      </div>
+      <div id="ob-upload-status" style="font-size:12px;color:var(--text2);min-height:20px;text-align:center;margin-bottom:12px"></div>
+      <div id="ob-column-mapper" style="display:none;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:16px;margin-bottom:14px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:12px">Map your columns</div>
+        <div id="ob-mapper-rows" style="display:grid;gap:8px;margin-bottom:12px"></div>
+        <div id="ob-preview-table" style="overflow-x:auto;font-size:11px;margin-bottom:12px"></div>
+        <button class="btn btn-gold" style="width:100%" onclick="obImportMapped()">Import <span id="ob-import-count">0</span> borrowers →</button>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-ghost" style="flex:1;padding:12px" onclick="obNextStep(2)">← Back</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Complete -->
+    <div id="ob-step-4" style="display:none;text-align:center">
+      <div style="font-size:56px;margin-bottom:16px">🎉</div>
+      <div style="font-family:var(--font-head);font-size:24px;font-weight:800;color:var(--gold);margin-bottom:8px">You're all set</div>
+      <div id="ob-complete-summary" style="font-size:13px;color:var(--text2);margin-bottom:28px;line-height:1.8"></div>
+      <button class="btn btn-gold" style="width:100%;padding:14px;font-size:15px" onclick="obFinish()">Open Dashboard →</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.ob-dot { width:8px;height:8px;border-radius:50%;background:var(--border2);display:inline-block;transition:background 0.2s }
+.ob-dot.active { background:var(--gold) }
+.ob-stage-card { background:var(--surface2);border:2px solid var(--border2);border-radius:10px;padding:14px 16px;cursor:pointer;transition:all 0.15s;text-align:left }
+.ob-stage-card.selected { border-color:var(--gold);background:rgba(232,160,32,0.06) }
+.ob-stage-card:hover { border-color:var(--gold) }
+</style>
+<!-- ============================================================ -->
+<!-- LOCK SCREEN                                                  -->
+<!-- ============================================================ -->
+<div id="lock-screen" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);overflow-y:auto">
+  <div style="max-width:400px;margin:0 auto;padding:40px 20px 80px;min-height:100vh;display:flex;flex-direction:column;align-items:center">
+
+    <!-- App logo / title -->
+    <div style="font-family:var(--font-head);font-size:28px;font-weight:800;color:var(--gold);margin-bottom:4px;letter-spacing:-0.5px">SqueveTrack</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:36px">LoanBase Recovery · Secured</div>
+
+    <!-- Agent list -->
+    <div id="lock-agent-list" style="width:100%;margin-bottom:28px"></div>
+
+    <!-- PIN pad (hidden until agent selected) -->
+    <div id="lock-pin-section" style="display:none;width:100%;text-align:center">
+      <div id="lock-pin-name" style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px"></div>
+      <div id="lock-pin-stage" style="font-size:11px;margin-bottom:20px"></div>
+      <!-- PIN dots -->
+      <div style="display:flex;justify-content:center;gap:12px;margin-bottom:24px">
+        <div class="pin-dot" id="pindot-0"></div>
+        <div class="pin-dot" id="pindot-1"></div>
+        <div class="pin-dot" id="pindot-2"></div>
+        <div class="pin-dot" id="pindot-3"></div>
+      </div>
+      <!-- PIN keypad -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto 16px">
+        <button class="pin-key" onclick="pinPress('1')">1</button>
+        <button class="pin-key" onclick="pinPress('2')">2</button>
+        <button class="pin-key" onclick="pinPress('3')">3</button>
+        <button class="pin-key" onclick="pinPress('4')">4</button>
+        <button class="pin-key" onclick="pinPress('5')">5</button>
+        <button class="pin-key" onclick="pinPress('6')">6</button>
+        <button class="pin-key" onclick="pinPress('7')">7</button>
+        <button class="pin-key" onclick="pinPress('8')">8</button>
+        <button class="pin-key" onclick="pinPress('9')">9</button>
+        <button class="pin-key pin-key-ghost" onclick="lockSelectAgent(null)">←</button>
+        <button class="pin-key" onclick="pinPress('0')">0</button>
+        <button class="pin-key pin-key-ghost" onclick="pinBackspace()">⌫</button>
+      </div>
+      <div id="lock-pin-error" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:8px"></div>
+      <button class="btn btn-ghost btn-xs" onclick="showDevOverride()" style="font-size:10px;color:var(--text3)">Locked out? Contact developer</button>
+    </div>
+
+    <!-- Dev override input (hidden) -->
+    <div id="lock-dev-override" style="display:none;width:100%;text-align:center;margin-top:16px">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:8px">Enter developer override code</div>
+      <input type="text" class="form-input" id="dev-override-input" placeholder="SQV-XXX-XXXX" style="text-align:center;font-family:var(--font-mono);letter-spacing:2px;font-size:14px;margin-bottom:8px" onkeydown="if(event.key==='Enter')checkDevOverride()">
+      <div style="display:flex;gap:8px;justify-content:center">
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('lock-dev-override').style.display='none'">Cancel</button>
+        <button class="btn btn-red btn-sm" onclick="checkDevOverride()">Unlock</button>
+      </div>
+      <div id="dev-override-error" style="font-size:11px;color:var(--red);margin-top:6px;min-height:16px"></div>
+    </div>
+
+    <!-- Add new agent button -->
+    <div style="margin-top:auto;padding-top:32px;width:100%;text-align:center">
+      <button class="btn btn-ghost btn-sm" style="width:100%" onclick="lockAddNewAgent()">＋ Add New Agent</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.pin-dot { width:14px;height:14px;border-radius:50%;border:2px solid var(--border2);background:transparent;transition:background 0.1s,border-color 0.1s }
+.pin-dot.filled { background:var(--gold);border-color:var(--gold) }
+.pin-dot.shake { animation:pinShake 0.4s ease }
+@keyframes pinShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+.pin-key { background:var(--surface2);border:1px solid var(--border);border-radius:12px;font-size:20px;font-weight:600;padding:16px;cursor:pointer;color:var(--text);transition:all 0.1s;font-family:var(--font-head) }
+.pin-key:active { background:var(--gold);color:#000;transform:scale(0.94) }
+.pin-key-ghost { background:transparent;border-color:transparent;font-size:16px }
+.lock-agent-card { display:flex;align-items:center;gap:12px;background:var(--surface2);border:2px solid var(--border2);border-radius:12px;padding:14px 16px;cursor:pointer;transition:all 0.15s;width:100%;text-align:left;margin-bottom:8px }
+.lock-agent-card:hover,.lock-agent-card.selected { border-color:var(--gold) }
+.lock-agent-avatar { width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0;font-family:var(--font-head) }
+</style>
+
 </body>
 </html>
