@@ -992,7 +992,8 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
         <div id="sidebar-agent-name" style="font-size:12px;font-weight:700;color:var(--text)"></div>
         <div id="sidebar-agent-stage" style="font-size:11px;margin-top:2px"></div>
       </div>
-      <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px" onclick="navigate('health')">⚙️ Settings</button>
+      <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px" onclick="navigate('health')">🔒 Data Health</button>
+      <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-top:4px" onclick="startOnboarding(true)">⚙️ Agent Setup / Switch Stage</button>
     </div>
     <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
       <div style="font-size:8px;color:var(--text3);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:2px">Developed by</div>
@@ -1593,25 +1594,9 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
 
   <!-- DATA HEALTH PAGE (accessed from settings) -->
   <section class="page" id="page-health">
-    <div class="page-header"><div><div class="page-title">⚙️ Settings</div><div class="page-sub">Account, security and data</div></div></div>
-    <div class="card" style="margin-bottom:14px"><div class="card-body" id="settings-agent-card"></div></div>
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-header"><span class="card-title">🔐 Security</span></div>
-      <div class="card-body" style="padding:0">
-        <button class="settings-row" onclick="settingsChangePin()"><span>🔑 Change PIN</span><span class="settings-chevron">›</span></button>
-        <button class="settings-row" onclick="startOnboarding(true)"><span>⚙️ Agent Setup / Switch Stage</span><span class="settings-chevron">›</span></button>
-        <button class="settings-row" onclick="settingsLockApp()"><span>🔒 Lock App</span><span class="settings-chevron">›</span></button>
-      </div>
-    </div>
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-header"><span class="card-title">📊 Data</span></div>
+    <div class="page-header"><div><div class="page-title">🔒 Data Health</div><div class="page-sub">Storage, sync, and data integrity</div></div></div>
+    <div class="card">
       <div class="card-body" id="health-body"></div>
-    </div>
-    <div class="card" style="margin-bottom:14px;border-color:rgba(239,68,68,0.3)">
-      <div class="card-header"><span class="card-title" style="color:var(--red)">⚠️ Danger Zone</span></div>
-      <div class="card-body" style="padding:0">
-        <button class="settings-row" style="color:var(--red)" onclick="settingsDeleteAccount()"><span>🗑 Delete My Account &amp; All Data</span><span class="settings-chevron">›</span></button>
-      </div>
     </div>
   </section>
 
@@ -1686,7 +1671,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <span class="mdrawer-icon">📋</span> Reports
   </div>
   <div class="mdrawer-item" data-page="health" onclick="navigateDrawer('health')">
-    <span class="mdrawer-icon">⚙️</span> Settings
+    <span class="mdrawer-icon">🔒</span> Data Health
   </div>
   <div class="mdrawer-footer">
     <!-- Agent info in mobile drawer -->
@@ -1695,7 +1680,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
       <div id="mdrawer-agent-name" style="font-size:12px;font-weight:700;color:var(--text)"></div>
       <div id="mdrawer-agent-stage" style="font-size:11px;margin-top:1px"></div>
     </div>
-    <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-bottom:6px" onclick="closeDrawer();navigate('health')">⚙️ Settings</button>
+    <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-bottom:6px" onclick="closeDrawer();startOnboarding(true)">⚙️ Agent Setup / Switch Stage</button>
     <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-bottom:8px;color:var(--red);border-color:rgba(239,68,68,0.3)" onclick="closeDrawer();lockApp()">🔒 Lock App</button>
     <div id="mdrawer-sync" style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
       <span style="width:7px;height:7px;border-radius:50%;background:var(--text3);display:inline-block" id="mdrawer-sync-dot"></span>
@@ -4944,7 +4929,7 @@ function renderCurrentPage() {
   else if (currentPage === 'segments') renderSegments();
   else if (currentPage === 'ranking') renderRanking();
   else if (currentPage === 'reports') renderReportsPage();
-  else if (currentPage === 'health') renderSettingsPage();
+  else if (currentPage === 'health') renderHealthPage();
 }
 
 function updateBadges() {
@@ -8621,8 +8606,8 @@ let _pinMode = 'unlock'; // 'unlock' | 'set' | 'confirm'
 let _pinSetBuffer = '';
 
 // ── Crypto helpers ────────────────────────────────────────────
-async function hashPin(pin, _ignored) {
-  const data = new TextEncoder().encode(pin + ':' + PIN_SALT);
+async function hashPin(pin, salt) {
+  const data = new TextEncoder().encode(pin + ':' + salt);
   const buf  = await crypto.subtle.digest('SHA-256', data);
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
@@ -9084,359 +9069,6 @@ function showSkeletons(show) {
 // ============================================================
 // INIT
 // ============================================================
-// ============================================================
-// MULTI-AGENT AUTH (additions to existing auth system)
-// ============================================================
-const PIN_SALT = 'squevetrack-v1';
-
-function showLockScreen() {
-  const ls = document.getElementById('lock-screen');
-  if (!ls) return;
-  ls.style.display = 'block';
-  document.body.style.overflow = 'hidden';
-  _pinBuffer = ''; _pinTarget = null;
-  authShowTab('signin');
-  renderLockAgentList();
-  const ci = document.getElementById('auth-code-input'); if(ci) ci.value='';
-  const pe = document.getElementById('lock-pin-error');  if(pe) pe.textContent='';
-  document.getElementById('lock-pin-section').style.display='none';
-  document.getElementById('lock-dev-override').style.display='none';
-  updatePinDots();
-}
-function hideLockScreen() {
-  const ls = document.getElementById('lock-screen');
-  if(ls) ls.style.display='none';
-  document.body.style.overflow='';
-}
-function authShowTab(tab) {
-  const sp=document.getElementById('auth-signin-panel'), up=document.getElementById('auth-signup-panel');
-  const ts=document.getElementById('tab-signin'),         tu=document.getElementById('tab-signup');
-  if(!sp) return;
-  if(tab==='signin') {
-    sp.style.display='block'; up.style.display='none';
-    ts.style.cssText+='background:var(--surface);color:var(--gold);font-weight:700';
-    tu.style.cssText+='background:transparent;color:var(--text3);font-weight:600';
-  } else {
-    sp.style.display='none'; up.style.display='block';
-    ts.style.cssText+='background:transparent;color:var(--text3);font-weight:600';
-    tu.style.cssText+='background:var(--surface);color:var(--gold);font-weight:700';
-  }
-}
-function renderLockAgentList() {
-  const el = document.getElementById('lock-agent-list');
-  if (!el) return;
-  // Only show agents with a pinHash confirmed on this device
-  const agents = getAgentList().filter(a => a.pinHash);
-  if (!agents.length) { el.innerHTML=''; return; }
-  const cols = {M0:'#3b82f6',M1:'#22c55e',M2:'#e8a020',M3:'#f97316',M4:'#ef4444',M5:'#7c3aed'};
-  el.innerHTML = agents.map(a => {
-    const col = cols[a.stage]||'#e8a020';
-    const initials = (a.name||'A').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    const isActive = _activeAgent?.id===a.id;
-    return `<div style="position:relative;margin-bottom:8px">
-      <button class="lock-agent-card" style="width:100%;padding-right:48px;${isActive?'border-color:var(--gold)':''}" onclick="lockSelectAgent('${a.id}')">
-        <div class="lock-agent-avatar" style="background:${col}22;color:${col}">${initials}</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.lbCode||a.name}</div>
-          <div style="font-size:11px;color:var(--text3)">${a.stage||'M2'}</div>
-        </div>
-        <div style="font-size:18px">${isActive?'🔓':'🔒'}</div>
-      </button>
-    </div>`;
-  }).join('');
-}
-function lockSelectAgent(id) {
-  const agents = getAgentList();
-  _pinTarget = agents.find(a=>a.id===id);
-  if (!_pinTarget) return;
-  _pinBuffer=''; _pinMode='unlock';
-  document.getElementById('lock-pin-section').style.display='block';
-  document.getElementById('lock-pin-name').textContent = _pinTarget.lbCode||_pinTarget.name;
-  document.getElementById('lock-pin-error').textContent='';
-  updatePinDots(); haptic('light');
-}
-function authClearCode() {
-  const i=document.getElementById('auth-code-input'); if(i) i.value='';
-  _pinTarget=null; _pinBuffer=''; updatePinDots();
-  document.getElementById('lock-pin-name').textContent='';
-  document.getElementById('lock-pin-error').textContent='';
-}
-function pinPress(d) {
-  if(_pinBuffer.length>=4) return;
-  _pinBuffer+=d; haptic('light'); updatePinDots();
-  if(_pinBuffer.length===4) setTimeout(processPin,100);
-}
-function pinBackspace() { _pinBuffer=_pinBuffer.slice(0,-1); updatePinDots(); haptic('light'); }
-function updatePinDots() {
-  for(let i=0;i<4;i++){const d=document.getElementById('pindot-'+i);if(d)d.classList.toggle('filled',i<_pinBuffer.length);}
-}
-async function processPin() {
-  if (!_pinTarget) return;
-  if (_pinMode==='unlock') {
-    const hash = await hashPin(_pinBuffer);
-    if (hash===_pinTarget.pinHash) {
-      _activeAgent=_pinTarget; _sessionUnlocked=true; setSessionAgent(_pinTarget);
-      hideLockScreen(); haptic('pay');
-      await loadStateForAgent();
-    } else {
-      _pinBuffer=''; updatePinDots();
-      for(let i=0;i<4;i++){const d=document.getElementById('pindot-'+i);if(d){void d.offsetWidth;d.classList.add('shake');}}
-      document.getElementById('lock-pin-error').textContent='Incorrect PIN. Try again.'; haptic('medium');
-    }
-  } else if (_pinMode==='set') {
-    _pinSetBuffer=_pinBuffer; _pinBuffer=''; _pinMode='confirm'; updatePinDots();
-    document.getElementById('lock-pin-error').textContent='Enter PIN again to confirm';
-  } else if (_pinMode==='confirm') {
-    if (_pinBuffer===_pinSetBuffer) {
-      const hash = await hashPin(_pinBuffer);
-      const agents=getAgentList(); const idx=agents.findIndex(a=>a.id===_pinTarget.id);
-      if(idx>=0){agents[idx].pinHash=hash; saveAgentList(agents); _pinTarget.pinHash=hash;}
-      _activeAgent=_pinTarget; _sessionUnlocked=true; setSessionAgent(_pinTarget);
-      // Save pinHash to Supabase
-      const db=initSupabase();
-      if(db){try{
-        await db.from('app_state').upsert({id:'agent_'+_pinTarget.id,data:{...state,_pinHash:hash},updated_at:new Date().toISOString()});
-        await db.from('app_state').upsert({id:'main',data:{migratedToAgent:_pinTarget.id,pinHash:hash},updated_at:new Date().toISOString()});
-      }catch{}}
-      hideLockScreen(); haptic('pay');
-      toast('PIN set ✅ Welcome, '+_activeAgent.name,'success');
-      await loadStateForAgent();
-    } else {
-      _pinBuffer=''; _pinSetBuffer=''; _pinMode='set'; updatePinDots();
-      for(let i=0;i<4;i++){const d=document.getElementById('pindot-'+i);if(d){void d.offsetWidth;d.classList.add('shake');}}
-      document.getElementById('lock-pin-error').textContent='PINs did not match — try again'; haptic('medium');
-    }
-  }
-}
-function showDevOverride() {
-  document.getElementById('lock-dev-override').style.display='block';
-  document.getElementById('dev-override-error').textContent='';
-  document.getElementById('dev-override-input').value='';
-}
-function checkDevOverride() {
-  const code=(document.getElementById('dev-override-input')?.value||'').trim().toUpperCase();
-  if(code===DEV_OVERRIDE) {
-    if(!_pinTarget){document.getElementById('dev-override-error').textContent='Select an agent first';return;}
-    document.getElementById('lock-dev-override').style.display='none';
-    _pinBuffer=''; _pinMode='set'; updatePinDots();
-    document.getElementById('lock-pin-error').textContent='Enter a new 4-digit PIN';
-    document.getElementById('lock-pin-name').textContent='Set new PIN — '+_pinTarget.name;
-    haptic('medium');
-  } else { document.getElementById('dev-override-error').textContent='Invalid override code'; }
-}
-function lockAddNewAgent() { hideLockScreen(); state=initState(); startOnboarding(false,true); }
-function lockApp() { clearSession(); _activeAgent=null; _sessionUnlocked=false; state=initState(); showLockScreen(); haptic('medium'); }
-
-async function authSignInWithCode() {
-  const errEl = document.getElementById('lock-pin-error');
-  const rawCode = (document.getElementById('auth-code-input')?.value||'').trim();
-  if(!rawCode){errEl.textContent='Enter your Agent Code first';return;}
-  const slugCode = slugifyCode(rawCode);
-
-  // Already cached locally?
-  const localAgents = getAgentList();
-  let agent = localAgents.find(a=>a.id===slugCode||slugifyCode(a.lbCode||'')===slugCode);
-  if(agent){errEl.textContent='';lockSelectAgent(agent.id);return;}
-
-  const db = initSupabase();
-  if(!db){errEl.textContent='No internet connection';return;}
-  errEl.textContent='⏳ Looking up...';
-
-  async function fetchRow(id) {
-    try{const r=await db.from('app_state').select('*').eq('id',id).maybeSingle();return r?.data||null;}catch{return null;}
-  }
-
-  let row = await fetchRow('agent_'+slugCode);
-
-  if(!row){
-    try{
-      const res=await db.from('app_state').select('*').like('id','agent_%');
-      const rows=res?.data||[];
-      row=rows.find(r=>{const lb=r.data?.agentProfile?.lbCode||'';return lb&&slugifyCode(lb)===slugCode;})||null;
-      if(!row&&rows.length===1)row=rows[0]; // sole row = must be theirs
-    }catch{}
-  }
-  if(!row){const m=await fetchRow('main');const p=m?.data?.migratedToAgent;if(p)row=await fetchRow('agent_'+p);}
-  if(!row){const m=await fetchRow('main');if(m?.data?.borrowers?.length)row=m;}
-
-  if(!row){errEl.textContent='Account not found — check your code';return;}
-
-  const foundData=row.data||{};
-  const foundId=(row.id||'main').replace('agent_','');
-  const profile=foundData.agentProfile||{};
-  const pinHash=foundData._pinHash||null;
-
-  if(foundId!==slugCode){
-    foundData.agentProfile={...profile,lbCode:rawCode,id:slugCode,setupComplete:true};
-    foundData._skipPurgeOnce=true;
-    try{
-      await db.from('app_state').upsert({id:'agent_'+slugCode,data:foundData,updated_at:new Date().toISOString()});
-      await db.from('app_state').upsert({id:'main',data:{migratedToAgent:slugCode,pinHash},updated_at:new Date().toISOString()});
-      if(foundId!=='main')await db.from('app_state').delete().eq('id','agent_'+foundId);
-    }catch{}
-  }
-  localStorage.setItem('squevetrack_'+slugCode,JSON.stringify(foundData));
-
-  agent={id:slugCode,lbCode:rawCode,name:profile.name||rawCode,stage:profile.stage||'M2',
-    supervisor:profile.supervisor||'',pinHash,createdAt:profile.createdAt||new Date().toISOString()};
-  const idx=localAgents.findIndex(a=>a.id===slugCode);
-  if(idx>=0)localAgents[idx]=agent;else localAgents.push(agent);
-  saveAgentList(localAgents);
-  errEl.textContent='';
-  lockSelectAgent(agent.id);
-}
-
-async function loadStateForAgent() {
-  await loadState();
-  updateBadges(); checkOdAdvance(); checkRankingGapAlert();
-  checkPtpBreaches(); updateDailyPill(); updateSidebarAgentInfo(); renderDashboard();
-  showSkeletons(false);
-  if(state.borrowers?.length) setTimeout(cleanupGhostRows,3000);
-}
-
-async function cleanupGhostRows() {
-  const db=initSupabase();
-  if(!db||!_activeAgent?.id) return;
-  try{
-    const res=await db.from('app_state').select('id,data').like('id','agent_%').neq('id','agent_'+_activeAgent.id);
-    const ghosts=(res?.data||[]).filter(r=>!(r.data?.borrowers?.length)&&!(r.data?.agentProfile?.name)).map(r=>r.id);
-    if(ghosts.length) await db.from('app_state').delete().in('id',ghosts);
-  }catch{}
-}
-
-async function migrateFromLegacyIfNeeded() {
-  if(getAgentList().length>0) return false;
-  const db=initSupabase();
-  if(!db) return false;
-  try{
-    const m=await db.from('app_state').select('data').eq('id','main').maybeSingle();
-    const mData=m?.data?.data||null;
-    if(mData?.migratedToAgent){
-      const aid=mData.migratedToAgent;
-      const ar=await db.from('app_state').select('data').eq('id','agent_'+aid).maybeSingle();
-      if(ar?.data?.data?.agentProfile){
-        const p=ar.data.data.agentProfile;
-        const ag={id:aid,name:p.name||'Agent',stage:p.stage||'M2',lbCode:p.lbCode||'',pinHash:mData.pinHash||null,createdAt:p.createdAt||new Date().toISOString()};
-        saveAgentList([ag]); localStorage.setItem('squevetrack_'+aid,JSON.stringify(ar.data.data));
-        showLockScreen(); return true;
-      }
-    }
-    if(mData?.borrowers?.length){
-      const agentId=genAgentId();
-      const p=mData.agentProfile||{};
-      const ag={id:agentId,name:p.name||'Shadrack Agyei Arthur',stage:p.stage||'M2',lbCode:p.lbCode||'',pinHash:null,createdAt:new Date().toISOString()};
-      saveAgentList([ag]); _activeAgent=ag; _pinTarget=ag;
-      mData._skipPurgeOnce=true;
-      localStorage.setItem('squevetrack_'+agentId,JSON.stringify(mData));
-      try{await db.from('app_state').upsert({id:'agent_'+agentId,data:mData,updated_at:new Date().toISOString()});}catch{}
-      showLockScreen(); lockSelectAgent(agentId);
-      _pinBuffer=''; _pinMode='set'; updatePinDots();
-      document.getElementById('lock-pin-section').style.display='block';
-      document.getElementById('lock-pin-error').textContent='Set a 4-digit PIN to secure your account.';
-      return true;
-    }
-  }catch(e){console.warn('migration error:',e.message);}
-  return false;
-}
-
-function updateSidebarAgentInfo() { /* agent info now in Settings only */ }
-
-// Settings page
-function renderSettingsPage() {
-  const cardEl=document.getElementById('settings-agent-card');
-  if(cardEl&&_activeAgent){
-    const s=STAGE_CONFIG[_activeAgent.stage]||STAGE_CONFIG.M2;
-    cardEl.innerHTML='<div style="display:flex;align-items:center;gap:14px;padding:4px 0">'
-      +'<div style="width:52px;height:52px;border-radius:50%;background:'+s.colorHex+'22;color:'+s.colorHex+';display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;font-family:var(--font-head);flex-shrink:0">'
-      +(_activeAgent.name||'A').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()+'</div>'
-      +'<div style="flex:1;min-width:0">'
-      +'<div style="font-weight:700;font-size:15px">'+(_activeAgent.lbCode||_activeAgent.name)+'</div>'
-      +'<div style="font-size:12px;color:var(--text3);margin-top:2px">'+_activeAgent.name+'</div>'
-      +'<div style="margin-top:4px"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:'+s.colorHex+'22;color:'+s.colorHex+'">'+s.label+' — '+s.name+'</span></div>'
-      +'</div>'
-      +'<div style="font-size:9px;color:var(--text3);text-align:right;font-family:var(--font-mono)">'
-      +'<div style="margin-bottom:2px">Agent Code</div>'
-      +'<div style="color:var(--gold);font-weight:700;font-size:11px;user-select:all">'+(_activeAgent.lbCode||_activeAgent.id)+'</div>'
-      +'</div></div>';
-  }
-  renderHealthPage();
-}
-
-function settingsChangePin() {
-  if(!_activeAgent) return;
-  _pinTarget=_activeAgent; _pinBuffer=''; _pinSetBuffer=''; _pinMode='set';
-  document.getElementById('modal-title').textContent='🔑 Change PIN';
-  document.getElementById('modal-body').innerHTML=
-    '<div style="text-align:center;padding:10px 0">'
-    +'<div style="font-size:13px;color:var(--text2);margin-bottom:20px">Enter a new 4-digit PIN.</div>'
-    +'<div style="display:flex;justify-content:center;gap:12px;margin-bottom:20px">'
-    +'<div class="pin-dot" id="modal-pindot-0"></div><div class="pin-dot" id="modal-pindot-1"></div>'
-    +'<div class="pin-dot" id="modal-pindot-2"></div><div class="pin-dot" id="modal-pindot-3"></div>'
-    +'</div>'
-    +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto 12px">'
-    +[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map((k,i)=>i===9?'<div></div>'
-      :'<button class="pin-key" data-spk="'+k+'" onclick="settingsPinPress(this.dataset.spk)">'+k+'</button>').join('')
-    +'</div>'
-    +'<div id="settings-pin-error" style="font-size:12px;color:var(--red);min-height:18px"></div></div>';
-  document.getElementById('modal-footer').innerHTML='<button class="btn btn-ghost" onclick="closeModal();_pinBuffer=\'\';_pinSetBuffer=\'\';_pinMode=\'unlock\'">Cancel</button>';
-  document.getElementById('modal-overlay').classList.add('open'); haptic('light');
-}
-
-function settingsPinPress(k) {
-  const errEl=document.getElementById('settings-pin-error');
-  if(k==='⌫')_pinBuffer=_pinBuffer.slice(0,-1); else if(_pinBuffer.length<4)_pinBuffer+=String(k);
-  for(let i=0;i<4;i++){const d=document.getElementById('modal-pindot-'+i);if(d)d.classList.toggle('filled',i<_pinBuffer.length);}
-  if(_pinBuffer.length===4){setTimeout(async()=>{
-    if(_pinMode==='set'){_pinSetBuffer=_pinBuffer;_pinBuffer='';_pinMode='confirm';
-      if(errEl)errEl.textContent='Enter the same PIN again';
-      for(let i=0;i<4;i++){const d=document.getElementById('modal-pindot-'+i);if(d)d.classList.remove('filled');}
-    }else if(_pinMode==='confirm'){
-      if(_pinBuffer===_pinSetBuffer){
-        const hash=await hashPin(_pinBuffer);
-        const agents=getAgentList();const idx=agents.findIndex(a=>a.id===_pinTarget.id);
-        if(idx>=0){agents[idx].pinHash=hash;saveAgentList(agents);_pinTarget.pinHash=hash;if(_activeAgent)_activeAgent.pinHash=hash;}
-        state._pinHash=hash;
-        const db=initSupabase();if(db){try{
-          await db.from('app_state').upsert({id:'agent_'+_pinTarget.id,data:{...state,_pinHash:hash},updated_at:new Date().toISOString()});
-          await db.from('app_state').upsert({id:'main',data:{migratedToAgent:_pinTarget.id,pinHash:hash},updated_at:new Date().toISOString()});
-        }catch{}}
-        closeModal();haptic('pay');toast('PIN changed ✅','success');
-        _pinBuffer='';_pinSetBuffer='';_pinMode='unlock';
-      }else{
-        _pinBuffer='';_pinSetBuffer='';_pinMode='set';
-        if(errEl)errEl.textContent='PINs did not match — try again';
-        for(let i=0;i<4;i++){const d=document.getElementById('modal-pindot-'+i);if(d)d.classList.remove('filled');}
-        haptic('medium');
-      }
-    }
-  },100);}
-}
-
-function settingsLockApp(){lockApp();}
-
-function settingsDeleteAccount(){
-  if(!_activeAgent)return;
-  document.getElementById('modal-title').textContent='🗑 Delete Account';
-  document.getElementById('modal-body').innerHTML=
-    '<div style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:14px">This permanently deletes <strong>'+(_activeAgent.lbCode||_activeAgent.name)+'</strong> and ALL data.<br><span style="color:var(--red);font-weight:600">Cannot be undone.</span></div>'
-    +'<div class="form-group"><label>Type DELETE to confirm</label><input type="text" class="form-input" id="delete-confirm-input" placeholder="DELETE" autocomplete="off" style="font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase"></div>';
-  document.getElementById('modal-footer').innerHTML=
-    '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
-    +'<button class="btn btn-red" onclick="settingsConfirmDelete()">Delete My Account</button>';
-  document.getElementById('modal-overlay').classList.add('open'); haptic('light');
-}
-
-async function settingsConfirmDelete(){
-  if((document.getElementById('delete-confirm-input')?.value||'').trim().toUpperCase()!=='DELETE'){toast('Type DELETE to confirm','error');haptic('medium');return;}
-  closeModal();
-  const id=_activeAgent.id;
-  saveAgentList(getAgentList().filter(a=>a.id!==id));
-  localStorage.removeItem('squevetrack_'+id);
-  const db=initSupabase();if(db){try{await db.from('app_state').delete().eq('id','agent_'+id);await db.from('app_state').delete().eq('id','main');}catch{}}
-  clearSession();_activeAgent=null;_sessionUnlocked=false;state=initState();
-  haptic('pay');toast('Account deleted','success');showLockScreen();
-}
-
 document.addEventListener('DOMContentLoaded', async () => {
   await loadState();
 
@@ -9502,70 +9134,36 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // ── AUTH GATE ─────────────────────────────────────────────
-  initPullToRefresh();
+  // Check for session (tab already unlocked this session)
+  const sessionAgent = getActiveAgentFromSession();
   const agentList = getAgentList();
 
-  // Existing agents on device — check session or show lock
-  if (agentList.length > 0) {
-    const sessionAgent = getActiveAgentFromSession();
-    const matched = sessionAgent && agentList.find(a => a.id === sessionAgent.id);
-    if (matched) {
-      _activeAgent = agentList.find(a => a.id === sessionAgent.id);
-      _sessionUnlocked = true;
-      await loadState();
-      updateSidebarAgentInfo();
-      updateBadges(); checkOdAdvance(); checkRankingGapAlert();
-      checkPtpBreaches(); updateDailyPill(); renderDashboard();
-    } else {
-      showLockScreen();
+  if (sessionAgent && agentList.find(a => a.id === sessionAgent.id)) {
+    // Session still valid — restore agent and load their data
+    _activeAgent = agentList.find(a => a.id === sessionAgent.id);
+    _sessionUnlocked = true;
+    await loadState();
+    updateSidebarAgentInfo();
+    if (!state.agentProfile?.setupComplete) {
+      setTimeout(() => startOnboarding(false), 350);
     }
-    return;
-  }
-
-  // No local agents — scan Supabase for existing accounts
-  const db = initSupabase();
-  if (db) {
-    try {
-      const res = await db.from('app_state').select('id, data').like('id', 'agent_%');
-      const rows = res?.data || [];
-      const validRows = rows.filter(r => {
-        const rawId = r.id.replace('agent_','');
-        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(rawId);
-        const isSqv  = rawId.startsWith('sqv-');
-        const hasName = !!(r.data?.agentProfile?.name);
-        const hasBorrowers = (r.data?.borrowers?.length || 0) > 0;
-        return !( (isUuid || isSqv) && !hasName && !hasBorrowers );
-      });
-      // Delete ghost rows
-      const ghostIds = rows.filter(r => !validRows.includes(r)).map(r => r.id);
-      if (ghostIds.length) { try { await db.from('app_state').delete().in('id', ghostIds); } catch {} }
-
-      if (validRows.length > 0) {
-        const list = getAgentList();
-        validRows.forEach(r => {
-          const agentId = r.id.replace('agent_','');
-          if (!list.find(a => a.id === agentId)) {
-            const p = r.data?.agentProfile || {};
-            list.push({ id: agentId, name: p.name || agentId, stage: p.stage || 'M2',
-              lbCode: p.lbCode || '', pinHash: r.data?._pinHash || null,
-              createdAt: p.createdAt || new Date().toISOString() });
-            localStorage.setItem('squevetrack_' + agentId, JSON.stringify(r.data));
-          }
-        });
-        saveAgentList(list);
-        showLockScreen();
-        return;
+    updateBadges(); checkOdAdvance(); checkRankingGapAlert();
+    checkPtpBreaches(); updateDailyPill(); renderDashboard(); initPullToRefresh();
+  } else {
+    // No session — check for migration then show lock screen
+    const migrated = await migrateFromLegacyIfNeeded();
+    if (!migrated) {
+      // Fresh install or returning without session
+      if (agentList.length > 0) {
+        showLockScreen(); // existing agents — show lock
+      } else {
+        // Brand new install — go straight to onboarding
+        state = initState();
+        startOnboarding(false, true);
       }
-    } catch(e) { console.warn('Supabase scan error:', e.message); }
+    }
+    initPullToRefresh();
   }
-
-  // Check legacy migration
-  const migrated = await migrateFromLegacyIfNeeded();
-  if (migrated) return;
-
-  // Truly fresh — show auth screen (Sign In / New Agent)
-  state = initState();
-  showLockScreen();
 
   // Offline indicator
   function _setOfflineStatus(offline) {
@@ -9882,75 +9480,5 @@ document.addEventListener('DOMContentLoaded', async () => {
 .lock-agent-avatar { width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0;font-family:var(--font-head) }
 </style>
 
-<div id="lock-screen" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);overflow-y:auto">
-  <div style="max-width:420px;margin:0 auto;padding:40px 20px 80px;min-height:100vh;display:flex;flex-direction:column;align-items:center">
-    <div style="font-family:var(--font-head);font-size:30px;font-weight:800;color:var(--gold);margin-bottom:4px;letter-spacing:-0.5px">SqueveTrack</div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:32px">LoanBase Recovery Suite</div>
-    <div style="display:flex;background:var(--surface2);border-radius:10px;padding:3px;width:100%;margin-bottom:24px">
-      <button id="tab-signin" onclick="authShowTab('signin')" style="flex:1;padding:9px;border:none;cursor:pointer;border-radius:8px;font-size:13px;font-weight:700;background:var(--surface);color:var(--gold);transition:all 0.15s;font-family:var(--font-body)">Sign In</button>
-      <button id="tab-signup" onclick="authShowTab('signup')" style="flex:1;padding:9px;border:none;cursor:pointer;border-radius:8px;font-size:13px;font-weight:600;background:transparent;color:var(--text3);transition:all 0.15s;font-family:var(--font-body)">New Agent</button>
-    </div>
-    <div id="auth-signin-panel" style="width:100%">
-      <div id="lock-agent-list" style="width:100%;margin-bottom:16px"></div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;width:100%">
-        <div style="flex:1;height:1px;background:var(--border)"></div>
-        <span style="font-size:11px;color:var(--text3)">or sign in with your Agent Code</span>
-        <div style="flex:1;height:1px;background:var(--border)"></div>
-      </div>
-      <div style="margin-bottom:14px">
-        <input type="text" id="auth-code-input" class="form-input" placeholder="e.g. Shadrack Agyei OCT25" style="text-align:center;font-size:14px;font-weight:600" onkeydown="if(event.key==='Enter')authSignInWithCode()">
-        <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:5px">Your LoanBase agent code</div>
-        <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px" onclick="authSignInWithCode()">Find My Account →</button>
-      </div>
-      <div id="lock-pin-section" style="display:none;width:100%;text-align:center">
-        <div id="lock-pin-name" style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:16px"></div>
-        <div style="display:flex;justify-content:center;gap:12px;margin-bottom:20px">
-          <div class="pin-dot" id="pindot-0"></div><div class="pin-dot" id="pindot-1"></div>
-          <div class="pin-dot" id="pindot-2"></div><div class="pin-dot" id="pindot-3"></div>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto 14px">
-          <button class="pin-key" onclick="pinPress('1')">1</button><button class="pin-key" onclick="pinPress('2')">2</button><button class="pin-key" onclick="pinPress('3')">3</button>
-          <button class="pin-key" onclick="pinPress('4')">4</button><button class="pin-key" onclick="pinPress('5')">5</button><button class="pin-key" onclick="pinPress('6')">6</button>
-          <button class="pin-key" onclick="pinPress('7')">7</button><button class="pin-key" onclick="pinPress('8')">8</button><button class="pin-key" onclick="pinPress('9')">9</button>
-          <button class="pin-key pin-key-ghost" onclick="authClearCode()">←</button>
-          <button class="pin-key" onclick="pinPress('0')">0</button>
-          <button class="pin-key pin-key-ghost" onclick="pinBackspace()">⌫</button>
-        </div>
-        <div id="lock-pin-error" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:8px"></div>
-        <button class="btn btn-ghost btn-xs" onclick="showDevOverride()" style="font-size:10px;color:var(--text3)">Locked out? Contact developer</button>
-      </div>
-    </div>
-    <div id="auth-signup-panel" style="display:none;width:100%;text-align:center">
-      <div style="font-size:14px;color:var(--text2);margin-bottom:20px;line-height:1.7">Create your personal SqueveTrack account.<br>Your data will be private and PIN-protected.</div>
-      <button class="btn btn-gold" style="width:100%;padding:14px;font-size:15px" onclick="authShowTab('signin');lockAddNewAgent()">Start Setup →</button>
-      <div style="font-size:11px;color:var(--text3);margin-top:12px">You'll choose your stage, enter your details,<br>and optionally upload your LoanBase data.</div>
-    </div>
-    <div id="lock-dev-override" style="display:none;width:100%;text-align:center;margin-top:16px">
-      <div style="font-size:12px;color:var(--text2);margin-bottom:8px">Enter developer override code</div>
-      <input type="text" class="form-input" id="dev-override-input" placeholder="SQV-XXX-XXXX" style="text-align:center;font-family:var(--font-mono);letter-spacing:2px;font-size:14px;margin-bottom:8px" onkeydown="if(event.key==='Enter')checkDevOverride()">
-      <div style="display:flex;gap:8px;justify-content:center">
-        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('lock-dev-override').style.display='none'">Cancel</button>
-        <button class="btn btn-red btn-sm" onclick="checkDevOverride()">Unlock</button>
-      </div>
-      <div id="dev-override-error" style="font-size:11px;color:var(--red);margin-top:6px;min-height:16px"></div>
-    </div>
-  </div>
-</div>
-<style>
-.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border2);background:transparent;transition:background 0.1s,border-color 0.1s}
-.pin-dot.filled{background:var(--gold);border-color:var(--gold)}
-.pin-dot.shake{animation:pinShake 0.4s ease}
-@keyframes pinShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
-.pin-key{background:var(--surface2);border:1px solid var(--border);border-radius:12px;font-size:20px;font-weight:600;padding:16px;cursor:pointer;color:var(--text);transition:all 0.1s;font-family:var(--font-head)}
-.pin-key:active{background:var(--gold);color:#000;transform:scale(0.94)}
-.pin-key-ghost{background:transparent;border-color:transparent;font-size:16px}
-.lock-agent-card{display:flex;align-items:center;gap:12px;background:var(--surface2);border:2px solid var(--border2);border-radius:12px;padding:12px 14px;cursor:pointer;transition:all 0.15s;text-align:left}
-.lock-agent-card:hover{border-color:var(--gold)}
-.lock-agent-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0;font-family:var(--font-head)}
-.settings-row{display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px 20px;background:none;border:none;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;color:var(--text2);text-align:left;transition:background 0.1s;font-family:var(--font-body)}
-.settings-row:last-child{border-bottom:none}
-.settings-row:hover{background:var(--surface2)}
-.settings-chevron{color:var(--text3);font-size:18px;font-weight:300}
-</style>
 </body>
 </html>
