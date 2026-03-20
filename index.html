@@ -83,8 +83,22 @@
 
 /* PAGE TRANSITIONS */
 @keyframes pageSlideIn { from { opacity:0; transform:translateX(18px); } to { opacity:1; transform:translateX(0); } }
-@keyframes pageFadeOut { from { opacity:1; } to { opacity:0; } }
-.page.active { animation: pageSlideIn 0.18s ease both; }
+@keyframes pageSlideUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+@keyframes pageFadeIn  { from { opacity:0; } to { opacity:1; } }
+.page.active { animation: pageSlideIn 0.16s cubic-bezier(0.25,0.46,0.45,0.94) both; }
+/* Modal entrance */
+@keyframes modalSlideIn { from { opacity:0; transform:translateY(20px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
+#modal-overlay.open .modal { animation: modalSlideIn 0.18s cubic-bezier(0.34,1.2,0.64,1) both; }
+/* Card hover lift */
+.card { transition: box-shadow 0.15s ease; }
+.kpi-card { transition: transform 0.12s ease, box-shadow 0.12s ease; }
+.kpi-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+/* Button press feedback */
+.btn:active { transform: scale(0.96); transition: transform 0.08s ease; }
+/* Nav item transition */
+.nav-item { transition: all 0.1s ease; }
+/* Hit list drag feedback */
+.hit-item[draggable]:active { opacity: 0.7; cursor: grabbing; }
 
 /* SKELETON LOADERS */
 @keyframes shimmer { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
@@ -256,6 +270,12 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
   display: flex; flex-direction: column;
   padding: 0; height: 100vh;
   position: sticky; top: 0;
+  overflow: hidden;
+}
+#sidebar-nav-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 .sidebar-logo {
   padding: 24px 20px 16px;
@@ -892,6 +912,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <div id="global-search-results" style="display:none;position:absolute;z-index:500;background:var(--surface);border:1px solid var(--border2);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.3);max-height:300px;overflow-y:auto;width:186px;margin-top:2px"></div>
   </div>
   <div class="nav-section-label">Menu</div>
+  <div id="sidebar-nav-scroll">
   <div class="nav-item active" data-page="dashboard">
     <span class="nav-icon">📊</span> Dashboard
   </div>
@@ -928,7 +949,8 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
   </div>
   <div class="nav-item" data-page="reports">
     <span class="nav-icon">📋</span> Reports
-  <div class="sidebar-footer">
+  </div>
+  </div><!-- end sidebar-nav-scroll -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
       <span>🌙 Theme</span>
 <button id="theme-toggle" onclick="toggleTheme()" style="display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:5px 12px;cursor:pointer;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--text2);white-space:nowrap">
@@ -967,7 +989,6 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <span id="streak-badge-dash" class="streak-badge" style="display:none">🔥 0 day streak</span>
-        <button class="eod-btn" onclick="generateEODReport()" title="Generate EOD WhatsApp summary">📊 EOD Report</button>
         <button class="btn btn-ghost btn-sm" onclick="openRolloverModal()">📅 New Month</button>
         <button class="btn btn-gold" onclick="openAddModal()">＋ New Borrower</button>
       </div>
@@ -1071,6 +1092,19 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
         <select class="filter-select" id="loan-filter-od" onchange="renderLoansTable()">
           <option value="">All OD Ages</option>
         </select>
+        <select class="filter-select" id="loan-filter-priority" onchange="renderLoansTable()">
+          <option value="">All Priorities</option>
+          <option value="high">🔴 High (8–10)</option>
+          <option value="mid">🟡 Mid (5–7)</option>
+          <option value="low">🟢 Low (1–4)</option>
+        </select>
+        <select class="filter-select" id="loan-filter-badge" onchange="renderLoansTable()">
+          <option value="">All Badges</option>
+          <option value="paid">✅ Fully Paid</option>
+          <option value="star">⭐ Reliable Payer</option>
+          <option value="warn">⚠️ Broken Promise</option>
+          <option value="fraud">🚨 Fraud Flagged</option>
+        </select>
         <span style="margin-left:auto;font-size:12px;color:var(--text3)" id="loans-showing"></span>
       </div>
       <div class="table-wrap">
@@ -1156,7 +1190,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
       </div>
       <div class="card">
         <div class="card-header"><span class="card-title">📅 Account Aging Timeline</span></div>
-        <div class="card-body" id="analytics-aging"></div>
+        <div class="card-body" id="analytics-aging-timeline"></div>
       </div>
       <div class="card full">
         <div class="card-header"><span class="card-title">📊 OD Fee Accrual Tracker</span></div>
@@ -1438,8 +1472,19 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
           <input type="text" class="form-input" id="ranking-my-name" placeholder="e.g. Shadrack Agyei">
         </div>
         <div class="form-group">
-          <label>Paste ranking text (names and percentages)</label>
-          <textarea class="form-input" id="ranking-paste" rows="6" placeholder="Paste screenshot text here e.g.&#10;1. Akos Mensah 87.4%&#10;2. Shadrack Agyei 83.1%&#10;3. Eric Boateng 79.2%"></textarea>
+          <label>Upload screenshot <span style="color:var(--text3);font-weight:400">(image or paste text below)</span></label>
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+            <label style="display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12px;color:var(--text2)">
+              📷 Choose Image
+              <input type="file" id="ranking-image-upload" accept="image/*" style="display:none" onchange="previewRankingImage(this)">
+            </label>
+            <span id="ranking-image-name" style="font-size:11px;color:var(--text3)">No file chosen</span>
+          </div>
+          <img id="ranking-image-preview" style="display:none;max-width:100%;max-height:200px;border-radius:8px;border:1px solid var(--border2);margin-bottom:8px" alt="Ranking preview">
+        </div>
+        <div class="form-group">
+          <label>Or paste ranking text directly</label>
+          <textarea class="form-input" id="ranking-paste" rows="5" placeholder="Paste screenshot text here e.g.&#10;1. Akos Mensah 87.4%&#10;2. Shadrack Agyei 83.1%&#10;3. Eric Boateng 79.2%"></textarea>
         </div>
         <button class="btn btn-gold" onclick="scanRanking()" id="ranking-scan-btn">🔍 Scan &amp; Save Ranking</button>
         <div id="ranking-scan-status" style="margin-top:8px;font-size:12px;color:var(--text2)"></div>
@@ -1566,6 +1611,9 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
   </div>
   <div class="mdrawer-item" data-page="reports" onclick="navigateDrawer('reports')">
     <span class="mdrawer-icon">📋</span> Reports
+  </div>
+  <div class="mdrawer-item" data-page="health" onclick="navigateDrawer('health')">
+    <span class="mdrawer-icon">🔒</span> Data Health
   </div>
   <div class="mdrawer-footer">
     <div id="mdrawer-sync" style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
@@ -2341,10 +2389,7 @@ function renderDashboard() {
   renderTreadmillAlert();
   // Forecast in collapsible
   const fBody = document.getElementById('dash-forecast-body');
-  if (fBody) {
-    const f = _buildForecastHtml();
-    fBody.innerHTML = f;
-  }
+  if (fBody) renderForecastOnDashboard();
 }
 
 function chartColor(alpha) {
@@ -2402,6 +2447,8 @@ function renderLoansTable() {
   const fStatus = document.getElementById('loan-filter-status')?.value || '';
   const fType = document.getElementById('loan-filter-type')?.value || '';
   const fOd = document.getElementById('loan-filter-od')?.value || '';
+  const fPriority = document.getElementById('loan-filter-priority')?.value || '';
+  const fBadge = document.getElementById('loan-filter-badge')?.value || '';
 
   let rows = state.borrowers.map(b => ({
     ...b,
@@ -2428,6 +2475,21 @@ function renderLoansTable() {
   if (fStatus) rows = rows.filter(r => r.status === fStatus);
   if (fType) rows = rows.filter(r => r.loanType === fType);
   if (fOd) rows = rows.filter(r => r.odAge === parseInt(fOd));
+  if (fPriority) rows = rows.filter(r => {
+    const ps = calcPriorityScore(r);
+    if (fPriority === 'high') return ps >= 8;
+    if (fPriority === 'mid')  return ps >= 5 && ps < 8;
+    if (fPriority === 'low')  return ps < 5;
+    return true;
+  });
+  if (fBadge) rows = rows.filter(r => {
+    const payRatio = r.loanDue > 0 ? r.amountPaid / r.loanDue : 0;
+    if (fBadge === 'paid')  return r.status === 'Paid';
+    if (fBadge === 'star')  return payRatio >= 0.5 && r.amountPaid > 0 && r.status !== 'Paid';
+    if (fBadge === 'warn')  return r.promisedToPay && r.amountPaid === 0;
+    if (fBadge === 'fraud') return (r.callLog||[]).some(c => c.outcome === 'Fraud');
+    return true;
+  });
 
   rows.sort((a,b) => {
     let av = a[loanSortCol], bv = b[loanSortCol];
@@ -2811,7 +2873,7 @@ function renderAnalytics() {
       }).join('');
 
   // ── Account Aging Timeline ───────────────────────────────
-  var agingEl = document.getElementById('analytics-aging');
+  var agingEl = document.getElementById('analytics-aging-timeline');
   if (agingEl) {
     var agBands = [
       {label:'Day 6-7', min:6,max:7,  color:'rgba(96,165,250,0.75)'},
@@ -3607,37 +3669,49 @@ function openBorrowerDetail(id) {
   var stColor = st==='Paid'?'var(--green)':st==='Partial'?'var(--gold)':'var(--red)';
   var odColor = od>=15?'var(--red)':od>=13?'var(--orange)':od>=11?'#fbbf24':'var(--blue)';
   var log = b.payLog||[];
+  var pScore = calcPriorityScore(b);
+  var pCls = pScore >= 8 ? 'p-high' : pScore >= 5 ? 'p-mid' : 'p-low';
+  var predicted = getPredictedPayDate(b);
+  var callCount = (b.callLog||[]).length;
+  var badges = getBorrowerBadges(b);
 
   document.getElementById('modal-title').textContent = b.name;
   document.getElementById('modal-body').innerHTML =
     '<div style="background:var(--surface2);border-radius:8px;padding:14px;margin-bottom:14px">'
     + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px">'
     + '<div><div style="font-size:12px;color:var(--text3)">' + b.loanType + ' &middot; ' + b.phone + '</div>'
-    + (b.promisedToPay ? '<div style="font-size:11px;color:var(--purple);margin-top:2px">Promise: ' + (b.promiseDate||'today') + (b.promiseNote?' - '+b.promiseNote:'') + '</div>' : '')
-    + (b.notes ? '<div style="font-size:11px;color:var(--gold);margin-top:2px">Note: ' + b.notes + '</div>' : '')
+    + (b.promisedToPay ? '<div style="font-size:11px;color:var(--purple);margin-top:2px">🤝 Promise: ' + (b.promiseDate||'today') + (b.promiseNote?' — '+b.promiseNote:'') + '</div>' : '')
+    + (b.notes ? '<div style="font-size:11px;color:var(--gold);margin-top:2px">📝 ' + b.notes + '</div>' : '')
+    + (badges ? '<div style="margin-top:4px">' + badges + '</div>' : '')
     + '</div>'
-    + '<div style="text-align:right"><div style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:'+odColor+'">Day '+od+'</div>'
-    + '<div style="font-size:10px;color:var(--text3)">OD Age</div></div>'
+    + '<div style="text-align:right">'
+    + '<div style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:'+odColor+'">Day '+od+'</div>'
+    + '<div style="margin-top:3px"><span class="priority-score '+pCls+'" title="Priority score">'+pScore+'</span></div>'
+    + '</div>'
     + '</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">'
     + '<div><div style="font-family:var(--font-mono);font-size:13px;font-weight:700">' + fmtC(b.loanDue) + '</div><div style="font-size:10px;color:var(--text3)">Loan Due</div></div>'
     + '<div><div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--green)">' + fmtC(b.amountPaid||0) + '</div><div style="font-size:10px;color:var(--text3)">Paid</div></div>'
-    + '<div><div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:'+stColor+'">' + (st==='Paid'?'Paid':fmtC(getDueToday(b))) + '</div><div style="font-size:10px;color:var(--text3)">Due Today</div></div>'
-    + '</div></div>'
+    + '<div><div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:'+stColor+'">' + (st==='Paid'?'Paid ✅':fmtC(getDueToday(b))) + '</div><div style="font-size:10px;color:var(--text3)">Due Today</div></div>'
+    + '</div>'
+    + (predicted ? '<div style="margin-top:8px;padding:6px 10px;background:rgba(96,165,250,0.1);border-radius:6px;font-size:11px;color:var(--blue)">📅 Predicted next payment: <strong>' + predicted + '</strong></div>' : '')
+    + '</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">'
-    + '<button class="btn btn-green" id="bd-pay">Pay</button>'
-    + '<button class="btn btn-ghost" id="bd-promise">' + (b.promisedToPay?'Update Promise':'Promise to Pay') + '</button>'
-    + '<a href="tel:' + b.phone + '" class="btn btn-ghost">Call</a>'
-    + '<a href="https://wa.me/' + b.phone.replace(/[^0-9+]/g,'') + '" target="_blank" class="btn btn-ghost">WhatsApp</a>'
-    + '<button class="btn btn-ghost" id="bd-note">' + (b.notes?'Edit Note':'Add Note') + '</button>'
-    + '<button class="btn btn-ghost" id="bd-history">History (' + log.length + ')</button>'
+    + '<button class="btn btn-green" id="bd-pay">💰 Pay</button>'
+    + '<button class="btn btn-ghost" id="bd-promise">' + (b.promisedToPay?'Update Promise':'🤝 Promise') + '</button>'
+    + '<a href="tel:' + b.phone + '" class="btn btn-ghost" onclick="haptic(\'light\')">📞 Call</a>'
+    + '<a href="https://wa.me/' + b.phone.replace(/[^0-9+]/g,'') + '" target="_blank" class="btn btn-ghost" onclick="haptic(\'light\')">💬 WhatsApp</a>'
+    + '<button class="btn btn-ghost" id="bd-calllog">📞 Call Log (' + callCount + ')</button>'
+    + '<button class="btn btn-ghost" id="bd-hitlist">' + ((state.hitList||[]).includes(id) ? '📌 In Hit List' : '📌 Add to Hit List') + '</button>'
+    + '<button class="btn btn-ghost" id="bd-note">' + (b.notes?'📝 Edit Note':'📝 Add Note') + '</button>'
+    + '<button class="btn btn-ghost" id="bd-history">📋 History (' + log.length + ')</button>'
     + '</div>'
     + (log.length ? '<div style="margin-bottom:6px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Recent Payments</div>'
       + [].concat(log).reverse().slice(0,3).map(function(e){
           return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">'
-            + '<div style="flex:1"><div style="font-size:12px;font-weight:600">' + (e.delta>=0?'+':'')+fmtC(e.delta) + ' to ' + fmtC(e.amount) + '</div>'
-            + '<div style="font-size:10px;color:var(--text3)">' + e.date + (e.time?' at '+e.time:'') + (e.note?' - '+e.note:'') + '</div></div>'
-            + (e.isPaid?'<div style="color:var(--green);font-weight:700;font-size:12px">Paid</div>':'')
+            + '<div style="flex:1"><div style="font-size:12px;font-weight:600">' + (e.delta>=0?'+':'')+fmtC(e.delta) + ' → ' + fmtC(e.amount) + '</div>'
+            + '<div style="font-size:10px;color:var(--text3)">' + e.date + (e.time?' at '+e.time:'') + (e.note?' — '+e.note:'') + '</div></div>'
+            + (e.isPaid?'<div style="color:var(--green);font-weight:700;font-size:12px">✅ Paid</div>':'')
             + '</div>';
         }).join('')
       + (log.length>3?'<div style="font-size:11px;color:var(--text3);padding-top:4px">+' + (log.length-3) + ' more in History</div>':'')
@@ -3645,10 +3719,11 @@ function openBorrowerDetail(id) {
 
   document.getElementById('modal-footer').innerHTML =
     '<button class="btn btn-ghost" onclick="closeModal()">Close</button>'
-    + '<button class="btn btn-ghost btn-sm" id="bd-edit">Edit</button>'
-    + '<button class="btn btn-red btn-sm" id="bd-delete">Delete</button>';
+    + '<button class="btn btn-ghost btn-sm" id="bd-edit">✏️ Edit</button>'
+    + '<button class="btn btn-red btn-sm" id="bd-delete">🗑 Delete</button>';
 
   document.getElementById('modal-overlay').classList.add('open');
+  haptic('light');
 
   setTimeout(function() {
     var elPay = document.getElementById('bd-pay');
@@ -3657,11 +3732,15 @@ function openBorrowerDetail(id) {
     var elH   = document.getElementById('bd-history');
     var elE   = document.getElementById('bd-edit');
     var elD   = document.getElementById('bd-delete');
-    if (elPay) elPay.onclick = function(){ closeModal(); openPayModal(id); };
-    if (elPr)  elPr.onclick  = function(){ closeModal(); togglePromise(id); };
-    if (elN)   elN.onclick   = function(){ closeModal(); openQuickNote(id); };
-    if (elH)   elH.onclick   = function(){ closeModal(); openHistoryModal(id); };
-    if (elE)   elE.onclick   = function(){ closeModal(); openEditModal(id); };
+    var elCL  = document.getElementById('bd-calllog');
+    var elHL  = document.getElementById('bd-hitlist');
+    if (elPay) elPay.onclick = function(){ haptic('light'); closeModal(); openPayModal(id); };
+    if (elPr)  elPr.onclick  = function(){ haptic('light'); closeModal(); togglePromise(id); };
+    if (elN)   elN.onclick   = function(){ haptic('light'); closeModal(); openQuickNote(id); };
+    if (elH)   elH.onclick   = function(){ haptic('light'); closeModal(); openHistoryModal(id); };
+    if (elE)   elE.onclick   = function(){ haptic('light'); closeModal(); openEditModal(id); };
+    if (elCL)  elCL.onclick  = function(){ haptic('light'); closeModal(); openCallLogModal(id); };
+    if (elHL)  elHL.onclick  = function(){ haptic('medium'); addToHitList(id); elHL.textContent = '📌 In Hit List'; };
     if (elD)   elD.onclick   = function(){
       if (confirm('Delete ' + b.name + '?')){ closeModal(); deleteBorrower(id); }
     };
@@ -3904,14 +3983,14 @@ function updateDiscount(val) {
 function togglePromise(id) {
   const b = state.borrowers.find(x => x.id === id);
   if (!b) return;
+  haptic('medium');
   if (b.promisedToPay) {
-    // Clear promise
+    pushUndo('Clear promise for ' + b.name.split(' ')[0], { borrowers: state.borrowers, dailyLog: state.dailyLog });
     b.promisedToPay = false;
     b.promiseDate = null;
     saveState(); renderCurrentPage();
     toast('Promise cleared', 'info');
   } else {
-    // Open promise modal to set date/time
     openPromiseModal(id);
   }
 }
@@ -4478,11 +4557,23 @@ let currentPage = 'dashboard';
 
 function navigate(page) {
   currentPage = page;
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  // Remove active + re-trigger animation by cloning the page element
+  document.querySelectorAll('.page').forEach(p => {
+    p.classList.remove('active');
+    p.style.animation = 'none';
+  });
   document.querySelectorAll('.nav-item, .mdrawer-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-' + page)?.classList.add('active');
+  const pageEl = document.getElementById('page-' + page);
+  if (pageEl) {
+    pageEl.style.animation = 'none';
+    requestAnimationFrame(() => {
+      pageEl.style.animation = '';
+      pageEl.classList.add('active');
+    });
+  }
   document.querySelectorAll('[data-page="' + page + '"]').forEach(el => el.classList.add('active'));
   document.getElementById('main').scrollTop = 0;
+  haptic('light');
   renderCurrentPage();
 }
 
@@ -4636,6 +4727,7 @@ function openRiskCard(id) {
 // BULK SELECT
 // ============================================================
 function toggleSelectAll(checked) {
+  haptic('light');
   document.querySelectorAll('.row-cb').forEach(cb => { cb.checked = checked; });
   updateBulkBar();
 }
@@ -4667,6 +4759,7 @@ function getSelectedIds() {
 function bulkAction(action) {
   const ids = getSelectedIds();
   if (!ids.length) return toast('No accounts selected', 'error');
+  haptic('medium');
   if (action === 'delete') {
     if (!confirm('Delete ' + ids.length + ' account(s)? This cannot be undone.')) return;
     state.borrowers = state.borrowers.filter(b => !ids.includes(b.id));
@@ -5572,6 +5665,7 @@ function applyTheme(theme) {
 }
 
 function toggleTheme() {
+  haptic('light');
   const current = document.documentElement.getAttribute('data-theme') || 'dark';
   applyTheme(current === 'dark' ? 'light' : 'dark');
 }
@@ -5664,18 +5758,25 @@ document.addEventListener('keydown', function(e) {
   if (e.key === 'f') { e.preventDefault(); document.getElementById('loan-search')?.focus(); navigate('loans'); }
   if (e.key === 'n') openAddModal();
 });
-// Shake detection
+// Shake detection — with haptic confirmation
 (function() {
   var last = { x:0, y:0, z:0, t:0 };
+  var cooldown = 0;
   if (!window.DeviceMotionEvent) return;
   window.addEventListener('devicemotion', function(ev) {
     var a = ev.accelerationIncludingGravity;
     if (!a) return;
     var now = Date.now();
-    if (now - last.t < 100) return;
-    var dx = Math.abs(a.x - last.x), dy = Math.abs(a.y - last.y), dz = Math.abs(a.z - last.z);
-    if (dx + dy + dz > 30) { undo(); }
-    last = { x: a.x, y: a.y, z: a.z, t: now };
+    if (now - last.t < 80) return;
+    var dx = Math.abs((a.x||0) - last.x);
+    var dy = Math.abs((a.y||0) - last.y);
+    var dz = Math.abs((a.z||0) - last.z);
+    last = { x: a.x||0, y: a.y||0, z: a.z||0, t: now };
+    if (dx + dy + dz > 25 && now > cooldown) {
+      cooldown = now + 1500; // 1.5s cooldown between shakes
+      haptic('heavy');       // confirm the shake was detected
+      setTimeout(function() { undo(); }, 80); // slight delay after haptic
+    }
   });
 })();
 
@@ -5884,23 +5985,30 @@ function renderGapWidget() {
 // TREADMILL ALERT (Day 6 new entries)
 // ============================================================
 function renderTreadmillAlert() {
-  const today = new Date().toISOString().split('T')[0];
-  const newDay6 = state.borrowers.filter(b => {
-    const od = getOdAge(b.startDate);
-    return od === 6 && b.startDate === today;
-  });
-  // also check for accounts that newly hit day 6 today
   const allDay6 = state.borrowers.filter(b => getOdAge(b.startDate) === 6);
   const el = document.getElementById('treadmill-alert');
   if (!el) return;
   if (allDay6.length === 0) { el.style.display = 'none'; return; }
   const total = allDay6.reduce((s,b) => s + getDueToday(b), 0);
   el.style.display = 'block';
-  el.innerHTML = `<div style="font-weight:700;color:var(--red);font-size:13px">🔄 Treadmill: ${allDay6.length} account${allDay6.length>1?'s':''} on Day 6 today</div>
-    <div style="font-size:11px;color:var(--text3);margin-top:3px">Total new outstanding added: <strong>${fmtC(total)}</strong> — act immediately before they age.</div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${allDay6.slice(0,6).map(b =>
-      `<span style="background:var(--surface2);border:1px solid rgba(239,68,68,0.3);border-radius:16px;padding:2px 10px;font-size:11px;cursor:pointer" onclick="openPayModal('${b.id}')">${b.name.split(' ')[0]}</span>`
-    ).join('')}${allDay6.length>6?`<span style="font-size:11px;color:var(--text3);padding:2px 6px">+${allDay6.length-6} more</span>`:''}</div>`;
+  el.innerHTML = `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-weight:700;color:var(--red);font-size:13px">🔄 Treadmill: ${allDay6.length} new Day 6 account${allDay6.length>1?'s':''}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px">New outstanding added: <strong style="color:var(--text)">${fmtC(total)}</strong> — act before they age further</div>
+      </div>
+      <button class="btn btn-red btn-sm" onclick="filterAndNavigate('loans','',6);haptic('medium')">View All ↗</button>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
+      ${allDay6.slice(0,8).map(b => `
+        <div style="background:var(--surface2);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:5px 10px;font-size:11px;display:flex;align-items:center;gap:6px">
+          <span style="font-weight:600">${b.name.split(' ')[0]}</span>
+          <span style="color:var(--text3)">${fmtC(getDueToday(b))}</span>
+          <button class="btn btn-green btn-xs" style="padding:1px 7px;font-size:10px" onclick="openPayModal('${b.id}');haptic('light')">💰</button>
+          <button class="btn btn-ghost btn-xs" style="padding:1px 7px;font-size:10px" onclick="addToHitList('${b.id}');haptic('light')">📌</button>
+        </div>`).join('')}
+      ${allDay6.length>8?`<span style="font-size:11px;color:var(--text3);align-self:center">+${allDay6.length-8} more</span>`:''}
+    </div>`;
 }
 
 // ============================================================
@@ -5929,9 +6037,12 @@ function calcPriorityScore(b) {
 function getBorrowerBadges(b) {
   const badges = [];
   const payRatio = b.loanDue > 0 ? b.amountPaid / b.loanDue : 0;
-  if (payRatio >= 0.5 && b.amountPaid > 0) badges.push('<span class="badge-star" title="Reliable payer">⭐</span>');
-  if (b.promisedToPay && b.amountPaid === 0) badges.push('<span class="badge-warn" title="Broken promise">⚠️</span>');
-  return badges.join('');
+  const status = getStatus(b);
+  if (status === 'Paid') badges.push('<span class="badge-star" title="Fully paid ✅" style="font-size:10px">✅</span>');
+  else if (payRatio >= 0.5 && b.amountPaid > 0) badges.push('<span class="badge-star" title="Reliable payer (50%+)">⭐</span>');
+  if (b.promisedToPay && b.amountPaid === 0) badges.push('<span class="badge-warn" title="Promise not yet honoured">⚠️</span>');
+  if ((b.callLog||[]).some(c => c.outcome === 'Fraud')) badges.push('<span title="Fraud suspected" style="font-size:10px">🚨</span>');
+  return badges.length ? ' ' + badges.join('') : '';
 }
 
 // ============================================================
@@ -5953,31 +6064,44 @@ function openCallLogModal(id) {
   const b = state.borrowers.find(x => x.id === id);
   if (!b) return;
   if (!b.callLog) b.callLog = [];
-  const outcomes = ['Answered','No Answer','Promised','Refused'];
+  const outcomes = [
+    { label:'✅ Answered',       val:'Answered',           color:'var(--green)' },
+    { label:'📵 No Answer',      val:'No Answer',          color:'var(--text3)' },
+    { label:'🤝 Promised',       val:'Promised',           color:'var(--purple)' },
+    { label:'🚫 Refused',        val:'Refused',            color:'var(--red)' },
+    { label:'🔀 Redirected',     val:'Redirected',         color:'var(--blue)' },
+    { label:'📞 Busy',           val:'Busy',               color:'var(--orange)' },
+    { label:'📅 Callback Req.',  val:'Requested Callback', color:'var(--gold)' },
+    { label:'😶 No Commitment',  val:'No Commitment',      color:'var(--orange)' },
+    { label:'🚨 Fraud Suspected',val:'Fraud',              color:'var(--red)' },
+    { label:'📴 Phone Off',      val:'Phone Off',          color:'var(--text3)' },
+    { label:'🔢 Wrong Number',   val:'Wrong Number',       color:'var(--text3)' },
+  ];
   document.getElementById('modal-title').textContent = '📞 Call Log — ' + b.name.split(' ')[0];
   document.getElementById('modal-body').innerHTML =
     `<div style="margin-bottom:14px">
-      <div style="font-size:13px;font-weight:600;margin-bottom:8px">Log new call outcome:</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap" id="call-outcome-btns">
-        ${outcomes.map(o => `<button class="call-outcome-btn" onclick="logCallOutcome('${id}','${o}',this)">${o}</button>`).join('')}
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">Log call outcome:</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="call-outcome-btns">
+        ${outcomes.map(o => `<button class="call-outcome-btn" onclick="logCallOutcome('${id}','${o.val}',this)" style="text-align:left;border-color:${o.color}22;color:var(--text2)">${o.label}</button>`).join('')}
       </div>
     </div>
     <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">History (${b.callLog.length} calls):</div>
     <div style="max-height:200px;overflow-y:auto">
-      ${b.callLog.length === 0 ? '<div style="color:var(--text3);font-size:12px">No calls logged yet</div>' :
-        [...b.callLog].reverse().map(c =>
-          `<div class="call-log-entry">
-            <span style="font-size:16px">${{Answered:'✅',
-              'No Answer':'📵',Promised:'🤝',Refused:'🚫'}[c.outcome]||'📞'}</span>
-            <div><div style="font-weight:600">${c.outcome}</div>
+      ${b.callLog.length === 0 ? '<div style="color:var(--text3);font-size:12px;padding:8px 0">No calls logged yet</div>' :
+        [...b.callLog].reverse().map(c => {
+          const icons = { Answered:'✅','No Answer':'📵',Promised:'🤝',Refused:'🚫',Redirected:'🔀',Busy:'📞','Requested Callback':'📅','No Commitment':'😶',Fraud:'🚨','Phone Off':'📴','Wrong Number':'🔢' };
+          return `<div class="call-log-entry">
+            <span style="font-size:16px;flex-shrink:0">${icons[c.outcome]||'📞'}</span>
+            <div style="flex:1"><div style="font-weight:600;font-size:12px">${c.outcome}</div>
             <div style="color:var(--text3);font-size:10px">${c.timestamp}</div></div>
-          </div>`
-        ).join('')
-      }
+          </div>`;
+        }).join('')}
     </div>`;
   document.getElementById('modal-footer').innerHTML = `<button class="btn btn-ghost" onclick="closeModal()">Close</button>`;
   document.getElementById('modal-overlay').classList.add('open');
+  haptic('light');
 }
+
 function logCallOutcome(id, outcome, btn) {
   const b = state.borrowers.find(x => x.id === id);
   if (!b) return;
@@ -5986,8 +6110,10 @@ function logCallOutcome(id, outcome, btn) {
   haptic('medium');
   document.querySelectorAll('.call-outcome-btn').forEach(el => el.classList.remove('active'));
   btn.classList.add('active');
+  btn.style.background = 'var(--gold)';
+  btn.style.color = '#000';
   saveState();
-  toast('Call outcome logged: ' + outcome, 'success');
+  toast('📞 Logged: ' + outcome, 'success');
 }
 
 // ============================================================
@@ -6033,32 +6159,52 @@ function showWaQueueModal() {
 // ============================================================
 function renderSmartClusters() {
   const active = getActiveBorrowers();
-  const high = active.filter(b => {
-    const score = calcPriorityScore(b);
-    return b.amountPaid > 0 && score <= 5;
-  });
-  const pressure = active.filter(b => {
-    const od = getOdAge(b.startDate);
-    return od >= 8 && b.amountPaid === 0 && !b.promisedToPay;
-  });
-  const escalate = active.filter(b => {
-    return (b.promisedToPay && b.amountPaid === 0) || getOdAge(b.startDate) >= 13;
-  });
-  return `<div class="cluster-card high">
-    <div style="font-weight:700;color:var(--green);margin-bottom:6px">🟢 High Probability (${high.length})</div>
-    <div style="font-size:12px;color:var(--text2)">Already paying — likely to pay today.</div>
-    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">${high.slice(0,8).map(b=>`<span style="font-size:11px;background:rgba(34,197,94,0.1);border-radius:14px;padding:2px 9px">${b.name.split(' ')[0]}</span>`).join('')}</div>
-  </div>
-  <div class="cluster-card pressure">
-    <div style="font-weight:700;color:var(--orange);margin-bottom:6px">🟡 Needs Pressure (${pressure.length})</div>
-    <div style="font-size:12px;color:var(--text2)">Overdue with no engagement yet.</div>
-    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">${pressure.slice(0,8).map(b=>`<span style="font-size:11px;background:rgba(249,115,22,0.1);border-radius:14px;padding:2px 9px">${b.name.split(' ')[0]}</span>`).join('')}</div>
-  </div>
-  <div class="cluster-card escalate">
-    <div style="font-weight:700;color:var(--red);margin-bottom:6px">🔴 Escalation Ready (${escalate.length})</div>
-    <div style="font-size:12px;color:var(--text2)">Broken promises or Day 13+.</div>
-    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">${escalate.slice(0,8).map(b=>`<span style="font-size:11px;background:rgba(239,68,68,0.1);border-radius:14px;padding:2px 9px">${b.name.split(' ')[0]}</span>`).join('')}</div>
-  </div>`;
+  const high = active.filter(b => b.amountPaid > 0 && calcPriorityScore(b) <= 5);
+  const pressure = active.filter(b => getOdAge(b.startDate) >= 8 && b.amountPaid === 0 && !b.promisedToPay);
+  const escalate = active.filter(b => (b.promisedToPay && b.amountPaid === 0) || getOdAge(b.startDate) >= 13);
+
+  function clusterRows(list, max) {
+    return list.slice(0, max).map(b => {
+      const phone = b.phone.replace(/\s/g,'').replace('+','');
+      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.name.split(' ')[0]} <span style="font-size:10px;color:var(--text3)">Day ${getOdAge(b.startDate)}</span></div>
+          <div style="font-size:10px;color:var(--text3)">${fmtC(getDueToday(b))}</div>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="btn btn-green btn-xs" onclick="openPayModal('${b.id}');haptic('light')" title="Pay">💰</button>
+          <a href="https://wa.me/${phone}" target="_blank" class="btn btn-ghost btn-xs" style="color:#25d366" onclick="haptic('light')" title="WhatsApp">💬</a>
+          <button class="btn btn-ghost btn-xs" onclick="addToHitList('${b.id}');haptic('light')" title="Pin">📌</button>
+        </div>
+      </div>`;
+    }).join('') + (list.length > max ? `<div style="font-size:11px;color:var(--text3);padding:6px 0">+${list.length-max} more — <span style="cursor:pointer;color:var(--gold);text-decoration:underline" onclick="filterAndNavigate('loans','')">View all</span></div>` : '');
+  }
+
+  return `
+    <div class="cluster-card high" style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-weight:700;color:var(--green);font-size:13px">🟢 High Probability <span style="font-weight:400;font-size:11px;color:var(--text3)">${high.length} accounts</span></div>
+        <button class="btn btn-ghost btn-xs" onclick="filterAndNavigate('loans','Partial')">View ↗</button>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Already paying — follow up to close today.</div>
+      ${high.length ? clusterRows(high, 4) : '<div style="font-size:11px;color:var(--text3)">No accounts in this cluster</div>'}
+    </div>
+    <div class="cluster-card pressure" style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-weight:700;color:var(--orange);font-size:13px">🟡 Needs Pressure <span style="font-weight:400;font-size:11px;color:var(--text3)">${pressure.length} accounts</span></div>
+        <button class="btn btn-ghost btn-xs" onclick="filterAndNavigate('loans','Unpaid',8)">View ↗</button>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Overdue, no engagement. Send a WhatsApp or call now.</div>
+      ${pressure.length ? clusterRows(pressure, 4) : '<div style="font-size:11px;color:var(--text3)">No accounts in this cluster</div>'}
+    </div>
+    <div class="cluster-card escalate">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-weight:700;color:var(--red);font-size:13px">🔴 Escalation Ready <span style="font-weight:400;font-size:11px;color:var(--text3)">${escalate.length} accounts</span></div>
+        <button class="btn btn-ghost btn-xs" onclick="filterAndNavigate('loans','',13)">View ↗</button>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Broken promises or Day 13+. Escalate immediately.</div>
+      ${escalate.length ? clusterRows(escalate, 4) : '<div style="font-size:11px;color:var(--text3)">No accounts in this cluster</div>'}
+    </div>`;
 }
 
 // ============================================================
@@ -6459,6 +6605,259 @@ function haptic(type) {
   else if (type === 'copy') navigator.vibrate(12);
   else if (type === 'pay') navigator.vibrate([30,20,30]);
   else if (type === 'fullpay') navigator.vibrate([40,20,40,20,40]);
+}
+
+
+// ============================================================
+// RANKING IMAGE UPLOAD
+// ============================================================
+function previewRankingImage(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const nameEl = document.getElementById('ranking-image-name');
+  const previewEl = document.getElementById('ranking-image-preview');
+  if (nameEl) nameEl.textContent = file.name;
+  if (previewEl) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      previewEl.src = e.target.result;
+      previewEl.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+  haptic('light');
+}
+
+async function scanRanking() {
+  const apiKey = (document.getElementById('ranking-api-key')?.value || '').trim();
+  const myName = (document.getElementById('ranking-my-name')?.value || '').trim();
+  const text = (document.getElementById('ranking-paste')?.value || '').trim();
+  const imageInput = document.getElementById('ranking-image-upload');
+  const imageFile = imageInput?.files?.[0];
+  const statusEl = document.getElementById('ranking-scan-status');
+  const btn = document.getElementById('ranking-scan-btn');
+
+  if (!text && !imageFile) {
+    if (statusEl) statusEl.textContent = '❌ Please paste ranking text or upload an image';
+    return;
+  }
+  if (apiKey) localStorage.setItem('ranking_api_key', apiKey);
+  if (myName) localStorage.setItem('ranking_my_name', myName);
+
+  if (statusEl) statusEl.innerHTML = '⏳ Scanning ranking...';
+  if (btn) btn.disabled = true;
+  haptic('light');
+
+  let agents = [];
+
+  // Try parsing text first (works without API key)
+  if (text) {
+    const lines = text.split('\n').filter(l => l.trim());
+    lines.forEach(line => {
+      const m = line.match(/(\d+[\.\)]\s*)?(.+?)\s+([\d.]+)%/);
+      if (m) agents.push({ name: m[2].trim(), pct: m[3] });
+    });
+  }
+
+  // If image uploaded and API key available, send to Claude vision
+  if (imageFile && apiKey && agents.length === 0) {
+    try {
+      if (statusEl) statusEl.innerHTML = '⏳ Reading image with AI...';
+      const base64 = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result.split(',')[1]);
+        r.onerror = rej;
+        r.readAsDataURL(imageFile);
+      });
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({
+          model: 'claude-opus-4-5',
+          max_tokens: 1024,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'base64', media_type: imageFile.type || 'image/png', data: base64 } },
+              { type: 'text', text: 'Extract all agent names and their percentage rates from this ranking screenshot. Return ONLY lines in this exact format, one per line:\n1. Agent Name XX.X%\nReturn nothing else — no explanation, no extra text.' }
+            ]
+          }]
+        })
+      });
+      const data = await resp.json();
+      const extracted = data?.content?.[0]?.text || '';
+      const lines = extracted.split('\n').filter(l => l.trim());
+      lines.forEach(line => {
+        const m = line.match(/(\d+[\.\)]\s*)?(.+?)\s+([\d.]+)%/);
+        if (m) agents.push({ name: m[2].trim(), pct: m[3] });
+      });
+    } catch (e) {
+      if (statusEl) statusEl.textContent = '❌ AI scan failed: ' + (e.message || 'check API key');
+      if (btn) btn.disabled = false;
+      return;
+    }
+  }
+
+  if (agents.length === 0) {
+    if (statusEl) statusEl.textContent = '❌ No agents found. Format needed: "Name XX.X%"';
+    if (btn) btn.disabled = false;
+    return;
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+  if (!state.rankingHistory) state.rankingHistory = [];
+  state.rankingHistory = state.rankingHistory.filter(s => s.date !== today);
+  state.rankingHistory.push({ date: today, agents });
+  saveState();
+  haptic('pay');
+  if (statusEl) statusEl.innerHTML = `✅ Saved <strong>${agents.length}</strong> agents for ${today}`;
+  if (btn) btn.disabled = false;
+  renderRanking();
+  toast('Ranking saved ✅', 'success');
+}
+
+// ============================================================
+// DASHBOARD FORECAST CARD — show projected amount
+// ============================================================
+function renderForecastOnDashboard() {
+  const fBody = document.getElementById('dash-forecast-body');
+  if (!fBody) return;
+  const now = new Date();
+  const dim = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  const dl = dim - now.getDate();
+  const logTotal = state.dailyLog.reduce((s,e) => s+(Number(e.collected)||0), 0);
+  const activeDays = state.dailyLog.filter(e => (e.collected||0) > 0).length;
+  const avg = activeDays > 0 ? logTotal / activeDays : 0;
+  const projected = Math.round(logTotal + avg * dl);
+  const target = state.monthlyTarget || 0;
+  const pct = target > 0 ? Math.min(100, projected / target * 100) : 0;
+  const col = pct >= 100 ? 'var(--green)' : pct >= 70 ? 'var(--gold)' : 'var(--red)';
+  fBody.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:2px">Projected month-end</div>
+        <div style="font-family:var(--font-mono);font-size:22px;font-weight:800;color:${col}">${fmtC(projected)}</div>
+        ${target > 0 ? `<div style="font-size:11px;color:var(--text3);margin-top:2px">${pct.toFixed(0)}% of target · ${dl} days left</div>` : '<div style="font-size:11px;color:var(--text3)">Set a target to see % progress</div>'}
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:10px;color:var(--text3)">Daily average</div>
+        <div style="font-family:var(--font-mono);font-size:14px;font-weight:700;color:var(--gold)">${fmtC(Math.round(avg))}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${dl} days remain</div>
+      </div>
+    </div>
+    ${target > 0 ? `<div style="margin-top:10px;background:var(--border);border-radius:4px;height:6px;overflow:hidden"><div style="width:${Math.min(100,pct).toFixed(0)}%;height:100%;background:${col};border-radius:4px;transition:width 0.6s ease"></div></div>` : ''}`;
+}
+
+// ============================================================
+// PAGE TRANSITIONS — enhanced
+// ============================================================
+(function() {
+  // Add slide classes to every page on navigation
+  const origNavigate = window.navigate;
+  window._lastPage = null;
+})();
+
+// ============================================================
+// ADDITIONAL HAPTIC FEEDBACK HOOKS
+// ============================================================
+// Toast haptic
+const _origToast = window.toast;
+if (typeof window.toast === 'function') {
+  window._toastWrapped = true;
+}
+function toastWithHaptic(msg, type) {
+  if (type === 'success') haptic('light');
+  if (type === 'error') haptic('medium');
+  toast(msg, type);
+}
+
+// ============================================================
+// MODERN PTP HUB — full redesign
+// ============================================================
+function getPtpReportHtml() {
+  const today = new Date().toISOString().split('T')[0];
+  const todayStr = new Date().toLocaleDateString('en-GB', {weekday:'short',day:'numeric',month:'short'});
+  const ptpToday = state.borrowers.filter(b => b.promisedToPay && b.promiseDate && b.promiseDate.startsWith(today));
+  const ptpFuture = state.borrowers.filter(b => b.promisedToPay && b.promiseDate && b.promiseDate > today).sort((a,b) => a.promiseDate.localeCompare(b.promiseDate));
+  const ptpHonoured = ptpToday.filter(b => b.amountPaid > 0);
+  const ptpBreached = ptpToday.filter(b => b.amountPaid === 0);
+  const totalExpected = ptpToday.reduce((s,b) => s + getDueToday(b), 0);
+  const totalHonoured = ptpHonoured.reduce((s,b) => s + b.amountPaid, 0);
+  const rate = ptpToday.length > 0 ? Math.round(ptpHonoured.length / ptpToday.length * 100) : 0;
+
+  return `
+    <!-- KPI Strip -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
+      <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-family:var(--font-mono);font-size:18px;font-weight:800;color:var(--gold)">${ptpToday.length}</div>
+        <div style="font-size:10px;color:var(--text3)">Today's PTPs</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-family:var(--font-mono);font-size:18px;font-weight:800;color:var(--green)">${ptpHonoured.length}</div>
+        <div style="font-size:10px;color:var(--text3)">Honoured</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-family:var(--font-mono);font-size:18px;font-weight:800;color:${rate>=70?'var(--green)':rate>=40?'var(--gold)':'var(--red)'}">${rate}%</div>
+        <div style="font-size:10px;color:var(--text3)">Conv. Rate</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-family:var(--font-mono);font-size:14px;font-weight:800;color:var(--blue)">${fmtC(totalExpected)}</div>
+        <div style="font-size:10px;color:var(--text3)">Expected</div>
+      </div>
+    </div>
+
+    <!-- Today's PTPs list -->
+    <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+      <span>📋 ${todayStr} Promises</span>
+      <button class="btn btn-gold btn-sm" onclick="openPtpShareModal('morning')" style="font-size:11px;padding:4px 10px">📤 Share</button>
+    </div>
+    ${ptpToday.length === 0 ? `<div style="background:var(--surface2);border-radius:8px;padding:20px;text-align:center;color:var(--text3);font-size:12px;margin-bottom:14px">No promises set for today.<br><span style="font-size:11px">Go to Borrowers → 🤝 to add one.</span></div>` :
+    `<div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;overflow:hidden;margin-bottom:14px">
+      ${ptpToday.map(b => {
+        const st = getStatus(b);
+        const stColor = st==='Paid'?'var(--green)':st==='Partial'?'var(--gold)':'var(--text3)';
+        const phone = b.phone.replace(/\s/g,'').replace('+','');
+        const honoured = b.amountPaid > 0;
+        return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);${honoured?'background:rgba(34,197,94,0.04)':''}">
+          <div style="width:8px;height:8px;border-radius:50%;background:${honoured?'var(--green)':'var(--orange)'};flex-shrink:0"></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.name}</div>
+            <div style="font-size:10px;color:var(--text3)">${b.promiseDate||''} · Day ${getOdAge(b.startDate)}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:${stColor}">${fmtC(getDueToday(b))}</div>
+            <div style="font-size:10px;color:${honoured?'var(--green)':'var(--text3)'}">${honoured?'✅ Honoured':'⏳ Pending'}</div>
+          </div>
+          <div style="display:flex;gap:4px;flex-shrink:0">
+            <button class="btn btn-green btn-xs" onclick="openPayModal('${b.id}');haptic('light')" title="Pay">💰</button>
+            <a href="https://wa.me/${phone}" target="_blank" class="btn btn-ghost btn-xs" style="color:#25d366" onclick="haptic('light')">💬</a>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`}
+
+    <!-- Upcoming PTPs -->
+    ${ptpFuture.length > 0 ? `
+    <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">📅 Upcoming Promises (${ptpFuture.length})</div>
+    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;overflow:hidden;margin-bottom:14px">
+      ${ptpFuture.slice(0,6).map(b => `<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600">${b.name.split(' ')[0]}</div>
+          <div style="font-size:10px;color:var(--text3)">${b.promiseDate}</div>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:12px;color:var(--text2)">${fmtC(getDueToday(b))}</div>
+        <button class="btn btn-ghost btn-xs" onclick="togglePromise('${b.id}');haptic('light')" title="Clear promise" style="color:var(--text3)">✕</button>
+      </div>`).join('')}
+      ${ptpFuture.length > 6 ? `<div style="padding:8px 14px;font-size:11px;color:var(--text3)">+${ptpFuture.length-6} more upcoming</div>` : ''}
+    </div>` : ''}
+
+    <!-- Quick action bar -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-gold btn-sm" style="flex:1" onclick="openPtpShareModal('morning')">📋 Morning Report</button>
+      <button class="btn btn-ghost btn-sm" style="flex:1" onclick="openPtpShareModal('eod')">🌙 EOD Report</button>
+    </div>
+    <div id="ptp-panel-morning" style="margin-top:8px"></div>
+    <div id="ptp-panel-eod" style="display:none;margin-top:8px"></div>`;
 }
 
 // ============================================================
