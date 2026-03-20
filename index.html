@@ -1006,6 +1006,9 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
       <div id="hit-list-items"></div>
     </div>
 
+    <!-- Ranking Gap Alert -->
+    <div id="ranking-gap-alert" style="display:none;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-left:4px solid var(--red);border-radius:8px;padding:10px 14px;margin-bottom:14px;align-items:center;gap:10px;font-size:13px;animation:fadeUp 0.3s ease both"></div>
+
     <div class="kpi-grid" id="kpi-grid"></div>
 
     <div id="dash-target-section"></div>
@@ -1482,8 +1485,11 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
           <label>Paste ranking text</label>
           <textarea class="form-input" id="ranking-paste" rows="5" placeholder="Paste screenshot text here e.g.&#10;1. Akos Mensah 87.4%&#10;2. Shadrack Agyei 83.1%&#10;3. Eric Boateng 79.2%"></textarea>
         </div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:8px">💡 No API key needed — text is parsed locally in your browser</div>
-        <button class="btn btn-gold" onclick="scanRanking()" id="ranking-scan-btn">💾 Save Ranking</button>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px">💡 Text is parsed locally — no API needed. Upload image for AI scan.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-gold" onclick="scanRanking()" id="ranking-scan-btn">💾 Save from Text</button>
+          <button class="btn btn-ghost" onclick="scanRankingImage()" id="ranking-ai-btn">🤖 AI Scan Image</button>
+        </div>
         <div id="ranking-scan-status" style="margin-top:8px;font-size:12px;color:var(--text2)"></div>
       </div>
     </div>
@@ -1525,6 +1531,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
         <div style="display:flex;gap:8px">
           <button class="btn btn-ghost btn-sm" onclick="copyReport()">📋 Copy</button>
           <button class="eod-btn" style="font-size:11px;padding:6px 12px" onclick="whatsappReport()">WhatsApp ↗</button>
+          <button class="btn btn-ghost btn-sm" onclick="generatePdfExport()">⬇ Export</button>
         </div>
       </div>
       <div class="report-output" id="report-output-text"></div>
@@ -1816,6 +1823,8 @@ const SEED_LOG = [
 // ============================================================
 const SUPABASE_URL  = 'https://bbjpifrkzvzskwvjbhot.supabase.co';
 const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJianBpZnJrenZ6c2t3dmpiaG90Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3OTMzMzMsImV4cCI6MjA4OTM2OTMzM30.DMB1T7njYCMRKvPXuUiy-8T0wYuYQSo0fn5c0TPQQes';
+const CLAUDE_API_KEY = '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';
+let _offlineQueue = [];   // actions queued while offline
 
 const STATE_KEY = 'mar_tracker_v3';
 let state = null;
@@ -2407,6 +2416,7 @@ function renderDashboard() {
   renderHitList();
   renderGapWidget();
   renderTreadmillAlert();
+  checkRankingGapAlert();
 }
 
 function chartColor(alpha) {
@@ -2557,7 +2567,7 @@ function renderLoansTable() {
       <td style="cursor:pointer" onclick="openBorrowerDetail('${r.id}')">
         <div style="display:flex;align-items:center;gap:5px">
           <span class="priority-score ${pCls}" title="Priority: ${pScore}/10">${pScore}</span>
-          <div><div class="name-cell">${r.name}${borrowerBadges}</div><div style="font-size:10px;color:var(--text3);margin-top:1px">${r.phone}</div></div>
+          <div><div class="name-cell">${r.name}${borrowerBadges}</div><div style="font-size:10px;color:var(--text3);margin-top:1px;display:flex;gap:5px;align-items:center">${r.phone} ${getBestCallIndicator(r)}</div></div>
         </div>
       </td>
       <td class="phone-cell" style="display:none">${r.phone}</td>
@@ -2569,7 +2579,7 @@ function renderLoansTable() {
       <td>${statusBadge(r.status)}</td>
       <td>
         <div class="action-group">
-          <button class="btn btn-green btn-xs" onclick="openPayModal('${r.id}')">💰 Pay</button>
+          <button class="btn btn-green btn-xs" data-qp="${r.id}" onclick="toggleQuickPayBar('${r.id}')">💰 Pay</button>
           <button class="btn btn-ghost btn-xs" style="${r.promisedToPay?'border-color:var(--purple);color:var(--purple);font-weight:700':''}" onclick="togglePromise('${r.id}')" title="${r.promisedToPay?'Promised — tap to clear':'Mark PTP'}">🤝${r.promisedToPay&&r.promiseDate?'<span style="font-size:9px;display:block;color:var(--purple);line-height:1">'+r.promiseDate.split(' ')[0]+'</span>':''}</button>
           <button class="btn btn-ghost btn-xs" id="note-${r.id}" title="Quick note">📝${r.notes?'<span style="width:5px;height:5px;background:var(--gold);border-radius:50%;display:inline-block;margin-left:2px"></span>':''}</button>
           <button class="btn btn-ghost btn-xs" id="hist-${r.id}">📋</button>
@@ -3860,6 +3870,7 @@ function recordPayment(id) {
     b.payLog.push({ date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}), amount: newPaid, delta: newPaid - prevPaid, note: notes, isPaid: b.isPaid });
   }
   purgeAgedOut(); saveState(); closeModal();
+  updateTemplatePerfFromPayment(id);
   const status = getStatus(b);
   haptic(status === 'Paid' ? 'fullpay' : 'pay');
   toast((status==='Paid'?'✅ ':'💰 ')+b.name.split(' ')[0]+(status==='Paid'?' fully paid! 🎉':' payment recorded'),'success');
@@ -4821,22 +4832,33 @@ function bulkAction(action) {
 function openQuickNote(id) {
   const b = state.borrowers.find(x => x.id === id);
   if (!b) return;
+  const suggestions = getSmartReplySuggestions(b);
   document.getElementById('modal-title').textContent = '📝 Quick Note — ' + b.name.split(' ')[0];
   document.getElementById('modal-body').innerHTML =
     '<div class="form-group">'
     + '<label>Note</label>'
     + '<textarea class="form-input" id="quick-note-text" rows="4" placeholder="e.g. Called — no answer. Will try again tomorrow.">'+(b.notes||'')+'</textarea>'
     + '</div>'
-    + (b.payLog && b.payLog.length ?
-      '<div style="font-size:11px;color:var(--text3);margin-top:4px">Previous note saved with last payment: <em>'+b.payLog[b.payLog.length-1].note+'</em></div>' : '');
+    + '<div style="margin-bottom:12px">'
+    + '<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">💡 Smart Suggestions</div>'
+    + suggestions.map(s =>
+        `<div onclick="document.getElementById('quick-note-text').value='${s.replace(/'/g,'\\\'').replace(/\n/g,' ')}';haptic('light')"
+          style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:11px;color:var(--text2);cursor:pointer;margin-bottom:5px;line-height:1.5;transition:border-color 0.15s"
+          onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'">${s}</div>`
+      ).join('')
+    + '</div>'
+    + (b.payLog && b.payLog.length && b.payLog[b.payLog.length-1].note ?
+      '<div style="font-size:11px;color:var(--text3);margin-top:4px">Last note: <em>'+b.payLog[b.payLog.length-1].note+'</em></div>' : '');
   document.getElementById('modal-footer').innerHTML =
     '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
     + '<button class="btn btn-gold" id="save-note-btn">Save Note</button>';
   document.getElementById('modal-overlay').classList.add('open');
+  haptic('light');
   setTimeout(function() {
-    var snb = document.getElementById('save-note-btn');
+    const snb = document.getElementById('save-note-btn');
     if (snb) snb.addEventListener('click', function() {
       b.notes = document.getElementById('quick-note-text').value.trim();
+      haptic('medium');
       saveState(); closeModal();
       toast('Note saved for ' + b.name.split(' ')[0], 'success');
       renderCurrentPage();
@@ -6333,7 +6355,7 @@ function setRankType(type) {
   if (monthly) monthly.className = type === 'monthly' ? 'btn btn-gold btn-sm' : 'btn btn-ghost btn-sm';
   if (eodRow)  eodRow.style.display = type === 'daily' ? 'flex' : 'none';
   if (hint) hint.textContent = type === 'daily'
-    ? 'Logging a daily scan — mark EOD to auto-project tomorrow's monthly ranking'
+    ? 'Logging a daily scan — mark EOD to auto-project tomorrow\'s monthly ranking'
     : 'Logging a monthly snapshot directly';
   haptic('light');
 }
@@ -6351,8 +6373,7 @@ function scanRanking() {
   haptic('light');
 
   const agents = [];
-  text.split('
-').filter(l => l.trim()).forEach(line => {
+  text.split('\n').filter(l => l.trim()).forEach(line => {
     const m = line.match(/(\d+[.)\s]*)?(.+?)\s+([\d.]+)%/);
     if (m) agents.push({ name: m[2].trim(), pct: parseFloat(m[3]).toFixed(2) });
   });
@@ -7096,6 +7117,372 @@ function buildPtpStatsHtml() {
   </div></div>`;
 }
 
+
+// ============================================================
+// AI RANKING SCAN (item 1) — uses CLAUDE_API_KEY constant
+// ============================================================
+async function scanRankingImage() {
+  const imageInput = document.getElementById('ranking-image-upload');
+  const file = imageInput?.files?.[0];
+  const statusEl = document.getElementById('ranking-scan-status');
+  const btn = document.getElementById('ranking-scan-btn');
+  if (!file) { if (statusEl) statusEl.textContent = '❌ No image selected'; return; }
+  if (btn) btn.disabled = true;
+  if (statusEl) statusEl.innerHTML = '⏳ Sending image to Claude AI...';
+  haptic('light');
+  try {
+    const base64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': CLAUDE_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-5',
+        max_tokens: 1024,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: file.type || 'image/png', data: base64 } },
+            { type: 'text', text: 'Extract all agent names and their percentage rates from this ranking screenshot. Return ONLY lines in this exact format, one per line, no extra text:\n1. Agent Name XX.X%\nIf no percentage visible use 0.0%.' }
+          ]
+        }]
+      })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+    const extracted = data?.content?.[0]?.text || '';
+    const el = document.getElementById('ranking-paste');
+    if (el) { el.value = extracted.trim(); }
+    if (statusEl) statusEl.innerHTML = '✅ AI extracted ' + (extracted.split('\n').filter(l=>l.trim()).length) + ' entries — review and tap Save';
+    haptic('pay');
+  } catch(e) {
+    if (statusEl) statusEl.textContent = '❌ AI scan failed: ' + (e.message||'check connection');
+  }
+  if (btn) btn.disabled = false;
+}
+
+// ============================================================
+// RANKING GAP ALERT ON APP OPEN (item 4)
+// ============================================================
+function checkRankingGapAlert() {
+  const history = state.rankingHistory || [];
+  const myName = (localStorage.getItem('ranking_my_name') || '').toLowerCase();
+  if (!myName || history.length < 2) return;
+  const sorted = [...history].filter(s=>s.type==='daily').sort((a,b)=>b.date.localeCompare(a.date)||b.time.localeCompare(a.time));
+  if (sorted.length < 2) return;
+  const latest = sorted[0], prev = sorted[1];
+  const meLatest = latest.agents.find(a=>a.name.toLowerCase().includes(myName));
+  const mePrev   = prev.agents.find(a=>a.name.toLowerCase().includes(myName));
+  if (!meLatest || !mePrev) return;
+  const drop = parseFloat(mePrev.pct) - parseFloat(meLatest.pct);
+  if (drop <= 0) return;
+  const myPos = latest.agents.indexOf(meLatest) + 1;
+  // Estimate ₵ needed — rough: 0.1% ≈ needs ~₵500 based on portfolio
+  const totalOutstanding = state.borrowers.reduce((s,b)=>s+getRemaining(b),0);
+  const needed = Math.round((drop / 100) * totalOutstanding * 2);
+  const lastDismissed = localStorage.getItem('ranking_gap_dismissed');
+  if (lastDismissed === latest.date) return;
+  const alert = document.getElementById('ranking-gap-alert');
+  if (!alert) return;
+  alert.style.display = 'flex';
+  alert.innerHTML = `<div style="flex:1;font-size:13px">📉 Your rate dropped <strong>${drop.toFixed(1)}%</strong> since last scan. You need ~<strong style="color:var(--gold)">${fmtC(needed)}</strong> today to hold #${myPos}.</div>
+    <button class="btn btn-ghost btn-xs" onclick="dismissRankingAlert('${latest.date}')">✕</button>`;
+}
+function dismissRankingAlert(date) {
+  localStorage.setItem('ranking_gap_dismissed', date);
+  const el = document.getElementById('ranking-gap-alert');
+  if (el) el.style.display = 'none';
+}
+
+// ============================================================
+// INSTANT PAY — NO MODAL (item 10)
+// ============================================================
+function quickPay(id, pct) {
+  const b = state.borrowers.find(x => x.id === id);
+  if (!b) return;
+  const remaining = getRemaining(b);
+  const fullSettlement = getDueToday(b) + b.amountPaid;
+  let newPaid;
+  if (pct === 'full') newPaid = fullSettlement;
+  else if (pct === 0.5) newPaid = b.amountPaid + Math.round(remaining * 0.5);
+  else newPaid = b.amountPaid + Math.round(remaining * 0.25);
+  pushUndo('Quick pay ' + b.name.split(' ')[0], { borrowers: state.borrowers, dailyLog: state.dailyLog });
+  b.amountPaid = newPaid;
+  b.isPaid = newPaid >= fullSettlement && fullSettlement > 0;
+  if (!b.payLog) b.payLog = [];
+  b.payLog.push({ date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}), amount: newPaid, delta: newPaid - (b.amountPaid||0) + (newPaid-b.amountPaid), note: 'Quick pay', isPaid: b.isPaid });
+  haptic(b.isPaid ? 'fullpay' : 'pay');
+  const st = getStatus(b);
+  toast((b.isPaid ? '✅ ' : '💰 ') + b.name.split(' ')[0] + (b.isPaid ? ' fully paid! 🎉' : ' payment recorded'), 'success');
+  saveState(); updateBadges(); renderCurrentPage();
+  queueOfflineAction({ type: 'pay', id, newPaid });
+}
+
+// Show inline quick-pay bar under a row
+let _qpActive = null;
+function toggleQuickPayBar(id) {
+  if (_qpActive === id) { closeQuickPayBar(); return; }
+  closeQuickPayBar();
+  _qpActive = id;
+  const b = state.borrowers.find(x => x.id === id);
+  if (!b) return;
+  const remaining = getRemaining(b);
+  const row = document.querySelector(`tr [data-qp="${id}"]`)?.closest('tr');
+  if (!row) { openPayModal(id); return; }
+  const newRow = document.createElement('tr');
+  newRow.id = 'qp-row-' + id;
+  newRow.innerHTML = `<td colspan="12" style="padding:0;background:rgba(34,197,94,0.06);border-bottom:2px solid var(--green)">
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;flex-wrap:wrap">
+      <span style="font-size:12px;color:var(--text2);font-weight:600">⚡ Quick Pay ${b.name.split(' ')[0]}:</span>
+      <button class="btn btn-ghost btn-sm" style="border-color:var(--green);color:var(--green)" onclick="quickPay('${id}',0.25)">+${fmtC(Math.round(remaining*0.25))} (25%)</button>
+      <button class="btn btn-ghost btn-sm" style="border-color:var(--gold);color:var(--gold)" onclick="quickPay('${id}',0.5)">+${fmtC(Math.round(remaining*0.5))} (50%)</button>
+      <button class="btn btn-green btn-sm" onclick="quickPay('${id}','full')">✅ ${fmtC(getDueToday(b)+b.amountPaid)} Full</button>
+      <button class="btn btn-ghost btn-sm" onclick="openPayModal('${id}')">Custom 💰</button>
+      <button class="btn btn-ghost btn-xs" style="margin-left:auto" onclick="closeQuickPayBar()">✕</button>
+    </div>
+  </td>`;
+  row.insertAdjacentElement('afterend', newRow);
+  newRow.style.animation = 'fadeUp 0.15s ease both';
+  haptic('light');
+}
+function closeQuickPayBar() {
+  if (_qpActive) {
+    const el = document.getElementById('qp-row-' + _qpActive);
+    if (el) el.remove();
+    _qpActive = null;
+  }
+}
+
+// ============================================================
+// PULL TO REFRESH (item 13)
+// ============================================================
+function initPullToRefresh() {
+  const main = document.getElementById('main');
+  if (!main) return;
+  let startY = 0, pulling = false;
+  let indicator = document.getElementById('ptr-indicator');
+  if (!indicator) {
+    indicator = document.createElement('div');
+    indicator.id = 'ptr-indicator';
+    indicator.style.cssText = 'position:fixed;top:52px;left:50%;transform:translateX(-50%) translateY(-60px);background:var(--surface);border:1px solid var(--border2);border-radius:24px;padding:6px 16px;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:8px;z-index:200;transition:transform 0.2s ease;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,0.15)';
+    indicator.innerHTML = '↓ Pull to refresh';
+    document.body.appendChild(indicator);
+  }
+  main.addEventListener('touchstart', e => {
+    if (main.scrollTop === 0) { startY = e.touches[0].clientY; pulling = true; }
+  }, { passive: true });
+  main.addEventListener('touchmove', e => {
+    if (!pulling) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy > 10) {
+      const progress = Math.min(dy / 80, 1);
+      indicator.style.transform = `translateX(-50%) translateY(${-60 + progress * 70}px)`;
+      indicator.innerHTML = dy > 70 ? '↑ Release to refresh' : '↓ Pull to refresh';
+    }
+  }, { passive: true });
+  main.addEventListener('touchend', async e => {
+    if (!pulling) return;
+    const dy = e.changedTouches[0].clientY - startY;
+    indicator.style.transform = 'translateX(-50%) translateY(-60px)';
+    pulling = false;
+    if (dy > 70) {
+      haptic('medium');
+      indicator.innerHTML = '⟳ Refreshing...';
+      indicator.style.transform = 'translateX(-50%) translateY(10px)';
+      await loadState();
+      renderCurrentPage();
+      updateBadges();
+      setTimeout(() => { indicator.style.transform = 'translateX(-50%) translateY(-60px)'; }, 800);
+      toast('Refreshed ✅', 'success');
+    }
+  }, { passive: true });
+}
+
+// ============================================================
+// OFFLINE WORK QUEUE (item 42)
+// ============================================================
+function queueOfflineAction(action) {
+  if (navigator.onLine) return; // only queue when offline
+  action.timestamp = new Date().toISOString();
+  _offlineQueue.push(action);
+  updatePendingSyncLabel();
+}
+function updatePendingSyncLabel() {
+  const el = document.getElementById('pending-sync-label');
+  if (!el) return;
+  const count = _offlineQueue.length;
+  if (count > 0) {
+    el.style.display = 'block';
+    el.textContent = count + ' change' + (count !== 1 ? 's' : '') + ' pending upload';
+    el.style.color = 'var(--gold)';
+  } else {
+    el.style.display = 'none';
+  }
+}
+async function replayOfflineQueue() {
+  if (!_offlineQueue.length) return;
+  toast('Syncing ' + _offlineQueue.length + ' queued changes...', 'info');
+  _offlineQueue = [];
+  updatePendingSyncLabel();
+  await _pushToSupabase();
+  toast('All changes synced ✅', 'success');
+}
+
+// ============================================================
+// BEST TIME TO CALL (item 29)
+// ============================================================
+function getBestCallHour(b) {
+  const log = b.payLog || [];
+  if (log.length < 2) return null;
+  const hours = log.filter(e => e.time).map(e => parseInt(e.time.split(':')[0])).filter(h => !isNaN(h));
+  if (!hours.length) return null;
+  const counts = {};
+  hours.forEach(h => { counts[h] = (counts[h]||0) + 1; });
+  const best = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+  return best ? parseInt(best[0]) : null;
+}
+function getBestCallIndicator(b) {
+  const bestHour = getBestCallHour(b);
+  if (bestHour === null) return '';
+  const now = new Date().getHours();
+  if (Math.abs(now - bestHour) <= 1) {
+    return `<span title="Best time to call: ${bestHour}:00–${bestHour+1}:00" style="font-size:10px;color:var(--green);font-weight:700">🟢 Best now</span>`;
+  }
+  return `<span title="Best time: ${bestHour}:00" style="font-size:9px;color:var(--text3)">⏰${bestHour}:00</span>`;
+}
+
+// ============================================================
+// MESSAGE PERFORMANCE TRACKER (item 33)
+// ============================================================
+function recordTemplateSent(templateId, borrowerId) {
+  if (!state.templatePerf) state.templatePerf = {};
+  if (!state.templatePerf[templateId]) state.templatePerf[templateId] = { sent: 0, paid: 0, lastSent: [] };
+  state.templatePerf[templateId].sent++;
+  state.templatePerf[templateId].lastSent.push({ borrowerId, date: new Date().toISOString().split('T')[0] });
+  if (state.templatePerf[templateId].lastSent.length > 50) state.templatePerf[templateId].lastSent.shift();
+  saveState();
+}
+function updateTemplatePerfFromPayment(borrowerId) {
+  if (!state.templatePerf) return;
+  const cutoff = new Date(Date.now() - 48*3600*1000).toISOString().split('T')[0];
+  Object.entries(state.templatePerf).forEach(([tid, perf]) => {
+    const recentSend = (perf.lastSent||[]).find(s => s.borrowerId === borrowerId && s.date >= cutoff);
+    if (recentSend) { perf.paid = (perf.paid||0) + 1; }
+  });
+  saveState();
+}
+function getTemplateRanking() {
+  if (!state.templatePerf) return {};
+  const result = {};
+  Object.entries(state.templatePerf).forEach(([tid, p]) => {
+    result[tid] = p.sent > 0 ? Math.round((p.paid / p.sent) * 100) : 0;
+  });
+  return result;
+}
+
+// ============================================================
+// SMART REPLY SUGGESTIONS (item 34)
+// ============================================================
+function getSmartReplySuggestions(b) {
+  const od = getOdAge(b.startDate);
+  const status = getStatus(b);
+  const hasPTP = b.promisedToPay;
+  const brokenPTP = hasPTP && b.amountPaid === 0;
+  const callCount = (b.callLog||[]).length;
+  const lastCall = (b.callLog||[]).slice(-1)[0];
+
+  if (brokenPTP) return [
+    `${b.name.split(' ')[0]}, your payment promise has not been fulfilled. Please confirm your plan now.`,
+    `Following up on your promise to pay. Account is now Day ${od}. Please make payment today.`,
+    `This is an urgent follow-up. Your promised payment is overdue. Call us to resolve.`
+  ];
+  if (od >= 13) return [
+    `FINAL NOTICE: Account Day ${od}. Immediate payment required to avoid escalation.`,
+    `Your account has been flagged for escalation (Day ${od}). Please pay ${fmtC(getDueToday(b))} immediately.`,
+    `Last chance to resolve before this is escalated. Amount owed: ${fmtC(getDueToday(b))}.`
+  ];
+  if (lastCall && lastCall.outcome === 'No Answer') return [
+    `${b.name.split(' ')[0]}, tried to reach you but couldn't connect. Please call back or make payment.`,
+    `Missed your call. Your loan payment of ${fmtC(getDueToday(b))} is due. Please respond today.`,
+    `Unable to reach you. Please confirm payment arrangement for ${fmtC(getDueToday(b))}.`
+  ];
+  if (od >= 8 && status === 'Unpaid') return [
+    `${b.name.split(' ')[0]}, your account is now Day ${od}. Please make a payment of ${fmtC(getDueToday(b))} today.`,
+    `Friendly reminder: ${fmtC(getDueToday(b))} is due on your account. Please pay to avoid additional fees.`,
+    `Account update: Day ${od} with ${fmtC(getDueToday(b))} outstanding. Please arrange payment today.`
+  ];
+  return [
+    `${b.name.split(' ')[0]}, please remember to make your loan payment of ${fmtC(getDueToday(b))} today.`,
+    `Payment reminder: ${fmtC(getDueToday(b))} due. Thank you for your continued commitment.`,
+    `Quick reminder about your loan repayment. Please call if you need assistance.`
+  ];
+}
+
+// ============================================================
+// PDF EXPORT (item 39)
+// ============================================================
+function generatePdfExport() {
+  const active = getActiveBorrowers();
+  const totalOutstanding = active.reduce((s,b)=>s+getRemaining(b),0);
+  const totalPaid = state.borrowers.reduce((s,b)=>s+(b.amountPaid||0),0);
+  const totalDue = state.borrowers.reduce((s,b)=>s+(b.loanDue||0),0);
+  const rate = totalDue > 0 ? (totalPaid/totalDue*100).toFixed(1) : '0.0';
+  const topDue = [...active].sort((a,b)=>getDueToday(b)-getDueToday(a)).slice(0,10);
+  const today = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const logTotal = state.dailyLog.reduce((s,e)=>s+(e.collected||0),0);
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>SqueveTrack Portfolio Report</title>
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #111; margin: 20px; }
+    h1 { font-size: 20px; color: #c47a0a; margin-bottom: 4px; }
+    .sub { color: #666; font-size: 11px; margin-bottom: 20px; }
+    .kpis { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+    .kpi { border: 1px solid #ddd; border-radius: 6px; padding: 10px; text-align: center; }
+    .kpi-val { font-size: 18px; font-weight: 700; color: #c47a0a; }
+    .kpi-lbl { font-size: 10px; color: #666; margin-top: 2px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th { background: #f5f5f5; padding: 6px 8px; text-align: left; font-size: 11px; border-bottom: 2px solid #ddd; }
+    td { padding: 5px 8px; border-bottom: 1px solid #eee; font-size: 11px; }
+    tr:nth-child(even) { background: #fafafa; }
+    .footer { margin-top: 20px; font-size: 10px; color: #999; border-top: 1px solid #eee; padding-top: 8px; }
+  </style></head><body>
+  <h1>📊 SqueveTrack Portfolio Summary</h1>
+  <div class="sub">Generated: ${today} · Agent: Shadrack Agyei Arthur · M2 Collection</div>
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-val">${rate}%</div><div class="kpi-lbl">Recovery Rate</div></div>
+    <div class="kpi"><div class="kpi-val">₵${(logTotal/1000).toFixed(1)}k</div><div class="kpi-lbl">Total Collected</div></div>
+    <div class="kpi"><div class="kpi-val">${active.length}</div><div class="kpi-lbl">Active Accounts</div></div>
+    <div class="kpi"><div class="kpi-val">₵${(totalOutstanding/1000).toFixed(1)}k</div><div class="kpi-lbl">Outstanding</div></div>
+  </div>
+  <h3 style="font-size:13px;margin-bottom:6px">Top 10 Overdue Accounts</h3>
+  <table>
+    <tr><th>#</th><th>Name</th><th>Phone</th><th>OD Age</th><th>Loan Due</th><th>Paid</th><th>Outstanding</th><th>Status</th></tr>
+    ${topDue.map((b,i)=>`<tr><td>${i+1}</td><td>${b.name}</td><td>${b.phone}</td><td>Day ${getOdAge(b.startDate)}</td><td>₵${fmt(b.loanDue)}</td><td>₵${fmt(b.amountPaid||0)}</td><td>₵${fmt(getDueToday(b))}</td><td>${getStatus(b)}</td></tr>`).join('')}
+  </table>
+  <div class="footer">SqueveTrack · LoanBase M2 Collection Manager · ${today}</div>
+  </body></html>`;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'SqueveTrack-Report-' + new Date().toISOString().split('T')[0] + '.html';
+  a.click();
+  URL.revokeObjectURL(url);
+  haptic('pay');
+  toast('Report downloaded ✅', 'success');
+}
+
 // ============================================================
 // INIT
 // ============================================================
@@ -7165,7 +7552,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   updateBadges();
   checkOdAdvance();
+  checkRankingGapAlert();
   renderDashboard();
+  initPullToRefresh();
 
   // Offline indicator
   function _setOfflineStatus(offline) {
@@ -7173,7 +7562,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     var offlineBadge = document.getElementById('offline-badge');
     if (offlineBadge) offlineBadge.style.display = offline ? 'flex' : 'none';
   }
-  window.addEventListener('online',  function() { _setOfflineStatus(false); toast('Back online - syncing...', 'success'); _pushToSupabase && _pushToSupabase(); });
+  window.addEventListener('online',  function() { _setOfflineStatus(false); toast('Back online - syncing...', 'success'); replayOfflineQueue(); });
   window.addEventListener('offline', function() { _setOfflineStatus(true);  toast('Offline - changes saved locally', 'info'); });
   if (!navigator.onLine) _setOfflineStatus(true);
 
