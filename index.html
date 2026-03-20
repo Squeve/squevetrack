@@ -9486,7 +9486,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // Rule 2: no agents on this device — check if Supabase has legacy data to migrate
+  // Rule 2: no agents on this device — check Supabase for ANY existing agent
+  // This is the new-browser case: localStorage empty but data exists on Supabase
+  const db = initSupabase();
+  if (db) {
+    try {
+      const { data: rows } = await db.from('app_state').select('id, data').like('id', 'agent_%');
+      if (rows && rows.length > 0) {
+        // Found existing agents on Supabase — restore them to localStorage and show lock screen
+        rows.forEach(row => {
+          const profile = row.data?.agentProfile || {};
+          const agentId = row.id.replace('agent_', '');
+          const existing = getAgentList();
+          if (!existing.find(a => a.id === agentId)) {
+            existing.push({
+              id: agentId,
+              name: profile.name || agentId,
+              stage: profile.stage || 'M2',
+              lbCode: profile.lbCode || '',
+              pinHash: row.data?._pinHash || null,
+              createdAt: profile.createdAt || new Date().toISOString(),
+            });
+            saveAgentList(existing);
+            localStorage.setItem('squevetrack_' + agentId, JSON.stringify(row.data));
+          }
+        });
+        showLockScreen();
+        return;
+      }
+    } catch {}
+  }
+
+  // Check legacy migration just in case
   const migrated = await migrateFromLegacyIfNeeded();
   if (migrated) return;
 
