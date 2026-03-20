@@ -1674,6 +1674,14 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <span class="mdrawer-icon">🔒</span> Data Health
   </div>
   <div class="mdrawer-footer">
+    <!-- Agent info in mobile drawer -->
+    <div id="mdrawer-agent-info" style="background:var(--surface2);border-radius:8px;padding:9px 11px;margin-bottom:10px;display:none">
+      <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px">Signed in as</div>
+      <div id="mdrawer-agent-name" style="font-size:12px;font-weight:700;color:var(--text)"></div>
+      <div id="mdrawer-agent-stage" style="font-size:11px;margin-top:1px"></div>
+    </div>
+    <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-bottom:6px" onclick="closeDrawer();startOnboarding(true)">⚙️ Agent Setup / Switch Stage</button>
+    <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-bottom:8px;color:var(--red);border-color:rgba(239,68,68,0.3)" onclick="closeDrawer();lockApp()">🔒 Lock App</button>
     <div id="mdrawer-sync" style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
       <span style="width:7px;height:7px;border-radius:50%;background:var(--text3);display:inline-block" id="mdrawer-sync-dot"></span>
       <span id="mdrawer-sync-label">Local only</span>
@@ -8566,20 +8574,30 @@ function obFinish() {
 }
 
 function updateSidebarAgentInfo() {
+  const profile = state.agentProfile || {};
+  const agent = _activeAgent || {};
+  const name = profile.name || agent.name || '';
+  const stage = profile.stage || agent.stage || 'M2';
+  const s = STAGE_CONFIG[stage] || STAGE_CONFIG.M2;
+
+  // Desktop sidebar
   const info = document.getElementById('sidebar-agent-info');
   const nameEl = document.getElementById('sidebar-agent-name');
   const stageEl = document.getElementById('sidebar-agent-stage');
-  const profile = state.agentProfile || {};
-  if (!info) return;
-  if (profile.name) {
-    info.style.display = 'block';
-    if (nameEl) nameEl.textContent = profile.name;
-    if (stageEl) {
-      const s = STAGE_CONFIG[profile.stage] || STAGE_CONFIG.M2;
-      stageEl.innerHTML = '<span style="color:' + s.colorHex + ';font-weight:700">' + s.label + '</span> — ' + s.name;
-    }
-  } else {
-    info.style.display = 'none';
+  if (info) {
+    info.style.display = name ? 'block' : 'none';
+    if (nameEl) nameEl.textContent = name;
+    if (stageEl) stageEl.innerHTML = '<span style="color:' + s.colorHex + ';font-weight:700">' + s.label + '</span> — ' + s.name;
+  }
+
+  // Mobile drawer
+  const dinfo = document.getElementById('mdrawer-agent-info');
+  const dnameEl = document.getElementById('mdrawer-agent-name');
+  const dstageEl = document.getElementById('mdrawer-agent-stage');
+  if (dinfo) {
+    dinfo.style.display = name ? 'block' : 'none';
+    if (dnameEl) dnameEl.textContent = name;
+    if (dstageEl) dstageEl.innerHTML = '<span style="color:' + s.colorHex + ';font-weight:700">' + s.label + '</span> — ' + s.name;
   }
 }
 
@@ -8755,9 +8773,24 @@ async function processPin() {
       _activeAgent = _pinTarget;
       _sessionUnlocked = true;
       setSessionAgent(_pinTarget);
+      // Update Supabase migration stamp with the PIN hash so other devices can restore
+      const db = initSupabase();
+      if (db) {
+        try {
+          // Update the main stamp
+          const { data: mainRow } = await db.from('app_state').select('data').eq('id','main').single();
+          if (mainRow?.data?.migratedToAgent === _pinTarget.id) {
+            await db.from('app_state').upsert({
+              id: 'main',
+              data: { ...mainRow.data, pinHash: hash },
+              updated_at: new Date().toISOString()
+            });
+          }
+        } catch {}
+      }
       hideLockScreen();
       haptic('pay');
-      toast('PIN set! Welcome, ' + _activeAgent.name, 'success');
+      toast('PIN set ✅ Welcome, ' + _activeAgent.name, 'success');
       await loadStateForAgent();
     } else {
       _pinBuffer = ''; _pinSetBuffer = ''; _pinMode = 'set';
@@ -8823,21 +8856,58 @@ async function loadStateForAgent() {
 
 // ── One-time migration from legacy key ───────────────────────
 async function migrateFromLegacyIfNeeded() {
-  const agents = getAgentList();
-  if (agents.length > 0) return; // already migrated or fresh install
+  // This device already has agents registered — nothing to do
+  const localAgents = getAgentList();
+  if (localAgents.length > 0) return false;
 
-  // Check if legacy Supabase data exists
   const db = initSupabase();
-  let legacyState = null;
 
+  // ── Step 1: Check if migration already happened on another device ──
+  // After a successful migration we stamp the legacy 'main' row with
+  // { migratedToAgent: <agentId> }.  New devices see this and instead
+  // of re-migrating they just add the existing agent to their local list
+  // and ask the PIN.
+  if (db) {
+    try {
+      const { data: mainRow } = await db.from('app_state').select('data').eq('id','main').single();
+      if (mainRow?.data?.migratedToAgent) {
+        // Already migrated — restore agent record from Supabase agent row
+        const agentId = mainRow.data.migratedToAgent;
+        const { data: agentRow } = await db.from('app_state').select('data').eq('id','agent_' + agentId).single();
+        if (agentRow?.data?.agentProfile) {
+          const profile = agentRow.data.agentProfile;
+          const agentRecord = {
+            id: agentId,
+            name: profile.name || 'Agent',
+            stage: profile.stage || 'M2',
+            supervisor: profile.supervisor || '',
+            pinHash: mainRow.data.pinHash || null,
+            createdAt: profile.createdAt || new Date().toISOString(),
+          };
+          saveAgentList([agentRecord]);
+          // Cache the state locally for this device
+          localStorage.setItem('squevetrack_' + agentId, JSON.stringify(agentRow.data));
+          // Show lock screen — agent already exists, just needs PIN
+          showLockScreen();
+          lockSelectAgent(agentId);
+          return true;
+        }
+      }
+    } catch {}
+  }
+
+  // ── Step 2: Check for actual legacy data to migrate ──────────────
+  let legacyState = null;
   if (db) {
     try {
       const { data } = await db.from('app_state').select('data').eq('id','main').single();
-      if (data?.data?.borrowers?.length) legacyState = data.data;
+      // Only treat as legacy if it has borrowers AND no migratedToAgent stamp
+      if (data?.data?.borrowers?.length && !data?.data?.migratedToAgent) {
+        legacyState = data.data;
+      }
     } catch {}
   }
   if (!legacyState) {
-    // Check localStorage fallback
     try {
       const raw = localStorage.getItem(LEGACY_STATE_KEY);
       if (raw) { const parsed = JSON.parse(raw); if (parsed?.borrowers?.length) legacyState = parsed; }
@@ -8845,7 +8915,7 @@ async function migrateFromLegacyIfNeeded() {
   }
 
   if (legacyState) {
-    // Found legacy data — create Shadrack's agent, migrate it
+    // ── First-ever migration on first device ──────────────────
     const agentId = genAgentId();
     const profile = legacyState.agentProfile || {};
     const agentRecord = {
@@ -8853,40 +8923,57 @@ async function migrateFromLegacyIfNeeded() {
       name: profile.name || 'Shadrack Agyei Arthur',
       stage: profile.stage || 'M2',
       supervisor: profile.supervisor || '',
-      pinHash: null, // will be set during PIN setup
+      pinHash: null,
       createdAt: new Date().toISOString(),
-      migrated: true
     };
     saveAgentList([agentRecord]);
     _activeAgent = agentRecord;
     _pinTarget = agentRecord;
 
-    // Save legacy data under new agent key
+    // Save data under personal agent key
     state = migrateState(legacyState);
     state.agentProfile = { ...state.agentProfile, ...profile, id: agentId, setupComplete: true };
     localStorage.setItem(getStateKey(), JSON.stringify(state));
 
-    // Push to Supabase under new key
     if (db) {
       try {
-        await db.from('app_state').upsert({ id: getSupabaseId(), data: state, updated_at: new Date().toISOString() });
-        toast('Your data has been migrated to your personal account ✅', 'success');
+        // Save personal agent data
+        await db.from('app_state').upsert({
+          id: getSupabaseId(), data: state, updated_at: new Date().toISOString()
+        });
+        // Stamp the legacy 'main' row so new devices know migration is done
+        // Include pinHash placeholder — will be updated when PIN is set
+        await db.from('app_state').upsert({
+          id: 'main',
+          data: { migratedToAgent: agentId, pinHash: null, agentName: agentRecord.name },
+          updated_at: new Date().toISOString()
+        });
       } catch {}
     }
 
-    // Now ask them to set a PIN
+    // Show PIN setup — first time only
     showLockScreen();
     lockSelectAgent(agentId);
     _pinBuffer = '';
     _pinMode = 'set';
     updatePinDots();
     document.getElementById('lock-pin-section').style.display = 'block';
-    document.getElementById('lock-pin-name').textContent = agentRecord.name + ' — set your PIN';
-    document.getElementById('lock-pin-error').textContent = 'Your data has been migrated. Set a 4-digit PIN to secure it.';
-    return true; // migration handled
+    document.getElementById('lock-pin-name').textContent = agentRecord.name + ' — secure your account';
+    document.getElementById('lock-pin-error').textContent = 'Set a 4-digit PIN to protect your data. You only do this once.';
+    return true;
   }
 
-  return false; // no legacy data, fresh install
+  return false; // truly fresh install — no legacy data anywhere
+}
+
+
+function lockApp() {
+  clearSession();
+  _activeAgent = null;
+  _sessionUnlocked = false;
+  state = initState(); // clear in-memory state for privacy
+  showLockScreen();
+  haptic('medium');
 }
 
 
