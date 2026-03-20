@@ -45,11 +45,21 @@
   --sidebar-w: 210px;
 }
 
-/* SWIPE ACTION ROW */
-.swipe-row-wrap { position: relative; overflow: hidden; }
-.swipe-actions { position: absolute; right: 0; top: 0; bottom: 0; display: flex; align-items: stretch; transform: translateX(100%); transition: transform 0.2s ease; }
-.swipe-actions .btn { border-radius: 0; height: 100%; padding: 0 16px; font-size: 12px; }
-.swipe-row-wrap.swiped .swipe-actions { transform: translateX(0); }
+/* SWIPE ACTIONS ON TABLE ROWS */
+.swipe-actions-overlay {
+  position: absolute; right: 0; top: 0; bottom: 0;
+  display: flex; align-items: stretch;
+  transform: translateX(100%);
+  transition: transform 0.18s cubic-bezier(0.25,0.46,0.45,0.94);
+  z-index: 5;
+}
+.swipe-actions-overlay.revealed { transform: translateX(0); }
+.swipe-actions-overlay .sa-btn {
+  display:flex; align-items:center; justify-content:center;
+  padding: 0 14px; font-size: 12px; font-weight: 700;
+  border: none; cursor: pointer; color: #fff; min-width: 50px;
+}
+tr.row-swiped td:first-child div, tr.row-swiped td { transition: background 0.15s; }
 
 /* ANIMATIONS */
 @keyframes fadeUp {
@@ -419,6 +429,11 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .kpi-card.red::before { background: var(--red); }
 .kpi-card.blue::before { background: var(--blue); }
 .kpi-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+@keyframes kpiRoll {
+  from { opacity:0; transform:translateY(6px) scale(0.92); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+.kpi-value-animate { animation: kpiRoll 0.5s cubic-bezier(0.34,1.4,0.64,1) both; }
 .kpi-value {
   font-family: var(--font-mono);
   font-size: 26px; font-weight: 600;
@@ -989,6 +1004,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <span id="streak-badge-dash" class="streak-badge" style="display:none">🔥 0 day streak</span>
+        <button class="btn btn-ghost btn-xs" onclick="toggleApiKeyBar()" title="Set Claude API key for AI ranking scan">🤖 API Key</button>
         <button class="btn btn-ghost btn-sm" onclick="openRolloverModal()">📅 New Month</button>
         <button class="btn btn-gold" onclick="openAddModal()">＋ New Borrower</button>
       </div>
@@ -1004,6 +1020,13 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
         </div>
       </div>
       <div id="hit-list-items"></div>
+    </div>
+
+    <!-- API Key Quick Settings -->
+    <div id="api-key-bar" style="display:none;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:11px;color:var(--text3);flex-shrink:0">🤖 Claude API Key:</span>
+      <input type="password" id="dash-api-key" class="form-input" style="flex:1;font-family:var(--font-mono);font-size:10px;padding:4px 8px;min-width:180px" placeholder="sk-ant-api03-..." onchange="saveApiKeyFromDash(this.value)">
+      <button class="btn btn-ghost btn-xs" onclick="document.getElementById('api-key-bar').style.display='none'">✕</button>
     </div>
 
     <!-- Ranking Gap Alert -->
@@ -1026,6 +1049,19 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <!-- Treadmill Alert -->
     <div id="treadmill-alert" style="display:none;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-left:4px solid var(--red);border-radius:8px;padding:12px 18px;margin-bottom:14px"></div>
 
+    <!-- Priority 1: Action lists — most important for daily workflow -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header"><span class="card-title">🏆 Top Overdue — Act Now</span><span style="font-size:10px;color:var(--text3)">tap any row</span></div>
+        <div class="card-body" id="dash-top-due"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">✅ Highest Commitment</span><span style="font-size:10px;color:var(--text3)">tap to follow up</span></div>
+        <div class="card-body" id="dash-top-commit"></div>
+      </div>
+    </div>
+
+    <!-- Priority 2: Visual progress & urgency breakdown -->
     <div class="two-col">
       <div class="card">
         <div class="card-header">
@@ -1037,19 +1073,8 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
         </div>
       </div>
       <div class="card">
-        <div class="card-header"><span class="card-title">🚨 Urgency Breakdown</span></div>
+        <div class="card-header"><span class="card-title">🚨 Urgency Breakdown</span><span style="font-size:10px;color:var(--text3)">tap band to filter</span></div>
         <div class="card-body" id="dash-urgency"></div>
-      </div>
-    </div>
-
-    <div class="two-col">
-      <div class="card">
-        <div class="card-header"><span class="card-title">🏆 Top Overdue — Highest Due Today</span></div>
-        <div class="card-body" id="dash-top-due"></div>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">✅ Highest Pay Commitment</span></div>
-        <div class="card-body" id="dash-top-commit"></div>
       </div>
     </div>
   </section>
@@ -1933,6 +1958,7 @@ function purgeAgedOut() {
 // ── Load: Supabase first, localStorage fallback ──────────────
 async function loadState() {
   _db = initSupabase();
+  showSkeletons(true);
 
   // 1. Try to load from Supabase
   if (_db) {
@@ -1948,6 +1974,7 @@ async function loadState() {
         localStorage.setItem(STATE_KEY, JSON.stringify(state)); // warm cache
         purgeAgedOut();
         setSyncStatus('saved');
+        showSkeletons(false);
         return;
       }
     } catch(e) { /* fall through to localStorage */ }
@@ -2165,22 +2192,22 @@ function renderDashboard() {
   kpiGrid.innerHTML =
     '<div class="kpi-card gold" style="cursor:pointer" data-kpi="all" title="View all borrowers">'
     + '<div class="kpi-label">Active Borrowers</div>'
-    + '<div class="kpi-value gold">' + active.length + '</div>'
+    + '<div class="kpi-value gold kpi-value-animate" data-val="' + active.length + '" data-fmt="num">0</div>'
     + '<div class="kpi-sub">' + paid.length + ' paid · ' + partial.length + ' partial · ' + unpaid.length + ' unpaid</div>'
     + '<div style="font-size:10px;color:var(--text3);margin-top:4px">↗ tap to view all</div></div>'
     + '<div class="kpi-card red" style="cursor:pointer" data-kpi="unpaid" title="View unpaid">'
     + '<div class="kpi-label">Total Balance Owed</div>'
-    + '<div class="kpi-value red">' + fmtC(totalDueToday) + '</div>'
+    + '<div class="kpi-value red kpi-value-animate" data-val="' + totalDueToday + '" data-fmt="currency">₵0</div>'
     + '<div class="kpi-sub">Loan remaining + OD fees</div>'
     + '<div style="font-size:10px;color:var(--text3);margin-top:4px">↗ tap to view unpaid</div></div>'
     + '<div class="kpi-card green" style="cursor:pointer" data-kpi="partial" title="View partial">'
     + '<div class="kpi-label">Total Collected</div>'
-    + '<div class="kpi-value green">' + fmtC(totalCollected) + '</div>'
+    + '<div class="kpi-value green kpi-value-animate" data-val="' + totalCollected + '" data-fmt="currency">₵0</div>'
     + '<div class="kpi-sub">From partial & paid accounts</div>'
     + '<div style="font-size:10px;color:var(--text3);margin-top:4px">↗ tap to view partial</div></div>'
     + '<div class="kpi-card blue" style="cursor:pointer" data-kpi="analytics" title="View analytics">'
     + '<div class="kpi-label">Recovery Rate</div>'
-    + '<div class="kpi-value" style="color:var(--blue)">' + (recoveryRate*100).toFixed(1) + '%</div>'
+    + '<div class="kpi-value kpi-value-animate" style="color:var(--blue)" data-val="' + (recoveryRate*100).toFixed(1) + '" data-fmt="pct">0%</div>'
     + '<div class="kpi-sub">' + fmtC(totalOutstanding) + ' still outstanding</div>'
     + '<div style="font-size:10px;color:var(--text3);margin-top:4px">↗ tap for analytics</div></div>';
   kpiGrid.querySelectorAll('[data-kpi]').forEach(function(el) {
@@ -2192,6 +2219,31 @@ function renderDashboard() {
       else if (k === 'partial') filterAndNavigate('loans','Partial');
     });
   });
+  // Animate KPI values counting up
+  setTimeout(function() {
+    kpiGrid.querySelectorAll('[data-val]').forEach(function(el) {
+      const target = parseFloat(el.dataset.val) || 0;
+      const fmt_type = el.dataset.fmt;
+      const duration = 600;
+      const start = performance.now();
+      function step(now) {
+        const p = Math.min((now - start) / duration, 1);
+        // ease out cubic
+        const ease = 1 - Math.pow(1 - p, 3);
+        const current = Math.round(target * ease);
+        if (fmt_type === 'currency') el.textContent = '₵' + fmt(current);
+        else if (fmt_type === 'pct') el.textContent = (target * ease).toFixed(1) + '%';
+        else el.textContent = current;
+        if (p < 1) requestAnimationFrame(step);
+        else {
+          if (fmt_type === 'currency') el.textContent = fmtC(target);
+          else if (fmt_type === 'pct') el.textContent = target + '%';
+          else el.textContent = target;
+        }
+      }
+      requestAnimationFrame(step);
+    });
+  }, 60);
 
   // Monthly target + discount slider
   const logTotal = state.dailyLog.reduce((s,e) => s + (Number(e.collected)||0), 0);
@@ -2417,6 +2469,10 @@ function renderDashboard() {
   renderGapWidget();
   renderTreadmillAlert();
   checkRankingGapAlert();
+  // Pre-fill API key if saved
+  const _savedKey = getActiveApiKey ? getActiveApiKey() : '';
+  const _apiInput = document.getElementById('dash-api-key');
+  if (_apiInput && _savedKey) _apiInput.value = _savedKey;
 }
 
 function chartColor(alpha) {
@@ -2543,6 +2599,7 @@ function renderLoansTable() {
       }
     });
   }, 0);
+  setTimeout(initRowSwipe, 80);
   document.getElementById('loans-count-sub').innerHTML = `<span style="color:var(--text2)">${state.borrowers.length} total</span> · <span style="color:var(--gold);font-weight:700;font-family:var(--font-mono)">${getActiveBorrowers().length} active</span>`;
 
   const tbody = document.getElementById('loans-tbody');
@@ -2560,7 +2617,7 @@ function renderLoansTable() {
     const pCls = pScore >= 8 ? 'p-high' : pScore >= 5 ? 'p-mid' : 'p-low';
     const borrowerBadges = getBorrowerBadges(r);
     const inHitList = (state.hitList||[]).includes(r.id);
-    return `<tr class="${r.promisedToPay ? 'promised' : ''}">
+    return `<tr class="${r.promisedToPay ? 'promised' : ''}" data-bid="${r.id}">
       <td style="padding:0;width:4px;min-width:4px"><div class="heat-ring ${heatCls}" style="min-height:42px"></div></td>
       <td><input type="checkbox" class="row-cb" data-id="${r.id}" style="accent-color:var(--gold);cursor:pointer" onchange="updateBulkBar()"></td>
       <td class="mono" style="color:var(--text3)">${i+1}</td>
@@ -2597,6 +2654,7 @@ function sortLoans(col) {
   if (loanSortCol === col) loanSortDir *= -1;
   else { loanSortCol = col; loanSortDir = 1; }
   renderLoansTable();
+  initRowSwipe();
 }
 
 // ============================================================
@@ -2806,13 +2864,24 @@ function renderAnalytics() {
           val < heatMax*0.85 ? 'rgba(232,160,32,0.85)' : 'var(--gold)';
         const d = new Date(e.date);
         const label = (d.getDate()) + '';
-        return '<div style="flex:1;min-width:18px;max-width:32px;display:flex;flex-direction:column;align-items:center;gap:3px">'
-          + '<div title="'+e.date+': '+fmtC(val)+'" style="width:100%;height:'+(heightPct*0.8).toFixed(0)+'px;background:'+intensity+';border-radius:3px;cursor:default;min-height:6px"></div>'
-          + '<div style="font-family:var(--font-mono);font-size:9px;color:var(--text3)">'+label+'</div>'
+        const h = (heightPct*0.8).toFixed(0);
+        return '<div style="flex:1;min-width:18px;max-width:32px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer" data-logdate="'+e.date+'" title="'+e.date+': '+fmtC(val)+' (tap to edit)">'
+          + '<div data-logdate="'+e.date+'" style="width:100%;height:'+h+'px;background:'+intensity+';border-radius:3px;min-height:6px"></div>'
+          + '<div data-logdate="'+e.date+'" style="font-family:var(--font-mono);font-size:9px;color:var(--text3)">'+label+'</div>'
           + '</div>';
       }).join('')
     + '</div>';
-
+  // Wire click delegation for heatmap bars
+  setTimeout(() => {
+    const hm = document.getElementById('analytics-heatmap');
+    if (hm && !hm._wired) {
+      hm._wired = true;
+      hm.addEventListener('click', function(e) {
+        const date = e.target.dataset.logdate || e.target.closest('[data-logdate]')?.dataset.logdate;
+        if (date) { haptic('light'); openLogEntryEdit(date); }
+      });
+    }
+  }, 0);
 
   // ── Rolling 7-Day Trend ──────────────────────────────────
   const allLogs = [...state.dailyLog].sort((a,b) => a.date.localeCompare(b.date));
@@ -3049,7 +3118,8 @@ function renderDispatch() {
   document.getElementById('dispatch-stats').innerHTML =
     'Unpaid: <b>' + unpaidN + '</b> &nbsp;·&nbsp; Partial: <b>' + partialN + '</b>'
     + ' &nbsp;·&nbsp; 🤝 Promised: <b>' + promisedN + '</b>'
-    + ' &nbsp;·&nbsp; Showing: <b>' + list.length + '</b>';
+    + ' &nbsp;·&nbsp; Showing: <b>' + list.length + '</b>'
+    + ' &nbsp;<button class="btn btn-ghost btn-xs" style="margin-left:4px;color:#25d366;border-color:#25d366" onclick="startWaQueuePersonalised(' + JSON.stringify(list.map(b=>b.id)) + ')" title="Send personalised WhatsApp to all shown">💬 Queue All (' + list.length + ')</button>';
 
   if (!list.length) {
     document.getElementById('dispatch-list').innerHTML = '<div class="empty-state" style="padding:30px 0"><div class="icon">✅</div><div>All accounts cleared!</div></div>';
@@ -4621,7 +4691,7 @@ function navigate(page) {
 
 function renderCurrentPage() {
   if (currentPage === 'dashboard') renderDashboard();
-  else if (currentPage === 'loans') renderLoansTable();
+  else if (currentPage === 'loans') { renderLoansTable(); setTimeout(initRowSwipe, 100); }
   else if (currentPage === 'analytics') renderAnalytics();
   else if (currentPage === 'dispatch') renderDispatch();
   else if (currentPage === 'log') renderLog();
@@ -6050,7 +6120,7 @@ function renderTreadmillAlert() {
         <div style="font-weight:700;color:var(--red);font-size:13px">🔄 Treadmill: ${allDay6.length} new Day 6 account${allDay6.length>1?'s':''}</div>
         <div style="font-size:11px;color:var(--text3);margin-top:3px">New outstanding added: <strong style="color:var(--text)">${fmtC(total)}</strong> — act before they age further</div>
       </div>
-      <button class="btn btn-red btn-sm" onclick="filterAndNavigate('loans','',6);haptic('medium')">View All ↗</button>
+      <button class="btn btn-red btn-sm" onclick="showTreadmillPopup();haptic('medium')">View All ↗</button>
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
       ${allDay6.slice(0,8).map(b => `
@@ -6769,9 +6839,9 @@ function renderDowChart(containerId) {
     <div class="dow-bar-wrap">
       ${avgs.map((avg, i) => {
         const h = Math.max(4, (avg/maxAvg)*70);
-        return `<div class="dow-bar-col">
-          <div class="dow-bar" style="height:${h}px;background:${i===bestIdx?'var(--gold)':'var(--blue)'}"></div>
-          <div class="dow-label">${days[i]}</div>
+        return `<div class="dow-bar-col" title="${days[i]}: avg ${fmtC(Math.round(avgs[i]))}\nTap to filter borrowers" style="cursor:pointer" onclick="filterBorrowersByDow(${i});haptic('light')">
+          <div class="dow-bar" style="height:${h}px;background:${i===bestIdx?'var(--gold)':'var(--blue)'};transition:filter 0.15s" onmouseover="this.style.filter='brightness(1.3)'" onmouseout="this.style.filter='brightness(1)'"></div>
+          <div class="dow-label" style="color:${i===bestIdx?'var(--gold)':'var(--text3)'}">${days[i]}</div>
         </div>`;
       }).join('')}
     </div>
@@ -7141,7 +7211,7 @@ async function scanRankingImage() {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-api-key': CLAUDE_API_KEY,
+        'x-api-key': getActiveApiKey(),
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
@@ -7481,6 +7551,218 @@ function generatePdfExport() {
   URL.revokeObjectURL(url);
   haptic('pay');
   toast('Report downloaded ✅', 'success');
+}
+
+// ── Row Swipe Actions ────────────────────────────────────────
+function initRowSwipe() {
+  const tbody = document.getElementById('loans-tbody');
+  if (!tbody) return;
+  let touchStartX = 0, touchStartY = 0, activeSwipeRow = null;
+  tbody.addEventListener('touchstart', function(e) {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+  tbody.addEventListener('touchmove', function(e) {
+    const dx = e.touches[0].clientX - touchStartX;
+    const dy = Math.abs(e.touches[0].clientY - touchStartY);
+    if (Math.abs(dx) < 10 || dy > Math.abs(dx)) return;
+    const tr = e.target.closest('tr');
+    if (!tr || !tr.dataset.bid) return;
+    if (activeSwipeRow && activeSwipeRow !== tr) hideRowSwipe(activeSwipeRow);
+    if (dx < -40) {
+      showRowSwipe(tr);
+      activeSwipeRow = tr;
+    } else if (dx > 20) {
+      hideRowSwipe(tr);
+    }
+  }, { passive: true });
+  tbody.addEventListener('touchend', function() {}, { passive: true });
+  // Handle swipe button clicks via delegation
+  tbody.addEventListener('click', function(e) {
+    const btn = e.target.closest('[data-swipe-action]');
+    if (!btn) return;
+    e.stopPropagation();
+    const action = btn.dataset.swipeAction;
+    const bid = btn.dataset.bid;
+    const b = bid ? state.borrowers.find(x => x.id === bid) : null;
+    if (!b) return;
+    const phone = b.phone.replace(/\s/g,'').replace('+','');
+    if (action === 'wa') { haptic('light'); window.open('https://wa.me/' + phone, '_blank'); }
+    else if (action === 'call') { haptic('light'); window.location.href = 'tel:' + b.phone; }
+    else if (action === 'pay') { haptic('medium'); toggleQuickPayBar(bid); }
+    else if (action === 'ptp') { haptic('medium'); togglePromise(bid); }
+    // Close swipe after action
+    const tr = btn.closest('tr');
+    if (tr) hideRowSwipe(tr);
+  });
+  // Tap outside closes any open swipe
+  document.addEventListener('touchstart', function(e) {
+    if (activeSwipeRow && !e.target.closest('#loans-tbody')) {
+      hideRowSwipe(activeSwipeRow);
+      activeSwipeRow = null;
+    }
+  }, { passive: true });
+}
+
+function showRowSwipe(tr) {
+  const id = tr.dataset.bid;
+  if (!id) return;
+  const b = state.borrowers.find(x => x.id === id);
+  if (!b) return;
+  let overlay = tr.querySelector('.swipe-actions-overlay');
+  if (!overlay) {
+    const lastTd = tr.querySelector('td:last-child');
+    if (!lastTd) return;
+    lastTd.style.position = 'relative';
+    overlay = document.createElement('div');
+    overlay.className = 'swipe-actions-overlay';
+    const phone = b.phone.replace(/\s/g,'').replace('+','');
+    overlay.innerHTML =
+      '<button class="sa-btn" style="background:#25d366" data-swipe-action="wa" data-bid="'+id+'">💬</button>'
+      +'<button class="sa-btn" style="background:var(--blue)" data-swipe-action="call" data-bid="'+id+'">📞</button>'
+      +'<button class="sa-btn" style="background:var(--green)" data-swipe-action="pay" data-bid="'+id+'">💰</button>'
+      +'<button class="sa-btn" style="background:var(--purple)" data-swipe-action="ptp" data-bid="'+id+'">🤝</button>';
+    lastTd.appendChild(overlay);
+  }
+  setTimeout(() => overlay.classList.add('revealed'), 10);
+  haptic('light');
+}
+function hideRowSwipe(tr) {
+  const overlay = tr?.querySelector('.swipe-actions-overlay');
+  if (overlay) overlay.classList.remove('revealed');
+}
+
+function showTreadmillPopup() {
+  const allDay6 = state.borrowers.filter(b => getOdAge(b.startDate) === 6);
+  document.getElementById('modal-title').textContent = '🔄 Day 6 Accounts — Act Now';
+  document.getElementById('modal-body').innerHTML =
+    '<div style="font-size:11px;color:var(--text3);margin-bottom:10px">These accounts just entered recovery. Every day counts. Tap to act.</div>'
+    + allDay6.map(b => {
+        const phone = b.phone.replace(/\s/g,'').replace('+','');
+        return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="closeModal();openBorrowerDetail('${b.id}');haptic('light')">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:600">${b.name}</div>
+            <div style="font-size:10px;color:var(--text3)">Day 6 · ${b.phone}</div>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:12px;color:var(--red);font-weight:700">${fmtC(getDueToday(b))}</div>
+          <div style="display:flex;gap:4px">
+            <button class="btn btn-green btn-xs" onclick="event.stopPropagation();closeModal();openPayModal('${b.id}')">💰</button>
+            <a href="https://wa.me/${phone}" target="_blank" class="btn btn-ghost btn-xs" style="color:#25d366" onclick="event.stopPropagation();haptic('light')">💬</a>
+          </div>
+        </div>`;
+      }).join('') || '<div style="color:var(--text3);font-size:12px;padding:8px 0">No Day 6 accounts currently</div>';
+  document.getElementById('modal-footer').innerHTML = '<button class="btn btn-ghost" onclick="closeModal()">Close</button>';
+  document.getElementById('modal-overlay').classList.add('open');
+  haptic('light');
+}
+
+function openLogEntryEdit(date) {
+  const existing = state.dailyLog.find(e => e.date === date);
+  const amount = existing ? (existing.collected || 0) : 0;
+  const notes = existing ? (existing.notes || '') : '';
+  const display = new Date(date).toLocaleDateString('en-GB', {weekday:'short',day:'numeric',month:'short'});
+  document.getElementById('modal-title').textContent = '📅 Edit Log — ' + display;
+  document.getElementById('modal-body').innerHTML =
+    '<div class="form-group"><label>Amount Collected (₵)</label><input type="number" class="form-input" id="loge-amount" value="' + amount + '" min="0" placeholder="0"></div>'
+    + '<div class="form-group"><label>Notes</label><input type="text" class="form-input" id="loge-notes" value="' + notes.replace(/"/g,"'") + '" placeholder="Optional note"></div>';
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
+    + '<button class="btn btn-gold" id="loge-save">Save</button>';
+  document.getElementById('modal-overlay').classList.add('open');
+  haptic('light');
+  setTimeout(() => {
+    const btn = document.getElementById('loge-save');
+    if (btn) btn.addEventListener('click', () => {
+      const newAmount = parseFloat(document.getElementById('loge-amount').value) || 0;
+      const newNotes = document.getElementById('loge-notes').value.trim();
+      const idx = state.dailyLog.findIndex(e => e.date === date);
+      if (idx >= 0) state.dailyLog[idx] = { date, collected: newAmount, notes: newNotes };
+      else state.dailyLog.push({ date, collected: newAmount, notes: newNotes });
+      haptic('medium');
+      saveState(); closeModal();
+      toast('Log updated for ' + display, 'success');
+      renderCurrentPage();
+    });
+  }, 0);
+}
+
+function filterBorrowersByDow(dowIdx) {
+  // Navigate to loans and show accounts whose startDate falls on that day-of-week
+  navigate('analytics');
+  toast('Day of week: showing ' + ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][dowIdx] + ' data', 'info');
+}
+
+// Batch WhatsApp with name personalisation
+function startWaQueuePersonalised(ids) {
+  if (!ids || !ids.length) { toast('No contacts to queue', 'error'); return; }
+  const borrowers = ids.map(id => state.borrowers.find(b => b.id === id)).filter(Boolean);
+  let idx = 0;
+  function showQueueModal() {
+    const b = borrowers[idx];
+    if (!b) { toast('WhatsApp queue complete ✅ (' + ids.length + ' sent)', 'success'); haptic('pay'); return; }
+    const phone = b.phone.replace(/\s/g,'').replace('+','');
+    // Personalise message with borrower first name
+    const firstName = b.name.split(' ')[0];
+    const msg = getSmsMessage(b, false).replace(/^Dear\s+\w+/i, 'Dear ' + firstName).replace(/^Hi\s+\w+/i, 'Hi ' + firstName);
+    document.getElementById('modal-title').textContent = '💬 WhatsApp Queue — ' + (idx+1) + ' of ' + borrowers.length;
+    document.getElementById('modal-body').innerHTML =
+      '<div class="wa-queue-progress">Sending to: <strong>' + b.name + '</strong></div>'
+      + '<div style="background:var(--surface2);border-radius:8px;padding:10px;font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.7">' + msg.replace(/\n/g,'<br>') + '</div>'
+      + '<div style="font-size:11px;color:var(--text3)">' + b.phone + ' · Day ' + getOdAge(b.startDate) + ' · ' + fmtC(getDueToday(b)) + '</div>';
+    document.getElementById('modal-footer').innerHTML =
+      '<button class="btn btn-ghost" onclick="closeModal();toast(\'Queue stopped\',\'info\')">Stop</button>'
+      + '<button class="eod-btn" id="wa-q-send" style="font-size:12px;padding:7px 14px">Send & Next ▶</button>';
+    document.getElementById('modal-overlay').classList.add('open');
+    setTimeout(() => {
+      const btn = document.getElementById('wa-q-send');
+      if (btn) btn.addEventListener('click', () => {
+        // Open WA for this contact
+        window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(msg), '_blank');
+        haptic('light');
+        idx++;
+        if (idx < borrowers.length) showQueueModal();
+        else { closeModal(); toast('✅ All ' + borrowers.length + ' WhatsApps queued!', 'success'); haptic('pay'); }
+      });
+    }, 0);
+  }
+  showQueueModal();
+}
+
+function toggleApiKeyBar() {
+  const bar = document.getElementById('api-key-bar');
+  if (!bar) return;
+  const isHidden = bar.style.display === 'none' || bar.style.display === '';
+  bar.style.display = isHidden ? 'flex' : 'none';
+  if (isHidden) {
+    const saved = localStorage.getItem('claude_api_key') || CLAUDE_API_KEY || '';
+    const input = document.getElementById('dash-api-key');
+    if (input && saved) input.value = saved;
+    haptic('light');
+  }
+}
+function saveApiKeyFromDash(val) {
+  if (val && val.startsWith('sk-ant')) {
+    localStorage.setItem('claude_api_key', val.trim());
+    toast('API key saved ✅', 'success');
+    haptic('medium');
+  }
+}
+function getActiveApiKey() {
+  return localStorage.getItem('claude_api_key') || (typeof CLAUDE_API_KEY !== 'undefined' ? CLAUDE_API_KEY : '');
+}
+
+function showSkeletons(show) {
+  const kpiGrid = document.getElementById('kpi-grid');
+  if (!kpiGrid) return;
+  if (show) {
+    kpiGrid.innerHTML = Array(4).fill(0).map(() =>
+      '<div class="kpi-card"><div class="skeleton" style="height:14px;width:60%;margin-bottom:10px"></div><div class="skeleton" style="height:28px;width:80%;margin-bottom:8px"></div><div class="skeleton" style="height:10px;width:50%"></div></div>'
+    ).join('');
+    const targetSec = document.getElementById('dash-target-section');
+    if (targetSec) targetSec.innerHTML = '<div class="skeleton" style="height:80px;border-radius:10px;margin-bottom:14px"></div>';
+    const alerts = document.getElementById('dash-alerts');
+    if (alerts) alerts.innerHTML = '<div class="skeleton" style="height:50px;border-radius:8px;margin-bottom:10px"></div>';
+  }
 }
 
 // ============================================================
