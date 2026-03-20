@@ -8657,7 +8657,8 @@ function lockSelectAgent(id) {
     return;
   }
   const agents = getAgentList();
-  _pinTarget = agents.find(a => a.id === id);
+  _pinTarget = agents.find(a => a.id === id)
+    || (window._pendingAgent?.id === id ? window._pendingAgent : null);
   if (!_pinTarget) return;
   _pinBuffer = '';
   _pinMode = 'unlock';
@@ -8708,6 +8709,14 @@ async function processPin() {
       _activeAgent = _pinTarget;
       _sessionUnlocked = true;
       setSessionAgent(_pinTarget);
+      // Commit agent to permanent local list only after PIN confirmed
+      if (window._pendingAgent && window._pendingAgent.id === _pinTarget.id) {
+        const agents = getAgentList();
+        const idx = agents.findIndex(a => a.id === _pinTarget.id);
+        if (idx >= 0) agents[idx] = window._pendingAgent; else agents.push(window._pendingAgent);
+        saveAgentList(agents);
+        window._pendingAgent = null;
+      }
       hideLockScreen();
       haptic('pay');
       await loadStateForAgent();
@@ -8907,7 +8916,15 @@ async function authSignInWithCode() {
   const foundData=row.data||{};
   const foundId=(row.id||'main').replace('agent_','');
   const profile=foundData.agentProfile||{};
-  const pinHash=foundData._pinHash||null;
+
+  // pinHash may be in agent row OR in main stamp — check both
+  let pinHash=foundData._pinHash||null;
+  if(!pinHash){
+    try{
+      const mainRow=await fetchRow('main');
+      if(mainRow?.data?.pinHash) pinHash=mainRow.data.pinHash;
+    }catch{}
+  }
 
   // Migrate to slug key if needed
   if(foundId!==slugCode){
@@ -8923,9 +8940,8 @@ async function authSignInWithCode() {
 
   agent={id:slugCode,lbCode:rawCode,name:profile.name||rawCode,stage:profile.stage||'M2',
     supervisor:profile.supervisor||'',pinHash,createdAt:profile.createdAt||new Date().toISOString()};
-  const idx=localAgents.findIndex(a=>a.id===slugCode);
-  if(idx>=0)localAgents[idx]=agent;else localAgents.push(agent);
-  saveAgentList(localAgents);
+  // Store as pending — committed to permanent list only after PIN confirmed
+  window._pendingAgent = agent;
   setStatus('');
   lockSelectAgent(agent.id);
 }
@@ -9046,27 +9062,17 @@ async function migrateFromLegacyIfNeeded() {
     try {
       const { data: mainRow } = await db.from('app_state').select('data').eq('id','main').single();
       if (mainRow?.data?.migratedToAgent) {
-        // Already migrated — restore agent record from Supabase agent row
+        // Already migrated — cache data silently, show plain sign-in screen
+        // Do NOT add to agent list here — only add after PIN is confirmed
         const agentId = mainRow.data.migratedToAgent;
-        const { data: agentRow } = await db.from('app_state').select('data').eq('id','agent_' + agentId).single();
-        if (agentRow?.data?.agentProfile) {
-          const profile = agentRow.data.agentProfile;
-          const agentRecord = {
-            id: agentId,
-            name: profile.name || 'Agent',
-            stage: profile.stage || 'M2',
-            supervisor: profile.supervisor || '',
-            pinHash: mainRow.data.pinHash || null,
-            createdAt: profile.createdAt || new Date().toISOString(),
-          };
-          saveAgentList([agentRecord]);
-          // Cache the state locally for this device
-          localStorage.setItem('squevetrack_' + agentId, JSON.stringify(agentRow.data));
-          // Show lock screen — agent already exists, just needs PIN
-          showLockScreen();
-          lockSelectAgent(agentId);
-          return true;
-        }
+        try {
+          const { data: agentRow } = await db.from('app_state').select('data').eq('id','agent_' + agentId).single();
+          if (agentRow?.data) {
+            localStorage.setItem('squevetrack_' + agentId, JSON.stringify(agentRow.data));
+          }
+        } catch {}
+        showLockScreen();
+        return true;
       }
     } catch {}
   }
@@ -9350,17 +9356,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             const ghosts = rows.filter(r => !valid.includes(r)).map(r => r.id);
             if (ghosts.length) { try { await db.from('app_state').delete().in('id', ghosts); } catch {} }
             if (valid.length > 0) {
-              const list = getAgentList();
+              // Cache data locally for fast sign-in, but do NOT add to agent list yet.
+              // Agent cards only show on devices where sign-in has been confirmed (pinHash set).
+              // This keeps the lock screen private on new browsers.
               valid.forEach(r => {
                 const aid = r.id.replace('agent_','');
-                if (!list.find(a => a.id === aid)) {
-                  const p = r.data?.agentProfile || {};
-                  list.push({ id: aid, name: p.name||aid, stage: p.stage||'M2', lbCode: p.lbCode||'',
-                    pinHash: r.data?._pinHash||null, createdAt: p.createdAt||new Date().toISOString() });
-                  localStorage.setItem('squevetrack_'+aid, JSON.stringify(r.data));
-                }
+                localStorage.setItem('squevetrack_'+aid, JSON.stringify(r.data));
               });
-              saveAgentList(list);
               foundRemote = true;
             }
           } catch(e) { console.warn('Supabase scan:', e.message); }
