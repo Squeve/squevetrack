@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title id="page-title">SqueveTrack</title>
-<meta name="theme-color" content="#e8a020">
+<meta name="theme-color" content="#06080f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -19,30 +19,40 @@
 <style>
 :root {
   color-scheme: dark;
-  --bg: #0b0d12;
-  --surface: #13161f;
-  --surface2: #1a1e2a;
-  --border: #252a38;
-  --border2: #2e3447;
-  --gold: #e8a020;
-  --gold2: #f5b840;
-  --green: #22c55e;
-  --red: #ef4444;
+  /* Deeper, truly black-toned dark palette */
+  --bg:       #06080f;
+  --surface:  #0e1118;
+  --surface2: #161b26;
+  --border:   #1e2535;
+  --border2:  #263044;
+  /* Gold gradient system */
+  --gold:     #f0a030;
+  --gold2:    #fcc044;
+  --gold-grad: linear-gradient(135deg, #f0a030, #fcc044);
+  --gold-glow: rgba(240,160,48,0.25);
+  /* Status colours */
+  --green:  #22c55e;
+  --red:    #ef4444;
   --orange: #f97316;
-  --blue: #60a5fa;
+  --blue:   #60a5fa;
   --purple: #a78bfa;
-  --text: #e8ecf4;
-  --text2: #8b95ab;
-  --text3: #5a6278;
-  --paid-bg: rgba(34,197,94,0.1);
+  /* Text — wider hierarchy gap */
+  --text:  #edf0f7;
+  --text2: #9aa3b8;
+  --text3: #4e5870;
+  /* Row state backgrounds */
+  --paid-bg:    rgba(34,197,94,0.1);
   --partial-bg: rgba(249,115,22,0.1);
-  --unpaid-bg: rgba(239,68,68,0.08);
+  --unpaid-bg:  rgba(239,68,68,0.08);
+  /* Type */
   --font-head: 'Syne', sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
   --font-body: 'Instrument Sans', sans-serif;
-  --radius: 10px;
+  /* Layout */
+  --radius:    10px;
   --radius-sm: 6px;
-  --sidebar-w: 210px;
+  --sidebar-w: 224px;
+  --border-hi: rgba(255,255,255,0.07);
 }
 
 /* SWIPE ACTIONS ON TABLE ROWS */
@@ -105,6 +115,134 @@ tr.row-swiped td:first-child div, tr.row-swiped td { transition: background 0.15
 .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
 /* Button press feedback */
 .btn:active { transform: scale(0.96); transition: transform 0.08s ease; }
+/* ── PREMIUM UPGRADE CSS ─────────────────────────────── */
+
+/* Gold gradient on primary buttons */
+.btn-gold {
+  background: var(--gold-grad) !important;
+  color: #000 !important;
+  box-shadow: 0 2px 12px rgba(232,160,32,0.3);
+  border: none !important;
+}
+.btn-gold:hover { box-shadow: 0 4px 20px rgba(232,160,32,0.45); }
+.btn-gold:active { transform: scale(0.96); box-shadow: var(--gold-glow); }
+
+/* Glassmorphism card base */
+.card {
+  background: rgba(14,17,24,0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border2);
+  /* Micro top-edge highlight for depth */
+  box-shadow: inset 0 1px 0 var(--border-hi), 0 4px 24px rgba(0,0,0,0.35);
+}
+.card:hover {
+  box-shadow: inset 0 1px 0 var(--border-hi), 0 6px 28px rgba(0,0,0,0.45);
+}
+
+/* KPI cards — slightly more glass */
+.kpi-card {
+  background: rgba(14,17,24,0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: inset 0 1px 0 var(--border-hi), 0 4px 20px rgba(0,0,0,0.4);
+}
+
+/* Spring bounce modal */
+@keyframes modalSpring {
+  0%   { opacity:0; transform: translateY(28px) scale(0.95); }
+  55%  { transform: translateY(-6px) scale(1.01); }
+  75%  { transform: translateY(3px) scale(0.995); }
+  100% { opacity:1; transform: translateY(0) scale(1); }
+}
+#modal-overlay.open .modal {
+  animation: modalSpring 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) both !important;
+}
+
+/* Smooth page transitions */
+@keyframes pageEnter {
+  from { opacity:0; transform: translateX(14px); }
+  to   { opacity:1; transform: translateX(0); }
+}
+.page.active { animation: pageEnter 0.22s cubic-bezier(0.25,0.46,0.45,0.94) both !important; }
+
+/* Pulse ring on critical overdue rows (day 15+) */
+@keyframes pulseRing {
+  0%   { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
+  60%  { box-shadow: 0 0 0 6px rgba(239,68,68,0); }
+  100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+}
+tr.overdue-critical td:first-child,
+.borrower-row.overdue-critical {
+  animation: pulseRing 2.2s ease infinite;
+}
+
+/* Sidebar active nav indicator */
+.nav-item {
+  position: relative;
+  border-radius: 8px;
+  margin: 1px 4px;
+}
+.nav-item.active {
+  background: linear-gradient(90deg, rgba(232,160,32,0.12), rgba(232,160,32,0.04));
+  color: var(--gold);
+}
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 20%; bottom: 20%;
+  width: 3px;
+  background: var(--gold-grad);
+  border-radius: 0 3px 3px 0;
+  box-shadow: 0 0 8px rgba(232,160,32,0.6);
+}
+.nav-icon { transition: transform 0.15s ease; }
+.nav-item:hover .nav-icon { transform: translateX(2px); }
+.nav-item.active .nav-icon { color: var(--gold); }
+
+/* Logo mark */
+#logo-mark {
+  font-family: var(--font-head);
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.5px;
+  background: var(--gold-grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Mobile header lock button */
+.mhdr-theme { color: var(--text3); font-size: 18px; }
+
+/* Sync dot glow when saved */
+#sync-dot.green { background: var(--green); box-shadow: 0 0 6px rgba(34,197,94,0.6); }
+#sync-dot.amber { background: var(--gold); box-shadow: 0 0 6px rgba(232,160,32,0.5); }
+#sync-dot.red   { background: var(--red);  box-shadow: 0 0 6px rgba(239,68,68,0.5); }
+
+/* Sidebar surface */
+.sidebar { background: rgba(7,9,14,0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+
+/* Nav SVG icons */
+.nav-svg { width:16px; height:16px; flex-shrink:0; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+
+/* Premium scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-hi); }
+
+/* Light theme overrides */
+.light .card {
+  background: rgba(255,255,255,0.7);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 4px 24px rgba(0,0,0,0.08);
+}
+.light .kpi-card {
+  background: rgba(255,255,255,0.75);
+}
+
+/* ── END PREMIUM CSS ─────────────────────────────────── */
+
 /* Nav item transition */
 .nav-item { transition: all 0.1s ease; }
 /* Hit list drag feedback */
@@ -298,8 +436,6 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
   letter-spacing: -0.3px;
   line-height: 1;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .sidebar-logo .logo-sub {
   font-size: 10px; color: var(--text3);
@@ -910,6 +1046,557 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
   .dispatch-actions { flex-direction: row; min-width: unset; width: 100%; }
   .kpi-value { font-size: 20px; }
 }
+/* ── PREMIUM AESTHETIC UPGRADES ───────────────────────── */
+
+/* Gold gradient on primary buttons */
+.btn-gold {
+  background: var(--gold-grad) !important;
+  color: #0a0c12 !important;
+  font-weight: 700;
+  box-shadow: 0 2px 12px var(--gold-glow);
+}
+.btn-gold:hover { filter: brightness(1.08); box-shadow: 0 4px 20px var(--gold-glow); }
+
+/* Gold gradient on gold text elements */
+.kpi-value.gold, .logo-mark, .sync-gold {
+  background: var(--gold-grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Micro-border glow — 1px top highlight on cards */
+.card {
+  border-top: 1px solid rgba(255,255,255,0.07) !important;
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.04) inset;
+}
+
+/* Glassmorphism on KPI cards */
+.kpi-card {
+  background: rgba(14,17,24,0.75) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-top: 1px solid rgba(255,255,255,0.12) !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+/* Glassmorphism on modals */
+.modal {
+  background: rgba(13,16,22,0.92) !important;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-top: 1px solid rgba(255,255,255,0.14) !important;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6) !important;
+}
+
+/* Spring bounce modal animation */
+@keyframes modalSpring {
+  0%   { opacity:0; transform:translateY(28px) scale(0.94); }
+  55%  { opacity:1; transform:translateY(-5px) scale(1.01); }
+  75%  { transform:translateY(3px) scale(0.995); }
+  100% { transform:translateY(0) scale(1); }
+}
+#modal-overlay.open .modal { animation: modalSpring 0.32s cubic-bezier(0.34,1.56,0.64,1) both !important; }
+
+/* Smooth page transitions */
+@keyframes pageIn {
+  from { opacity:0; transform:translateX(14px); }
+  to   { opacity:1; transform:translateX(0); }
+}
+.page.active { animation: pageIn 0.2s cubic-bezier(0.22,1,0.36,1) both !important; }
+
+/* Sidebar active nav — glowing pill indicator */
+.nav-item.active {
+  color: var(--gold2) !important;
+  background: linear-gradient(90deg, rgba(240,160,48,0.12), transparent) !important;
+  border-left: 3px solid var(--gold) !important;
+  box-shadow: inset 3px 0 12px rgba(240,160,48,0.1);
+  font-weight: 700 !important;
+}
+.nav-item.active .nav-icon { filter: drop-shadow(0 0 4px var(--gold-glow)); }
+
+/* Pulse ring — overdue day-15 borrowers */
+@keyframes overdueRing {
+  0%   { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
+  60%  { box-shadow: 0 0 0 6px rgba(239,68,68,0); }
+  100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+}
+.overdue-pulse { animation: overdueRing 2s ease-out infinite; border-radius: 50%; }
+
+/* Heat ring day-15 pulse */
+.heat-ring.d15 { animation: overdueRing 2s ease-out infinite !important; background: var(--red) !important; }
+
+/* ST monogram logo */
+.st-monogram {
+  width: 32px; height: 32px;
+  background: var(--gold-grad);
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-head);
+  font-size: 13px;
+  font-weight: 800;
+  color: #0a0c12;
+  letter-spacing: -0.5px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px var(--gold-glow);
+}
+
+/* Sidebar logo area */
+.sidebar-logo {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+}
+.sidebar-logo .logo-mark {
+  font-size: 15px !important;
+  background: var(--gold-grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* SVG nav icons — sizing */
+.nav-icon svg { width: 16px; height: 16px; vertical-align: middle; }
+
+/* Number roll animation */
+@keyframes digitRoll {
+  0%   { opacity:0; transform:translateY(10px); }
+  60%  { opacity:1; transform:translateY(-2px); }
+  100% { transform:translateY(0); }
+}
+.kpi-value-animate { animation: digitRoll 0.45s cubic-bezier(0.34,1.4,0.64,1) both !important; }
+
+/* Deeper table row hover */
+tbody tr:hover td { background: rgba(255,255,255,0.025) !important; }
+
+/* Inputs — subtle inner shadow */
+.form-input:focus, .search-input:focus {
+  box-shadow: 0 0 0 2px rgba(240,160,48,0.18), inset 0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* Status bar meta tag handled via JS */
+
+</style>
+<style>
+/* ═══ PREMIUM OVERRIDES ═══════════════════════════════════ */
+
+/* Btn-gold uses gradient */
+.btn-gold {
+  background: var(--gold-grad) !important;
+  color: #000 !important;
+  font-weight: 700;
+  box-shadow: 0 2px 12px rgba(240,160,48,0.3);
+}
+.btn-gold:hover { box-shadow: 0 4px 20px rgba(240,160,48,0.5) !important; }
+
+/* KPI value gold uses gradient text */
+.kpi-value.gold {
+  background: var(--gold-grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Active nav item gold text gradient */
+.nav-item.active {
+  background: linear-gradient(90deg, rgba(240,160,48,0.13), rgba(240,160,48,0.03)) !important;
+}
+.nav-item.active span {
+  background: var(--gold-grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: none !important;
+}
+
+/* Streak badge gradient border */
+.streak-badge {
+  background: linear-gradient(135deg, rgba(240,160,48,0.15), rgba(252,192,68,0.06)) !important;
+  border-color: rgba(240,160,48,0.4) !important;
+}
+
+/* Sync dot glow */
+#sync-dot { transition: background 0.4s, box-shadow 0.4s; }
+
+/* Page fade slightly faster */
+.page.active { animation-duration: 0.18s !important; }
+
+/* Modal backdrop blur */
+#modal-overlay { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+
+/* Toast premium look */
+.toast-item {
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid var(--border-hi) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 var(--border-hi) !important;
+}
+
+/* Overdue critical pulse — red left border glow */
+tr.overdue-critical td { border-left: none; }
+tr.overdue-critical .heat-ring {
+  box-shadow: 0 0 8px rgba(239,68,68,0.7);
+  animation: pulseRing 2.2s ease infinite;
+}
+
+/* Search input premium */
+.search-input {
+  background: rgba(255,255,255,0.04) !important;
+  border: 1px solid var(--border) !important;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.search-input:focus {
+  border-color: var(--gold) !important;
+  box-shadow: 0 0 0 3px rgba(240,160,48,0.12) !important;
+  background: rgba(255,255,255,0.06) !important;
+}
+
+/* Form inputs */
+.form-input:focus {
+  border-color: var(--gold) !important;
+  box-shadow: 0 0 0 3px rgba(240,160,48,0.12) !important;
+}
+
+/* Mobile header glass */
+#mobile-header {
+  background: rgba(6,8,15,0.85) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+/* Sidebar bottom settings button polish */
+.sidebar-footer .btn-ghost {
+  background: rgba(255,255,255,0.03);
+  border-color: var(--border) !important;
+  transition: all 0.15s;
+}
+.sidebar-footer .btn-ghost:hover {
+  border-color: var(--gold) !important;
+  color: var(--gold) !important;
+  background: rgba(240,160,48,0.06);
+}
+
+/* PTP tab active gold gradient */
+.ptp-tab.active {
+  background: var(--gold-grad) !important;
+  color: #000 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(240,160,48,0.3) !important;
+}
+
+/* Settings rows hover */
+.settings-row:hover { background: rgba(255,255,255,0.03) !important; }
+
+
+
+/* ═══ BORROWERS LIST REDESIGN ══════════════════════════════ */
+.bl-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 16px; gap: 12px;
+}
+.bl-sub { font-size: 12px; color: var(--text3); margin-top: 3px; }
+
+/* Filter bar */
+.bl-filter-bar {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  box-shadow: inset 0 1px 0 var(--border-hi), 0 2px 12px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.bl-search-wrap {
+  position: relative; display: flex; align-items: center;
+}
+.bl-search-icon {
+  position: absolute; left: 12px; width: 16px; height: 16px;
+  stroke: var(--text3); pointer-events: none;
+}
+.bl-search {
+  width: 100%; padding: 10px 36px 10px 38px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border2); border-radius: 10px;
+  color: var(--text); font-family: var(--font-body); font-size: 13px;
+  outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+}
+.bl-search:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(240,160,48,0.12);
+  background: rgba(255,255,255,0.06);
+}
+.bl-clear-btn {
+  position: absolute; right: 10px; background: none; border: none;
+  color: var(--text3); cursor: pointer; font-size: 14px; padding: 2px;
+  line-height: 1; transition: color 0.15s;
+}
+.bl-clear-btn:hover { color: var(--text); }
+.bl-chips {
+  display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+}
+.bl-chip-sel {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border2); border-radius: 20px;
+  color: var(--text2); font-family: var(--font-body); font-size: 12px;
+  padding: 5px 10px; cursor: pointer; outline: none;
+  transition: all 0.15s; appearance: none; -webkit-appearance: none;
+}
+.bl-chip-sel:focus, .bl-chip-sel:hover {
+  border-color: var(--gold); color: var(--text);
+}
+.bl-chip-sel option { background: var(--surface2); }
+.bl-meta {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 6px; border-top: 1px solid var(--border);
+}
+.bl-sort-wrap { margin-left: auto; }
+
+/* Borrower card rows */
+.bl-list { display: flex; flex-direction: column; gap: 6px; }
+.bl-card {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  position: relative;
+  box-shadow: inset 0 1px 0 var(--border-hi), 0 1px 6px rgba(0,0,0,0.2);
+}
+.bl-card:hover {
+  border-color: rgba(240,160,48,0.3);
+  box-shadow: inset 0 1px 0 var(--border-hi), 0 4px 16px rgba(0,0,0,0.3);
+}
+.bl-card.overdue-critical .bl-heat { animation: pulseRing 2.2s ease infinite; }
+.bl-card-inner {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer;
+}
+/* Heat strip — left edge */
+.bl-heat {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 3px 0 0 3px;
+}
+.bl-heat.d6  { background: var(--blue); }
+.bl-heat.d8  { background: #14b8a6; }
+.bl-heat.d10 { background: var(--gold); }
+.bl-heat.d12 { background: var(--orange); }
+.bl-heat.d13 { background: #f44; }
+.bl-heat.d15 { background: var(--red); box-shadow: 0 0 8px rgba(239,68,68,0.6); }
+/* Avatar initials */
+.bl-avatar {
+  width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-head); font-size: 13px; font-weight: 800;
+  letter-spacing: -0.5px; color: #fff;
+}
+/* Main content area */
+.bl-content { flex: 1; min-width: 0; }
+.bl-name {
+  font-size: 13px; font-weight: 600; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  display: flex; align-items: center; gap: 5px; margin-bottom: 2px;
+}
+.bl-meta-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.bl-phone {
+  font-size: 11px; color: var(--text3); font-family: var(--font-mono);
+}
+.bl-day {
+  font-size: 11px; font-weight: 700; font-family: var(--font-mono);
+  padding: 1px 7px; border-radius: 10px;
+}
+.bl-day.d6  { background: rgba(96,165,250,0.15); color: var(--blue); }
+.bl-day.d8  { background: rgba(20,184,166,0.15); color: #14b8a6; }
+.bl-day.d10 { background: rgba(240,160,48,0.15); color: var(--gold); }
+.bl-day.d12 { background: rgba(249,115,22,0.15); color: var(--orange); }
+.bl-day.d13 { background: rgba(244,68,68,0.15); color: #f44; }
+.bl-day.d15 { background: rgba(239,68,68,0.2); color: var(--red); }
+/* Right side amounts */
+.bl-amounts {
+  text-align: right; flex-shrink: 0; min-width: 90px;
+}
+.bl-due {
+  font-family: var(--font-mono); font-size: 14px; font-weight: 700;
+}
+.bl-paid-label { font-size: 10px; color: var(--text3); margin-top: 1px; }
+/* Priority badge */
+.bl-priority {
+  width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; font-family: var(--font-mono);
+}
+.bl-priority.p-high { background: rgba(239,68,68,0.15); color: var(--red); }
+.bl-priority.p-mid  { background: rgba(240,160,48,0.15); color: var(--gold); }
+.bl-priority.p-low  { background: rgba(34,197,94,0.12); color: var(--green); }
+/* Status pill */
+.bl-status {
+  font-size: 10px; font-weight: 700; padding: 2px 8px;
+  border-radius: 20px; flex-shrink: 0;
+}
+.bl-status.s-paid    { background: rgba(34,197,94,0.15); color: var(--green); }
+.bl-status.s-partial { background: rgba(249,115,22,0.15); color: var(--orange); }
+.bl-status.s-unpaid  { background: rgba(239,68,68,0.12); color: var(--red); }
+/* Action tray */
+.bl-actions {
+  display: flex; align-items: center; gap: 4px;
+  padding: 8px 14px 10px 62px; border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.bl-action-btn {
+  display: flex; align-items: center; gap: 4px;
+  padding: 5px 10px; border-radius: 8px; font-size: 11px; font-weight: 600;
+  border: 1px solid var(--border2); background: rgba(255,255,255,0.03);
+  color: var(--text2); cursor: pointer; font-family: var(--font-body);
+  transition: all 0.12s; white-space: nowrap;
+}
+.bl-action-btn:hover { background: rgba(255,255,255,0.07); border-color: var(--text3); color: var(--text); }
+.bl-action-btn:active { transform: scale(0.96); }
+.bl-action-btn.pay { border-color: rgba(34,197,94,0.4); color: var(--green); background: rgba(34,197,94,0.08); }
+.bl-action-btn.pay:hover { background: rgba(34,197,94,0.14); }
+.bl-action-btn.ptp.active { border-color: var(--purple); color: var(--purple); background: rgba(167,139,250,0.1); }
+.bl-action-btn.danger { border-color: rgba(239,68,68,0.3); color: var(--red); }
+.bl-action-btn.danger:hover { background: rgba(239,68,68,0.08); }
+.bl-action-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+/* Load more */
+.bl-load-more {
+  text-align: center; padding: 14px; margin-top: 4px;
+}
+/* Checkbox on card */
+.bl-cb { accent-color: var(--gold); cursor: pointer; width: 15px; height: 15px; flex-shrink: 0; }
+/* Selected state */
+.bl-card.selected {
+  border-color: var(--gold) !important;
+  background: rgba(240,160,48,0.05) !important;
+}
+/* Mobile: collapse amounts on tiny screens */
+@media (max-width: 400px) {
+  .bl-amounts { min-width: 70px; }
+  .bl-due { font-size: 12px; }
+}
+
+/* ═══ SETTINGS PAGE PREMIUM ═══════════════════════════════ */
+.settings-section-label {
+  font-size: 10px; font-weight: 700; color: var(--text3);
+  text-transform: uppercase; letter-spacing: 1.2px;
+  padding: 20px 0 8px; margin: 0;
+}
+.settings-group {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 8px;
+  box-shadow: inset 0 1px 0 var(--border-hi), 0 2px 12px rgba(0,0,0,0.2);
+}
+.settings-row {
+  display: flex; justify-content: space-between; align-items: center;
+  width: 100%; padding: 15px 18px;
+  background: none; border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  cursor: pointer; font-size: 13px; color: var(--text);
+  text-align: left; transition: background 0.12s;
+  font-family: var(--font-body); gap: 12px;
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-row:hover { background: rgba(255,255,255,0.03); }
+.settings-row:active { background: rgba(255,255,255,0.06); }
+.settings-row-icon {
+  width: 32px; height: 32px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.settings-row-label { flex: 1; min-width: 0; }
+.settings-row-label-main { font-size: 14px; font-weight: 500; color: var(--text); }
+.settings-row-label-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+.settings-chevron { color: var(--text3); font-size: 18px; font-weight: 300; flex-shrink: 0; }
+.settings-row-value { font-size: 12px; color: var(--text3); flex-shrink: 0; }
+/* Danger row */
+.settings-row.danger { color: var(--red); }
+.settings-row.danger:hover { background: rgba(239,68,68,0.06); }
+
+/* ═══ MOBILE EFFECTS (max-width: 900px) ═══════════════════ */
+@media (max-width: 900px) {
+  /* Glass cards */
+  .card, .kpi-card {
+    background: rgba(14,17,24,0.82) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    box-shadow: inset 0 1px 0 var(--border-hi), 0 2px 20px rgba(0,0,0,0.45) !important;
+  }
+  /* Drawer glass */
+  #mobile-drawer {
+    background: rgba(6,8,15,0.94) !important;
+    backdrop-filter: blur(28px) !important;
+    -webkit-backdrop-filter: blur(28px) !important;
+    border-right: 1px solid rgba(255,255,255,0.06) !important;
+  }
+  /* Drawer overlay darker */
+  #mobile-drawer-overlay {
+    background: rgba(0,0,0,0.6) !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+  }
+  /* Active drawer item — gold left bar + gradient bg */
+  .mdrawer-item { position: relative; }
+  .mdrawer-item.active {
+    background: linear-gradient(90deg, rgba(240,160,48,0.14), transparent) !important;
+    color: var(--gold) !important;
+    font-weight: 700 !important;
+    border-left-color: var(--gold) !important;
+  }
+  .mdrawer-item.active .mdrawer-icon { color: var(--gold); }
+  /* Spring modal */
+  #modal-overlay.open .modal {
+    animation: modalSpring 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) both !important;
+  }
+  /* Modal backdrop blur */
+  #modal-overlay { backdrop-filter: blur(8px) !important; -webkit-backdrop-filter: blur(8px) !important; }
+  /* Btn-gold gradient on mobile */
+  .btn-gold {
+    background: var(--gold-grad) !important;
+    color: #000 !important;
+    box-shadow: 0 2px 12px rgba(240,160,48,0.3) !important;
+  }
+  /* Mobile header glass */
+  #mobile-header {
+    background: rgba(6,8,15,0.88) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+  }
+  /* Page slide transition on mobile */
+  .page.active { animation: pageEnter 0.2s cubic-bezier(0.25,0.46,0.45,0.94) both !important; }
+  /* Pulse ring on mobile */
+  tr.overdue-critical .heat-ring {
+    box-shadow: 0 0 8px rgba(239,68,68,0.7) !important;
+    animation: pulseRing 2.2s ease infinite !important;
+  }
+  /* KPI card hover lift on mobile tap */
+  .kpi-card:active { transform: scale(0.97); }
+  /* Input focus rings on mobile */
+  .form-input:focus {
+    border-color: var(--gold) !important;
+    box-shadow: 0 0 0 3px rgba(240,160,48,0.12) !important;
+  }
+  /* PTP tab active */
+  .ptp-tab.active {
+    background: var(--gold-grad) !important;
+    color: #000 !important;
+    font-weight: 700 !important;
+    box-shadow: 0 2px 8px rgba(240,160,48,0.3) !important;
+  }
+  /* Sync dot glow on mobile */
+  #mdrawer-sync-dot.green { background: var(--green) !important; box-shadow: 0 0 6px rgba(34,197,94,0.6) !important; }
+  /* SVG drawer icons inherit color properly */
+  .mdrawer-icon svg { stroke: currentColor; }
+  .mdrawer-item.active .mdrawer-icon svg { stroke: var(--gold); }
+}
 </style>
 </head>
 <body>
@@ -922,8 +1609,15 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
 <!-- SIDEBAR -->
 <nav id="sidebar">
   <div class="sidebar-logo">
-    <div class="logo-mark" id="logo-mark">SqueveTrack</div>
-    <div class="logo-sub">M2 Collection Manager</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:34px;height:34px;border-radius:10px;background:var(--gold-grad);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 12px rgba(240,160,48,0.4)">
+        <span style="font-family:var(--font-head);font-size:15px;font-weight:800;color:#000;letter-spacing:-1px">ST</span>
+      </div>
+      <div>
+        <div class="logo-mark" id="logo-mark" style="background:var(--gold-grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">SqueveTrack</div>
+        <div class="logo-sub">LoanBase Recovery</div>
+      </div>
+    </div>
   </div>
   <div class="sidebar-month" id="sidebar-month">📅 MARCH 2026</div>
   <div style="padding:0 12px 8px">
@@ -936,37 +1630,37 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
   <div class="nav-section-label">Menu</div>
   <div id="sidebar-nav-scroll">
   <div class="nav-item active" data-page="dashboard">
-    <span class="nav-icon">📊</span> Dashboard
+    <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="7" height="7" rx="1.5"/><rect x="11" y="2" width="7" height="7" rx="1.5"/><rect x="2" y="11" width="7" height="7" rx="1.5"/><rect x="11" y="11" width="7" height="7" rx="1.5"/></svg></span> Dashboard
   </div>
   <div class="nav-item" data-page="loans">
-    <span class="nav-icon">👥</span> Borrowers
+    <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7.5" cy="6" r="3"/><path d="M1 17c0-3.31 2.91-6 6.5-6"/><circle cx="14" cy="7" r="2.5"/><path d="M11 17c0-2.76 1.79-5 4-5.5"/></svg></span> Borrowers
     <span class="nav-badge" id="badge-unpaid">—</span>
   </div>
   <div class="nav-item" data-page="analytics">
-    <span class="nav-icon">📈</span> Analytics
+    <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="2,15 7,9 11,12 18,5"/><line x1="2" y1="18" x2="18" y2="18"/></svg></span> Analytics
   </div>
   <div class="nav-item" data-page="dispatch">
-    <span class="nav-icon">💬</span> WhatsApp
+    <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 5h14a1 1 0 011 1v8a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1z"/><polyline points="2,5 10,11 18,5"/></svg></span> WhatsApp
     <span class="nav-badge gold" id="badge-dispatch">—</span>
   </div>
   <div class="nav-item" data-page="smsblast">
-    <span class="nav-icon">📱</span> SMS Blast
+    <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 4h16v10H2z" rx="1"/><path d="M6 14l-2 3 4-1"/></svg></span> SMS Blast
   </div>
   <div class="nav-item" data-page="log">
-    <span class="nav-icon">📅</span> Daily Log
+    <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="2" width="14" height="16" rx="1.5"/><line x1="7" y1="7" x2="13" y2="7"/><line x1="7" y1="10" x2="13" y2="10"/><line x1="7" y1="13" x2="10" y2="13"/></svg></span> Daily Log
   </div>
   <div class="nav-item" data-page="segments">
-    <span class="nav-icon">🗂️</span> Segments
+    <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="8"/><path d="M10 2v8l5.66 5.66"/></svg></span> Segments
   </div>
   <div class="nav-item" data-page="ranking">
-    <span class="nav-icon">🏆</span> Ranking
+    <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="10" width="4" height="8"/><rect x="8" y="6" width="4" height="12"/><rect x="14" y="3" width="4" height="15"/></svg></span> Ranking
   </div>
   <div class="nav-item" data-page="ptp">
-    <span class="nav-icon">🤝</span> PTP Hub
+    <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 9l3 3 3-3"/><path d="M10 3a7 7 0 100 14A7 7 0 0010 3z"/></svg></span> PTP Hub
     <span class="nav-badge" id="badge-ptp" style="background:var(--purple);display:none">0</span>
   </div>
   <div class="nav-item" data-page="reports">
-    <span class="nav-icon">📋</span> Reports
+    <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 2h8l4 4v12H4V2z"/><polyline points="12,2 12,6 16,6"/><line x1="7" y1="9" x2="13" y2="9"/><line x1="7" y1="12" x2="13" y2="12"/><line x1="7" y1="15" x2="10" y2="15"/></svg></span> Reports
   </div>
   </div><!-- end sidebar-nav-scroll -->
     <div id="sync-status" style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:11px">
@@ -1084,80 +1778,90 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
 
   <!-- LOANS -->
   <section class="page" id="page-loans">
-    <div class="page-header">
+    <!-- ── Header ─────────────────────────────────────────── -->
+    <div class="bl-header">
       <div>
-        <div class="page-title">Borrowers</div>
-        <div class="page-sub" id="loans-count-sub"></div>
+        <div class="page-title" style="font-size:22px">Borrowers</div>
+        <div id="loans-count-sub" class="bl-sub"></div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <button class="btn btn-ghost" onclick="openExportModal()">⬇ Export CSV</button>
-        <button class="btn btn-gold" onclick="openAddModal()">＋ New Borrower</button>
+        <button class="btn btn-ghost btn-sm" onclick="openExportModal()" title="Export CSV">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" style="width:15px;height:15px;vertical-align:middle;margin-right:4px"><path d="M10 3v10M6 10l4 4 4-4"/><line x1="3" y1="17" x2="17" y2="17"/></svg>Export
+        </button>
+        <button class="btn btn-gold" onclick="openAddModal()">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:middle;margin-right:4px"><line x1="10" y1="4" x2="10" y2="16"/><line x1="4" y1="10" x2="16" y2="10"/></svg>New
+        </button>
       </div>
     </div>
-    <div class="card">
-      <div class="table-controls">
-        <div style="position:relative;display:inline-flex;align-items:center">
-          <input class="search-input" id="loan-search" placeholder="🔍  Search name or phone…" oninput="debouncedRenderLoans()" style="padding-right:28px">
-          <button onclick="clearSearch('loan-search',renderLoansTable)" style="position:absolute;right:6px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0;line-height:1" title="Clear search">✕</button>
-        </div>
-        <select class="filter-select" id="loan-filter-status" onchange="renderLoansTable()">
-          <option value="">All Statuses</option>
-          <option value="Unpaid">⏳ Unpaid</option>
-          <option value="Partial">⚠ Partial</option>
-          <option value="Paid">✅ Paid</option>
+
+    <!-- ── Search + Filter bar ────────────────────────────── -->
+    <div class="bl-filter-bar">
+      <div class="bl-search-wrap">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" class="bl-search-icon"><circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="17" y2="17"/></svg>
+        <input class="bl-search" id="loan-search" placeholder="Search name or phone…" oninput="debouncedRenderLoans()">
+        <button onclick="clearSearch('loan-search',renderLoansTable)" class="bl-clear-btn" title="Clear">✕</button>
+      </div>
+      <div class="bl-chips" id="bl-filter-chips">
+        <select class="bl-chip-sel" id="loan-filter-status" onchange="renderLoansTable()">
+          <option value="">All Status</option>
+          <option value="Unpaid">Unpaid</option>
+          <option value="Partial">Partial</option>
+          <option value="Paid">Paid</option>
         </select>
-        <select class="filter-select" id="loan-filter-type" onchange="renderLoansTable()">
+        <select class="bl-chip-sel" id="loan-filter-priority" onchange="renderLoansTable()">
+          <option value="">Any Priority</option>
+          <option value="high">High (8–10)</option>
+          <option value="mid">Mid (5–7)</option>
+          <option value="low">Low (1–4)</option>
+        </select>
+        <select class="bl-chip-sel" id="loan-filter-od" onchange="renderLoansTable()">
+          <option value="">All Days</option>
+        </select>
+        <select class="bl-chip-sel" id="loan-filter-type" onchange="renderLoansTable()">
           <option value="">All Types</option>
           <option value="LoanBase">LoanBase</option>
-          <option value="LoanBase Pro">LoanBase Pro</option>
+          <option value="LoanBase Pro">Pro</option>
         </select>
-        <select class="filter-select" id="loan-filter-od" onchange="renderLoansTable()">
-          <option value="">All OD Ages</option>
-        </select>
-        <select class="filter-select" id="loan-filter-priority" onchange="renderLoansTable()">
-          <option value="">All Priorities</option>
-          <option value="high">🔴 High (8–10)</option>
-          <option value="mid">🟡 Mid (5–7)</option>
-          <option value="low">🟢 Low (1–4)</option>
-        </select>
-        <select class="filter-select" id="loan-filter-badge" onchange="renderLoansTable()">
+        <select class="bl-chip-sel" id="loan-filter-badge" onchange="renderLoansTable()">
           <option value="">All Badges</option>
-          <option value="paid">✅ Fully Paid</option>
-          <option value="star">⭐ Reliable Payer</option>
-          <option value="warn">⚠️ Broken Promise</option>
-          <option value="fraud">🚨 Fraud Flagged</option>
+          <option value="paid">Fully Paid</option>
+          <option value="star">Reliable</option>
+          <option value="warn">Broken PTP</option>
+          <option value="fraud">Fraud Flag</option>
         </select>
-        <span style="margin-left:auto;font-size:12px;color:var(--text3)" id="loans-showing"></span>
+        <div class="bl-sort-wrap">
+          <select class="bl-chip-sel" id="bl-sort-sel" onchange="blSortChange(this.value)" style="min-width:120px">
+            <option value="dueToday_-1">Due Today ↑ High</option>
+            <option value="dueToday_1">Due Today ↑ Low</option>
+            <option value="odAge_-1">OD Age ↑ High</option>
+            <option value="odAge_1">OD Age ↑ Low</option>
+            <option value="name_1">Name A–Z</option>
+            <option value="name_-1">Name Z–A</option>
+            <option value="loanDue_-1">Loan Due ↑ High</option>
+            <option value="status_1">Status</option>
+          </select>
+        </div>
       </div>
-      <div class="table-wrap">
-        <table id="loans-table">
-          <thead>
-            <tr>
-              <th style="width:28px"><input type="checkbox" id="select-all-cb" style="accent-color:var(--gold);cursor:pointer" onchange="toggleSelectAll(this.checked)"></th>
-              <th>#</th>
-              <th onclick="sortLoans('name')">Name ↕</th>
-              <th>Phone</th>
-              <th onclick="sortLoans('odAge')">OD Age ↕</th>
-              <th>Loan Type</th>
-              <th onclick="sortLoans('loanDue')" class="txt-right">Loan Due ↕</th>
-              <th onclick="sortLoans('amountPaid')" class="txt-right">Paid ↕</th>
-              <th onclick="sortLoans('dueToday')" class="txt-right">Due Today ↕</th>
-              <th onclick="sortLoans('status')">Status ↕</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="loans-tbody"></tbody>
-        </table>
+      <div class="bl-meta">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text3)">
+          <input type="checkbox" id="select-all-cb" style="accent-color:var(--gold);cursor:pointer" onchange="toggleSelectAll(this.checked)"> All
+        </label>
+        <span id="loans-showing" style="font-size:11px;color:var(--text3)"></span>
       </div>
     </div>
-    <div id="bulk-bar" style="display:none;position:sticky;bottom:0;background:var(--surface);border-top:2px solid var(--gold);padding:10px 16px;align-items:center;gap:10px;flex-wrap:wrap;z-index:10">
+
+    <!-- ── Cards list ─────────────────────────────────────── -->
+    <div id="loans-tbody" class="bl-list"></div>
+
+    <!-- ── Bulk action bar ───────────────────────────────── -->
+    <div id="bulk-bar" style="display:none;position:sticky;bottom:0;background:rgba(14,17,24,0.95);backdrop-filter:blur(12px);border-top:1.5px solid var(--gold);padding:10px 16px;align-items:center;gap:8px;flex-wrap:wrap;z-index:10">
       <span id="bulk-count" style="font-size:13px;font-weight:700;color:var(--gold)">0 selected</span>
       <button class="btn btn-ghost btn-sm" id="ba-paid">✅ Mark Paid</button>
       <button class="btn btn-ghost btn-sm" id="ba-promise">🤝 Promise</button>
-      <button class="btn btn-ghost btn-sm" id="ba-base">Set LoanBase</button>
-      <button class="btn btn-ghost btn-sm" id="ba-pro">Set Pro</button>
-      <button class="btn btn-red btn-sm" id="ba-delete">🗑 Delete</button>
-      <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="clearBulkSelect()">✕ Clear</button>
+      <button class="btn btn-ghost btn-sm" id="ba-base">Base</button>
+      <button class="btn btn-ghost btn-sm" id="ba-pro">Pro</button>
+      <button class="btn btn-red btn-sm" id="ba-delete">Delete</button>
+      <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="clearBulkSelect()">✕</button>
     </div>
   </section>
 
@@ -1241,49 +1945,53 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
   <section class="page" id="page-dispatch">
     <div class="page-header">
       <div>
-        <div class="page-title">WhatsApp Dispatch</div>
-        <div class="page-sub">Grouped by OD day · click to open WhatsApp directly</div>
+        <div class="page-title" style="font-size:22px">WhatsApp</div>
+        <div class="page-sub" id="dispatch-stats">Grouped by OD day</div>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <div class="msg-toggle">
-          <button class="msg-toggle-btn" data-mode="full" onclick="setDispatchMode('full')">💰 Full Amount</button>
-          <button class="msg-toggle-btn active" data-mode="generous" onclick="setDispatchMode('generous')">💛 Generous Offer</button>
-        </div>
-        <select class="filter-select" id="dispatch-filter" onchange="renderDispatch()">
+    </div>
+
+    <!-- Controls bar -->
+    <div class="bl-filter-bar" style="margin-bottom:12px">
+      <!-- Message mode toggle -->
+      <div style="display:flex;gap:6px">
+        <button class="msg-toggle-btn" data-mode="full" onclick="setDispatchMode('full')" style="flex:1;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-body);transition:all 0.15s">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px;vertical-align:middle;margin-right:4px"><circle cx="10" cy="10" r="8"/><path d="M10 6v1.5M10 12.5V14M7.5 8.5a2.5 2.5 0 015 1c0 1.38-1.12 2-2.5 2.5"/></svg>Full Amount
+        </button>
+        <button class="msg-toggle-btn active" data-mode="generous" onclick="setDispatchMode('generous')" style="flex:1;padding:9px 12px;border-radius:10px;border:1.5px solid var(--gold);background:rgba(240,160,48,0.1);color:var(--gold);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font-body);transition:all 0.15s">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px;vertical-align:middle;margin-right:4px"><circle cx="7" cy="7" r="3"/><circle cx="14" cy="14" r="3"/><line x1="3" y1="17" x2="17" y2="3"/></svg>Generous Offer
+        </button>
+      </div>
+      <!-- Filters row -->
+      <div class="bl-chips">
+        <select class="bl-chip-sel" id="dispatch-filter" onchange="renderDispatch()">
           <option value="">All Active</option>
-          <option value="Unpaid">⏳ Unpaid Only</option>
-          <option value="Partial">⚠ Partial Only</option>
-          <option value="high">💰 High (₵1,000+)</option>
-          <option value="medium">💛 Medium (₵400-999)</option>
-          <option value="low">📉 Low (below ₵400)</option>
-          <option value="critical">🔴 Critical (Day 13+)</option>
-          <option value="promised">🤝 Promised to Pay</option>
+          <option value="Unpaid">Unpaid</option>
+          <option value="Partial">Partial</option>
+          <option value="high">₵1,000+</option>
+          <option value="medium">₵400–999</option>
+          <option value="low">Below ₵400</option>
+          <option value="critical">Day 13+</option>
+          <option value="promised">Promised</option>
         </select>
-      </div>
-    </div>
-    <div class="card">
-      <div style="padding:12px 20px;border-bottom:1px solid var(--border);display:flex;gap:16px;flex-wrap:wrap;align-items:center">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span style="font-size:12px;color:var(--text2)">📱 <span id="dispatch-stats"></span></span>
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            <div style="position:relative;display:inline-flex;align-items:center">
-              <input class="search-input" id="dispatch-search" placeholder="🔍 Search name..." oninput="renderDispatch()" style="font-size:12px;padding-right:24px;width:130px">
-              <button onclick="clearSearch('dispatch-search',renderDispatch)" style="position:absolute;right:6px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:0;line-height:1">✕</button>
-            </div>
-            <input type="number" class="filter-select" id="dispatch-min-amount" placeholder="₵ Min" oninput="renderDispatch()" style="width:68px;font-size:11px" min="0">
-            <span style="font-size:11px;color:var(--text3)">–</span>
-            <input type="number" class="filter-select" id="dispatch-max-amount" placeholder="₵ Max" oninput="renderDispatch()" style="width:68px;font-size:11px" min="0">
-          </div>
+        <div class="bl-search-wrap" style="flex:1;min-width:120px;max-width:200px">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" class="bl-search-icon"><circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="17" y2="17"/></svg>
+          <input class="bl-search" id="dispatch-search" placeholder="Search name…" oninput="renderDispatch()" style="height:34px;font-size:12px">
+          <button onclick="clearSearch('dispatch-search',renderDispatch)" class="bl-clear-btn">✕</button>
         </div>
-        <span style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span style="font-size:12px;color:var(--text2)">💛 OD Discount:</span>
-          <input type="range" class="discount-slider" id="discount-slider" min="0" max="100" value="30" oninput="updateDiscount(this.value)">
-          <span style="font-family:var(--font-mono);color:var(--gold);font-size:12px;min-width:36px" id="discount-label">30%</span>
-          <span style="font-size:11px;color:var(--text3)" id="discount-desc">(customer pays 30% of OD fee)</span>
-        </span>
+        <input type="number" class="bl-chip-sel" id="dispatch-min-amount" placeholder="₵ Min" oninput="renderDispatch()" style="width:72px" min="0">
+        <input type="number" class="bl-chip-sel" id="dispatch-max-amount" placeholder="₵ Max" oninput="renderDispatch()" style="width:72px" min="0">
       </div>
-      <div class="card-body" id="dispatch-list" style="padding:0 20px"></div>
+      <!-- Discount -->
+      <div style="display:flex;align-items:center;gap:10px;padding-top:6px;border-top:1px solid var(--border)">
+        <span style="font-size:12px;color:var(--text3);flex-shrink:0">OD Discount</span>
+        <input type="range" class="discount-slider" id="discount-slider" min="0" max="100" value="30" oninput="updateDiscount(this.value)" style="flex:1">
+        <span style="font-family:var(--font-mono);color:var(--gold);font-size:13px;font-weight:700;min-width:36px;text-align:right" id="discount-label">30%</span>
+        <span style="font-size:11px;color:var(--text3);min-width:120px" id="discount-desc">customer pays 30% of OD fee</span>
+      </div>
     </div>
+
+    <!-- Contact list -->
+    <div id="dispatch-list"></div>
   </section>
 
   <!-- DAILY LOG -->
@@ -1351,117 +2059,151 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
   <section class="page" id="page-smsblast">
     <div class="page-header">
       <div>
-        <div class="page-title">SMS Blast</div>
-        <div class="page-sub">Select contacts, pick a template, and send</div>
+        <div class="page-title" style="font-size:22px">Message Blast</div>
+        <div class="page-sub">Compose once, reach everyone</div>
       </div>
     </div>
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-body" style="padding:12px 20px">
-        <div class="discount-wrap">
-          <span style="font-size:12px;color:var(--text2);font-weight:600">💛 OD Discount for Generous templates:</span>
-          <input type="range" class="discount-slider" id="sms-discount-slider" min="0" max="100" value="30" oninput="updateSmsDiscount(this.value)">
-          <span style="font-family:var(--font-mono);color:var(--gold);font-size:12px;min-width:36px" id="sms-discount-label">30%</span>
-          <span style="font-size:11px;color:var(--text3)" id="sms-discount-desc">(customer pays 30% of OD fee)</span>
+
+    <!-- ── Template + Preview ─────────────────────────── -->
+    <div class="settings-group" style="margin-bottom:12px">
+      <!-- Template select -->
+      <div class="settings-row" style="cursor:default;flex-wrap:wrap;row-gap:10px">
+        <div class="settings-row-icon" style="background:rgba(240,160,48,0.12);color:var(--gold)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><rect x="3" y="3" width="14" height="14" rx="2"/><line x1="7" y1="8" x2="13" y2="8"/><line x1="7" y1="11" x2="10" y2="11"/></svg>
         </div>
+        <div class="settings-row-label"><div class="settings-row-label-main">Template</div></div>
+        <select class="filter-select" id="sms-tmpl-select" onchange="setSmsTemplate(this.value)" style="width:100%;margin-left:44px;font-size:13px;border-radius:10px">
+          <optgroup label="── Gentle ──">
+            <option value="gentle_1">Polite Reminder</option>
+            <option value="gentle_2">Soft Follow-Up</option>
+          </optgroup>
+          <optgroup label="── Standard ──">
+            <option value="standard_1">Standard Overdue</option>
+            <option value="standard_2">Firm Notice</option>
+          </optgroup>
+          <optgroup label="── Escalated ──">
+            <option value="escalated_1">Final Warning</option>
+            <option value="escalated_2">Pre-Legal Notice</option>
+          </optgroup>
+          <optgroup label="── Legal-Backed ──">
+            <option value="legal_1">Formal Demand</option>
+            <option value="legal_2">Legal Action Notice</option>
+          </optgroup>
+          <optgroup label="── Discount Offer ──">
+            <option value="generous_1">Discount Offer</option>
+            <option value="generous_2">Last Chance Offer</option>
+          </optgroup>
+          <optgroup label="── Custom ──">
+            <option value="custom">Write My Own</option>
+          </optgroup>
+        </select>
+      </div>
+      <!-- Discount slider (shown for generous) -->
+      <div class="settings-row" style="cursor:default">
+        <div class="settings-row-icon" style="background:rgba(252,192,68,0.12);color:var(--gold2)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><circle cx="7" cy="7" r="3"/><circle cx="14" cy="14" r="3"/><line x1="3" y1="17" x2="17" y2="3"/></svg>
+        </div>
+        <div class="settings-row-label"><div class="settings-row-label-main">OD Discount</div><div class="settings-row-label-sub" id="sms-discount-desc">30% of OD fee</div></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="range" class="discount-slider" id="sms-discount-slider" min="0" max="100" value="30" oninput="updateSmsDiscount(this.value)" style="width:80px">
+          <span style="font-family:var(--font-mono);color:var(--gold);font-size:13px;font-weight:700;min-width:36px;text-align:right" id="sms-discount-label">30%</span>
+        </div>
+      </div>
+      <!-- Custom textarea (hidden until custom selected) -->
+      <div id="sms-vars" style="display:none;padding:10px 18px;border-top:1px solid var(--border);flex-wrap:wrap;gap:6px;align-items:center">
+        <select id="sms-name-format" class="filter-select" style="font-size:11px;padding:3px 8px" onchange="insertNameVar()">
+          <option value="{name}">Full Name</option><option value="{firstname}">First Name</option>
+          <option value="{lastname}">Last Name</option><option value="{firstname} {lastname}">First + Last</option>
+        </select>
+        <button class="btn btn-ghost btn-xs" onclick="insertNameVar()">+ Name</button>
+        <button class="btn btn-ghost btn-xs" data-var="{amount}">+ Amount</button>
+        <button class="btn btn-ghost btn-xs" data-var="{generous}">+ Discount</button>
+        <button class="btn btn-ghost btn-xs" data-var="{odday}">+ OD Day</button>
+      </div>
+      <textarea class="form-input" id="sms-custom-msg" rows="3" style="display:none;width:calc(100% - 36px);margin:0 18px 14px;font-size:12px;resize:vertical;border-radius:10px" placeholder="e.g. {name}, please pay {amount} to clear your loan." oninput="updateSmsPreview()"></textarea>
+      <!-- Preview -->
+      <div style="margin:0 18px 14px;background:rgba(255,255,255,0.03);border:1px solid var(--border2);border-radius:12px;padding:12px 14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px">Preview</span>
+          <div id="sms-char-ring"></div>
+        </div>
+        <div id="sms-preview-text" style="font-size:12px;color:var(--text2);line-height:1.7;min-height:36px">Select a contact to preview</div>
       </div>
     </div>
-    <div class="two-col" style="margin-bottom:0">
-      <div class="card">
-        <div class="card-header"><span class="card-title">📝 Message Template</span></div>
-        <div class="card-body">
-          <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
-            <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-weight:600">Template</label>
-            <select class="filter-select" id="sms-tmpl-select" onchange="setSmsTemplate(this.value)" style="flex:1;min-width:200px;font-size:12px">
-              <optgroup label="── Gentle ──">
-                <option value="gentle_1">😊 Polite Reminder</option>
-                <option value="gentle_2">🙏 Soft Follow-Up</option>
-              </optgroup>
-              <optgroup label="── Standard ──">
-                <option value="standard_1">📢 Standard Overdue</option>
-                <option value="standard_2">⚠️ Firm Notice</option>
-              </optgroup>
-              <optgroup label="── Escalated ──">
-                <option value="escalated_1">🔴 Final Warning</option>
-                <option value="escalated_2">⛔ Pre-Legal Notice</option>
-              </optgroup>
-              <optgroup label="── Legal-Backed ──">
-                <option value="legal_1">⚖️ Formal Demand</option>
-                <option value="legal_2">🚨 Legal Action Notice</option>
-              </optgroup>
-              <optgroup label="── Discount Offer ──">
-                <option value="generous_1">💛 Discount Offer</option>
-                <option value="generous_2">💛 Last Chance Offer</option>
-              </optgroup>
-              <optgroup label="── Custom ──">
-                <option value="custom">✏️ Write My Own</option>
-              </optgroup>
-            </select>
+
+    <!-- ── Contacts ────────────────────────────────────── -->
+    <div class="settings-group" style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)">
+        <div style="font-size:14px;font-weight:600">Contacts</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="bl-search-wrap" style="max-width:160px">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" class="bl-search-icon" style="left:9px"><circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="17" y2="17"/></svg>
+            <input class="bl-search" id="sms-search" placeholder="Search…" oninput="renderSmsBlast()" style="padding-left:30px;padding-right:28px;font-size:12px;height:34px">
+            <button onclick="clearSearch('sms-search',renderSmsBlast)" class="bl-clear-btn">✕</button>
           </div>
-          <div id="sms-vars" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:6px;align-items:center">
-            <span style="font-size:11px;color:var(--text3)">Insert:</span>
-            <span style="font-size:11px;color:var(--text2);font-weight:600">👤</span>
-            <select id="sms-name-format" class="filter-select" style="font-size:11px;padding:3px 6px;height:26px" onchange="insertNameVar()">
-              <option value="{name}">Full Name</option>
-              <option value="{firstname}">First Name</option>
-              <option value="{lastname}">Last Name</option>
-              <option value="{middlename}">Middle Name</option>
-              <option value="{firstname} {lastname}">First + Last</option>
-              <option value="{firstname} {middlename}">First + Middle</option>
-            </select>
-            <button class="btn btn-ghost btn-xs" onclick="insertNameVar()">Insert Name</button>
-            <button class="btn btn-ghost btn-xs" data-var="{amount}">₵ Amount</button>
-            <button class="btn btn-ghost btn-xs" data-var="{generous}">💛 Discount</button>
-            <button class="btn btn-ghost btn-xs" data-var="{loantype}">📋 Loan Type</button>
-            <button class="btn btn-ghost btn-xs" data-var="{odday}">📅 OD Day</button>
-            <button class="btn btn-ghost btn-xs" data-var="{serial}">🔢 Serial</button>
-          </div>
-          <textarea class="form-input" id="sms-custom-msg" rows="3" style="display:none;width:100%;font-size:12px;resize:vertical" placeholder="e.g. {name}, please pay {amount} to clear your {loantype} loan." oninput="updateSmsPreview()"></textarea>
-          <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px;margin-top:8px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-              <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Preview</div>
-              <div id="sms-char-ring"></div>
-            </div>
-            <div id="sms-preview-text" style="font-size:12px;color:var(--text2);line-height:1.6">Select a contact to preview</div>
-          </div>
+          <select class="bl-chip-sel" id="sms-filter" onchange="renderSmsBlast()">
+            <option value="">All Active</option>
+            <option value="Unpaid">Unpaid</option>
+            <option value="Partial">Partial</option>
+            <option value="high">₵1000+</option>
+            <option value="medium">₵400–999</option>
+            <option value="low">Below ₵400</option>
+            <option value="critical">Day 13+</option>
+            <option value="promised">Promised</option>
+          </select>
         </div>
       </div>
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">👥 Select Contacts</span>
-          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-            <div style="position:relative;display:inline-flex;align-items:center">
-              <input class="search-input" id="sms-search" placeholder="🔍 Search..." oninput="renderSmsBlast()" style="width:130px;font-size:12px;padding-right:24px">
-              <button onclick="clearSearch('sms-search',renderSmsBlast)" style="position:absolute;right:5px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:0;line-height:1" title="Clear">✕</button>
-            </div>
-            <select class="filter-select" id="sms-filter" onchange="renderSmsBlast()" style="font-size:12px">
-              <option value="">All Active</option>
-              <option value="Unpaid">Unpaid</option>
-              <option value="Partial">Partial</option>
-              <option value="high">₵1000+</option>
-              <option value="medium">₵400-999</option>
-              <option value="low">Below ₵400</option>
-              <option value="critical">Day 13+</option>
-              <option value="promised">Promised</option>
-            </select>
-          </div>
-        </div>
-        <div style="padding:8px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center">
-          <button class="btn btn-ghost btn-xs" onclick="smsSelectAll()">✅ All</button>
-          <button class="btn btn-ghost btn-xs" onclick="smsClearAll()">✖ None</button>
-          <span style="font-size:11px;color:var(--text3);margin-left:auto" id="sms-select-count">0 selected</span>
-        </div>
-        <div id="sms-contact-list" style="max-height:260px;overflow-y:auto;padding:0"></div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 18px;border-bottom:1px solid var(--border)">
+        <button class="bl-action-btn" onclick="smsSelectAll()" style="font-size:11px">Select All</button>
+        <button class="bl-action-btn" onclick="smsClearAll()" style="font-size:11px">Clear</button>
+        <span style="font-size:11px;color:var(--text3);margin-left:auto" id="sms-select-count">0 selected</span>
       </div>
+      <div id="sms-contact-list" style="max-height:320px;overflow-y:auto"></div>
     </div>
-    <div class="card" style="margin-top:16px">
-      <div class="card-body" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-        <span style="font-size:13px;color:var(--text2)" id="sms-action-count">0 contacts selected</span>
-        <button class="btn btn-gold btn-sm" onclick="sendBulkSMS()" title="Opens your SMS app with all selected numbers and message pre-filled — one tap sends to all (Android)">📤 Bulk SMS</button>
-        <button class="btn btn-green btn-sm" onclick="startSequential('wa')">💬 WhatsApp Queue</button>
-        <button class="btn btn-ghost btn-sm" onclick="startSequential('sms')">📱 Sequential SMS</button>
-        <button class="btn btn-ghost btn-sm" onclick="openSmsReviewModal('copy')">📋 Copy Numbers</button>
-        <button class="btn btn-ghost btn-sm" onclick="openSmsReviewModal('export')">⬇ Export List</button>
+
+    <!-- ── Send actions ───────────────────────────────── -->
+    <div class="settings-group" style="margin-bottom:20px">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:14px;font-weight:600" id="sms-action-count">0 contacts selected</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">Choose a delivery method below</div>
+        </div>
       </div>
+      <button class="settings-row" onclick="startSequential('wa')">
+        <div class="settings-row-icon" style="background:rgba(37,211,102,0.12);color:#25d366">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><path d="M3 5h14a1 1 0 011 1v8a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1z"/><polyline points="2,5 10,11 18,5"/></svg>
+        </div>
+        <div class="settings-row-label"><div class="settings-row-label-main">WhatsApp Queue</div><div class="settings-row-label-sub">Opens each chat one by one</div></div>
+        <span class="settings-chevron">›</span>
+      </button>
+      <button class="settings-row" onclick="sendBulkSMS()">
+        <div class="settings-row-icon" style="background:rgba(96,165,250,0.12);color:var(--blue)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><path d="M2 4h16v10H2z" rx="1"/><path d="M6 14l-2 3 4-1"/></svg>
+        </div>
+        <div class="settings-row-label"><div class="settings-row-label-main">Bulk SMS</div><div class="settings-row-label-sub">Opens SMS app with all numbers</div></div>
+        <span class="settings-chevron">›</span>
+      </button>
+      <button class="settings-row" onclick="startSequential('sms')">
+        <div class="settings-row-icon" style="background:rgba(167,139,250,0.12);color:var(--purple)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><path d="M4 4h12a1 1 0 011 1v8a1 1 0 01-1 1H7l-4 3V5a1 1 0 011-1z"/></svg>
+        </div>
+        <div class="settings-row-label"><div class="settings-row-label-main">Sequential SMS</div><div class="settings-row-label-sub">Send one at a time via SMS</div></div>
+        <span class="settings-chevron">›</span>
+      </button>
+      <button class="settings-row" onclick="openSmsReviewModal('copy')">
+        <div class="settings-row-icon" style="background:rgba(240,160,48,0.1);color:var(--gold)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M13 7V4.5A1.5 1.5 0 0011.5 3h-7A1.5 1.5 0 003 4.5v7A1.5 1.5 0 004.5 13H7"/></svg>
+        </div>
+        <div class="settings-row-label"><div class="settings-row-label-main">Copy Numbers</div><div class="settings-row-label-sub">Copy all selected to clipboard</div></div>
+        <span class="settings-chevron">›</span>
+      </button>
+      <button class="settings-row" onclick="openSmsReviewModal('export')">
+        <div class="settings-row-icon" style="background:rgba(34,197,94,0.1);color:var(--green)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><path d="M10 3v10M6 10l4 4 4-4"/><line x1="3" y1="17" x2="17" y2="17"/></svg>
+        </div>
+        <div class="settings-row-label"><div class="settings-row-label-main">Export List</div><div class="settings-row-label-sub">Download as CSV</div></div>
+        <span class="settings-chevron">›</span>
+      </button>
     </div>
   </section>
 
@@ -1612,86 +2354,146 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
 
   <!-- DATA HEALTH PAGE (accessed from settings) -->
   <section class="page" id="page-health">
-    <div class="page-header"><div><div class="page-title">⚙️ Settings</div><div class="page-sub">Account, preferences and data</div></div></div>
+    <div class="page-header"><div>
+      <div class="page-title" style="font-size:22px">Settings</div>
+      <div class="page-sub">Account &amp; preferences</div>
+    </div></div>
 
-    <!-- Profile card — beautiful hero card, edit via modal -->
-    <div id="settings-agent-card" style="margin-bottom:14px"></div>
+    <!-- Profile hero -->
+    <div id="settings-agent-card" style="margin-bottom:6px"></div>
     <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="settingsLoadAvatar(this)">
 
     <!-- Preferences -->
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-header"><span class="card-title">🎛 Preferences</span></div>
-      <div class="card-body" style="padding:0">
-        <!-- Theme -->
-        <div class="settings-row" style="cursor:default">
-          <span>🌙 Theme</span>
-          <div style="display:flex;background:var(--surface2);border-radius:20px;padding:2px;gap:2px">
-            <button id="theme-btn-dark" onclick="settingsSetTheme('dark')" style="padding:4px 12px;border:none;border-radius:18px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font-body);transition:all 0.15s">Dark</button>
-            <button id="theme-btn-light" onclick="settingsSetTheme('light')" style="padding:4px 12px;border:none;border-radius:18px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font-body);transition:all 0.15s">Light</button>
-          </div>
+    <p class="settings-section-label">Preferences</p>
+    <div class="settings-group">
+      <!-- Theme -->
+      <div class="settings-row" style="cursor:default">
+        <div class="settings-row-icon" style="background:rgba(160,120,240,0.15);color:#a78bfa">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><path d="M10 2a8 8 0 100 16A8 8 0 0010 2z"/><path d="M10 2v16M2 10h16" opacity=".4"/></svg>
         </div>
-        <!-- Haptic -->
-        <div class="settings-row" style="cursor:default">
-          <span>📳 Haptic Feedback</span>
-          <label style="position:relative;width:44px;height:24px;display:inline-block;flex-shrink:0">
-            <input type="checkbox" id="haptic-toggle" onchange="settingsToggleHaptic(this.checked)" style="opacity:0;width:0;height:0">
-            <span id="haptic-slider" style="position:absolute;inset:0;background:var(--border2);border-radius:24px;cursor:pointer;transition:background 0.2s"></span>
-            <span id="haptic-knob" style="position:absolute;left:3px;top:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform 0.2s;pointer-events:none"></span>
-          </label>
+        <div class="settings-row-label">
+          <div class="settings-row-label-main">Appearance</div>
+          <div class="settings-row-label-sub">Dark or light theme</div>
         </div>
-        <!-- Daily target -->
-        <div class="settings-row" style="cursor:default;flex-wrap:wrap;gap:8px">
-          <span>🎯 Monthly Target (₵)</span>
-          <div style="display:flex;align-items:center;gap:8px">
-            <input type="number" id="settings-target-input" class="form-input" style="width:120px;padding:6px 10px;font-size:13px" placeholder="e.g. 50000" min="0">
-            <button class="btn btn-gold btn-sm" onclick="settingsSaveTarget()">Save</button>
-          </div>
+        <div style="display:flex;background:var(--surface2);border-radius:20px;padding:2px;gap:2px;border:1px solid var(--border)">
+          <button id="theme-btn-dark" onclick="settingsSetTheme('dark')" style="padding:4px 12px;border:none;border-radius:18px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font-body);transition:all 0.15s">Dark</button>
+          <button id="theme-btn-light" onclick="settingsSetTheme('light')" style="padding:4px 12px;border:none;border-radius:18px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font-body);transition:all 0.15s">Light</button>
+        </div>
+      </div>
+      <!-- Haptic -->
+      <div class="settings-row" style="cursor:default">
+        <div class="settings-row-icon" style="background:rgba(34,197,94,0.12);color:var(--green)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><path d="M10 3v4M6.5 4.5l2 2M4 8H3M5 12.5l-1.5 1M15 12.5l1.5 1M17 8h-1M13.5 4.5l-2 2"/><circle cx="10" cy="11" r="3"/></svg>
+        </div>
+        <div class="settings-row-label">
+          <div class="settings-row-label-main">Haptic Feedback</div>
+          <div class="settings-row-label-sub">Vibration on actions</div>
+        </div>
+        <label style="position:relative;width:44px;height:26px;display:inline-block;flex-shrink:0;cursor:pointer">
+          <input type="checkbox" id="haptic-toggle" onchange="settingsToggleHaptic(this.checked)" style="opacity:0;width:0;height:0">
+          <span id="haptic-slider" style="position:absolute;inset:0;background:var(--border2);border-radius:24px;transition:background 0.2s"></span>
+          <span id="haptic-knob" style="position:absolute;left:3px;top:4px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform 0.2s;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></span>
+        </label>
+      </div>
+      <!-- Monthly Target -->
+      <div class="settings-row" style="cursor:default;flex-wrap:wrap;row-gap:10px">
+        <div class="settings-row-icon" style="background:rgba(240,160,48,0.12);color:var(--gold)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><circle cx="10" cy="10" r="8"/><circle cx="10" cy="10" r="4"/><circle cx="10" cy="10" r="1" fill="currentColor" stroke="none"/></svg>
+        </div>
+        <div class="settings-row-label">
+          <div class="settings-row-label-main">Monthly Target</div>
+          <div class="settings-row-label-sub">Collection goal in GHS</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;width:100%;padding-left:44px">
+          <input type="number" id="settings-target-input" class="form-input" style="flex:1;padding:8px 12px;font-size:13px;font-family:var(--font-mono)" placeholder="e.g. 50000" min="0">
+          <button class="btn btn-gold btn-sm" onclick="settingsSaveTarget()" style="flex-shrink:0">Save</button>
         </div>
       </div>
     </div>
 
     <!-- Security -->
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-header"><span class="card-title">🔐 Security</span></div>
-      <div class="card-body" style="padding:0">
-        <button class="settings-row" onclick="settingsChangePin()"><span>🔑 Change PIN</span><span class="settings-chevron">›</span></button>
-        <button class="settings-row" onclick="startOnboarding(true)"><span>⚙️ Agent Setup / Switch Stage</span><span class="settings-chevron">›</span></button>
-        <button class="settings-row" onclick="settingsLockApp()"><span>🔒 Lock App</span><span class="settings-chevron">›</span></button>
+    <p class="settings-section-label">Security</p>
+    <div class="settings-group">
+      <button class="settings-row" onclick="settingsChangePin()">
+        <div class="settings-row-icon" style="background:rgba(240,160,48,0.12);color:var(--gold)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><rect x="4" y="9" width="12" height="9" rx="2"/><path d="M7 9V6a3 3 0 016 0v3"/></svg>
+        </div>
+        <div class="settings-row-label">
+          <div class="settings-row-label-main">Change PIN</div>
+          <div class="settings-row-label-sub">Update your 4-digit lock code</div>
+        </div>
+        <span class="settings-chevron">›</span>
+      </button>
+      <button class="settings-row" onclick="startOnboarding(true)">
+        <div class="settings-row-icon" style="background:rgba(96,165,250,0.12);color:var(--blue)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><circle cx="10" cy="10" r="8"/><path d="M10 6v4l3 3"/></svg>
+        </div>
+        <div class="settings-row-label">
+          <div class="settings-row-label-main">Agent Setup</div>
+          <div class="settings-row-label-sub">Change stage or profile details</div>
+        </div>
+        <span class="settings-chevron">›</span>
+      </button>
+      <button class="settings-row" onclick="settingsLockApp()">
+        <div class="settings-row-icon" style="background:rgba(249,115,22,0.12);color:var(--orange)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><path d="M10 2L2 7v11h16V7z"/><polyline points="7,18 7,12 13,12 13,18"/></svg>
+        </div>
+        <div class="settings-row-label">
+          <div class="settings-row-label-main">Lock App</div>
+          <div class="settings-row-label-sub">Return to PIN screen</div>
+        </div>
+        <span class="settings-chevron">›</span>
+      </button>
+    </div>
+
+    <!-- Data -->
+    <p class="settings-section-label">Data &amp; Sync</p>
+    <div class="settings-group">
+      <div class="settings-row" style="cursor:default;flex-direction:column;align-items:stretch;gap:0;padding:0">
+        <div id="health-body" style="padding:14px 18px"></div>
       </div>
     </div>
 
-    <!-- Data health -->
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-header"><span class="card-title">📊 Data</span></div>
-      <div class="card-body" id="health-body"></div>
-    </div>
-
-    <!-- App info -->
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-header"><span class="card-title">ℹ️ About</span></div>
-      <div class="card-body" style="padding:14px 16px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <span style="font-size:13px;color:var(--text2)">SqueveTrack</span>
-          <span style="font-family:var(--font-mono);font-size:12px;color:var(--text3)">v2.0.0</span>
+    <!-- About -->
+    <p class="settings-section-label">About</p>
+    <div class="settings-group">
+      <div class="settings-row" style="cursor:default">
+        <div class="settings-row-icon" style="background:var(--gold-grad)">
+          <span style="font-family:var(--font-head);font-size:12px;font-weight:800;color:#000">ST</span>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <span style="font-size:13px;color:var(--text2)">Built for</span>
-          <span style="font-size:12px;color:var(--text3)">LoanBase Ghana · M0–M5</span>
+        <div class="settings-row-label">
+          <div class="settings-row-label-main">SqueveTrack</div>
+          <div class="settings-row-label-sub">LoanBase Ghana · M0–M5</div>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:13px;color:var(--text2)">Developed by</span>
-          <span style="font-size:12px;color:var(--gold);font-weight:600">Shadrack Agyei Arthur</span>
+        <span class="settings-row-value" style="font-family:var(--font-mono)">v2.0.0</span>
+      </div>
+      <div class="settings-row" style="cursor:default">
+        <div class="settings-row-icon" style="background:rgba(167,139,250,0.12);color:var(--purple)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><circle cx="10" cy="7" r="3"/><path d="M4 17c0-3.31 2.69-6 6-6s6 2.69 6 6"/></svg>
+        </div>
+        <div class="settings-row-label">
+          <div class="settings-row-label-main">Developed by</div>
+          <div class="settings-row-label-sub">Shadrack Agyei Arthur</div>
         </div>
       </div>
     </div>
 
-    <!-- Danger zone -->
-    <div class="card" style="margin-bottom:14px;border-color:rgba(239,68,68,0.3)">
-      <div class="card-header"><span class="card-title" style="color:var(--red)">⚠️ Danger Zone</span></div>
-      <div class="card-body" style="padding:0">
-        <button class="settings-row" style="color:var(--red)" onclick="settingsDeleteAccount()"><span>🗑 Delete My Account &amp; All Data</span><span class="settings-chevron">›</span></button>
-      </div>
+    <!-- Danger -->
+    <p class="settings-section-label" style="color:rgba(239,68,68,0.7)">Danger Zone</p>
+    <div class="settings-group" style="border-color:rgba(239,68,68,0.2)">
+      <button class="settings-row danger" onclick="settingsDeleteAccount()">
+        <div class="settings-row-icon" style="background:rgba(239,68,68,0.12);color:var(--red)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><polyline points="3,6 5,6 17,6"/><path d="M8 6V4h4v2"/><rect x="5" y="6" width="10" height="11" rx="1"/><line x1="8" y1="10" x2="8" y2="15"/><line x1="12" y1="10" x2="12" y2="15"/></svg>
+        </div>
+        <div class="settings-row-label">
+          <div class="settings-row-label-main" style="color:var(--red)">Delete My Account</div>
+          <div class="settings-row-label-sub">Permanently removes all data</div>
+        </div>
+        <span class="settings-chevron">›</span>
+      </button>
     </div>
+
+    <div style="height:20px"></div>
   </section>
 
 </main>
@@ -1711,10 +2513,10 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
 <!-- MOBILE HEADER BAR -->
 <header id="mobile-header">
   <button class="mhdr-hamburger" onclick="openDrawer()" aria-label="Menu">&#9776;</button>
-  <div class="mhdr-title" id="mhdr-title">SqueveTrack</div>
+  <div class="mhdr-title" id="mhdr-title" style="display:flex;align-items:center;gap:7px"><div style="width:24px;height:24px;border-radius:7px;background:var(--gold-grad);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 8px rgba(240,160,48,0.4)"><span style="font-family:var(--font-head);font-size:10px;font-weight:800;color:#000;letter-spacing:-0.5px">ST</span></div>SqueveTrack</div>
   <div id="offline-badge" style="display:none;align-items:center;gap:4px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);border-radius:12px;padding:2px 8px;font-size:10px;color:var(--red);font-weight:700">OFFLINE</div>
-  <button class="mhdr-theme" onclick="openGlobalSearch()" title="Search" style="margin-right:4px">🔍</button>
-  <button class="mhdr-theme" onclick="lockApp()" title="Lock App" style="font-size:16px">🔒</button>
+  <button class="mhdr-theme" onclick="openGlobalSearch()" title="Search" style="margin-right:4px"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:18px;height:18px;vertical-align:middle"><circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="17" y2="17"/></svg></button>
+  <button class="mhdr-theme" onclick="lockApp()" title="Lock App"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:18px;height:18px;vertical-align:middle"><rect x="4" y="9" width="12" height="9" rx="2"/><path d="M7 9V6a3 3 0 016 0v3"/></svg></button>
 </header>
 
 <!-- MOBILE DRAWER OVERLAY -->
@@ -1723,45 +2525,45 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
 <!-- MOBILE DRAWER -->
 <nav id="mobile-drawer">
   <div class="mdrawer-header">
-    <div class="mdrawer-logo" id="mdrawer-logo">SqueveTrack</div>
+    <div class="mdrawer-logo" id="mdrawer-logo" style="display:flex;align-items:center;gap:9px"><div style="width:30px;height:30px;border-radius:9px;background:var(--gold-grad);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 10px rgba(240,160,48,0.4)"><span style="font-family:var(--font-head);font-size:13px;font-weight:800;color:#000;letter-spacing:-0.5px">ST</span></div><span style="background:var(--gold-grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">SqueveTrack</span></div>
     <button class="mdrawer-close" onclick="closeDrawer()">✕</button>
   </div>
   <div class="mdrawer-month" id="mdrawer-month">📅 —</div>
   <div class="mdrawer-item active" data-page="dashboard" onclick="navigateDrawer('dashboard')">
-    <span class="mdrawer-icon">📊</span> Dashboard
+    <span class="mdrawer-icon" style="display:flex;align-items:center;justify-content:center"><svg style="width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="7" height="7" rx="1.5"/><rect x="11" y="2" width="7" height="7" rx="1.5"/><rect x="2" y="11" width="7" height="7" rx="1.5"/><rect x="11" y="11" width="7" height="7" rx="1.5"/></svg></span> Dashboard
   </div>
   <div class="mdrawer-item" data-page="loans" onclick="navigateDrawer('loans')">
-    <span class="mdrawer-icon">👥</span> Borrowers
+    <span class="mdrawer-icon" style="display:flex;align-items:center;justify-content:center"><svg style="width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7.5" cy="6" r="3"/><path d="M1 17c0-3.31 2.91-6 6.5-6"/><circle cx="14" cy="7" r="2.5"/><path d="M11 17c0-2.76 1.79-5 4-5.5"/></svg></span> Borrowers
     <span class="mdrawer-badge" id="mbadge-unpaid" style="display:none"></span>
   </div>
   <div class="mdrawer-item" data-page="analytics" onclick="navigateDrawer('analytics')">
-    <span class="mdrawer-icon">📈</span> Analytics
+    <span class="mdrawer-icon" style="display:flex;align-items:center;justify-content:center"><svg style="width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="2,15 7,9 11,12 18,5"/><line x1="2" y1="18" x2="18" y2="18"/></svg></span> Analytics
   </div>
   <div class="mdrawer-item" data-page="dispatch" onclick="navigateDrawer('dispatch')">
-    <span class="mdrawer-icon">💬</span> WhatsApp
+    <span class="mdrawer-icon" style="display:flex;align-items:center;justify-content:center"><svg style="width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 5h14a1 1 0 011 1v8a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1z"/><polyline points="2,5 10,11 18,5"/></svg></span> WhatsApp
     <span class="mdrawer-badge gold" id="mbadge-dispatch" style="display:none"></span>
   </div>
   <div class="mdrawer-item" data-page="smsblast" onclick="navigateDrawer('smsblast')">
-    <span class="mdrawer-icon">📱</span> SMS Blast
+    <span class="mdrawer-icon" style="display:flex;align-items:center;justify-content:center"><svg style="width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 4h16v10H2z" rx="1"/><path d="M6 14l-2 3 4-1"/></svg></span> SMS Blast
   </div>
   <div class="mdrawer-item" data-page="log" onclick="navigateDrawer('log')">
-    <span class="mdrawer-icon">📅</span> Daily Log
+    <span class="mdrawer-icon" style="display:flex;align-items:center;justify-content:center"><svg style="width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="2" width="14" height="16" rx="1.5"/><line x1="7" y1="7" x2="13" y2="7"/><line x1="7" y1="10" x2="13" y2="10"/><line x1="7" y1="13" x2="10" y2="13"/></svg></span> Daily Log
   </div>
   <div class="mdrawer-item" data-page="segments" onclick="navigateDrawer('segments')">
-    <span class="mdrawer-icon">🗂️</span> Segments
+    <span class="mdrawer-icon" style="display:flex;align-items:center;justify-content:center"><svg style="width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="8"/><path d="M10 2v8l5.66 5.66"/></svg></span> Segments
   </div>
   <div class="mdrawer-item" data-page="ranking" onclick="navigateDrawer('ranking')">
-    <span class="mdrawer-icon">🏆</span> Ranking
+    <span class="mdrawer-icon" style="display:flex;align-items:center;justify-content:center"><svg style="width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="10" width="4" height="8"/><rect x="8" y="6" width="4" height="12"/><rect x="14" y="3" width="4" height="15"/></svg></span> Ranking
   </div>
   <div class="mdrawer-item" data-page="ptp" onclick="navigateDrawer('ptp')">
-    <span class="mdrawer-icon">🤝</span> PTP Hub
+    <span class="mdrawer-icon" style="display:flex;align-items:center;justify-content:center"><svg style="width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 10C2 5.58 5.58 2 10 2s8 3.58 8 8-3.58 8-8 8"/><polyline points="6,10 9,13 14,8"/></svg></span> PTP Hub
     <span class="mdrawer-badge" id="mbadge-ptp" style="display:none;background:var(--purple)"></span>
   </div>
   <div class="mdrawer-item" data-page="reports" onclick="navigateDrawer('reports')">
-    <span class="mdrawer-icon">📋</span> Reports
+    <span class="mdrawer-icon" style="display:flex;align-items:center;justify-content:center"><svg style="width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 3h8l4 4v10a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1z"/><polyline points="12,3 12,7 16,7"/><line x1="7" y1="11" x2="13" y2="11"/><line x1="7" y1="14" x2="10" y2="14"/></svg></span> Reports
   </div>
   <div class="mdrawer-item" data-page="health" onclick="navigateDrawer('health')">
-    <span class="mdrawer-icon">⚙️</span> Settings
+    <span class="mdrawer-icon" style="display:flex;align-items:center;justify-content:center"><svg style="width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="8"/><line x1="10" y1="6" x2="10" y2="10"/><line x1="10" y1="13" x2="10" y2="14"/></svg></span> Settings
   </div>
   <div class="mdrawer-footer">
     <!-- Agent info in mobile drawer -->
@@ -1822,17 +2624,19 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
 
 <!-- F8: Floating Daily Target Pill -->
 <style>
-@keyframes pillPulse { 0%,100%{box-shadow:0 4px 16px rgba(0,0,0,0.25)} 50%{box-shadow:0 4px 24px rgba(232,160,32,0.45)} }
-@keyframes pillShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-4px)} 40%{transform:translateX(4px)} 60%{transform:translateX(-3px)} 80%{transform:translateX(3px)} }
-@keyframes pillGlow  { 0%,100%{box-shadow:0 4px 16px rgba(239,68,68,0.2)} 50%{box-shadow:0 4px 28px rgba(239,68,68,0.55)} }
-#daily-target-pill.on-track  { animation: pillPulse 2.5s ease-in-out infinite; border-color:var(--gold)!important; }
-#daily-target-pill.behind    { animation: pillGlow  1.8s ease-in-out infinite; border-color:var(--red)!important; }
-#daily-target-pill.done      { border-color:var(--green)!important; }
+@keyframes pillPulse { 0%,100%{box-shadow:0 8px 28px rgba(240,160,48,0.25),inset 0 1px 0 rgba(255,255,255,0.08)} 50%{box-shadow:0 8px 36px rgba(240,160,48,0.45),inset 0 1px 0 rgba(255,255,255,0.1)} }
+@keyframes pillGlow  { 0%,100%{box-shadow:0 8px 28px rgba(239,68,68,0.3),inset 0 1px 0 rgba(255,255,255,0.06)} 50%{box-shadow:0 8px 40px rgba(239,68,68,0.6),inset 0 1px 0 rgba(255,255,255,0.08)} }
+#daily-target-pill.on-track  { animation: pillPulse 2.5s ease-in-out infinite; }
+#daily-target-pill.behind    { animation: pillGlow  1.8s ease-in-out infinite; }
+#daily-target-pill.done      { }
 </style>
-<div id="daily-target-pill" style="display:none;position:fixed;bottom:72px;right:14px;z-index:300;background:var(--surface);border:1.5px solid var(--border2);border-radius:20px;padding:6px 11px;cursor:pointer;text-align:center;min-width:90px;transition:border-color 0.3s" onclick="navigate('log');haptic('light')">
-  <div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:1px" id="daily-pill-label">Need today</div>
-  <div id="daily-pill-amount" style="font-family:var(--font-mono);font-weight:800;font-size:13px;color:var(--gold)">₵0</div>
-  <div id="daily-pill-sub" style="font-size:8px;color:var(--text3);margin-top:0">tap to log</div>
+<div id="daily-target-pill" style="display:none;position:fixed;bottom:76px;right:14px;z-index:300;cursor:pointer" onclick="navigate('log');haptic('light')">
+  <div style="background:rgba(14,17,24,0.88);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--border2);border-radius:16px;padding:10px 14px;min-width:100px;text-align:center;transition:all 0.3s;box-shadow:0 8px 28px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.07)">
+    <div id="daily-pill-label" style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;font-weight:600">Need Today</div>
+    <div id="daily-pill-amount" style="font-family:var(--font-mono);font-weight:700;font-size:15px;color:var(--gold);letter-spacing:-0.5px;line-height:1">₵0</div>
+    <div id="daily-pill-sub" style="font-size:9px;color:var(--text3);margin-top:4px;letter-spacing:0.3px">tap to log</div>
+    <div style="margin-top:6px;height:2px;background:var(--border);border-radius:1px;overflow:hidden"><div id="daily-pill-bar" style="height:100%;background:var(--gold-grad);border-radius:1px;width:0%;transition:width 0.6s ease"></div></div>
+  </div>
 </div>
 
 <!-- TOAST AREA -->
@@ -2448,16 +3252,24 @@ function renderDashboard() {
     kpiGrid.querySelectorAll('[data-val]').forEach(function(el) {
       const target = parseFloat(el.dataset.val) || 0;
       const fmt_type = el.dataset.fmt;
-      const duration = 600;
+      const duration = 900;
       const start = performance.now();
       function step(now) {
         const p = Math.min((now - start) / duration, 1);
-        // ease out cubic
-        const ease = 1 - Math.pow(1 - p, 3);
-        const current = Math.round(target * ease);
-        if (fmt_type === 'currency') el.textContent = '₵' + fmt(current);
-        else if (fmt_type === 'pct') el.textContent = (target * ease).toFixed(1) + '%';
-        else el.textContent = current;
+        // Spring: overshoot at 70%, settle at 100%
+        let ease;
+        if (p < 0.7) {
+          ease = 1 - Math.pow(1 - p/0.7, 3);
+        } else {
+          // Slight overshoot then settle
+          const q = (p - 0.7) / 0.3;
+          ease = 1 + Math.sin(q * Math.PI) * 0.04 * (1-q);
+        }
+        ease = Math.min(ease, 1.04);
+        const current = target * ease;
+        if (fmt_type === 'currency') el.textContent = '₵' + fmt(Math.round(current));
+        else if (fmt_type === 'pct') el.textContent = (current).toFixed(1) + '%';
+        else el.textContent = Math.round(current);
         if (p < 1) requestAnimationFrame(step);
         else {
           if (fmt_type === 'currency') el.textContent = fmtC(target);
@@ -2825,70 +3637,113 @@ function renderLoansTable() {
   setTimeout(initRowSwipe, 80);
   document.getElementById('loans-count-sub').innerHTML = `<span style="color:var(--text2)">${state.borrowers.length} total</span> · <span style="color:var(--gold);font-weight:700;font-family:var(--font-mono)">${getActiveBorrowers().length} active</span>`;
 
-  const tbody = document.getElementById('loans-tbody');
+  const list = document.getElementById('loans-tbody');
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="icon">🔍</div><div>No borrowers match your filters</div></div></td></tr>`;
+    list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)"><div style="font-size:32px;margin-bottom:10px">🔍</div><div style="font-size:14px">No borrowers match your filters</div></div>';
     return;
   }
-  // F2: Lazy render — 30 rows at a time
   window._loanRows = rows;
+  function _buildBorrowerCard(r) {
+    const heatCls = getHeatClass(r.odAge);
+    const pScore  = calcPriorityScore(r);
+    const pCls    = pScore >= 8 ? 'p-high' : pScore >= 5 ? 'p-mid' : 'p-low';
+    const inHitList = (state.hitList||[]).includes(r.id);
+    const critCls = r.odAge >= 13 ? ' overdue-critical' : '';
+    const statusCls = r.status === 'Paid' ? 's-paid' : r.status === 'Partial' ? 's-partial' : 's-unpaid';
+    const hue = r.name.charCodeAt(0) % 6;
+    const avatarColors = [['#f0a030','#fcc044'],['#22c55e','#16a34a'],['#60a5fa','#3b82f6'],['#a78bfa','#7c3aed'],['#f97316','#ea580c'],['#14b8a6','#0d9488']];
+    const [ac1,ac2] = avatarColors[hue];
+    const initials = r.name.trim().split(/\s+/).slice(0,2).map(w=>w[0].toUpperCase()).join('');
+    const ptpDateStr = r.promiseDate ? r.promiseDate.split(' ')[0] : '';
+    const notesDot = r.notes ? '<span style="width:5px;height:5px;background:var(--gold);border-radius:50%;display:inline-block;flex-shrink:0"></span>' : '';
+    const callCount = (r.callLog||[]).length;
+    const badges = getBorrowerBadges(r);
+    const d = document.createElement('div');
+    d.className = 'bl-card' + critCls;
+    d.dataset.bid = r.id;
+    d.innerHTML = '<div class="bl-heat ' + heatCls + '"></div>'
+      + '<div class="bl-card-inner">'
+        + '<div class="bl-avatar" style="background:linear-gradient(135deg,' + ac1 + ',' + ac2 + ')" title="Priority ' + pScore + '/10">' + initials + '</div>'
+        + '<div class="bl-content">'
+          + '<div class="bl-name">' + r.name + badges + ' ' + getStageBadgeHtml(r) + '</div>'
+          + '<div class="bl-meta-row">'
+            + '<span class="bl-phone">' + r.phone + '</span>'
+            + '<span class="bl-day ' + heatCls + '">Day ' + r.odAge + '</span>'
+            + (r.loanType==='LoanBase Pro' ? '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;background:rgba(167,139,250,0.15);color:var(--purple)">PRO</span>' : '')
+            + (r.promisedToPay ? '<span style="font-size:9px;color:var(--purple)">🤝' + ptpDateStr + '</span>' : '')
+            + getBestCallIndicator(r)
+          + '</div>'
+        + '</div>'
+        + '<div class="bl-amounts">'
+          + '<div class="bl-due" style="color:' + (r.dueToday>0?'var(--red)':'var(--green)') + '">' + (r.dueToday>0?fmtC(r.dueToday):'✓') + '</div>'
+          + '<div class="bl-paid-label"><span class="bl-status ' + statusCls + '">' + r.status + '</span></div>'
+        + '</div>'
+      + '</div>'
+      + '<div class="bl-actions">'
+        + '<div class="bl-priority ' + pCls + '" title="Priority ' + pScore + '/10">' + pScore + '</div>'
+        + '<button class="bl-action-btn pay" data-action="pay"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" style="width:13px;height:13px"><circle cx="10" cy="10" r="8"/><path d="M10 6v1.5M10 12.5V14M7.5 8.5a2.5 2.5 0 015 1c0 1.38-1.12 2-2.5 2.5"/></svg>Pay</button>'
+        + '<button class="bl-action-btn ptp' + (r.promisedToPay?' active':'') + '" data-action="ptp"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" style="width:13px;height:13px"><path d="M2 10C2 5.58 5.58 2 10 2s8 3.58 8 8-3.58 8-8 8"/><polyline points="6,10 9,13 14,8"/></svg>' + (r.promisedToPay?'PTP Set':'PTP') + '</button>'
+        + '<button class="bl-action-btn" id="note-' + r.id + '" data-action="note"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" style="width:13px;height:13px"><rect x="3" y="3" width="14" height="14" rx="2"/><line x1="7" y1="8" x2="13" y2="8"/><line x1="7" y1="11" x2="11" y2="11"/></svg>' + notesDot + '</button>'
+        + '<button class="bl-action-btn" id="hist-' + r.id + '" data-action="hist"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" style="width:13px;height:13px"><circle cx="10" cy="10" r="8"/><polyline points="10,6 10,10 13,13"/></svg>' + (callCount>0?'<span style="font-size:9px;color:var(--blue);font-family:var(--font-mono)">' + callCount + '</span>':'') + '</button>'
+        + '<button class="bl-action-btn" data-action="hitlist" style="' + (inHitList?'border-color:var(--gold);color:var(--gold)':'') + '"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" style="width:13px;height:13px"><path d="M10 2l2.47 5h5.53l-4.5 3.27L15 16l-5-3.27L5 16l1.5-5.73L2 7h5.53z"/></svg></button>'
+        + '<button class="bl-action-btn" data-action="edit"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" style="width:13px;height:13px"><path d="M4 16l9-9 3 3-9 9H4z"/><path d="M14 5l1-1a1 1 0 011.41 0l.59.59a1 1 0 010 1.41L16 7"/></svg></button>'
+        + '<button class="bl-action-btn danger" data-action="delete"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" style="width:13px;height:13px"><polyline points="3,6 5,6 17,6"/><path d="M8 6V4h4v2"/><rect x="5" y="6" width="10" height="11" rx="1"/></svg></button>'
+      + '</div>';
+    // Wire card events via delegation on the element
+    d.addEventListener('click', function(e) {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) { if (e.target.classList.contains('bl-cb') || e.target.closest('.bl-cb')) return; openBorrowerDetail(r.id); return; }
+      e.stopPropagation();
+      const a = btn.dataset.action;
+      if (a === 'pay')     toggleQuickPayBar(r.id);
+      else if (a === 'ptp')     togglePromise(r.id);
+      else if (a === 'note')    openQuickNote(r.id);
+      else if (a === 'hist')    openHistoryModal(r.id);
+      else if (a === 'hitlist') addToHitList(r.id);
+      else if (a === 'edit')    openEditModal(r.id);
+      else if (a === 'delete')  deleteBorrower(r.id);
+      haptic('light');
+    });
+    return d;
+  }
   function _renderLoanChunk(start, append) {
     const chunk = window._loanRows.slice(start, start + 30);
-    const html = chunk.map(function(r, ci) { var i = start + ci; return (function(r, i) {
-    const typeBadge = r.loanType === 'LoanBase Pro'
-      ? `<span class="badge badge-pro">Pro</span>`
-      : `<span class="badge badge-loanbase">Base</span>`;
-    const odCls = odClass(r.odAge);
-    const heatCls = getHeatClass(r.odAge);
-    const pScore = calcPriorityScore(r);
-    const pCls = pScore >= 8 ? 'p-high' : pScore >= 5 ? 'p-mid' : 'p-low';
-    const borrowerBadges = getBorrowerBadges(r);
-    const inHitList = (state.hitList||[]).includes(r.id);
-    return `<tr class="${r.promisedToPay ? 'promised' : ''}" data-bid="${r.id}">
-      <td style="padding:0;width:4px;min-width:4px"><div class="heat-ring ${heatCls}" style="min-height:42px"></div></td>
-      <td><input type="checkbox" class="row-cb" data-id="${r.id}" style="accent-color:var(--gold);cursor:pointer" onchange="updateBulkBar()"></td>
-      <td class="mono" style="color:var(--text3)">${i+1}</td>
-      <td style="cursor:pointer" onclick="openBorrowerDetail('${r.id}')">
-        <div style="display:flex;align-items:center;gap:5px">
-          <span class="priority-score ${pCls}" title="Priority: ${pScore}/10">${pScore}</span>
-          <div><div class="name-cell" style="display:flex;align-items:center;gap:4px">${r.name}${borrowerBadges} ${getStageBadgeHtml(r)}</div><div style="font-size:10px;color:var(--text3);margin-top:1px;display:flex;gap:5px;align-items:center">${r.phone} ${getBestCallIndicator(r)}</div></div>
-        </div>
-      </td>
-      <td class="phone-cell" style="display:none">${r.phone}</td>
-      <td><span class="${odCls} mono">Day ${r.odAge}</span></td>
-      <td>${typeBadge}</td>
-      <td class="mono txt-right">${fmtC(r.loanDue)}</td>
-      <td class="mono txt-right" style="color:${r.amountPaid>0?'var(--green)':'var(--text3)'}">` + (r.amountPaid>0?fmtC(r.amountPaid):'—') + `</td>
-      <td class="mono txt-right" style="color:${r.dueToday>0?'var(--red)':'var(--green)'}">` + (r.dueToday>0?fmtC(r.dueToday):'✅') + `${r.targetPayment>0&&r.amountPaid>0&&r.amountPaid<r.targetPayment?' ⚠':''}</td>
-      <td>${statusBadge(r.status)}</td>
-      <td>
-        <div class="action-group">
-          <button class="btn btn-green btn-xs" data-qp="${r.id}" onclick="toggleQuickPayBar('${r.id}')">💰 Pay</button>
-          <button class="btn btn-ghost btn-xs" style="${r.promisedToPay?'border-color:var(--purple);color:var(--purple);font-weight:700':''}" onclick="togglePromise('${r.id}')" title="${r.promisedToPay?'Promised — tap to clear':'Mark PTP'}">🤝${r.promisedToPay&&r.promiseDate?'<span style="font-size:9px;display:block;color:var(--purple);line-height:1">'+r.promiseDate.split(' ')[0]+'</span>':''}</button>
-          <button class="btn btn-ghost btn-xs" id="note-${r.id}" title="Quick note">📝${r.notes?'<span style="width:5px;height:5px;background:var(--gold);border-radius:50%;display:inline-block;margin-left:2px"></span>':''}</button>
-          <button class="btn btn-ghost btn-xs" id="hist-${r.id}">📋</button>
-          <button class="btn btn-ghost btn-xs" onclick="openCallLogModal('${r.id}')" title="Call log (${(r.callLog||[]).length})">📞${(r.callLog||[]).length>0?'<span style="font-size:8px;color:var(--blue);margin-left:1px">'+r.callLog.length+'</span>':''}</button>
-          <button class="btn btn-ghost btn-xs" onclick="addToHitList('${r.id}')" title="${inHitList?'In Hit List':'Pin to Hit List'}" style="${inHitList?'color:var(--gold);border-color:var(--gold)':''}">📌</button>
-          <button class="btn btn-ghost btn-xs" onclick="openEditModal('${r.id}')">✏️</button>
-          <button class="btn btn-red btn-xs" onclick="deleteBorrower('${r.id}')">🗑</button>
-        </div>
-      </td>
-    </tr>`;
-    })(r, i); }).join('');
-    if (!append) tbody.innerHTML = html;
-    else { var t = tbody.querySelector('.load-more-row'); if(t) t.remove(); tbody.insertAdjacentHTML('beforeend', html); }
-    var t2 = tbody.querySelector('.load-more-row'); if(t2) t2.remove();
-    var loaded = start + chunk.length;
+    if (!append) list.innerHTML = '';
+    else { var lm = list.querySelector('.bl-load-more'); if(lm) lm.remove(); }
+    chunk.forEach(r => list.appendChild(_buildBorrowerCard(r)));
+    var lm2 = list.querySelector('.bl-load-more'); if(lm2) lm2.remove();
+    const loaded = start + chunk.length;
     if (loaded < window._loanRows.length) {
-      var rem = window._loanRows.length - loaded;
-      tbody.insertAdjacentHTML('beforeend',
-        '<tr class="load-more-row"><td colspan="12" style="text-align:center;padding:10px;border-top:1px solid var(--border)">' +
-        '<button class="btn btn-ghost btn-sm" onclick="_renderLoanChunk(' + loaded + ',true);haptic(\'light\')">Show ' + Math.min(30,rem) + ' more · ' + rem + ' remaining</button>' +
-        '</td></tr>'
-      );
+      const rem = window._loanRows.length - loaded;
+      const lmDiv = document.createElement('div');
+      lmDiv.className = 'bl-load-more';
+      const lmBtn = document.createElement('button');
+      lmBtn.className = 'btn btn-ghost btn-sm';
+      lmBtn.textContent = 'Show ' + Math.min(30,rem) + ' more · ' + rem + ' remaining';
+      lmBtn.onclick = function() { _renderLoanChunk(loaded, true); haptic('light'); };
+      lmDiv.appendChild(lmBtn);
+      list.appendChild(lmDiv);
+    }
+    // Wire bulk bar buttons once
+    var baCb = document.getElementById('ba-paid');
+    if (baCb && !baCb._wired) {
+      baCb._wired = true;
+      baCb.addEventListener('click', function() { bulkAction('paid'); });
+      document.getElementById('ba-promise').addEventListener('click', function() { bulkAction('promise'); });
+      document.getElementById('ba-base').addEventListener('click', function() { bulkAction('base'); });
+      document.getElementById('ba-pro').addEventListener('click', function() { bulkAction('pro'); });
+      document.getElementById('ba-delete').addEventListener('click', function() { bulkAction('delete'); });
     }
   }
   _renderLoanChunk(0, false);
+}
+
+function blSortChange(val) {
+  const [col, dir] = val.split('_');
+  loanSortCol = col; loanSortDir = parseInt(dir);
+  localStorage.setItem('sort_col', loanSortCol);
+  localStorage.setItem('sort_dir', String(loanSortDir));
+  renderLoansTable();
 }
 
 function sortLoans(col) {
@@ -5026,6 +5881,7 @@ function navigate(page) {
     p.style.animation = 'none';
   });
   document.querySelectorAll('.nav-item, .mdrawer-item').forEach(n => n.classList.remove('active'));
+  if (typeof updateStatusBarColor === 'function') updateStatusBarColor(page);
   const pageEl = document.getElementById('page-' + page);
   if (pageEl) {
     pageEl.style.animation = 'none';
@@ -5037,6 +5893,7 @@ function navigate(page) {
   document.querySelectorAll('[data-page="' + page + '"]').forEach(el => el.classList.add('active'));
   document.getElementById('main').scrollTop = 0;
   haptic('light');
+  if (typeof updateStatusBarColor === 'function') updateStatusBarColor(page);
   renderCurrentPage();
 }
 
@@ -5208,6 +6065,12 @@ function updateBulkBar() {
   } else {
     bar.style.display = 'none';
   }
+  // Update card selected class
+  document.querySelectorAll('.bl-card').forEach(card => {
+    const bid = card.dataset.bid;
+    const cb  = card.querySelector('.row-cb');
+    if (bid && cb) card.classList.toggle('selected', cb.checked);
+  });
 }
 
 function clearBulkSelect() {
@@ -8709,7 +9572,7 @@ function showBorrowersPopup(status, loanType, odAge, odMin, odMax) {
   if (odAge) rows = rows.filter(r => r.odAge === parseInt(odAge));
   if (odMin) rows = rows.filter(r => r.odAge >= parseInt(odMin));
   if (odMax) rows = rows.filter(r => r.odAge <= parseInt(odMax));
-  rows = rows.sort((a,b) => b.dueToday - a.dueToday).slice(0, 50);
+  rows = rows.sort((a,b) => b.dueToday - a.dueToday);
 
   const label = status || (loanType ? loanType : '') || (odAge ? 'Day ' + odAge : '') || (odMin ? 'Day ' + odMin + '+' : 'All');
   document.getElementById('modal-title').textContent = '👥 ' + label + ' — ' + rows.length + ' account' + (rows.length!==1?'s':'');
@@ -8859,10 +9722,15 @@ function updateDailyPill() {
   if (totalCollected >= target) {
     // Target hit!
     pill.classList.add('done');
-    amtEl.style.color = 'var(--green)';
-    amtEl.textContent = '🎯 Done!';
-    if (subEl) subEl.textContent = 'Target reached!';
+    // Green gradient override
+    const innerDone = pill.querySelector('div');
+    if(innerDone){innerDone.style.borderColor='rgba(34,197,94,0.4)';innerDone.style.boxShadow='0 8px 28px rgba(34,197,94,0.2),inset 0 1px 0 rgba(255,255,255,0.07)';}
+    if(amtEl){amtEl.style.color='var(--green)';}
+    amtEl.textContent = 'Done!';
+    if (subEl) subEl.textContent = '🎯 Target hit!';
     if (lblEl) lblEl.textContent = 'This Month';
+    const barEl = document.getElementById('daily-pill-bar');
+    if(barEl){barEl.style.width='100%';barEl.style.background='var(--green)';}
     // Trigger confetti once
     if (!window._confettiShown) { window._confettiShown = true; setTimeout(launchConfetti, 400); }
   } else if (stillNeeded === 0 && todayCollected > 0) {
@@ -8874,17 +9742,18 @@ function updateDailyPill() {
   } else {
     const isBehind = stillNeeded > needed * 0.7;
     pill.classList.add(isBehind ? 'behind' : 'on-track');
-    amtEl.style.color = isBehind ? 'var(--red)' : 'var(--gold)';
-    if (lblEl) lblEl.textContent = isBehind ? '⚡ Needed' : '🎯 Today';
-    // Animate number counting up
-    animatePillNumber(amtEl, stillNeeded, isBehind);
-    if (subEl) subEl.textContent = isBehind ? 'behind pace' : 'to log today';
-    // Shake if far behind
-    if (isBehind && stillNeeded > needed) {
-      void pill.offsetWidth;
-      pill.style.animation = 'none';
-      pill.classList.add('behind');
+    const inner = pill.querySelector('div');
+    if(inner){
+      inner.style.borderColor = isBehind ? 'rgba(239,68,68,0.5)' : 'rgba(240,160,48,0.4)';
     }
+    if(amtEl){amtEl.style.color='var(--gold)';}
+    if (lblEl) lblEl.textContent = isBehind ? '⚡ Needed' : 'Need Today';
+    animatePillNumber(amtEl, stillNeeded, isBehind);
+    if (subEl) subEl.textContent = isBehind ? 'behind pace 🔴' : 'to log today';
+    // Progress bar
+    const pct = Math.min(100, Math.round(todayCollected / Math.max(needed,1) * 100));
+    const barEl = document.getElementById('daily-pill-bar');
+    if(barEl){barEl.style.width=pct+'%';barEl.style.background=isBehind?'var(--red)':'var(--gold-grad)';}
   }
 }
 
@@ -10303,6 +11172,17 @@ function showSkeletons(show) {
 // ============================================================
 // INIT
 // ============================================================
+function updateStatusBarColor(page) {
+  const colorMap = {
+    dashboard: '#06080f', loans: '#06080f', ptp: '#06080f',
+    analytics: '#06080f', log: '#06080f', health: '#06080f',
+  };
+  const color = colorMap[page] || '#06080f';
+  let meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) { meta = document.createElement('meta'); meta.name = 'theme-color'; document.head.appendChild(meta); }
+  meta.content = color;
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   await loadState();
 
@@ -10318,14 +11198,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Dynamic title: use stored month abbreviation (e.g. "MAR 2026")
   const titleMonth = today.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }).toUpperCase().replace(' ', ' ');
-  document.getElementById('logo-mark').textContent = 'SqueveTrack';
+  // Logo text set in HTML — preserve gradient span, don't overwrite
   document.title = titleMonth + ' — SqueveTrack';
   // Mobile header + drawer
   const mhdrTitle = document.getElementById('mhdr-title');
   const mdrawLogo = document.getElementById('mdrawer-logo');
   const mdrawMonth = document.getElementById('mdrawer-month');
-  if (mhdrTitle) mhdrTitle.textContent = 'SqueveTrack';
-  if (mdrawLogo) mdrawLogo.textContent = 'SqueveTrack';
+  // Mobile header has ST monogram in HTML — don't overwrite
+  // Drawer logo has ST monogram in HTML — don't overwrite
   if (mdrawMonth) mdrawMonth.textContent = '📅 ' + monthLabel;
 
   document.getElementById('sidebar-month').textContent = `📅 ${monthLabel}`;
@@ -10679,62 +11559,104 @@ document.addEventListener('DOMContentLoaded', async () => {
 .ob-stage-card:hover { border-color:var(--gold) }
 </style>
 <!-- LOCK SCREEN -->
-<div id="lock-screen" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);overflow-y:auto">
-  <div style="max-width:420px;margin:0 auto;padding:40px 20px 80px;min-height:100vh;display:flex;flex-direction:column;align-items:center">
-    <div style="font-family:var(--font-head);font-size:30px;font-weight:800;color:var(--gold);margin-bottom:4px;letter-spacing:-0.5px">SqueveTrack</div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:32px">LoanBase Recovery Suite</div>
-    <!-- Tabs -->
-    <div style="display:flex;background:var(--surface2);border-radius:10px;padding:3px;width:100%;margin-bottom:24px">
-      <button id="tab-signin" onclick="authShowTab('signin')" style="flex:1;padding:9px;border:none;cursor:pointer;border-radius:8px;font-size:13px;font-weight:700;background:var(--surface);color:var(--gold);transition:all 0.15s;font-family:var(--font-body)">Sign In</button>
-      <button id="tab-signup" onclick="authShowTab('signup')" style="flex:1;padding:9px;border:none;cursor:pointer;border-radius:8px;font-size:13px;font-weight:600;background:transparent;color:var(--text3);transition:all 0.15s;font-family:var(--font-body)">New Agent</button>
+<div id="lock-screen" style="display:none;position:fixed;inset:0;z-index:9999;overflow-y:auto">
+  <!-- Background with subtle grid pattern -->
+  <div style="position:fixed;inset:0;background:var(--bg);z-index:0">
+    <div style="position:absolute;inset:0;background-image:radial-gradient(circle at 30% 20%, rgba(240,160,48,0.06) 0%, transparent 60%), radial-gradient(circle at 70% 80%, rgba(96,165,250,0.04) 0%, transparent 60%);pointer-events:none"></div>
+    <div style="position:absolute;inset:0;opacity:0.03;background-image:linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);background-size:32px 32px;pointer-events:none"></div>
+  </div>
+  <div style="position:relative;z-index:1;max-width:400px;margin:0 auto;padding:52px 24px 80px;min-height:100vh;display:flex;flex-direction:column;align-items:center">
+
+    <!-- Logo mark -->
+    <div style="margin-bottom:32px;text-align:center">
+      <div style="width:60px;height:60px;border-radius:18px;background:var(--gold-grad);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 8px 28px rgba(240,160,48,0.4)">
+        <span style="font-family:var(--font-head);font-size:24px;font-weight:800;color:#000;letter-spacing:-1px">ST</span>
+      </div>
+      <div style="font-family:var(--font-head);font-size:24px;font-weight:800;background:var(--gold-grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-0.5px;margin-bottom:4px">SqueveTrack</div>
+      <div style="font-size:12px;color:var(--text3);letter-spacing:1px;text-transform:uppercase">LoanBase Recovery Suite</div>
     </div>
+
+    <!-- Tab switcher -->
+    <div style="display:flex;background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:3px;width:100%;margin-bottom:24px;gap:2px">
+      <button id="tab-signin" onclick="authShowTab('signin')" style="flex:1;padding:10px;border:none;cursor:pointer;border-radius:10px;font-size:13px;font-weight:700;background:var(--gold-grad);color:#000;transition:all 0.15s;font-family:var(--font-body);box-shadow:0 2px 8px rgba(240,160,48,0.3)">Sign In</button>
+      <button id="tab-signup" onclick="authShowTab('signup')" style="flex:1;padding:10px;border:none;cursor:pointer;border-radius:10px;font-size:13px;font-weight:600;background:transparent;color:var(--text3);transition:all 0.15s;font-family:var(--font-body)">New Agent</button>
+    </div>
+
     <!-- Sign In Panel -->
     <div id="auth-signin-panel" style="width:100%">
+      <!-- Cached agent cards -->
       <div id="lock-agent-list" style="width:100%;margin-bottom:16px"></div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;width:100%">
+
+      <!-- Divider -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;width:100%">
         <div style="flex:1;height:1px;background:var(--border)"></div>
-        <span style="font-size:11px;color:var(--text3)">or sign in with your Agent Code</span>
+        <span style="font-size:11px;color:var(--text3);white-space:nowrap">or enter Agent Code</span>
         <div style="flex:1;height:1px;background:var(--border)"></div>
       </div>
-      <div style="margin-bottom:14px">
-        <input type="text" id="auth-code-input" class="form-input" placeholder='e.g. Shadrack Agyei OCT25' style="text-align:center;font-size:14px;font-weight:600" onkeydown="if(event.key==='Enter')authSignInWithCode()">
-        <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:5px">Your LoanBase agent code</div>
-        <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px" onclick="authSignInWithCode()">Find My Account →</button>
+
+      <!-- Code input -->
+      <div style="background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.05)">
+        <input type="text" id="auth-code-input" class="form-input" placeholder="e.g. Shadrack Agyei OCT25" style="text-align:center;font-size:14px;font-weight:600;border-radius:10px;margin-bottom:10px" onkeydown="if(event.key==='Enter')authSignInWithCode()">
+        <button class="btn btn-gold" style="width:100%;padding:11px;font-size:13px;border-radius:10px" onclick="authSignInWithCode()">
+          Find My Account
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:middle;margin-left:4px"><line x1="4" y1="10" x2="16" y2="10"/><polyline points="11,5 16,10 11,15"/></svg>
+        </button>
       </div>
+
       <div id="auth-status" style="font-size:12px;color:var(--text2);text-align:center;min-height:18px;margin-bottom:8px"></div>
-      <div id="lock-pin-section" style="display:none;width:100%;text-align:center">
-        <div id="lock-pin-name" style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:16px"></div>
-        <div style="display:flex;justify-content:center;gap:12px;margin-bottom:20px">
-          <div class="pin-dot" id="pindot-0"></div><div class="pin-dot" id="pindot-1"></div>
-          <div class="pin-dot" id="pindot-2"></div><div class="pin-dot" id="pindot-3"></div>
+
+      <!-- PIN pad -->
+      <div id="lock-pin-section" style="display:none;width:100%">
+        <div style="background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:20px 16px;text-align:center;box-shadow:inset 0 1px 0 rgba(255,255,255,0.05)">
+          <div id="lock-pin-name" style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:16px"></div>
+          <div style="display:flex;justify-content:center;gap:14px;margin-bottom:24px">
+            <div class="pin-dot" id="pindot-0"></div><div class="pin-dot" id="pindot-1"></div>
+            <div class="pin-dot" id="pindot-2"></div><div class="pin-dot" id="pindot-3"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:256px;margin:0 auto 14px">
+            <button class="pin-key" onclick="pinPress('1')">1</button><button class="pin-key" onclick="pinPress('2')">2</button><button class="pin-key" onclick="pinPress('3')">3</button>
+            <button class="pin-key" onclick="pinPress('4')">4</button><button class="pin-key" onclick="pinPress('5')">5</button><button class="pin-key" onclick="pinPress('6')">6</button>
+            <button class="pin-key" onclick="pinPress('7')">7</button><button class="pin-key" onclick="pinPress('8')">8</button><button class="pin-key" onclick="pinPress('9')">9</button>
+            <button class="pin-key pin-key-ghost" onclick="authClearCode()" style="font-size:13px;color:var(--text3)">← Back</button>
+            <button class="pin-key" onclick="pinPress('0')">0</button>
+            <button class="pin-key pin-key-ghost" onclick="pinBackspace()" style="font-size:18px">⌫</button>
+          </div>
+          <div id="lock-pin-error" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:10px"></div>
+          <button onclick="showDevOverride()" style="background:none;border:none;font-size:11px;color:var(--text3);cursor:pointer;font-family:var(--font-body);text-decoration:underline;text-underline-offset:2px">Locked out?</button>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto 14px">
-          <button class="pin-key" onclick="pinPress('1')">1</button><button class="pin-key" onclick="pinPress('2')">2</button><button class="pin-key" onclick="pinPress('3')">3</button>
-          <button class="pin-key" onclick="pinPress('4')">4</button><button class="pin-key" onclick="pinPress('5')">5</button><button class="pin-key" onclick="pinPress('6')">6</button>
-          <button class="pin-key" onclick="pinPress('7')">7</button><button class="pin-key" onclick="pinPress('8')">8</button><button class="pin-key" onclick="pinPress('9')">9</button>
-          <button class="pin-key pin-key-ghost" onclick="authClearCode()">←</button>
-          <button class="pin-key" onclick="pinPress('0')">0</button>
-          <button class="pin-key pin-key-ghost" onclick="pinBackspace()">⌫</button>
-        </div>
-        <div id="lock-pin-error" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:8px"></div>
-        <button class="btn btn-ghost btn-xs" onclick="showDevOverride()" style="font-size:10px;color:var(--text3)">Locked out? Contact developer</button>
       </div>
     </div>
+
     <!-- New Agent Panel -->
-    <div id="auth-signup-panel" style="display:none;width:100%;text-align:center">
-      <div style="font-size:14px;color:var(--text2);margin-bottom:20px;line-height:1.7">Create your personal SqueveTrack account.<br>Your data will be private and PIN-protected.</div>
-      <button class="btn btn-gold" style="width:100%;padding:14px;font-size:15px" onclick="authShowTab('signin');lockAddNewAgent()">Start Setup →</button>
-      <div style="font-size:11px;color:var(--text3);margin-top:12px">Choose your stage, enter your details,<br>and optionally upload your LoanBase data.</div>
-    </div>
-    <!-- Dev override -->
-    <div id="lock-dev-override" style="display:none;width:100%;text-align:center;margin-top:16px">
-      <div style="font-size:12px;color:var(--text2);margin-bottom:8px">Enter developer override code</div>
-      <input type="text" class="form-input" id="dev-override-input" placeholder="SQV-XXX-XXXX" style="text-align:center;font-family:var(--font-mono);letter-spacing:2px;font-size:14px;margin-bottom:8px" onkeydown="if(event.key==='Enter')checkDevOverride()">
-      <div style="display:flex;gap:8px;justify-content:center">
-        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('lock-dev-override').style.display='none'">Cancel</button>
-        <button class="btn btn-red btn-sm" onclick="checkDevOverride()">Unlock</button>
+    <div id="auth-signup-panel" style="display:none;width:100%">
+      <div style="background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:24px;text-align:center;box-shadow:inset 0 1px 0 rgba(255,255,255,0.05)">
+        <div style="width:48px;height:48px;border-radius:14px;background:rgba(96,165,250,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+          <svg viewBox="0 0 20 20" fill="none" stroke="var(--blue)" stroke-width="1.6" style="width:22px;height:22px"><circle cx="10" cy="7" r="3"/><path d="M4 17c0-3.31 2.69-6 6-6s6 2.69 6 6"/><line x1="16" y1="4" x2="16" y2="8"/><line x1="14" y1="6" x2="18" y2="6"/></svg>
+        </div>
+        <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px">Create your account</div>
+        <div style="font-size:13px;color:var(--text3);margin-bottom:20px;line-height:1.7">Your portfolio stays private and PIN-protected on this device.</div>
+        <button class="btn btn-gold" style="width:100%;padding:13px;font-size:14px;border-radius:12px" onclick="authShowTab('signin');lockAddNewAgent()">
+          Get Started
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:middle;margin-left:6px"><line x1="4" y1="10" x2="16" y2="10"/><polyline points="11,5 16,10 11,15"/></svg>
+        </button>
       </div>
-      <div id="dev-override-error" style="font-size:11px;color:var(--red);margin-top:6px;min-height:16px"></div>
+    </div>
+
+    <!-- Dev override -->
+    <div id="lock-dev-override" style="display:none;width:100%;margin-top:16px">
+      <div style="background:var(--surface);border:1px solid rgba(239,68,68,0.3);border-radius:14px;padding:16px;text-align:center">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;font-weight:600">Developer Override</div>
+        <input type="text" class="form-input" id="dev-override-input" placeholder="SQV-XXX-XXXX" style="text-align:center;font-family:var(--font-mono);letter-spacing:2px;font-size:14px;margin-bottom:10px;border-radius:10px" onkeydown="if(event.key==='Enter')checkDevOverride()">
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" style="flex:1" onclick="document.getElementById('lock-dev-override').style.display='none'">Cancel</button>
+          <button class="btn btn-red" style="flex:1" onclick="checkDevOverride()">Unlock</button>
+        </div>
+        <div id="dev-override-error" style="font-size:11px;color:var(--red);margin-top:8px;min-height:16px"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:auto;padding-top:28px;text-align:center">
+      <div style="font-size:10px;color:var(--text3);letter-spacing:0.5px">Developed by Shadrack Agyei Arthur</div>
     </div>
   </div>
 </div>
