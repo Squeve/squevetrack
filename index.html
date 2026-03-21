@@ -2130,61 +2130,70 @@ tr.overdue-critical .heat-ring {
   <!-- DAILY LOG -->
   <section class="page" id="page-log">
     <div class="page-header">
-      <div class="page-title">Daily Collection Log</div>
-    </div>
-    <div class="three-col">
-      <div class="kpi-card gold">
-        <div class="kpi-label">Total Collected</div>
-        <div class="kpi-value gold" id="log-total">—</div>
-        <div class="kpi-sub" id="log-month-label">—</div>
-      </div>
-      <div class="kpi-card green">
-        <div class="kpi-label">Best Single Day</div>
-        <div class="kpi-value green" id="log-best">—</div>
-        <div class="kpi-sub">Highest recorded</div>
-      </div>
-      <div class="kpi-card blue">
-        <div class="kpi-label">Daily Average</div>
-        <div class="kpi-value" style="color:var(--blue)" id="log-avg">—</div>
-        <div class="kpi-sub">Days with entries</div>
+      <div>
+        <div class="page-title" style="font-size:22px">Daily Log</div>
+        <div class="page-sub" id="log-month-label">—</div>
       </div>
     </div>
-    <div class="two-col">
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">➕ Log Today's Collection</span>
+
+    <!-- KPI strip -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+      <div style="background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:14px;text-align:center;box-shadow:inset 0 1px 0 var(--border-hi)">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">Total</div>
+        <div class="kpi-value-animate" style="font-family:var(--font-mono);font-size:18px;font-weight:800;background:var(--gold-grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text" id="log-total">—</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:14px;text-align:center;box-shadow:inset 0 1px 0 var(--border-hi)">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">Best Day</div>
+        <div style="font-family:var(--font-mono);font-size:18px;font-weight:800;color:var(--green)" id="log-best">—</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:14px;text-align:center;box-shadow:inset 0 1px 0 var(--border-hi)">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">Avg / Day</div>
+        <div style="font-family:var(--font-mono);font-size:18px;font-weight:800;color:var(--blue)" id="log-avg">—</div>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:inset 0 1px 0 var(--border-hi)">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:10px">Monthly Trend</div>
+      <div style="height:120px"><canvas id="chart-log"></canvas></div>
+    </div>
+
+    <!-- Quick log entry -->
+    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:14px;margin-bottom:14px;overflow:hidden;box-shadow:inset 0 1px 0 var(--border-hi)">
+      <div style="padding:14px 16px 0;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:12px">Log Collection</div>
+      <div style="padding:0 16px">
+        <!-- Date + amount on one row -->
+        <div style="display:flex;gap:10px;margin-bottom:10px">
+          <input type="date" class="form-input" id="log-date" style="flex:1;font-size:13px;padding:10px 12px">
+          <div style="position:relative;flex:1">
+            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-family:var(--font-mono);font-size:13px;color:var(--text3);pointer-events:none">₵</span>
+            <input type="number" class="form-input" id="log-amount" placeholder="Amount" min="0" style="padding-left:26px;font-size:13px;padding-top:10px;padding-bottom:10px;width:100%">
+          </div>
         </div>
-        <div class="card-body">
-          <div class="form-group">
-            <label>Date</label>
-            <input type="date" class="form-input" id="log-date">
-          </div>
-          <div class="form-group">
-            <label>Amount Collected (₵)</label>
-            <input type="number" class="form-input" id="log-amount" placeholder="Enter amount…" min="0">
-          </div>
-          <div class="form-group">
-            <label>Notes (optional)</label>
-            <input type="text" class="form-input" id="log-notes" placeholder="Any remarks for today…" onfocus="showLogNoteSuggestions()" onblur="setTimeout(()=>hideLogNoteSuggestions(),200)">
-            <div id="log-note-suggestions" style="margin-top:6px;gap:6px;flex-wrap:wrap;display:none">
-              <button class="btn btn-ghost btn-xs" style="font-size:10px" onclick="setLogNote('No collections today')">No collections today</button>
-              <button class="btn btn-ghost btn-xs" style="font-size:10px" onclick="setLogNote('Public holiday')">Public holiday</button>
-              <button class="btn btn-ghost btn-xs" style="font-size:10px" onclick="setLogNote('Strong day — follow-up planned')">Strong day</button>
-              <button class="btn btn-ghost btn-xs" style="font-size:10px" onclick="setLogNote('Weekend — minimal response')">Weekend</button>
-              <button class="btn btn-ghost btn-xs" style="font-size:10px" onclick="setLogNote('Multiple PTPs honoured today')">PTPs honoured</button>
-            </div>
-          </div>
-          <button class="btn btn-gold" style="width:100%" onclick="addLogEntry()">Save Entry</button>
+        <!-- Note with quick chips -->
+        <input type="text" class="form-input" id="log-notes" placeholder="Notes (optional)…" onfocus="showLogNoteSuggestions()" onblur="setTimeout(()=>hideLogNoteSuggestions(),200)" style="width:100%;font-size:13px;margin-bottom:8px">
+        <div id="log-note-suggestions" style="display:none;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+          <button class="bl-action-btn" style="font-size:11px" onclick="setLogNote('No collections today')">No collections</button>
+          <button class="bl-action-btn" style="font-size:11px" onclick="setLogNote('Public holiday')">Holiday</button>
+          <button class="bl-action-btn" style="font-size:11px" onclick="setLogNote('Strong day — follow-up planned')">Strong day</button>
+          <button class="bl-action-btn" style="font-size:11px" onclick="setLogNote('Weekend — minimal response')">Weekend</button>
+          <button class="bl-action-btn" style="font-size:11px" onclick="setLogNote('Multiple PTPs honoured today')">PTPs honoured</button>
         </div>
       </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">📈 Monthly Trend</span></div>
-        <div class="card-body"><div class="chart-wrap"><canvas id="chart-log"></canvas></div></div>
+      <div style="padding:0 16px 14px">
+        <button class="btn btn-gold" style="width:100%;padding:12px;font-size:14px;border-radius:12px" onclick="addLogEntry()">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;vertical-align:middle;margin-right:6px"><line x1="10" y1="4" x2="10" y2="16"/><line x1="4" y1="10" x2="16" y2="10"/></svg>Save Entry
+        </button>
       </div>
     </div>
-    <div class="card">
-      <div class="card-header"><span class="card-title">📋 All Entries</span></div>
-      <div class="card-body" id="log-entries" style="padding:0 20px"></div>
+
+    <!-- Entries list -->
+    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:14px;overflow:hidden;box-shadow:inset 0 1px 0 var(--border-hi)">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px">All Entries</div>
+        <div id="log-streak-badge"></div>
+      </div>
+      <div id="log-entries" style="max-height:480px;overflow-y:auto"></div>
     </div>
   </section>
 
@@ -2587,6 +2596,86 @@ tr.overdue-critical .heat-ring {
       </div>
     </div>
 
+
+    <!-- Notifications & behaviour -->
+    <p class="settings-section-label">Behaviour</p>
+    <div class="settings-group">
+      <!-- Default discount -->
+      <div class="settings-row" style="cursor:default">
+        <div class="settings-row-icon" style="background:rgba(252,192,68,0.12);color:var(--gold2)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><circle cx="7" cy="7" r="3"/><circle cx="14" cy="14" r="3"/><line x1="3" y1="17" x2="17" y2="3"/></svg>
+        </div>
+        <div class="settings-row-label">
+          <div class="settings-row-label-main">Default OD Discount</div>
+          <div class="settings-row-label-sub" id="settings-discount-sub">30% of OD fee</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="range" id="settings-discount-slider" min="0" max="80" value="30" oninput="settingsUpdateDiscount(this.value)" style="width:70px">
+          <span id="settings-discount-pct" style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--gold);min-width:32px;text-align:right">30%</span>
+        </div>
+      </div>
+      <!-- Aged-out day threshold -->
+      <div class="settings-row" style="cursor:default">
+        <div class="settings-row-icon" style="background:rgba(249,115,22,0.12);color:var(--orange)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><circle cx="10" cy="10" r="8"/><line x1="10" y1="6" x2="10" y2="10"/><line x1="10" y1="13" x2="10" y2="14"/></svg>
+        </div>
+        <div class="settings-row-label">
+          <div class="settings-row-label-main">Aged-Out Threshold</div>
+          <div class="settings-row-label-sub">Day borrowers are auto-removed (M2 = Day 16)</div>
+        </div>
+        <span class="settings-row-value" style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--orange)">Day 16</span>
+      </div>
+      <!-- Show stage badges -->
+      <div class="settings-row" style="cursor:default">
+        <div class="settings-row-icon" style="background:rgba(96,165,250,0.12);color:var(--blue)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><path d="M10 2l1.5 4h4.5l-3.5 2.5 1.5 4-4-2.5-4 2.5 1.5-4L4 6h4.5z"/></svg>
+        </div>
+        <div class="settings-row-label">
+          <div class="settings-row-label-main">Stage Badges on Cards</div>
+          <div class="settings-row-label-sub">Show M0–M5 badge on borrower cards</div>
+        </div>
+        <label style="position:relative;width:44px;height:26px;display:inline-block;flex-shrink:0;cursor:pointer">
+          <input type="checkbox" id="stage-badges-toggle" checked onchange="settingsToggleStageBadges(this.checked)" style="opacity:0;width:0;height:0">
+          <span id="stage-badges-slider" style="position:absolute;inset:0;background:var(--gold);border-radius:24px;transition:background 0.2s"></span>
+          <span id="stage-badges-knob" style="position:absolute;right:3px;top:4px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform 0.2s;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Data management -->
+    <p class="settings-section-label">Data</p>
+    <div class="settings-group">
+      <button class="settings-row" onclick="settingsForceSync()">
+        <div class="settings-row-icon" style="background:rgba(34,197,94,0.12);color:var(--green)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><path d="M4 10a6 6 0 016-6 6 6 0 015.66 4M16 10a6 6 0 01-6 6 6 6 0 01-5.66-4"/><polyline points="17,4 17,8 13,8"/><polyline points="3,16 3,12 7,12"/></svg>
+        </div>
+        <div class="settings-row-label">
+          <div class="settings-row-label-main">Force Cloud Sync</div>
+          <div class="settings-row-label-sub">Push latest data to Supabase now</div>
+        </div>
+        <span class="settings-chevron">›</span>
+      </button>
+      <button class="settings-row" onclick="openExportModal()">
+        <div class="settings-row-icon" style="background:rgba(96,165,250,0.12);color:var(--blue)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><path d="M10 3v10M6 10l4 4 4-4"/><line x1="3" y1="17" x2="17" y2="17"/></svg>
+        </div>
+        <div class="settings-row-label">
+          <div class="settings-row-label-main">Export Data</div>
+          <div class="settings-row-label-sub">Download borrowers as CSV</div>
+        </div>
+        <span class="settings-chevron">›</span>
+      </button>
+      <button class="settings-row" onclick="settingsClearPtpHistory()">
+        <div class="settings-row-icon" style="background:rgba(167,139,250,0.12);color:var(--purple)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><polyline points="3,6 5,6 17,6"/><path d="M8 6V4h4v2"/><rect x="5" y="6" width="10" height="11" rx="1"/></svg>
+        </div>
+        <div class="settings-row-label">
+          <div class="settings-row-label-main">Clear PTP History</div>
+          <div class="settings-row-label-sub" id="settings-ptp-hist-count">0 days recorded</div>
+        </div>
+        <span class="settings-chevron">›</span>
+      </button>
+    </div>
     <!-- About -->
     <p class="settings-section-label">About</p>
     <div class="settings-group">
@@ -2699,26 +2788,27 @@ tr.overdue-critical .heat-ring {
     <span class="mdrawer-icon" style="display:flex;align-items:center;justify-content:center"><svg style="width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="8"/><line x1="10" y1="6" x2="10" y2="10"/><line x1="10" y1="13" x2="10" y2="14"/></svg></span> Settings
   </div>
   <div class="mdrawer-footer">
-    <!-- Agent info in mobile drawer -->
-    <div id="mdrawer-agent-info" style="background:var(--surface2);border-radius:8px;padding:9px 11px;margin-bottom:10px;display:none">
-      <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px">Signed in as</div>
-      <div id="mdrawer-agent-name" style="font-size:12px;font-weight:700;color:var(--text)"></div>
-      <div id="mdrawer-agent-stage" style="font-size:11px;margin-top:1px"></div>
+    <!-- Sync + actions row -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div id="mdrawer-sync" style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3)">
+        <span style="width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0;display:inline-block;transition:background 0.4s,box-shadow 0.4s" id="mdrawer-sync-dot"></span>
+        <span id="mdrawer-sync-label">Syncing…</span>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button onclick="closeDrawer();navigate('health')" style="background:none;border:none;cursor:pointer;padding:6px;color:var(--text3);border-radius:8px;transition:color 0.15s" title="Settings">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:18px;height:18px;display:block"><circle cx="10" cy="10" r="3"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42"/></svg>
+        </button>
+        <button onclick="closeDrawer();lockApp()" style="background:none;border:none;cursor:pointer;padding:6px;color:var(--text3);border-radius:8px;transition:color 0.15s" title="Lock App">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:18px;height:18px;display:block"><rect x="4" y="9" width="12" height="9" rx="2"/><path d="M7 9V6a3 3 0 016 0v3"/></svg>
+        </button>
+      </div>
     </div>
-    <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px;margin-bottom:8px;color:var(--red);border-color:rgba(239,68,68,0.3)" onclick="closeDrawer();lockApp()">🔒 Lock App</button>
-    <div id="mdrawer-sync" style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-      <span style="width:7px;height:7px;border-radius:50%;background:var(--text3);display:inline-block" id="mdrawer-sync-dot"></span>
-      <span id="mdrawer-sync-label">Local only</span>
-    </div>
-    Data syncs to cloud · single device mode
-    <button id="install-btn-drawer" onclick="window._installPWA()" style="margin-top:10px;width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));border:none;border-radius:8px;padding:8px 12px;cursor:pointer;font-family:var(--font-body);font-size:12px;font-weight:700;color:#000;display:flex;align-items:center;justify-content:center;gap:6px">
-      📲 Install App
+    <div id="pending-sync-label" style="display:none;font-size:10px;color:var(--gold);margin-bottom:6px;font-weight:600"></div>
+    <button id="install-btn-drawer" onclick="window._installPWA()" style="display:none;width:100%;background:var(--gold-grad);border:none;border-radius:10px;padding:9px 12px;cursor:pointer;font-family:var(--font-body);font-size:12px;font-weight:700;color:#000;align-items:center;justify-content:center;gap:6px;margin-bottom:4px">
+      Install App
     </button>
-    <div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--border)">
-      <div style="font-size:9px;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:3px">Developed by</div>
-      <div style="font-family:var(--font-head);font-size:13px;font-weight:700;color:var(--gold);letter-spacing:-0.2px">Shadrack Agyei Arthur</div>
-      <div style="font-size:10px;color:var(--text3);margin-top:1px">SqueveTrack · M2 Collection Suite</div>
-    </div>
+    <!-- Hidden elements for JS compatibility -->
+    <div id="mdrawer-agent-info" style="display:none"><div id="mdrawer-agent-name"></div><div id="mdrawer-agent-stage"></div></div>
   </div>
 </nav>
 
@@ -2757,20 +2847,36 @@ tr.overdue-critical .heat-ring {
 
 <!-- F8: Floating Daily Target Pill -->
 <style>
-@keyframes pillPulse { 0%,100%{box-shadow:0 8px 28px rgba(240,160,48,0.25),inset 0 1px 0 rgba(255,255,255,0.08)} 50%{box-shadow:0 8px 36px rgba(240,160,48,0.45),inset 0 1px 0 rgba(255,255,255,0.1)} }
-@keyframes pillGlow  { 0%,100%{box-shadow:0 8px 28px rgba(239,68,68,0.3),inset 0 1px 0 rgba(255,255,255,0.06)} 50%{box-shadow:0 8px 40px rgba(239,68,68,0.6),inset 0 1px 0 rgba(255,255,255,0.08)} }
-#daily-target-pill.on-track  { animation: pillPulse 2.5s ease-in-out infinite; }
-#daily-target-pill.behind    { animation: pillGlow  1.8s ease-in-out infinite; }
-#daily-target-pill.done      { }
+/* Pill animations */
+@keyframes pillFloat   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
+@keyframes pillPulse   { 0%,100%{box-shadow:0 0 0 0 rgba(240,160,48,0.5),0 8px 32px rgba(240,160,48,0.3)} 60%{box-shadow:0 0 0 10px rgba(240,160,48,0),0 8px 40px rgba(240,160,48,0.5)} }
+@keyframes pillGlowRed { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.5),0 8px 32px rgba(239,68,68,0.3)} 60%{box-shadow:0 0 0 10px rgba(239,68,68,0),0 8px 40px rgba(239,68,68,0.55)} }
+@keyframes pillDone    { 0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,0.4),0 8px 24px rgba(34,197,94,0.2)} 60%{box-shadow:0 0 0 8px rgba(34,197,94,0),0 8px 28px rgba(34,197,94,0.35)} }
+#daily-target-pill.on-track .pill-inner { animation: pillPulse 2.4s cubic-bezier(0.4,0,0.6,1) infinite; }
+#daily-target-pill.behind   .pill-inner { animation: pillGlowRed 1.8s cubic-bezier(0.4,0,0.6,1) infinite; }
+#daily-target-pill.done     .pill-inner { animation: pillDone 2.8s ease-in-out infinite; }
+#daily-target-pill { animation: pillFloat 4s ease-in-out infinite; }
 </style>
-<div id="daily-target-pill" style="display:none;position:fixed;bottom:76px;right:14px;z-index:300;cursor:pointer" onclick="navigate('log');haptic('light')">
-  <div style="background:rgba(14,17,24,0.88);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--border2);border-radius:16px;padding:10px 14px;min-width:100px;text-align:center;transition:all 0.3s;box-shadow:0 8px 28px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.07)">
-    <div id="daily-pill-label" style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;font-weight:600">Need Today</div>
-    <div id="daily-pill-amount" style="font-family:var(--font-mono);font-weight:700;font-size:15px;color:var(--gold);letter-spacing:-0.5px;line-height:1">₵0</div>
-    <div id="daily-pill-sub" style="font-size:9px;color:var(--text3);margin-top:4px;letter-spacing:0.3px">tap to log</div>
-    <div style="margin-top:6px;height:2px;background:var(--border);border-radius:1px;overflow:hidden"><div id="daily-pill-bar" style="height:100%;background:var(--gold-grad);border-radius:1px;width:0%;transition:width 0.6s ease"></div></div>
+<div id="daily-target-pill" class="pill-inner" style="display:none;position:fixed;bottom:80px;right:14px;z-index:300;cursor:pointer;min-width:110px;text-align:center;border-radius:22px;padding:11px 16px;background:rgba(10,12,20,0.86);border:1px solid rgba(255,255,255,0.13);box-shadow:0 8px 32px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.12)" onclick="navigate('log');haptic('light')">
+  <div id="daily-pill-label" style="font-size:8px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;font-weight:700">Need Today</div>
+  <div id="daily-pill-amount" style="font-family:var(--font-mono);font-weight:700;font-size:18px;color:var(--gold);letter-spacing:-0.5px;line-height:1">₵0</div>
+  <div id="daily-pill-sub" style="font-size:8px;color:rgba(255,255,255,0.3);margin-top:5px">tap to log</div>
+  <div style="margin-top:8px;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden">
+    <div id="daily-pill-bar" style="height:100%;background:var(--gold-grad);border-radius:2px;width:0%;transition:width 0.6s ease"></div>
   </div>
 </div>
+<style>
+/* Light theme pill */
+[data-theme="light"] #daily-target-pill { filter: drop-shadow(0 8px 20px rgba(196,122,10,0.25)); }
+[data-theme="light"] #daily-target-pill .pill-inner > div:first-child {
+  background: rgba(255,255,255,0.85) !important;
+  border-color: rgba(0,0,0,0.1) !important;
+}
+[data-theme="light"] #daily-pill-label  { color: rgba(0,0,0,0.4) !important; }
+[data-theme="light"] #daily-pill-sub    { color: rgba(0,0,0,0.3) !important; }
+[data-theme="light"] #daily-pill-amount { color: var(--gold) !important; }
+[data-theme="light"] #pill-glow { background: radial-gradient(ellipse at 50% 0%, rgba(196,122,10,0.12) 0%, transparent 70%) !important; }
+</style>
 
 <!-- TOAST AREA -->
 <div id="toast-area"></div>
@@ -4495,11 +4601,7 @@ function renderLog() {
   }
 
   // Improvement 6: Personal best banner
-  const pbestBanner = best > 0
-    ? '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:rgba(232,160,32,0.08);border-bottom:2px solid rgba(232,160,32,0.18)">'
-      + '<span style="font-size:12px;color:var(--text2);font-weight:600">🏆 Personal Best</span>'
-      + '<span style="font-family:var(--font-mono);font-weight:800;color:var(--gold);font-size:15px">' + fmtC(best) + '</span></div>'
-    : '';
+  const pbestBanner = '';
 
   // Build entries with running total, pace dot, weekly summaries
   const maxC = best || 1;
@@ -4528,16 +4630,28 @@ function renderLog() {
     // Improvement 2: Running total
     const runCol = '<div style="font-family:var(--font-mono);font-size:10px;color:var(--text3);min-width:56px;text-align:right" title="Month total so far">' + fmtC(runningTotal) + '</div>';
 
+    const amtColor = val === 0 ? 'var(--text3)' : (requiredPerDay > 0 && val >= requiredPerDay * 1.1) ? 'var(--green)' : (requiredPerDay > 0 && val < requiredPerDay * 0.5) ? 'var(--red)' : 'var(--gold)';
+    const barColor = val === 0 ? 'var(--border2)' : (requiredPerDay > 0 && val >= requiredPerDay * 1.1) ? 'var(--green)' : (requiredPerDay > 0 && val < requiredPerDay * 0.5) ? 'var(--red)' : 'var(--gold)';
+    const dateObj = new Date(e.date + 'T00:00:00');
+    const dayName = dateObj.toLocaleDateString('en-GB', { weekday: 'short' });
+    const dayNum  = dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     entriesHtml +=
-      '<div class="log-entry" data-logdate="' + e.date + '" style="' + (isToday ? 'background:rgba(232,160,32,0.04);' : '') + 'cursor:pointer" onclick="tapLogEntry(this)" title="Tap to edit">' +
-      + '<div class="log-date" style="display:flex;align-items:center;gap:0">' + paceDot + e.date.slice(5) + (isBest ? ' 🏆' : '') + '</div>'
-      + '<div style="flex:1">'
-      + '<div class="log-bar-wrap"><div class="log-bar" style="width:' + w + '%;background:' + (val === 0 ? 'var(--border)' : 'var(--gold)') + '"></div></div>'
-      + (e.notes ? '<div class="log-note">' + e.notes + '</div>' : '')
+      '<div class="log-entry" data-logdate="' + e.date + '" style="display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--border);cursor:pointer' + (isToday ? ';background:rgba(240,160,48,0.04)' : '') + '" onclick="tapLogEntry(this)">'
+      + '<div style="flex-shrink:0;text-align:center;min-width:38px">'
+      +   '<div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.3px">' + dayName + '</div>'
+      +   '<div style="font-size:12px;font-weight:700;color:' + (isToday ? 'var(--gold)' : 'var(--text2)') + '">' + dayNum + '</div>'
+      +   (isBest ? '<div style="font-size:9px;color:var(--gold);margin-top:1px">🏆</div>' : (paceDot ? '<div style="display:flex;justify-content:center;margin-top:2px">' + paceDot + '</div>' : ''))
       + '</div>'
-      + runCol
-      + '<div class="log-amount" style="color:' + (val === 0 ? 'var(--text3)' : 'var(--gold)') + ';min-width:58px;text-align:right">' + fmtC(val) + '</div>'
-      + '<button class="btn btn-red btn-xs" data-delbtn="' + e.date + '" onclick="event.stopPropagation();tapLogDelete(this)">🗑</button>'
+      + '<div style="flex:1;min-width:0">'
+      +   '<div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden' + (e.notes ? ';margin-bottom:5px' : '') + '">'
+      +     '<div style="height:100%;width:' + w + '%;background:' + barColor + ';border-radius:2px"></div>'
+      +   '</div>'
+      +   (e.notes ? '<div style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + e.notes + '</div>' : '')
+      + '</div>'
+      + '<div style="font-family:var(--font-mono);font-size:10px;color:var(--text3);text-align:right;flex-shrink:0;min-width:50px">' + fmtC(runningTotal) + '</div>'
+      + '<div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:' + amtColor + ';text-align:right;flex-shrink:0;min-width:60px">' + (val === 0 ? '—' : fmtC(val)) + '</div>'
+      + '<button style="background:none;border:none;cursor:pointer;color:var(--text3);padding:4px;border-radius:6px;flex-shrink:0" data-delbtn="' + e.date + '" onclick="event.stopPropagation();tapLogDelete(this)"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px"><polyline points="3,6 5,6 17,6"/><path d="M8 6V4h4v2"/><rect x="5" y="6" width="10" height="11" rx="1"/></svg></button>'
+      + '</div>';
       + '</div>';
 
     // Improvement 1: Weekly summary
@@ -4548,10 +4662,10 @@ function renderLog() {
       const wkActive = weekBuf.filter(x => (x.collected||0) > 0).length;
       const wkAvg = wkActive > 0 ? Math.round(wkTotal / wkActive) : 0;
       entriesHtml +=
-        '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 14px;background:var(--surface2);border-bottom:1px solid var(--border);border-top:1px solid var(--border)">'
-        + '<span style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px">Week ' + weekIdx + '</span>'
-        + '<div style="display:flex;gap:10px;align-items:center;font-size:11px">'
-        + '<span style="color:var(--text3)">' + wkActive + '/' + weekBuf.length + ' days</span>'
+        '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:rgba(255,255,255,0.025);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">'
+        + '<span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px">Week ' + weekIdx + '</span>'
+        + '<div style="display:flex;gap:14px;font-size:11px">'
+        + '<span style="color:var(--text3)">' + wkActive + '/' + weekBuf.length + ' active</span>'
         + '<span style="font-family:var(--font-mono);color:var(--text3)">avg ' + fmtC(wkAvg) + '</span>'
         + '<span style="font-family:var(--font-mono);font-weight:700;color:var(--gold)">' + fmtC(wkTotal) + '</span>'
         + '</div></div>';
@@ -9846,9 +9960,9 @@ function updateDailyPill() {
   const daysLeft = Math.max(1, dim - now.getDate() + 1);
   const needed = Math.ceil(Math.max(0, target - totalCollected) / daysLeft);
   const stillNeeded = Math.max(0, needed - todayCollected);
-  pill.style.display = 'flex';
-  pill.style.flexDirection = 'column';
-  pill.style.alignItems = 'center';
+  pill.style.display = 'block'; // outer div just positions; inner handles layout
+  pill.style.removeProperty('flex-direction');
+  pill.style.removeProperty('align-items');
   // Remove all state classes
   pill.classList.remove('on-track','behind','done');
 
@@ -9856,8 +9970,8 @@ function updateDailyPill() {
     // Target hit!
     pill.classList.add('done');
     // Green gradient override
-    const innerDone = pill.querySelector('div');
-    if(innerDone){innerDone.style.borderColor='rgba(34,197,94,0.4)';innerDone.style.boxShadow='0 8px 28px rgba(34,197,94,0.2),inset 0 1px 0 rgba(255,255,255,0.07)';}
+    pill.style.borderColor = 'rgba(34,197,94,0.4)';
+    pill.style.boxShadow = '0 8px 28px rgba(34,197,94,0.25),inset 0 1px 0 rgba(255,255,255,0.12)';
     if(amtEl){amtEl.style.color='var(--green)';}
     amtEl.textContent = 'Done!';
     if (subEl) subEl.textContent = '🎯 Target hit!';
@@ -9875,15 +9989,16 @@ function updateDailyPill() {
   } else {
     const isBehind = stillNeeded > needed * 0.7;
     pill.classList.add(isBehind ? 'behind' : 'on-track');
-    const inner = pill.querySelector('div');
-    if(inner){
-      inner.style.borderColor = isBehind ? 'rgba(239,68,68,0.5)' : 'rgba(240,160,48,0.4)';
-    }
-    if(amtEl){amtEl.style.color='var(--gold)';}
-    if (lblEl) lblEl.textContent = isBehind ? '⚡ Needed' : 'Need Today';
+    // Update pill glow and halo colours
+    // Update pill border color for state
+    pill.style.borderColor = isBehind ? 'rgba(239,68,68,0.5)' : 'rgba(240,160,48,0.35)';
+    pill.style.boxShadow = isBehind
+      ? '0 8px 32px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.12),0 0 0 1px rgba(239,68,68,0.3)'
+      : '0 8px 32px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.12),0 0 0 1px rgba(240,160,48,0.25)';
+    if(amtEl){amtEl.style.color = isBehind ? 'var(--red)' : 'var(--gold)';}
+    if (lblEl) lblEl.textContent = isBehind ? 'BEHIND' : 'NEED TODAY';
     animatePillNumber(amtEl, stillNeeded, isBehind);
-    if (subEl) subEl.textContent = isBehind ? 'behind pace 🔴' : 'to log today';
-    // Progress bar
+    if (subEl) subEl.textContent = isBehind ? 'behind pace' : 'tap to log';
     const pct = Math.min(100, Math.round(todayCollected / Math.max(needed,1) * 100));
     const barEl = document.getElementById('daily-pill-bar');
     if(barEl){barEl.style.width=pct+'%';barEl.style.background=isBehind?'var(--red)':'var(--gold-grad)';}
@@ -10741,6 +10856,25 @@ function renderSettingsPage() {
   // Target
   const targetInput = document.getElementById('settings-target-input');
   if (targetInput) targetInput.value = state.monthlyTarget || '';
+  // Discount default
+  const savedDiscount = localStorage.getItem('sq_default_discount') || '30';
+  const discSl = document.getElementById('settings-discount-slider');
+  const discPct = document.getElementById('settings-discount-pct');
+  const discSub = document.getElementById('settings-discount-sub');
+  if (discSl) discSl.value = savedDiscount;
+  if (discPct) discPct.textContent = savedDiscount + '%';
+  if (discSub) discSub.textContent = savedDiscount + '% of OD fee waived';
+  // Stage badges toggle
+  const sbToggle = document.getElementById('stage-badges-toggle');
+  const sbSlider = document.getElementById('stage-badges-slider');
+  const sbKnob   = document.getElementById('stage-badges-knob');
+  const sbOn = localStorage.getItem('sq_stage_badges') !== 'off';
+  if (sbToggle) sbToggle.checked = sbOn;
+  if (sbSlider) sbSlider.style.background = sbOn ? 'var(--gold)' : 'var(--border2)';
+  if (sbKnob)   sbKnob.style.transform = sbOn ? 'translateX(0)' : 'translateX(-20px)';
+  // PTP history count
+  const ptpCountEl = document.getElementById('settings-ptp-hist-count');
+  if (ptpCountEl) ptpCountEl.textContent = (state.ptpHistory?.length || 0) + ' days recorded';
 
   // Theme buttons
   const isDark = (localStorage.getItem('m2_theme') || 'dark') === 'dark';
@@ -10987,6 +11121,49 @@ function settingsCopyCode() {
   }).catch(() => {
     toast(code, 'info'); // fallback — show in toast
   });
+}
+
+function settingsUpdateDiscount(val) {
+  const pct = document.getElementById('settings-discount-pct');
+  const sub = document.getElementById('settings-discount-sub');
+  const sl  = document.getElementById('settings-discount-slider');
+  if (pct) pct.textContent = val + '%';
+  if (sub) sub.textContent = val + '% of OD fee waived';
+  // Sync to both dispatch sliders
+  const ds = document.getElementById('discount-slider');
+  const ss = document.getElementById('sms-discount-slider');
+  if (ds) { ds.value = val; updateDiscount(val); }
+  if (ss) { ss.value = val; updateSmsDiscount(val); }
+  localStorage.setItem('sq_default_discount', val);
+}
+
+function settingsToggleStageBadges(on) {
+  localStorage.setItem('sq_stage_badges', on ? 'on' : 'off');
+  haptic('light');
+  renderCurrentPage();
+}
+
+function settingsForceSync() {
+  if (typeof _pushToSupabase === 'function') {
+    _pushToSupabase();
+    toast('Syncing to cloud…', 'info');
+    haptic('light');
+  } else { toast('No cloud connection', 'error'); }
+}
+
+function _doClearPtpHistory() { state.ptpHistory=[]; saveState(); closeModal(); renderSettingsPage(); toast("PTP history cleared","success"); }
+
+function settingsClearPtpHistory() {
+  if (!state.ptpHistory?.length) { toast('No history to clear', 'info'); return; }
+  document.getElementById('modal-title').textContent = 'Clear PTP History';
+  document.getElementById('modal-body').innerHTML =
+    '<div style="font-size:13px;color:var(--text2);line-height:1.8">'
+    + 'This will delete <strong>' + (state.ptpHistory.length) + ' days</strong> of PTP history.<br>'
+    + '<span style="color:var(--red)">Cannot be undone.</span></div>';
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
+    + '<button class="btn btn-red" onclick="_doClearPtpHistory()">Clear History</button>';
+  document.getElementById('modal-overlay').classList.add('open');
 }
 
 function settingsSetTheme(theme) {
