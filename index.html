@@ -952,10 +952,6 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
   <div class="nav-item" data-page="smsblast">
     <span class="nav-icon">📱</span> SMS Blast
   </div>
-  <div class="nav-item" data-page="agedout">
-    <span class="nav-icon">📤</span> Aged Out
-    <span class="nav-badge" id="badge-agedout" style="background:var(--orange);display:none">0</span>
-  </div>
   <div class="nav-item" data-page="log">
     <span class="nav-icon">📅</span> Daily Log
   </div>
@@ -965,14 +961,14 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
   <div class="nav-item" data-page="ranking">
     <span class="nav-icon">🏆</span> Ranking
   </div>
+  <div class="nav-item" data-page="ptp">
+    <span class="nav-icon">🤝</span> PTP Hub
+    <span class="nav-badge" id="badge-ptp" style="background:var(--purple);display:none">0</span>
+  </div>
   <div class="nav-item" data-page="reports">
     <span class="nav-icon">📋</span> Reports
   </div>
   </div><!-- end sidebar-nav-scroll -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-      <span>🌙 Theme</span>
-
-    </div>
     <div id="sync-status" style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:11px">
       <span id="sync-dot" style="width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0;display:inline-block"></span>
       <span id="sync-label">Local only</span>
@@ -1552,6 +1548,26 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
     <div id="ranking-body"></div>
   </section>
 
+  <!-- PTP HUB PAGE -->
+  <section class="page" id="page-ptp">
+    <div class="page-header">
+      <div>
+        <div class="page-title">🤝 PTP Hub</div>
+        <div class="page-sub" id="ptp-date-sub">Promises · Reports · History</div>
+      </div>
+    </div>
+    <!-- Tab bar -->
+    <div style="position:sticky;top:0;z-index:40;background:var(--bg);padding:0 0 12px;margin-bottom:4px">
+      <div style="display:flex;gap:2px;background:var(--surface2);border-radius:8px;padding:3px;width:fit-content">
+        <button class="ptp-tab active" id="ptptab-morning"  onclick="switchPtpHub('morning')">🌅 Morning</button>
+        <button class="ptp-tab"        id="ptptab-eod"      onclick="switchPtpHub('eod')">🌙 EOD</button>
+        <button class="ptp-tab"        id="ptptab-history"  onclick="switchPtpHub('history')">📅 History</button>
+        <button class="ptp-tab"        id="ptptab-stats"    onclick="switchPtpHub('stats')">📊 Stats</button>
+      </div>
+    </div>
+    <div id="ptp-hub-content"></div>
+  </section>
+
   <!-- REPORTS PAGE -->
   <section class="page" id="page-reports">
     <div class="page-header"><div><div class="page-title">📋 Supervisor Reports</div><div class="page-sub">Pre-built report formats for NANA OSAE EMMANUEL</div></div></div>
@@ -1623,13 +1639,7 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
           <input type="text" class="form-input" id="settings-name-input" placeholder="Your full name" style="margin-top:5px">
         </div>
         <button class="btn btn-gold btn-sm" onclick="settingsSaveProfile()">Save Profile</button>
-        <div id="settings-copy-code" style="margin-top:12px;background:var(--surface2);border-radius:8px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="settingsCopyCode()">
-          <div>
-            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px">Agent Code</div>
-            <div id="settings-code-display" style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--gold)"></div>
-          </div>
-          <span style="font-size:12px;color:var(--text3)">📋 Copy</span>
-        </div>
+
       </div>
     </div>
 
@@ -1759,10 +1769,6 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
   <div class="mdrawer-item" data-page="smsblast" onclick="navigateDrawer('smsblast')">
     <span class="mdrawer-icon">📱</span> SMS Blast
   </div>
-  <div class="mdrawer-item" data-page="agedout" onclick="navigateDrawer('agedout')">
-    <span class="mdrawer-icon">📤</span> Aged Out
-    <span class="mdrawer-badge" id="mbadge-agedout" style="display:none;background:var(--orange)"></span>
-  </div>
   <div class="mdrawer-item" data-page="log" onclick="navigateDrawer('log')">
     <span class="mdrawer-icon">📅</span> Daily Log
   </div>
@@ -1771,6 +1777,10 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
   </div>
   <div class="mdrawer-item" data-page="ranking" onclick="navigateDrawer('ranking')">
     <span class="mdrawer-icon">🏆</span> Ranking
+  </div>
+  <div class="mdrawer-item" data-page="ptp" onclick="navigateDrawer('ptp')">
+    <span class="mdrawer-icon">🤝</span> PTP Hub
+    <span class="mdrawer-badge" id="mbadge-ptp" style="display:none;background:var(--purple)"></span>
   </div>
   <div class="mdrawer-item" data-page="reports" onclick="navigateDrawer('reports')">
     <span class="mdrawer-icon">📋</span> Reports
@@ -1844,10 +1854,10 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
 #daily-target-pill.behind    { animation: pillGlow  1.8s ease-in-out infinite; border-color:var(--red)!important; }
 #daily-target-pill.done      { border-color:var(--green)!important; }
 </style>
-<div id="daily-target-pill" style="display:none;position:fixed;bottom:72px;right:14px;z-index:300;background:var(--surface);border:1.5px solid var(--border2);border-radius:24px;padding:8px 14px;cursor:pointer;text-align:center;min-width:110px;transition:border-color 0.3s" onclick="navigate('log');haptic('light')">
-  <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px" id="daily-pill-label">Need today</div>
-  <div id="daily-pill-amount" style="font-family:var(--font-mono);font-weight:800;font-size:16px;color:var(--gold)">₵0</div>
-  <div id="daily-pill-sub" style="font-size:9px;color:var(--text3);margin-top:1px">tap to log</div>
+<div id="daily-target-pill" style="display:none;position:fixed;bottom:72px;right:14px;z-index:300;background:var(--surface);border:1.5px solid var(--border2);border-radius:20px;padding:6px 11px;cursor:pointer;text-align:center;min-width:90px;transition:border-color 0.3s" onclick="navigate('log');haptic('light')">
+  <div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:1px" id="daily-pill-label">Need today</div>
+  <div id="daily-pill-amount" style="font-family:var(--font-mono);font-weight:800;font-size:13px;color:var(--gold)">₵0</div>
+  <div id="daily-pill-sub" style="font-size:8px;color:var(--text3);margin-top:0">tap to log</div>
 </div>
 
 <!-- TOAST AREA -->
@@ -2710,6 +2720,7 @@ function renderDashboard() {
   checkRankingGapAlert();
   checkPtpBreaches();
   updateDailyPill();
+  renderDashAgedOut();
 }
 
 function chartColor(alpha) {
@@ -5061,17 +5072,19 @@ function renderCurrentPage() {
   else if (currentPage === 'dispatch') renderDispatch();
   else if (currentPage === 'log') renderLog();
   else if (currentPage === 'smsblast') renderSmsBlast();
-  else if (currentPage === 'agedout') renderAgedOut();
+  else if (currentPage === 'agedout') { navigate('dashboard'); setTimeout(()=>{ renderDashAgedOut(); document.getElementById('dash-agedout-body').style.display='block'; },200); }
   else if (currentPage === 'ptp-history') { navigate('reports'); }
   else if (currentPage === 'ptp-stats') { navigate('reports'); }
   else if (currentPage === 'forecast') { navigate('dashboard'); }
   else if (currentPage === 'segments') renderSegments();
   else if (currentPage === 'ranking') renderRanking();
+  else if (currentPage === 'ptp') { if(typeof switchPtpHub==='function') switchPtpHub(_ptpTab||'morning'); }
   else if (currentPage === 'reports') renderReportsPage();
   else if (currentPage === 'health') renderSettingsPage();
 }
 
 function updateBadges() {
+  if (typeof updatePtpBadge === "function") updatePtpBadge();
   const unpaid = state.borrowers.filter(b => getStatus(b) === 'Unpaid').length;
   const active = getActiveBorrowers().length;
   const aged = (state.agedOutLog || []).length;
@@ -7354,38 +7367,45 @@ function toastWithHaptic(msg, type) {
 // ============================================================
 // PTP HUB — unified, scrollable, working taps
 // ============================================================
-let _ptpTab = 'report';
+
+
+// ============================================================
+// PTP HUB — Morning · EOD · History · Stats
+// ============================================================
+let _ptpTab = 'morning';
 
 function renderPtpHub() {
-  // Tab styling
-  document.querySelectorAll('.ptp-tab').forEach(t => t.classList.remove('active'));
-  const at = document.getElementById('ptptab-' + _ptpTab);
-  if (at) at.classList.add('active');
   const container = document.getElementById('ptp-hub-content');
   if (!container) return;
-  container.style.opacity = '0';
-  container.style.transform = 'translateX(10px)';
-  if (_ptpTab === 'report')   container.innerHTML = buildPtpReportHtml();
-  else if (_ptpTab === 'history') container.innerHTML = buildPtpHistoryHtml();
-  else if (_ptpTab === 'stats')   container.innerHTML = buildPtpStatsHtml();
-  // Animate
+  // Update tab active state
+  ['morning','eod','history','stats'].forEach(t => {
+    const el = document.getElementById('ptptab-' + t);
+    if (el) el.classList.toggle('active', t === _ptpTab);
+  });
+  // Update subtitle
+  const sub = document.getElementById('ptp-date-sub');
+  if (sub) {
+    const today = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+    sub.textContent = today;
+  }
+  // Animate content swap
+  container.style.cssText += 'opacity:0;transform:translateX(8px);transition:none';
+  if      (_ptpTab === 'morning') container.innerHTML = buildPtpMorningHtml();
+  else if (_ptpTab === 'eod')     container.innerHTML = buildPtpEodHtml();
+  else if (_ptpTab === 'history') container.innerHTML = buildPtpHistoryHtml2();
+  else if (_ptpTab === 'stats')   container.innerHTML = buildPtpStatsHtml2();
+  // Wire EOD outcome buttons via delegation
+  container.onclick = function(e) {
+    const btn = e.target.closest('.ptp-oc-btn');
+    if (!btn) return;
+    const bid = btn.dataset.bid, outcome = btn.dataset.outcome;
+    if (bid && outcome) { haptic('medium'); setPtpOutcome2(bid, outcome); }
+  };
   setTimeout(() => {
     container.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
     container.style.opacity = '1';
     container.style.transform = 'translateX(0)';
   }, 10);
-  // Wire PTP outcome buttons via delegation (avoids inline onclick quote issues)
-  container.addEventListener('click', function(e) {
-    const btn = e.target.closest('.ptp-oc-btn');
-    if (!btn) return;
-    e.stopPropagation();
-    const bid = btn.dataset.bid;
-    const outcome = btn.dataset.outcome;
-    if (bid && outcome) {
-      haptic('medium');
-      setPtpOutcome(bid, outcome);
-    }
-  }, { once: true });
 }
 
 function switchPtpHub(tab) {
@@ -7394,10 +7414,525 @@ function switchPtpHub(tab) {
   renderPtpHub();
 }
 
-// Alias for legacy calls
-function renderPtp() { if (typeof renderPtpHub === 'function') renderPtpHub(); }
-function renderPtpHistory() { _ptpTab = 'history'; renderPtpHub(); }
-function renderPtpStats()   { _ptpTab = 'stats';   renderPtpHub(); }
+function getTodayPtps2() {
+  const today = new Date().toISOString().split('T')[0];
+  return state.borrowers.filter(b => b.promisedToPay && b.promiseDate && b.promiseDate.startsWith(today));
+}
+
+function setPtpOutcome2(bid, outcome) {
+  const b = state.borrowers.find(b => b.id === bid);
+  if (!b) return;
+  // If custom text entry, show the text input
+  if (outcome === 'custom') {
+    const row = document.querySelector('.ptp-outcome-row[data-bid="'+bid+'"]');
+    const inp = row?.querySelector('.ptp-custom-input');
+    if (inp) { inp.style.display = 'block'; inp.focus(); }
+    return;
+  }
+  b.ptpOutcome = outcome;
+  saveState();
+  // Update the select to match
+  const sel = document.querySelector('.ptp-oc-sel[data-bid="'+bid+'"]');
+  if (sel) {
+    const isKnown = PTP_OUTCOMES.find(o => o.val === outcome);
+    sel.value = isKnown ? outcome : '';
+    sel.style.borderColor = outcome ? 'var(--gold)' : 'var(--border2)';
+    // Show/hide custom input
+    const inp = sel.closest('.ptp-outcome-row')?.querySelector('.ptp-custom-input');
+    if (inp) inp.style.display = isKnown ? 'none' : 'block';
+  }
+  haptic('light');
+  savePtpSnapshot2();
+}
+
+function getAgentProfileName() {
+  return localStorage.getItem('sq_displayname_' + (_activeAgent?.id||'')) || _activeAgent?.name || state.agentProfile?.name || 'Agent';
+}
+
+function buildPtpMorningHtml() {
+  const today = new Date().toISOString().split('T')[0];
+  const todayStr = new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+  const ptps = getTodayPtps2();
+  const honoured = ptps.filter(b => b.amountPaid > 0 || b.ptpOutcome === 'paid');
+  const rate = ptps.length > 0 ? Math.round(honoured.length / ptps.length * 100) : 0;
+  const rateCol = rate >= 70 ? 'var(--green)' : rate >= 40 ? 'var(--gold)' : 'var(--red)';
+  const totalExp = ptps.reduce((s,b) => s + getDueToday(b), 0);
+  const upcoming = state.borrowers.filter(b => b.promisedToPay && b.promiseDate && b.promiseDate > today).sort((a,b) => a.promiseDate.localeCompare(b.promiseDate));
+  const agentName = getAgentProfileName();
+
+  let html = `
+    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:14px;margin-bottom:14px">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Today · ${todayStr}</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+        <div style="text-align:center"><div style="font-family:var(--font-mono);font-size:20px;font-weight:800;color:var(--gold)">${ptps.length}</div><div style="font-size:10px;color:var(--text3)">PTPs</div></div>
+        <div style="text-align:center"><div style="font-family:var(--font-mono);font-size:20px;font-weight:800;color:var(--green)">${honoured.length}</div><div style="font-size:10px;color:var(--text3)">Honoured</div></div>
+        <div style="text-align:center"><div style="font-family:var(--font-mono);font-size:20px;font-weight:800;color:${rateCol}">${rate}%</div><div style="font-size:10px;color:var(--text3)">Rate</div></div>
+        <div style="text-align:center"><div style="font-family:var(--font-mono);font-size:13px;font-weight:800;color:var(--blue)">${fmtC(totalExp)}</div><div style="font-size:10px;color:var(--text3)">Expected</div></div>
+      </div>
+    </div>`;
+
+  html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <div style="font-size:13px;font-weight:700">📋 ${todayStr} Promises <span style="font-size:11px;font-weight:400;color:var(--text3)">${ptps.length} set</span></div>
+    <button class="btn btn-gold btn-sm" onclick="ptpShareMorning('${agentName}');haptic('light')">📤 Share Morning</button>
+  </div>`;
+
+  if (ptps.length === 0) {
+    html += `<div style="background:var(--surface2);border-radius:10px;padding:24px;text-align:center;color:var(--text3);font-size:12px">
+      No promises set for today.<br><span style="font-size:11px">Go to Borrowers → tap 🤝 to set a promise.</span></div>`;
+  } else {
+    html += `<div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;overflow:hidden;margin-bottom:14px">`;
+    ptps.forEach(b => {
+      const ok = b.amountPaid > 0 || b.ptpOutcome === 'paid';
+      const phone = b.phone.replace(/\s/g,'').replace('+','');
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);${ok?'background:rgba(34,197,94,0.04)':''}">
+        <div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${ok?'var(--green)':'var(--orange)'}"></div>
+        <div style="flex:1;min-width:0;cursor:pointer" onclick="openBorrowerDetail('${b.id}');haptic('light')">
+          <div style="font-size:13px;font-weight:600">${b.name.split(' ')[0]}</div>
+          <div style="font-size:10px;color:var(--text3)">${b.promiseDate||''} ${b.promiseNote?'· '+b.promiseNote:''}</div>
+        </div>
+        <div style="text-align:right;margin-right:8px">
+          <div style="font-family:var(--font-mono);font-size:12px;font-weight:700">${fmtC(getDueToday(b))}</div>
+          <div style="font-size:10px;color:${ok?'var(--green)':'var(--text3)'}">${ok?'✅ Honoured':'⏳ Pending'}</div>
+        </div>
+        <button class="btn btn-green btn-xs" onclick="openPayModal('${b.id}');haptic('light')">💰</button>
+        <a href="https://wa.me/${phone}" target="_blank" class="btn btn-ghost btn-xs" style="color:#25d366" onclick="haptic('light')">💬</a>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  if (upcoming.length > 0) {
+    html += `<div style="font-size:13px;font-weight:700;margin-bottom:8px">📅 Upcoming <span style="font-size:11px;font-weight:400;color:var(--text3)">${upcoming.length} promises</span></div>
+    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;overflow:hidden">`;
+    upcoming.slice(0,10).forEach(b => {
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer" onclick="openBorrowerDetail('${b.id}');haptic('light')">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600">${b.name.split(' ')[0]}</div>
+          <div style="font-size:10px;color:var(--text3)">${b.promiseDate}</div>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:12px">${fmtC(getDueToday(b))}</div>
+      </div>`;
+    });
+    if (upcoming.length > 10) html += `<div style="padding:8px 14px;font-size:11px;color:var(--text3)">+${upcoming.length-10} more</div>`;
+    html += `</div>`;
+  }
+  return html;
+}
+
+function buildPtpEodHtml() {
+  const today = new Date().toISOString().split('T')[0];
+  const todayStr = new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+  const ptps = getTodayPtps2();
+  const agentName = getAgentProfileName();
+  const paid_c    = ptps.filter(b => b.ptpOutcome === 'paid').length;
+  const partial_c = ptps.filter(b => b.ptpOutcome === 'partial').length;
+  const broken_c  = ptps.filter(b => b.ptpOutcome === 'broken').length;
+  const pending_c = ptps.filter(b => !b.ptpOutcome).length;
+  const conv = ptps.length > 0 ? Math.round((paid_c + partial_c * 0.5) / ptps.length * 100) : 0;
+  const convCol = conv >= 70 ? 'var(--green)' : conv >= 40 ? 'var(--gold)' : 'var(--red)';
+
+  let html = `
+    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:14px;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">EOD Summary · ${todayStr}</div>
+        <span style="font-family:var(--font-mono);font-size:15px;font-weight:800;color:${convCol}">${conv}%</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+        <div style="text-align:center;background:rgba(34,197,94,0.08);border-radius:8px;padding:8px"><div style="font-family:var(--font-mono);font-size:18px;font-weight:800;color:var(--green)">${paid_c}</div><div style="font-size:10px;color:var(--text3)">Paid</div></div>
+        <div style="text-align:center;background:rgba(232,160,32,0.08);border-radius:8px;padding:8px"><div style="font-family:var(--font-mono);font-size:18px;font-weight:800;color:var(--gold)">${partial_c}</div><div style="font-size:10px;color:var(--text3)">Partial</div></div>
+        <div style="text-align:center;background:rgba(239,68,68,0.08);border-radius:8px;padding:8px"><div style="font-family:var(--font-mono);font-size:18px;font-weight:800;color:var(--red)">${broken_c}</div><div style="font-size:10px;color:var(--text3)">Broken</div></div>
+        <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:8px"><div style="font-family:var(--font-mono);font-size:18px;font-weight:800;color:var(--text3)">${pending_c}</div><div style="font-size:10px;color:var(--text3)">Pending</div></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:700">🌙 Mark EOD Outcomes</div>
+      <button class="btn btn-gold btn-sm" onclick="ptpShareEod('${agentName}');haptic('light')">📤 EOD Report</button>
+    </div>`;
+
+  if (ptps.length === 0) {
+    html += `<div style="background:var(--surface2);border-radius:10px;padding:24px;text-align:center;color:var(--text3);font-size:12px">No PTPs set for today.</div>`;
+  } else {
+    html += `<div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;overflow:hidden">`;
+    ptps.forEach(b => {
+      const oc = b.ptpOutcome || '';
+      const outcomes = [
+        {val:'paid',label:'✅ Paid',col:'var(--green)'},
+        {val:'partial',label:'⚡ Partial',col:'var(--gold)'},
+        {val:'broken',label:'❌ Broken',col:'var(--red)'},
+        {val:'reschedule',label:'📅 Reschedule',col:'var(--blue)'},
+      ];
+      html += `<div style="padding:11px 14px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;margin-bottom:7px">
+          <div style="font-size:13px;font-weight:600">${b.name.split(' ')[0]} <span style="font-size:11px;color:var(--text3);font-weight:400">${b.promiseDate||''}</span></div>
+          <div style="font-family:var(--font-mono);font-size:12px;font-weight:700">${fmtC(getDueToday(b))}</div>
+        </div>
+        <div class="ptp-outcome-row" data-bid="${b.id}" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select class="ptp-oc-sel filter-select" data-bid="${b.id}" onchange="setPtpOutcome2(this.dataset.bid,this.value)" style="flex:1;min-width:140px;font-size:12px;padding:5px 8px;border-radius:8px;border:1.5px solid ${oc?'var(--gold)':'var(--border2)'};background:var(--surface2)">
+            <option value="">— Mark outcome —</option>
+            ${PTP_OUTCOMES.filter(o=>o.val!=='custom').map(o=>`<option value="${o.val}" ${oc===o.val?'selected':''}>${o.label}</option>`).join('')}
+          </select>
+          <input type="text" class="ptp-custom-input form-input" data-bid="${b.id}" placeholder="Custom note..." style="flex:1;min-width:120px;font-size:12px;padding:5px 8px;display:${oc&&!PTP_OUTCOMES.find(o=>o.val===oc)?'block':'none'}" value="${oc&&!PTP_OUTCOMES.find(o=>o.val===oc)?oc:''}" onchange="setPtpOutcome2(this.dataset.bid,this.value||'custom')">
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  return html;
+}
+
+function buildPtpHistoryHtml2() {
+  const history = state.ptpHistory || [];
+  if (history.length === 0) {
+    return `<div style="background:var(--surface2);border-radius:10px;padding:32px;text-align:center;color:var(--text3);font-size:12px">
+      No history yet.<br><span style="font-size:11px">History saves automatically after you submit an EOD report.</span></div>`;
+  }
+  let html = `<div style="font-size:12px;color:var(--text3);margin-bottom:12px">${history.length} days recorded</div>
+    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;overflow:hidden">`;
+  history.slice(0,60).forEach(d => {
+    const rate = d.total > 0 ? Math.round(d.honoured / d.total * 100) : 0;
+    const rateCol = rate >= 70 ? 'var(--green)' : rate >= 40 ? 'var(--gold)' : 'var(--red)';
+    const dateStr = new Date(d.date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+    html += `<div style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer" onclick="ptpShowHistoryDay('${d.date}')">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600">${dateStr}</div>
+        <div style="font-size:10px;color:var(--text3)">${d.total} PTPs · ${d.honoured} honoured · ${fmtC(d.collected||0)} collected</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-family:var(--font-mono);font-size:14px;font-weight:800;color:${rateCol}">${rate}%</div>
+        <div style="font-size:9px;color:var(--text3)">conv rate</div>
+      </div>
+      <span style="color:var(--text3)">›</span>
+    </div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+function ptpShowHistoryDay(date) {
+  const history = state.ptpHistory || [];
+  const day = history.find(d => d.date === date);
+  if (!day) return;
+  const dateStr = new Date(date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const rate = day.total > 0 ? Math.round(day.honoured / day.total * 100) : 0;
+  document.getElementById('modal-title').textContent = '📅 ' + dateStr;
+  document.getElementById('modal-body').innerHTML =
+    `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
+      <div style="text-align:center"><div style="font-size:20px;font-weight:800;color:var(--gold)">${day.total}</div><div style="font-size:10px;color:var(--text3)">PTPs</div></div>
+      <div style="text-align:center"><div style="font-size:20px;font-weight:800;color:var(--green)">${day.honoured}</div><div style="font-size:10px;color:var(--text3)">Honoured</div></div>
+      <div style="text-align:center"><div style="font-size:20px;font-weight:800;color:var(--red)">${day.broken||0}</div><div style="font-size:10px;color:var(--text3)">Broken</div></div>
+      <div style="text-align:center"><div style="font-size:18px;font-weight:800;color:${rate>=70?'var(--green)':rate>=40?'var(--gold)':'var(--red)'}">${rate}%</div><div style="font-size:10px;color:var(--text3)">Rate</div></div>
+    </div>
+    <div style="font-size:12px;color:var(--text2)">Total collected from PTPs: <strong>${fmtC(day.collected||0)}</strong></div>`;
+  document.getElementById('modal-footer').innerHTML = '<button class="btn btn-ghost" onclick="closeModal()">Close</button>';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function buildPtpStatsHtml2() {
+  const history = state.ptpHistory || [];
+  if (history.length < 2) {
+    return `<div style="background:var(--surface2);border-radius:10px;padding:32px;text-align:center;color:var(--text3);font-size:12px">
+      Not enough data yet.<br><span style="font-size:11px">Stats appear after 2+ days of EOD submissions.</span></div>`;
+  }
+  const total = history.reduce((s,d) => s + d.total, 0);
+  const honoured = history.reduce((s,d) => s + d.honoured, 0);
+  const overall = total > 0 ? Math.round(honoured / total * 100) : 0;
+  const overallCol = overall >= 70 ? 'var(--green)' : overall >= 40 ? 'var(--gold)' : 'var(--red)';
+  const best = history.reduce((b,d) => (d.total>0 && d.honoured/d.total > (b.total>0?b.honoured/b.total:0)) ? d : b, history[0]);
+  const bestRate = best.total > 0 ? Math.round(best.honoured / best.total * 100) : 0;
+  const bestDate = new Date(best.date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+  const avgPtps = Math.round(total / history.length * 10) / 10;
+  const avgVal  = total > 0 ? history.reduce((s,d) => s + (d.collected||0), 0) / history.length : 0;
+  // Day-of-week analysis
+  const dowData = [0,1,2,3,4,5,6].map(d => {
+    const days = history.filter(h => new Date(h.date).getDay() === d);
+    const t = days.reduce((s,h)=>s+h.total,0);
+    const h2 = days.reduce((s,h)=>s+h.honoured,0);
+    return { day:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d], rate: t>0?Math.round(h2/t*100):0, count:days.length };
+  }).filter(d => d.count > 0);
+  const bestDow = dowData.reduce((b,d) => d.rate > b.rate ? d : b, dowData[0] || {day:'—',rate:0});
+  const recent30 = history.slice(0,30);
+  const maxRate = Math.max(...recent30.map(d => d.total>0 ? d.honoured/d.total : 0), 0.01);
+
+  let html = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      <div style="background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Overall Conversion</div>
+        <div style="font-family:var(--font-mono);font-size:32px;font-weight:800;color:${overallCol}">${overall}%</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">${honoured} of ${total} PTPs</div>
+      </div>
+      <div style="display:grid;gap:8px">
+        <div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:10px">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:2px">Best Day</div>
+          <div style="font-size:13px;font-weight:700;color:var(--green)">${bestRate}% <span style="font-size:10px;font-weight:400;color:var(--text3)">${bestDate}</span></div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:10px">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:2px">Best Day of Week</div>
+          <div style="font-size:13px;font-weight:700;color:var(--gold)">${bestDow.day} <span style="font-size:10px;font-weight:400;color:var(--text3)">${bestDow.rate}% avg</span></div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:10px">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:2px">Avg PTPs/day · Avg Value</div>
+          <div style="font-size:13px;font-weight:700">${avgPtps} · ${fmtC(Math.round(avgVal))}</div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:12px;font-weight:700;margin-bottom:8px">Conversion Rate · Last ${recent30.length} Days</div>
+    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:14px">
+      <div style="display:flex;align-items:flex-end;gap:3px;height:60px">`;
+  recent30.reverse().forEach(d => {
+    const rate = d.total > 0 ? d.honoured / d.total : 0;
+    const h = Math.max(4, Math.round(rate / maxRate * 56));
+    const col = rate >= 0.7 ? 'var(--green)' : rate >= 0.4 ? 'var(--gold)' : 'var(--red)';
+    const dt = new Date(d.date).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    html += `<div title="${dt}: ${Math.round(rate*100)}%" style="flex:1;background:${col};border-radius:2px 2px 0 0;height:${h}px;opacity:0.85;cursor:pointer" onclick="ptpShowHistoryDay('${d.date}')"></div>`;
+  });
+  html += `</div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:9px;color:var(--text3)">
+        <span>${new Date(recent30[0]?.date).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>
+        <span>Today</span>
+      </div>
+    </div>`;
+  return html;
+}
+
+function savePtpSnapshot2() {
+  const today = new Date().toISOString().split('T')[0];
+  const ptps = getTodayPtps2();
+  if (ptps.length === 0) return;
+  const honoured = ptps.filter(b => b.ptpOutcome === 'paid').length;
+  const partial  = ptps.filter(b => b.ptpOutcome === 'partial').length;
+  const broken   = ptps.filter(b => b.ptpOutcome === 'broken').length;
+  const pending  = ptps.filter(b => !b.ptpOutcome).length;
+  const collected= ptps.filter(b => b.ptpOutcome === 'paid').reduce((s,b) => s + b.amountPaid, 0);
+  if (!state.ptpHistory) state.ptpHistory = [];
+  const entry = { date: today, total: ptps.length, honoured, partial, broken, pending, collected };
+  const idx = state.ptpHistory.findIndex(d => d.date === today);
+  if (idx >= 0) state.ptpHistory[idx] = entry; else state.ptpHistory.unshift(entry);
+  if (state.ptpHistory.length > 60) state.ptpHistory = state.ptpHistory.slice(0, 60);
+  saveState();
+}
+
+
+// PTP outcome options — single source of truth
+const PTP_OUTCOMES = [
+  { val:'paid',        label:'✅ Paid',         col:'var(--green)' },
+  { val:'partial',     label:'⚡ Part Paid',     col:'var(--gold)' },
+  { val:'no_answer',   label:'📵 No Answer',     col:'var(--orange)' },
+  { val:'blocked',     label:'🚫 Blocked',       col:'var(--red)' },
+  { val:'broken',      label:'❌ Broken',        col:'var(--red)' },
+  { val:'postponed',   label:'📅 Postponed',     col:'var(--blue)' },
+  { val:'still_on_it', label:'⏳ Still On It',   col:'var(--purple)' },
+  { val:'yet_to_pay',  label:'🔄 Yet to Pay',    col:'var(--text2)' },
+  { val:'not_reached', label:'📞 Not Reached',   col:'var(--orange)' },
+  { val:'custom',      label:'✏️ Custom...',      col:'var(--text3)' },
+];
+function _ptpGroupByTime(ptps) {
+  // Group PTPs by their promised time, bucket into readable labels
+  const groups = {};
+  ptps.forEach(b => {
+    const raw = (b.promiseDate || '').split(' ')[1] || '';
+    // Normalise: '14:00','2pm','2PM','14' all → '2PM'
+    let label = 'Close of Day';
+    if (raw) {
+      let h = parseInt(raw);
+      if (raw.toLowerCase().includes('pm') && h < 12) h += 12;
+      if (raw.toLowerCase().includes('am') && h === 12) h = 0;
+      if (!isNaN(h)) {
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
+        label = h12 + ampm;
+      }
+    }
+    if (!groups[label]) groups[label] = [];
+    groups[label].push(b);
+  });
+  // Sort: numeric times first, then Close of Day
+  const order = k => k === 'Close of Day' ? 99 : parseInt(k);
+  return Object.entries(groups).sort((a,b) => order(a[0]) - order(b[0]));
+}
+
+function _timeEmoji(label) {
+  const h = parseInt(label);
+  if (isNaN(h)) return '🌙';
+  const map = {6:'🕕',7:'🕖',8:'🕗',9:'🕘',10:'🕙',11:'🕚',12:'🕛',1:'🕐',2:'🕑',3:'🕒',4:'🕓',5:'🕔'};
+  return map[h] || '🕐';
+}
+
+function _ocLabel(oc) {
+  const map = {
+    paid:        '*Paid* ✅',
+    partial:     '_part paid_',
+    no_answer:   '_no answer_',
+    blocked:     '_blocked_',
+    broken:      '_broken_',
+    postponed:   '_postponed_',
+    still_on_it: '_still on it_',
+    yet_to_pay:  '_yet to pay_',
+    not_reached: '_not reached_',
+  };
+  return map[oc] || (oc ? '_'+oc+'_' : '_yet to pay_');
+}
+
+function buildPtpText(type, fmt) {
+  const today = new Date().toISOString().split('T')[0];
+  const todayStr = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const ptps = getTodayPtps2();
+  const agentName = getAgentProfileName();
+  const sup = state.agentProfile?.supervisor || 'NANA OSAE EMMANUEL';
+  const isEod = type === 'eod';
+
+  if (fmt === 'whatsapp' || fmt === 'default') {
+    // ── Primary format (matches your sample) ─────────────────
+    const header = isEod
+      ? '*📌 PTPs – Today (EOD Summary)*\n--------------------------'
+      : '*📌 PTPs – Today*\n------------------';
+    let txt = header + '\n';
+    if (ptps.length === 0) { txt += '\n_No PTPs set for today._\n'; return txt; }
+    const groups = _ptpGroupByTime(ptps);
+    groups.forEach(([label, members]) => {
+      const emoji = label === 'Close of Day' ? '🌙' : _timeEmoji(label);
+      txt += '\n' + emoji + ' *' + label + '*\n';
+      members.forEach(b => {
+        const phone = b.phone.replace(/\s/g,'');
+        const line = '▪️ ' + b.name.split(' ')[0] + ' (' + phone + ')';
+        txt += isEod ? line + ' -> ' + _ocLabel(b.ptpOutcome||'yet to pay') + '\n'
+                     : line + '\n';
+      });
+    });
+    if (isEod) {
+      const paid_c = ptps.filter(b=>b.ptpOutcome==='paid').length;
+      const partial_c = ptps.filter(b=>b.ptpOutcome==='partial').length;
+      const conv = ptps.length > 0 ? Math.round((paid_c+partial_c*0.5)/ptps.length*100) : 0;
+      txt += '\n*Summary:* ' + paid_c + ' paid · ' + partial_c + ' partial · ' + conv + '% rate';
+    }
+    return txt;
+
+  } else if (fmt === 'numbered') {
+    let txt = (isEod ? '🌙 *EOD PTP REPORT*' : '🌅 *MORNING PTP REPORT*') + '\n';
+    txt += '*' + todayStr + '*\nAgent: *' + agentName + '*\nSupervisor: ' + sup + '\n\n';
+    ptps.forEach((b,i) => {
+      const phone = b.phone.replace(/\s/g,'');
+      txt += (i+1) + '. ' + b.name.split(' ')[0] + ' (' + phone + ')';
+      txt += b.promiseDate ? ' — ' + b.promiseDate.split(' ')[1] : '';
+      if (isEod) txt += ' → ' + _ocLabel(b.ptpOutcome||'pending');
+      txt += '\n';
+    });
+    if (!isEod) txt += '\n💰 *Total Expected: ' + fmtC(ptps.reduce((s,b)=>s+getDueToday(b),0)) + '*';
+    return txt;
+
+  } else if (fmt === 'formal') {
+    const date = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+    let txt = 'MEMORANDUM\n\nTO: ' + sup + '\nFROM: ' + agentName + '\nDATE: ' + date + '\nRE: ' + (isEod ? 'EOD PTP Report' : 'Morning PTP Report') + '\n\n';
+    txt += 'The following Promise-to-Pay commitments are recorded for today:\n\n';
+    const groups = _ptpGroupByTime(ptps);
+    groups.forEach(([label, members]) => {
+      txt += label + '\n';
+      members.forEach(b => {
+        txt += '  • ' + b.name + ' (' + b.phone + ')';
+        txt += b.promiseNote ? ' — ' + b.promiseNote : '';
+        if (isEod) txt += '  [' + (b.ptpOutcome||'pending').toUpperCase() + ']';
+        txt += '\n';
+      });
+      txt += '\n';
+    });
+    if (isEod) {
+      const paid_c = ptps.filter(b=>b.ptpOutcome==='paid').length;
+      const partial_c = ptps.filter(b=>b.ptpOutcome==='partial').length;
+      const broken_c = ptps.filter(b=>b.ptpOutcome==='broken').length;
+      const conv = ptps.length > 0 ? Math.round((paid_c+partial_c*0.5)/ptps.length*100) : 0;
+      txt += 'SUMMARY\nTotal PTPs: ' + ptps.length + '\nPaid: ' + paid_c + ' | Partial: ' + partial_c + ' | Broken: ' + broken_c + '\nConversion Rate: ' + conv + '%\n';
+    }
+    txt += '\n' + agentName;
+    return txt;
+
+  } else if (fmt === 'sms') {
+    let txt = (isEod ? 'EOD PTP ' : 'AM PTP ') + new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short'}) + ': ';
+    ptps.forEach((b,i) => {
+      txt += b.name.split(' ')[0];
+      if (isEod) txt += '=' + (b.ptpOutcome||'?').substring(0,3).toUpperCase();
+      if (i < ptps.length-1) txt += ', ';
+    });
+    return txt;
+  }
+  return buildPtpText(type, 'whatsapp');
+}
+
+function ptpShareMorning(agentName) {
+  _ptpOpenFormatModal('morning');
+}
+
+function ptpShareEod(agentName) {
+  savePtpSnapshot2();
+  _ptpOpenFormatModal('eod');
+}
+
+function _ptpOpenFormatModal(type) {
+  const isEod = type === 'eod';
+  const title = isEod ? '📤 EOD Report' : '📤 Morning Report';
+  const formats = [
+    { val:'whatsapp', label:'WhatsApp (grouped by time)' },
+    { val:'numbered', label:'Numbered list' },
+    { val:'formal',   label:'Formal memo' },
+    { val:'sms',      label:'SMS-friendly (compact)' },
+  ];
+  let selHtml = '<select id="ptp-fmt-sel" class="filter-select" style="width:100%;margin-bottom:12px;font-size:13px">'
+    + formats.map(f => '<option value="'+f.val+'">'+f.label+'</option>').join('') + '</select>';
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML =
+    selHtml
+    + '<div id="ptp-preview" style="background:var(--surface2);border-radius:8px;padding:12px;font-size:12px;line-height:1.8;max-height:300px;overflow-y:auto;user-select:all;font-family:var(--font-mono);white-space:pre-wrap"></div>';
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost" onclick="closeModal()">Close</button>'
+    + '<button class="btn btn-ghost btn-sm" id="ptp-copy-btn">📋 Copy</button>'
+    + '<span id="ptp-wa-link"></span>';
+  document.getElementById('modal-overlay').classList.add('open');
+  function refresh() {
+    const fmt = document.getElementById('ptp-fmt-sel')?.value || 'whatsapp';
+    const txt = buildPtpText(type, fmt);
+    const preview = document.getElementById('ptp-preview');
+    if (preview) preview.textContent = txt;
+    const copyBtn = document.getElementById('ptp-copy-btn');
+    if (copyBtn) copyBtn.onclick = () => navigator.clipboard.writeText(txt).then(() => toast('Copied!','success'));
+    const waLink = document.getElementById('ptp-wa-link');
+    if (waLink) waLink.innerHTML = '<a href="https://wa.me/?text='+encodeURIComponent(txt)+'" target="_blank" class="eod-btn" style="font-size:12px;padding:7px 14px;text-decoration:none">WhatsApp ↗</a>';
+  }
+  setTimeout(() => {
+    document.getElementById('ptp-fmt-sel')?.addEventListener('change', refresh);
+    refresh();
+  }, 30);
+}
+
+function ptpShowShareModal(title, txt) {
+  const safe = txt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>').replace(/\*(.*?)\*/g,'<b>$1</b>');
+  const encoded = encodeURIComponent(txt);
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML =
+    '<div style="background:var(--surface2);border-radius:8px;padding:12px;font-size:12px;line-height:1.8;max-height:300px;overflow-y:auto;user-select:all">' + safe + '</div>';
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost" onclick="closeModal()">Close</button>'
+    + '<button class="btn btn-ghost btn-sm" id="ptp-copy-btn">📋 Copy</button>'
+    + '<a href="https://wa.me/?text=' + encoded + '" target="_blank" class="eod-btn" style="font-size:12px;padding:7px 14px;text-decoration:none">WhatsApp ↗</a>';
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(() => {
+    const btn = document.getElementById('ptp-copy-btn');
+    if (btn) btn.onclick = () => navigator.clipboard.writeText(txt).then(() => toast('Copied!','success'));
+  }, 50);
+}
+
+// Update badges
+function updatePtpBadge() {
+  const today = new Date().toISOString().split('T')[0];
+  const count = state.borrowers.filter(b => b.promisedToPay && b.promiseDate && b.promiseDate.startsWith(today)).length;
+  ['badge-ptp','mbadge-ptp'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = count; el.style.display = count > 0 ? 'inline-block' : 'none'; }
+  });
+}
+
+// Aliases for backward compat
+function renderPtp() { switchPtpHub('morning'); }
+function renderPtpHistory() { switchPtpHub('history'); }
+function renderPtpStats() { switchPtpHub('stats'); }
+
 
 function buildPtpReportHtml() {
   const today = new Date().toISOString().split('T')[0];
@@ -7480,11 +8015,12 @@ function buildPtpReportHtml() {
       ];
       html += `<div style="padding:10px 14px;border-bottom:1px solid var(--border)" data-borrower-id="${b.id}">
         <div style="font-size:12px;font-weight:600;margin-bottom:6px">${b.name.split(' ')[0]} <span style="font-size:10px;color:var(--text3);font-weight:400">${fmtC(getDueToday(b))}</span></div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap" class="ptp-outcome-row" data-bid="${b.id}">
-          ${outcomes.map(o => {
-            const active = oc === o.val;
-            return `<button class="ptp-oc-btn" data-bid="${b.id}" data-outcome="${o.val}" style="padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid ${active?o.col:'var(--border2)'};background:${active?o.col+'33':'var(--surface2)'};color:${active?o.col:'var(--text2)'};">${o.label}</button>`;
-          }).join('')}
+        <div class="ptp-outcome-row" data-bid="${b.id}" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select class="ptp-oc-sel filter-select" data-bid="${b.id}" onchange="setPtpOutcome2(this.dataset.bid,this.value)" style="flex:1;min-width:140px;font-size:12px;padding:5px 8px;border-radius:8px;border:1.5px solid ${oc?'var(--gold)':'var(--border2)'};background:var(--surface2)">
+            <option value="">— Mark outcome —</option>
+            ${PTP_OUTCOMES.filter(o=>o.val!=='custom').map(o=>`<option value="${o.val}" ${oc===o.val?'selected':''}>${o.label}</option>`).join('')}
+          </select>
+          <input type="text" class="ptp-custom-input form-input" data-bid="${b.id}" placeholder="Custom note..." style="flex:1;min-width:120px;font-size:12px;padding:5px 8px;display:${oc&&!PTP_OUTCOMES.find(o=>o.val===oc)?'block':'none'}" value="${oc&&!PTP_OUTCOMES.find(o=>o.val===oc)?oc:''}" onchange="setPtpOutcome2(this.dataset.bid,this.value||'custom')">
         </div>
       </div>`;
     });
@@ -8849,19 +9385,25 @@ function renderLockAgentList() {
   if (!agents.length) { el.innerHTML = ''; return; }
   const stageColors = { M0:'#3b82f6',M1:'#22c55e',M2:'#e8a020',M3:'#f97316',M4:'#ef4444',M5:'#7c3aed' };
   el.innerHTML = agents.map(a => {
-    const col = stageColors[a.stage] || '#e8a020';
-    const initials = (a.name||'A').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    const isActive = _activeAgent?.id === a.id;
+    const col        = stageColors[a.stage] || '#e8a020';
+    // Use locally stored display name and avatar — credentials (lbCode, pinHash) unchanged
+    const displayName = localStorage.getItem('sq_displayname_' + a.id) || a.lbCode || a.name;
+    const avatar      = localStorage.getItem('sq_avatar_' + a.id);
+    const initials    = displayName.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const isActive    = _activeAgent?.id === a.id;
+    const avatarHtml  = avatar
+      ? `<img src="${avatar}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0">`
+      : `<div class="lock-agent-avatar" style="background:${col}22;color:${col}">${initials}</div>`;
     return `<div style="position:relative;margin-bottom:8px">
       <button class="lock-agent-card" style="width:100%;margin-bottom:0;${isActive?'border-color:var(--gold);':''}padding-right:48px" onclick="lockSelectAgent('${a.id}')">
-        <div class="lock-agent-avatar" style="background:${col}22;color:${col}">${initials}</div>
+        ${avatarHtml}
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.lbCode||a.name}${isActive ? ' <span style="font-size:10px;color:var(--green);font-weight:600">● Active</span>' : ''}</div>
+          <div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${displayName}${isActive ? ' <span style="font-size:10px;color:var(--green);font-weight:600">● Active</span>' : ''}</div>
           <div style="font-size:11px;color:var(--text3)">${a.stage||'M2'} · ${a.stage ? (STAGE_CONFIG[a.stage]?.name||'') : 'Active Default'}</div>
         </div>
         <div style="font-size:18px;color:var(--text3)">${isActive ? '🔓' : '🔒'}</div>
       </button>
-      <button onclick="promptDeleteAgent('${a.id}','${a.name.replace(/'/g,"\\'")}',${isActive})" title="Delete agent" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:6px;border-radius:6px;color:var(--text3);font-size:14px;transition:color 0.15s,background 0.15s;z-index:2" onmouseover="this.style.color='var(--red)';this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.color='var(--text3)';this.style.background='none'" title="Delete this agent">🗑</button>
+      <button onclick="promptDeleteAgent('${a.id}','${displayName.replace(/'/g,"\\'")}',${isActive})" title="Delete agent" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:6px;border-radius:6px;color:var(--text3);font-size:14px;transition:color 0.15s,background 0.15s;z-index:2" onmouseover="this.style.color='var(--red)';this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.color='var(--text3)';this.style.background='none'">🗑</button>
     </div>`;
   }).join('');
 }
