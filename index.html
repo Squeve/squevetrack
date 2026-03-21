@@ -350,29 +350,163 @@ tr.overdue-critical td:first-child,
 #dash-forecast-section details summary::-webkit-details-marker { display:none; }
 
 
-/* LIGHT THEME */
-html[data-theme="light"], html[data-theme="light"] body {
-  color-scheme: light;
+/* LIGHT THEME — comprehensive override */
+html[data-theme="light"], html[data-theme="light"] body { color-scheme: light; }
+
+[data-theme="light"] {
+  --bg:       #f0f2f8;
+  --surface:  #ffffff;
+  --surface2: #f4f5fb;
+  --border:   #e0e4f0;
+  --border2:  #c9cfe2;
+  --border-hi: rgba(0,0,0,0.06);
+  --gold:     #c47a0a;
+  --gold2:    #d98f0f;
+  --gold-grad: linear-gradient(135deg, #c47a0a, #d98f0f);
+  --gold-glow: rgba(196,122,10,0.2);
+  --green:    #16a34a;
+  --red:      #dc2626;
+  --orange:   #ea580c;
+  --blue:     #2563eb;
+  --purple:   #7c3aed;
+  --text:     #0f1623;
+  --text2:    #374151;
+  --text3:    #8b95a8;
+  --paid-bg:   rgba(22,163,74,0.08);
+  --partial-bg:rgba(234,88,12,0.08);
+  --unpaid-bg: rgba(220,38,38,0.06);
 }
-[data-theme="light"], body[data-theme="light"] {
-  --bg: #f0f2f7;
-  --surface: #ffffff;
-  --surface2: #f5f7fc;
-  --border: #dde1ed;
-  --border2: #c8cfe0;
-  --gold: #c47a0a;
-  --gold2: #d98f0f;
-  --green: #16a34a;
-  --red: #dc2626;
-  --orange: #ea580c;
-  --blue: #2563eb;
-  --purple: #7c3aed;
-  --text: #111827;
-  --text2: #4b5563;
-  --text3: #9ca3af;
-  --paid-bg: rgba(22,163,74,0.1);
-  --partial-bg: rgba(234,88,12,0.1);
-  --unpaid-bg: rgba(220,38,38,0.08);
+
+/* Glass cards go opaque in light */
+[data-theme="light"] .card,
+[data-theme="light"] .kpi-card {
+  background: #fff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 12px rgba(0,0,0,0.07) !important;
+  border-color: var(--border) !important;
+}
+[data-theme="light"] .kpi-card.gold  { background: rgba(196,122,10,0.05)  !important; }
+[data-theme="light"] .kpi-card.green { background: rgba(22,163,74,0.05)   !important; }
+[data-theme="light"] .kpi-card.red   { background: rgba(220,38,38,0.05)   !important; }
+[data-theme="light"] .kpi-card.blue  { background: rgba(37,99,235,0.05)   !important; }
+
+/* Sidebar + drawer */
+[data-theme="light"] #sidebar {
+  background: rgba(255,255,255,0.95) !important;
+  border-right: 1px solid var(--border) !important;
+}
+[data-theme="light"] #mobile-header {
+  background: rgba(240,242,248,0.92) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+[data-theme="light"] #mobile-drawer {
+  background: rgba(245,247,251,0.97) !important;
+}
+
+/* Nav items */
+[data-theme="light"] .nav-item { color: var(--text2); }
+[data-theme="light"] .nav-item:hover { background: rgba(0,0,0,0.04); }
+[data-theme="light"] .nav-item.active {
+  background: linear-gradient(90deg, rgba(196,122,10,0.1), rgba(196,122,10,0.02)) !important;
+}
+[data-theme="light"] .mdrawer-item { color: var(--text2); }
+[data-theme="light"] .mdrawer-item:hover { background: rgba(0,0,0,0.03); }
+[data-theme="light"] .mdrawer-item.active {
+  background: linear-gradient(90deg, rgba(196,122,10,0.1), transparent) !important;
+  color: var(--gold) !important;
+}
+
+/* Inputs */
+[data-theme="light"] .form-input,
+[data-theme="light"] .filter-select,
+[data-theme="light"] .search-input,
+[data-theme="light"] .bl-search,
+[data-theme="light"] .bl-chip-sel {
+  background: #f8f9fc !important;
+  border-color: var(--border2) !important;
+  color: var(--text) !important;
+}
+[data-theme="light"] .form-input:focus,
+[data-theme="light"] .bl-search:focus {
+  background: #fff !important;
+  border-color: var(--gold) !important;
+}
+
+/* Buttons */
+[data-theme="light"] .btn-ghost {
+  border-color: var(--border2) !important;
+  color: var(--text2) !important;
+  background: transparent !important;
+}
+[data-theme="light"] .btn-ghost:hover {
+  background: rgba(0,0,0,0.04) !important;
+}
+
+/* Modals */
+[data-theme="light"] .modal {
+  background: #fff !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15) !important;
+}
+[data-theme="light"] #modal-overlay {
+  background: rgba(0,0,0,0.3) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+/* Borrower cards */
+[data-theme="light"] .bl-card {
+  background: #fff !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07) !important;
+  border-color: var(--border) !important;
+}
+[data-theme="light"] .bl-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1) !important;
+}
+[data-theme="light"] .bl-action-btn {
+  background: rgba(0,0,0,0.03) !important;
+  border-color: var(--border) !important;
+  color: var(--text2) !important;
+}
+
+/* Settings rows */
+[data-theme="light"] .settings-row { border-bottom-color: var(--border) !important; }
+[data-theme="light"] .settings-row:hover { background: rgba(0,0,0,0.02) !important; }
+[data-theme="light"] .settings-group {
+  background: #fff !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important;
+}
+
+/* Filter bar */
+[data-theme="light"] .bl-filter-bar {
+  background: #fff !important;
+  border-color: var(--border) !important;
+}
+
+/* Lock screen */
+[data-theme="light"] #lock-screen > div > div:first-child { opacity: 0.5; }
+
+/* PTP tabs */
+[data-theme="light"] .ptp-tab { color: var(--text3); }
+[data-theme="light"] .ptp-tab.active { color: #000 !important; }
+
+/* Page titles */
+[data-theme="light"] .page-title { color: var(--text) !important; }
+[data-theme="light"] .page-sub { color: var(--text3) !important; }
+
+/* Toast */
+[data-theme="light"] .toast-item {
+  background: #fff !important;
+  border: 1px solid var(--border2) !important;
+  color: var(--text) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
+}
+
+/* Pill */
+[data-theme="light"] #daily-target-pill > div {
+  background: rgba(255,255,255,0.9) !important;
+  border-color: var(--border2) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1) !important;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1365,7 +1499,6 @@ tr.overdue-critical .heat-ring {
   border: 1px solid var(--border2);
   border-radius: 12px;
   overflow: hidden;
-  transition: border-color 0.15s, box-shadow 0.15s;
   position: relative;
   box-shadow: inset 0 1px 0 var(--border-hi), 0 1px 6px rgba(0,0,0,0.2);
 }
@@ -1522,13 +1655,15 @@ tr.overdue-critical .heat-ring {
 
 /* ═══ MOBILE EFFECTS (max-width: 900px) ═══════════════════ */
 @media (max-width: 900px) {
-  /* Glass cards */
+  /* Cards on mobile — no backdrop-filter (GPU lag on scroll) */
   .card, .kpi-card {
-    background: rgba(14,17,24,0.82) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
-    box-shadow: inset 0 1px 0 var(--border-hi), 0 2px 20px rgba(0,0,0,0.45) !important;
+    background: rgba(14,17,24,0.97) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: inset 0 1px 0 var(--border-hi), 0 2px 12px rgba(0,0,0,0.35) !important;
   }
+  /* bl-card — no transition on mobile for instant tap response */
+  .bl-card { transition: none !important; }
   /* Drawer glass */
   #mobile-drawer {
     background: rgba(6,8,15,0.94) !important;
@@ -1663,21 +1798,19 @@ tr.overdue-critical .heat-ring {
     <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 2h8l4 4v12H4V2z"/><polyline points="12,2 12,6 16,6"/><line x1="7" y1="9" x2="13" y2="9"/><line x1="7" y1="12" x2="13" y2="12"/><line x1="7" y1="15" x2="10" y2="15"/></svg></span> Reports
   </div>
   </div><!-- end sidebar-nav-scroll -->
-    <div id="sync-status" style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:11px">
-      <span id="sync-dot" style="width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0;display:inline-block"></span>
-      <span id="sync-label">Local only</span>
+    <!-- Sync indicator — minimal dot + label -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div id="sync-status" style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3)">
+        <span id="sync-dot" style="width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0;display:inline-block;transition:background 0.4s,box-shadow 0.4s"></span>
+        <span id="sync-label">Syncing…</span>
+      </div>
+      <button onclick="navigate('health')" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--text3);transition:color 0.15s;border-radius:6px" title="Settings">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:16px;height:16px;display:block"><circle cx="10" cy="10" r="3"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42"/></svg>
+      </button>
     </div>
-    <div id="pending-sync-label" style="display:none;font-size:11px;margin-bottom:4px"></div>
-    Data saves locally · syncs to cloud
-    <div style="margin-top:8px">
-      <button class="btn btn-ghost btn-sm" style="width:100%;font-size:11px;padding:5px 8px" onclick="navigate('health')">⚙️ Settings</button>
-    </div>
-    <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
-      <div style="font-size:8px;color:var(--text3);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:2px">Developed by</div>
-      <div style="font-family:var(--font-head);font-size:11px;font-weight:700;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Shadrack Agyei Arthur</div>
-    </div>
-    <button id="install-btn" onclick="window._installPWA()" style="display:none;margin-top:10px;width:100%;background:linear-gradient(135deg,var(--gold),var(--gold2));border:none;border-radius:8px;padding:8px 12px;cursor:pointer;font-family:var(--font-body);font-size:12px;font-weight:700;color:#000;align-items:center;justify-content:center;gap:6px">
-      📲 Install App
+    <div id="pending-sync-label" style="display:none;font-size:10px;color:var(--gold);margin-bottom:6px;font-weight:600"></div>
+    <button id="install-btn" onclick="window._installPWA()" style="display:none;width:100%;background:var(--gold-grad);border:none;border-radius:8px;padding:8px 12px;cursor:pointer;font-family:var(--font-body);font-size:12px;font-weight:700;color:#000;align-items:center;justify-content:center;gap:6px;margin-bottom:6px">
+      Install App
     </button>
   </div>
 </nav>
