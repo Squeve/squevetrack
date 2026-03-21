@@ -1607,6 +1607,17 @@ tr.overdue-critical .heat-ring {
 }
 /* Checkbox on card */
 .bl-cb { accent-color: var(--gold); cursor: pointer; width: 15px; height: 15px; flex-shrink: 0; }
+/* Checkbox wrapper — sits on left edge, vertically centred */
+.bl-cb-wrap {
+  position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+  z-index: 2; display: flex; align-items: center; opacity: 0;
+  transition: opacity 0.15s ease;
+}
+/* Always show when checked or when bulk bar is visible */
+.bl-card.selected .bl-cb-wrap,
+.bulk-selecting .bl-cb-wrap { opacity: 1; }
+/* Nudge card-inner right when in bulk-selecting mode */
+.bulk-selecting .bl-card-inner { padding-left: 30px; transition: padding-left 0.15s ease; }
 /* Selected state */
 .bl-card.selected {
   border-color: var(--gold) !important;
@@ -2994,6 +3005,35 @@ tr.overdue-critical .heat-ring {
 
 <!-- TOAST AREA -->
 <div id="toast-area"></div>
+
+<!-- FAB — Quick Add Borrower (left side, never overlaps pill) -->
+<style>
+#fab-add {
+  position: fixed; bottom: 80px; left: 14px;
+  z-index: 299;
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: var(--gold-grad);
+  border: none; cursor: pointer;
+  display: none; /* shown only on dashboard + loans pages */
+  align-items: center; justify-content: center;
+  box-shadow: 0 4px 20px rgba(240,160,48,0.45), inset 0 1px 0 rgba(255,255,255,0.2);
+  transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.15s ease;
+  animation: fabIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+#fab-add:hover  { transform: scale(1.08); box-shadow: 0 6px 28px rgba(240,160,48,0.6); }
+#fab-add:active { transform: scale(0.93); }
+@keyframes fabIn { from { opacity:0; transform:scale(0.6) translateY(12px); } to { opacity:1; transform:scale(1) translateY(0); } }
+/* On mobile push up above bottom nav area */
+@media (max-width: 900px) {
+  #fab-add { bottom: 90px; }
+}
+</style>
+<button id="fab-add" title="Add borrower" onclick="openAddModal();haptic('medium')">
+  <svg viewBox="0 0 20 20" fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round" style="width:20px;height:20px">
+    <line x1="10" y1="4" x2="10" y2="16"/><line x1="4" y1="10" x2="16" y2="10"/>
+  </svg>
+</button>
 
 <script>
 // ═══ AUTO EOD NOTIFICATION
@@ -4403,6 +4443,7 @@ function renderLoansTable() {
     d.className = 'bl-card' + critCls;
     d.dataset.bid = r.id;
     d.innerHTML = '<div class="bl-heat ' + heatCls + '"></div>'
+      + '<label class="bl-cb-wrap" onclick="event.stopPropagation()" title="Select"><input type="checkbox" class="bl-cb row-cb" data-id="' + r.id + '" onchange="updateBulkBar()"></label>'
       + '<div class="bl-card-inner">'
         + '<div class="bl-avatar" style="background:linear-gradient(135deg,' + ac1 + ',' + ac2 + ')" title="Priority ' + pScore + '/10">' + initials + '</div>'
         + '<div class="bl-content">'
@@ -5818,6 +5859,13 @@ function openEditModal(id) {
   currentModal = 'edit';
 }
 
+function _updateFab(page) {
+  const fab = document.getElementById('fab-add');
+  if (!fab) return;
+  const showOn = ['dashboard', 'loans'];
+  fab.style.display = showOn.includes(page) ? 'flex' : 'none';
+}
+
 function openPayModal(id) {
   const b = state.borrowers.find(b => b.id === id);
   if (!b) return;
@@ -6623,7 +6671,6 @@ let currentPage = 'dashboard';
 
 function navigate(page) {
   currentPage = page;
-  // Remove active + re-trigger animation by cloning the page element
   document.querySelectorAll('.page').forEach(p => {
     p.classList.remove('active');
     p.style.animation = 'none';
@@ -6637,12 +6684,12 @@ function navigate(page) {
       pageEl.style.animation = '';
       pageEl.classList.add('active');
     });
-    // Show page immediately, then render (avoids blank flash)
   }
   document.querySelectorAll('[data-page="' + page + '"]').forEach(el => el.classList.add('active'));
   document.getElementById('main').scrollTop = 0;
   haptic('light');
   if (typeof updateStatusBarColor === 'function') updateStatusBarColor(page);
+  _updateFab(page);
   renderCurrentPage();
 }
 
@@ -6846,12 +6893,15 @@ function updateBulkBar() {
   const selected = [...document.querySelectorAll('.row-cb:checked')];
   const bar = document.getElementById('bulk-bar');
   const cnt = document.getElementById('bulk-count');
+  const list = document.getElementById('loans-tbody');
   if (!bar) return;
   if (selected.length > 0) {
     bar.style.display = 'flex';
     cnt.textContent = selected.length + ' selected';
+    if (list) list.classList.add('bulk-selecting');
   } else {
     bar.style.display = 'none';
+    if (list) list.classList.remove('bulk-selecting');
   }
   // Update card selected class
   document.querySelectorAll('.bl-card').forEach(card => {
@@ -6865,6 +6915,8 @@ function clearBulkSelect() {
   document.querySelectorAll('.row-cb').forEach(cb => { cb.checked = false; });
   const allCb = document.getElementById('select-all-cb');
   if (allCb) allCb.checked = false;
+  const list = document.getElementById('loans-tbody');
+  if (list) list.classList.remove('bulk-selecting');
   updateBulkBar();
 }
 
@@ -6881,11 +6933,28 @@ function bulkAction(action) {
     state.borrowers = state.borrowers.filter(b => !ids.includes(b.id));
     toast(ids.length + ' accounts deleted', 'info');
   } else if (action === 'paid') {
+    pushUndo('Bulk mark paid (' + ids.length + ')', { borrowers: state.borrowers, dailyLog: state.dailyLog });
+    const todayStr = new Date().toISOString().split('T')[0];
+    const timeStr  = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    let totalDelta = 0;
     ids.forEach(id => {
       const b = state.borrowers.find(x => x.id === id);
-      if (b) { b.isPaid = true; b.amountPaid = b.loanDue; }
+      if (!b || b.isPaid) return;
+      const fullSettlement = getDueToday(b) + b.amountPaid; // total cash that clears the account
+      const delta = fullSettlement - b.amountPaid;          // what's being paid now
+      if (delta > 0) totalDelta += delta;
+      b.amountPaid = fullSettlement;
+      b.isPaid = true;
+      if (!b.payLog) b.payLog = [];
+      b.payLog.push({ date: todayStr, time: timeStr, amount: fullSettlement, delta, note: 'Bulk mark paid', isPaid: true });
     });
-    toast(ids.length + ' accounts marked Paid ✅', 'success');
+    // Credit today's daily log
+    if (totalDelta > 0) {
+      let logEntry = state.dailyLog.find(e => e.date === todayStr);
+      if (!logEntry) { logEntry = { date: todayStr, collected: 0 }; state.dailyLog.push(logEntry); }
+      logEntry.collected = (logEntry.collected || 0) + totalDelta;
+    }
+    toast(ids.length + ' accounts marked Paid ✅  (+' + fmtC(totalDelta) + ' logged today)', 'success');
   } else if (action === 'promise') {
     const d = new Date().toISOString().split('T')[0];
     ids.forEach(id => { const b = state.borrowers.find(x => x.id === id); if (b) { b.promisedToPay = true; b.promiseDate = d; } });
@@ -9015,8 +9084,19 @@ function getAgentProfileName() {
 
 function buildPtpMorningHtml() {
   const today = new Date().toISOString().split('T')[0];
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
   const todayStr = new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
   const ptps = getTodayPtps2();
+
+  // Carryover: yesterday's PTPs with no outcome, or outcome not 'paid'
+  const carryover = state.borrowers.filter(b =>
+    b.promisedToPay &&
+    b.promiseDate &&
+    b.promiseDate.startsWith(yesterday) &&
+    b.ptpOutcome !== 'paid' &&
+    !b.isPaid
+  );
+
   const honoured = ptps.filter(b => b.amountPaid > 0 || b.ptpOutcome === 'paid');
   const rate = ptps.length > 0 ? Math.round(honoured.length / ptps.length * 100) : 0;
   const rateCol = rate >= 70 ? 'var(--green)' : rate >= 40 ? 'var(--gold)' : 'var(--red)';
@@ -9034,6 +9114,32 @@ function buildPtpMorningHtml() {
         <div style="text-align:center"><div style="font-family:var(--font-mono);font-size:13px;font-weight:800;color:var(--blue)">${fmtC(totalExp)}</div><div style="font-size:10px;color:var(--text3)">Expected</div></div>
       </div>
     </div>`;
+
+  // ── Carryover banner ─────────────────────────────────────
+  if (carryover.length > 0) {
+    html += `<div style="background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.25);border-left:3px solid var(--red);border-radius:10px;padding:12px 14px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:700;color:var(--red)">⚠️ ${carryover.length} Unresolved from Yesterday</div>
+        <span style="font-size:10px;color:var(--text3)">${new Date(Date.now()-86400000).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">`;
+    carryover.forEach(b => {
+      const phone = b.phone.replace(/\s/g,'').replace('+','');
+      const oc = b.ptpOutcome || 'no outcome';
+      const ocColor = oc === 'broken' ? 'var(--red)' : oc === 'no_answer' ? 'var(--orange)' : 'var(--text3)';
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface);border-radius:8px;cursor:pointer" onclick="openBorrowerDetail('${b.id}');haptic('light')">
+        <div style="width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--red)"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600">${escapeHtml(b.name.split(' ')[0])}</div>
+          <div style="font-size:10px;color:${ocColor}">${oc.replace(/_/g,' ')}</div>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--red)">${fmtC(getDueToday(b))}</div>
+        <button class="btn btn-green btn-xs" onclick="event.stopPropagation();openPayModal('${b.id}');haptic('light')">💰</button>
+        <a href="https://wa.me/${phone}" target="_blank" class="btn btn-ghost btn-xs" style="color:#25d366" onclick="event.stopPropagation();haptic('light')">💬</a>
+      </div>`;
+    });
+    html += `</div></div>`;
+  }
 
   html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
     <div style="font-size:13px;font-weight:700">📋 ${todayStr} Promises <span style="font-size:11px;font-weight:400;color:var(--text3)">${ptps.length} set</span></div>
@@ -12039,6 +12145,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     updateBadges(); checkOdAdvance(); checkRankingGapAlert();
     checkPtpBreaches(); updateDailyPill(); renderDashboard(); initPullToRefresh();
+    _updateFab(currentPage);
   } else {
     // No session — check for migration then show lock screen
     const migrated = await migrateFromLegacyIfNeeded();
