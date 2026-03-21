@@ -1614,34 +1614,9 @@ tr.promised td:first-child{border-left:3px solid var(--purple);}
   <section class="page" id="page-health">
     <div class="page-header"><div><div class="page-title">⚙️ Settings</div><div class="page-sub">Account, preferences and data</div></div></div>
 
-    <!-- Profile card -->
-    <div class="card" style="margin-bottom:14px"><div class="card-body" id="settings-agent-card"></div></div>
-
-    <!-- Profile editing -->
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-header"><span class="card-title">👤 Profile</span></div>
-      <div class="card-body" style="padding:14px 16px">
-        <!-- Avatar -->
-        <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
-          <div id="settings-avatar-preview" style="width:64px;height:64px;border-radius:50%;background:var(--surface2);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:28px;cursor:pointer;overflow:hidden;flex-shrink:0" onclick="document.getElementById('avatar-file-input').click()" title="Tap to change photo">
-            <span id="settings-avatar-emoji">👤</span>
-          </div>
-          <div style="flex:1">
-            <div style="font-size:12px;color:var(--text2);margin-bottom:4px">Profile picture <span style="color:var(--text3);font-size:10px">(local only)</span></div>
-            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('avatar-file-input').click()">Change Photo</button>
-            <button class="btn btn-ghost btn-sm" style="margin-left:6px;color:var(--text3)" onclick="settingsClearAvatar()">Remove</button>
-          </div>
-          <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="settingsLoadAvatar(this)">
-        </div>
-        <!-- Name edit -->
-        <div class="form-group" style="margin-bottom:12px">
-          <label style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px">Display Name</label>
-          <input type="text" class="form-input" id="settings-name-input" placeholder="Your full name" style="margin-top:5px">
-        </div>
-        <button class="btn btn-gold btn-sm" onclick="settingsSaveProfile()">Save Profile</button>
-
-      </div>
-    </div>
+    <!-- Profile card — beautiful hero card, edit via modal -->
+    <div id="settings-agent-card" style="margin-bottom:14px"></div>
+    <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="settingsLoadAvatar(this)">
 
     <!-- Preferences -->
     <div class="card" style="margin-bottom:14px">
@@ -9697,6 +9672,11 @@ async function authSignInWithCode() {
     }catch{}
   }
   localStorage.setItem('squevetrack_'+slugCode,JSON.stringify(foundData));
+  // Restore display name + avatar from _profile (synced separately from credentials)
+  if (foundData._profile) {
+    if (foundData._profile.displayName) localStorage.setItem('sq_displayname_'+slugCode, foundData._profile.displayName);
+    if (foundData._profile.avatar)      localStorage.setItem('sq_avatar_'+slugCode,      foundData._profile.avatar);
+  }
 
   agent={id:slugCode,lbCode:rawCode,name:profile.name||rawCode,stage:profile.stage||'M2',
     supervisor:profile.supervisor||'',pinHash,createdAt:profile.createdAt||new Date().toISOString()};
@@ -9712,47 +9692,49 @@ async function authSignInWithCode() {
 // SETTINGS — Profile, Theme, Haptic, Target, Copy Code
 // ============================================================
 
+function _getProfileData() {
+  if (!_activeAgent) return {};
+  const id = _activeAgent.id;
+  return {
+    displayName: localStorage.getItem('sq_displayname_' + id) || _activeAgent.lbCode || _activeAgent.name || '',
+    avatar:      localStorage.getItem('sq_avatar_' + id) || '',
+  };
+}
+
 function renderSettingsPage() {
-  // Agent card
-  const cardEl = document.getElementById('settings-agent-card');
-  if (cardEl && _activeAgent) {
+  const el = document.getElementById('settings-agent-card');
+  if (el && _activeAgent) {
     const s = STAGE_CONFIG[_activeAgent.stage] || STAGE_CONFIG.M2;
-    const avatar = localStorage.getItem('sq_avatar_' + _activeAgent.id);
-    const avatarHtml = avatar
-      ? '<img src="'+avatar+'" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid var(--border2)">'
-      : '<div style="width:52px;height:52px;border-radius:50%;background:'+s.colorHex+'22;color:'+s.colorHex+';display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;font-family:var(--font-head);flex-shrink:0">'+(_activeAgent.name||'A').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()+'</div>';
-    const displayName = localStorage.getItem('sq_displayname_' + _activeAgent.id) || _activeAgent.lbCode || _activeAgent.name;
-    cardEl.innerHTML =
-      '<div style="display:flex;align-items:center;gap:14px;padding:4px 0">'
-      + avatarHtml
-      + '<div style="flex:1;min-width:0">'
-      + '<div style="font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+displayName+'</div>'
-      + '<div style="font-size:12px;color:var(--text3);margin-top:2px">'+(_activeAgent.lbCode||_activeAgent.name)+'</div>'
-      + '<div style="margin-top:4px"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:'+s.colorHex+'22;color:'+s.colorHex+'">'+s.label+' — '+s.name+'</span></div>'
-      + '</div></div>';
-  }
+    const { displayName, avatar } = _getProfileData();
+    const initials = displayName.split(' ').filter(Boolean).map(w=>w[0]).join('').slice(0,2).toUpperCase() || '?';
 
-  // Pre-fill profile fields
-  const nameInput = document.getElementById('settings-name-input');
-  if (nameInput && _activeAgent) {
-    nameInput.value = localStorage.getItem('sq_displayname_' + _activeAgent.id) || _activeAgent.name || '';
-  }
+    // Avatar: photo or gradient monogram
+    const avatarEl = avatar
+      ? '<img src="'+avatar+'" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid '+s.colorHex+';box-shadow:0 0 0 4px '+s.colorHex+'22">'
+      : '<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,'+s.colorHex+','+s.colorHex+'99);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:28px;font-family:var(--font-head);color:#fff;box-shadow:0 4px 16px '+s.colorHex+'44;letter-spacing:-1px">'+initials+'</div>';
 
-  // Pre-fill avatar preview
-  const avatarPreview = document.getElementById('settings-avatar-preview');
-  const avatarEmoji   = document.getElementById('settings-avatar-emoji');
-  if (avatarPreview && _activeAgent) {
-    const saved = localStorage.getItem('sq_avatar_' + _activeAgent.id);
-    if (saved) {
-      avatarPreview.innerHTML = '<img src="'+saved+'" style="width:64px;height:64px;border-radius:50%;object-fit:cover">';
-    } else if (avatarEmoji) {
-      avatarEmoji.textContent = '👤';
-    }
+    el.innerHTML =
+      '<div style="background:linear-gradient(135deg,var(--surface) 0%,var(--surface2) 100%);border-radius:16px;overflow:hidden;border:1px solid var(--border2)">'
+      // Banner
+      +'<div style="height:70px;background:linear-gradient(135deg,'+s.colorHex+'33,'+s.colorHex+'11);position:relative">'
+      +'<div style="position:absolute;inset:0;opacity:0.08;background:repeating-linear-gradient(45deg,'+s.colorHex+' 0,'+s.colorHex+' 1px,transparent 0,transparent 50%);background-size:12px 12px"></div>'
+      +'</div>'
+      // Avatar overlapping banner
+      +'<div style="padding:0 20px 20px;margin-top:-40px;position:relative">'
+      +'<div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px">'
+      +avatarEl
+      +'<button onclick="openProfileEditModal()" style="background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:7px 16px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;font-family:var(--font-body);display:flex;align-items:center;gap:6px">✏️ Edit</button>'
+      +'</div>'
+      // Name + meta
+      +'<div style="font-family:var(--font-head);font-size:20px;font-weight:800;color:var(--text);letter-spacing:-0.3px;margin-bottom:3px">'+displayName+'</div>'
+      +'<div style="font-size:12px;color:var(--text3);margin-bottom:10px;font-family:var(--font-mono)">'+(_activeAgent.lbCode||_activeAgent.id)+'</div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
+      +'<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:'+s.colorHex+'22;color:'+s.colorHex+'">'+s.label+' — '+s.name+'</span>'
+      +'<span style="font-size:11px;padding:3px 10px;border-radius:20px;background:var(--surface);color:var(--text3);border:1px solid var(--border)">LoanBase Ghana</span>'
+      +'</div>'
+      +'</div>'
+      +'</div>';
   }
-
-  // Agent code display
-  const codeDisplay = document.getElementById('settings-code-display');
-  if (codeDisplay && _activeAgent) codeDisplay.textContent = _activeAgent.lbCode || _activeAgent.id;
 
   // Target
   const targetInput = document.getElementById('settings-target-input');
@@ -9763,22 +9745,60 @@ function renderSettingsPage() {
   const darkBtn  = document.getElementById('theme-btn-dark');
   const lightBtn = document.getElementById('theme-btn-light');
   if (darkBtn && lightBtn) {
-    const activeStyle  = 'background:var(--gold);color:#000;';
-    const inactiveStyle= 'background:transparent;color:var(--text3);';
-    darkBtn.style.cssText  += isDark  ? activeStyle : inactiveStyle;
-    lightBtn.style.cssText += !isDark ? activeStyle : inactiveStyle;
+    const on = 'background:var(--gold);color:#000;';
+    const off = 'background:transparent;color:var(--text3);';
+    darkBtn.style.cssText  += isDark  ? on : off;
+    lightBtn.style.cssText += !isDark ? on : off;
   }
 
   // Haptic toggle
-  const hapticCheck = document.getElementById('haptic-toggle');
-  const hapticSlider= document.getElementById('haptic-slider');
-  const hapticKnob  = document.getElementById('haptic-knob');
+  const hapticCheck  = document.getElementById('haptic-toggle');
+  const hapticSlider = document.getElementById('haptic-slider');
+  const hapticKnob   = document.getElementById('haptic-knob');
   const hapticOn = localStorage.getItem('sq_haptic') !== 'off';
-  if (hapticCheck) hapticCheck.checked = hapticOn;
+  if (hapticCheck)  hapticCheck.checked = hapticOn;
   if (hapticSlider) hapticSlider.style.background = hapticOn ? 'var(--gold)' : 'var(--border2)';
   if (hapticKnob)   hapticKnob.style.transform = hapticOn ? 'translateX(20px)' : 'translateX(0)';
 
   renderHealthPage();
+}
+
+function openProfileEditModal() {
+  if (!_activeAgent) return;
+  const { displayName, avatar } = _getProfileData();
+  const initials = displayName.split(' ').filter(Boolean).map(w=>w[0]).join('').slice(0,2).toUpperCase() || '?';
+  const s = STAGE_CONFIG[_activeAgent.stage] || STAGE_CONFIG.M2;
+  const avatarPreview = avatar
+    ? '<img src="'+avatar+'" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid '+s.colorHex+'">'
+    : '<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,'+s.colorHex+','+s.colorHex+'99);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#fff;font-family:var(--font-head)">'+initials+'</div>';
+
+  document.getElementById('modal-title').textContent = 'Edit Profile';
+  document.getElementById('modal-body').innerHTML =
+    '<div style="text-align:center;margin-bottom:24px">'
+    +'<div id="profile-edit-avatar" style="position:relative;display:inline-block;cursor:pointer" onclick="document.getElementById(&quot;avatar-file-input&quot;).click()">'
+    +avatarPreview
+    +'<div style="position:absolute;bottom:2px;right:2px;width:26px;height:26px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.3)">📷</div>'
+    +'</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:8px">Tap to change photo</div>'
+    +'</div>'
+    +'<div class="form-group" style="margin-bottom:16px">'
+    +'<label style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px">Display Name</label>'
+    +'<input type="text" id="profile-edit-name" class="form-input" value="'+displayName+'" placeholder="Your full name" style="margin-top:6px;font-size:15px;font-weight:600" autofocus>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:5px">Shows on lock screen. Login code is unchanged.</div>'
+    +'</div>'
+    +'<div style="background:var(--surface2);border-radius:8px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between">'
+    +'<div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">Agent Code (login)</div>'
+    +'<div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--gold);margin-top:2px">'+(_activeAgent.lbCode||_activeAgent.id)+'</div></div>'
+    +'<button onclick="settingsCopyCode()" style="background:none;border:none;cursor:pointer;font-size:18px" title="Copy">📋</button>'
+    +'</div>';
+
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
+    +'<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="settingsClearAvatar();openProfileEditModal()">Remove Photo</button>'
+    +'<button class="btn btn-gold" onclick="settingsSaveProfile()">Save</button>';
+
+  document.getElementById('modal-overlay').classList.add('open');
+  haptic('light');
 }
 
 // ── Avatar crop system ──────────────────────────────────────
@@ -9893,9 +9913,11 @@ function cropConfirm() {
   ctx.drawImage(srcCanvas, 10, 10, 260, 260, 0, 0, 200, 200);
   const dataUrl = out.toDataURL('image/jpeg', 0.80);
   localStorage.setItem('sq_avatar_' + _activeAgent.id, dataUrl);
-  const preview = document.getElementById('settings-avatar-preview');
-  if (preview) preview.innerHTML = '<img src="'+dataUrl+'" style="width:64px;height:64px;border-radius:50%;object-fit:cover">';
+  // Update avatar preview in edit modal if open
+  const editAvatar = document.getElementById('profile-edit-avatar');
+  if (editAvatar) editAvatar.innerHTML = '<img src="'+dataUrl+'" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--gold)"><div style="position:absolute;bottom:2px;right:2px;width:26px;height:26px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.3)">📷</div>';
   document.getElementById('crop-overlay').style.display = 'none';
+  _syncProfileToSupabase();
   renderSettingsPage();
   toast('Profile photo saved ✅', 'success');
   haptic('pay');
@@ -9916,16 +9938,42 @@ function settingsClearAvatar() {
 
 function settingsSaveProfile() {
   if (!_activeAgent) return;
-  const name = document.getElementById('settings-name-input')?.value.trim();
+  // Read from edit modal input (or fallback to old field)
+  const name = (document.getElementById('profile-edit-name') || document.getElementById('settings-name-input'))?.value.trim();
   if (!name) { toast('Enter a display name', 'error'); return; }
+
+  // Save locally
   localStorage.setItem('sq_displayname_' + _activeAgent.id, name);
-  // Update agent record name
   const agents = getAgentList();
   const idx = agents.findIndex(a => a.id === _activeAgent.id);
   if (idx >= 0) { agents[idx].name = name; saveAgentList(agents); _activeAgent.name = name; }
+
+  // Sync _profile to Supabase (separate from credentials)
+  _syncProfileToSupabase();
+
+  closeModal();
   renderSettingsPage();
   toast('Profile saved ✅', 'success');
   haptic('pay');
+}
+
+async function _syncProfileToSupabase() {
+  if (!_activeAgent) return;
+  const db = initSupabase();
+  if (!db) return;
+  const displayName = localStorage.getItem('sq_displayname_' + _activeAgent.id) || '';
+  const avatar      = localStorage.getItem('sq_avatar_' + _activeAgent.id) || '';
+  try {
+    const agentKey = 'agent_' + _activeAgent.id;
+    const { data: row } = await db.from('app_state').select('data').eq('id', agentKey).maybeSingle();
+    if (row?.data) {
+      await db.from('app_state').upsert({
+        id: agentKey,
+        data: { ...row.data, _profile: { displayName, avatar } },
+        updated_at: new Date().toISOString()
+      });
+    }
+  } catch(e) { console.warn('Profile sync failed:', e.message); }
 }
 
 function settingsCopyCode() {
