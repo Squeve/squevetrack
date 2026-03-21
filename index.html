@@ -2175,6 +2175,10 @@ tr.overdue-critical .heat-ring {
         <div class="card-header"><span class="card-title">🤖 Smart Account Clusters</span><span style="font-size:11px;color:var(--text3)">Auto-triage your portfolio</span></div>
         <div class="card-body" id="analytics-clusters"></div>
       </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3)">Best Call-Time</span></div>
+        <div class="card-body" id="analytics-calltime"></div>
+      </div>
     </div>
   </section>
 
@@ -3070,7 +3074,7 @@ function openPerfCard() {
 function sharePerfCard() {
   const name = (_activeAgent?.name||'Agent').split(' ')[0];
   const rate = document.querySelector('#perf-card-stats div:first-child .font-mono')?.textContent || '';
-  const text = 'SqueveTrack Weekly Performance | Agent: ' + name + ' | Powered by SqueveTrack'
+  const text = 'SqueveTrack Weekly Performance | Agent: ' + name + ' | Powered by SqueveTrack';
   if (navigator.share) {
     navigator.share({ title:'SqueveTrack Performance', text: text }).catch(()=>{});
   } else {
@@ -3270,7 +3274,7 @@ function _getCmdItems(q) {
   ];
   const ql = q.toLowerCase();
   // Borrower matches
-  const bMatches = ql.length >= 2 ? state.borrowers.filter(b =>
+  const bMatches = ql.length >= 2 && state && state.borrowers ? state.borrowers.filter(b =>
     b.name.toLowerCase().includes(ql) || b.phone.includes(ql)
   ).slice(0,5).map(b => ({
     icon:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px"><circle cx="10" cy="7" r="3"/><path d="M4 17c0-3.31 2.69-6 6-6s6 2.69 6 6"/></svg>',
@@ -7727,14 +7731,7 @@ function applyTheme(theme) {
   const themeSub = document.querySelector('[id="theme-btn-dark"]')?.closest('.settings-row')?.querySelector('.settings-row-label-sub');
   if (themeSub) themeSub.textContent = theme === 'amoled' ? 'AMOLED black — best for OLED screens' : theme === 'light' ? 'Light mode' : 'Dark mode';
   const isDark = (theme === 'dark' || theme === 'amoled');
-  // Sidebar toggle button
-  const icon = document.getElementById('theme-icon');
-  const label = document.getElementById('theme-label');
-  if (icon) icon.textContent = isDark ? '☀️' : '🌙';
-  if (label) label.textContent = isDark ? 'Light' : 'Dark';
-  // Mobile header theme button
-  const mhdrTheme = document.getElementById('mhdr-theme-btn');
-  if (mhdrTheme) mhdrTheme.textContent = isDark ? '☀️' : '🌙';
+
   // Redraw current page so charts and dynamic elements pick up new colors
   if (state) {
     setTimeout(function() { renderCurrentPage(); }, 50);
@@ -8894,15 +8891,7 @@ function renderCharRing(count, maxChars) {
 // ============================================================
 // HAPTIC FEEDBACK (consistent)
 // ============================================================
-function haptic(type) {
-  if (!navigator.vibrate) return;
-  if (type === 'light') navigator.vibrate(8);
-  else if (type === 'medium') navigator.vibrate([15,10,15]);
-  else if (type === 'heavy') navigator.vibrate([20,15,20,15,20]);
-  else if (type === 'copy') navigator.vibrate(12);
-  else if (type === 'pay') navigator.vibrate([30,20,30]);
-  else if (type === 'fullpay') navigator.vibrate([40,20,40,20,40]);
-}
+// haptic() defined above
 
 
 // ============================================================
@@ -12045,7 +12034,6 @@ function updateStatusBarColor(page) {
 document.addEventListener('DOMContentLoaded', async () => {
   // Init feature systems
   _updateOfflineBanner();
-  _requestNotifPermission();
 
   await loadState();
 
