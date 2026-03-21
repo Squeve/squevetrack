@@ -1653,6 +1653,67 @@ tr.overdue-critical .heat-ring {
 .settings-row.danger { color: var(--red); }
 .settings-row.danger:hover { background: rgba(239,68,68,0.06); }
 
+
+/* ═══ DASHBOARD + ANALYTICS PREMIUM ════════════════════════ */
+/* KPI cards premium */
+.kpi-card {
+  border-radius: 14px !important;
+  position: relative; overflow: hidden;
+  box-shadow: inset 0 1px 0 var(--border-hi), 0 2px 12px rgba(0,0,0,0.2);
+}
+.kpi-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  pointer-events: none;
+}
+.kpi-card.gold { background: linear-gradient(135deg, rgba(240,160,48,0.1) 0%, rgba(240,160,48,0.04) 100%) !important; border-color: rgba(240,160,48,0.2) !important; }
+.kpi-card.red  { background: linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.03) 100%) !important; border-color: rgba(239,68,68,0.18) !important; }
+.kpi-card.green{ background: linear-gradient(135deg, rgba(34,197,94,0.08) 0%, rgba(34,197,94,0.03) 100%) !important; border-color: rgba(34,197,94,0.18) !important; }
+.kpi-card.blue { background: linear-gradient(135deg, rgba(96,165,250,0.08) 0%, rgba(96,165,250,0.03) 100%) !important; border-color: rgba(96,165,250,0.18) !important; }
+/* KPI value gradients */
+.kpi-value.gold { background: var(--gold-grad); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+
+/* Dashboard target section upgrade */
+.target-section {
+  background: var(--surface) !important;
+  border: 1px solid var(--border2) !important;
+  border-radius: 14px !important;
+  box-shadow: inset 0 1px 0 var(--border-hi), 0 2px 12px rgba(0,0,0,0.15) !important;
+}
+.progress-big {
+  border-radius: 8px !important;
+  height: 8px !important;
+}
+.progress-big-fill { border-radius: 8px !important; }
+
+/* Alert cards */
+#ranking-gap-alert, #dash-alerts > div, #treadmill-alert {
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+
+/* Dashboard action list rows */
+#dash-top-due .summary-row:first-child,
+#dash-top-commit .summary-row:first-child { border-top: none; }
+
+/* Analytics cards */
+.analytics-grid .card,
+#page-analytics .card {
+  border-radius: 14px !important;
+  box-shadow: inset 0 1px 0 var(--border-hi), 0 2px 12px rgba(0,0,0,0.15) !important;
+}
+
+/* Mobile: stack 2-col to 1-col */
+@media (max-width: 900px) {
+  #page-dashboard [style*="grid-template-columns:1fr 1fr"],
+  #page-analytics [style*="grid-template-columns:1fr 1fr"],
+  #page-analytics [style*="grid-template-columns:1fr 2fr"],
+  #page-analytics [style*="grid-template-columns:2fr 1fr"],
+  #page-analytics [style*="grid-template-columns:1fr 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* ═══ MOBILE EFFECTS (max-width: 900px) ═══════════════════ */
 @media (max-width: 900px) {
   /* Cards on mobile — no backdrop-filter (GPU lag on scroll) */
@@ -1820,55 +1881,102 @@ tr.overdue-critical .heat-ring {
 
   <!-- DASHBOARD -->
   <section class="page active" id="page-dashboard">
-    <div class="page-header">
+
+    <!-- ── Greeting bar ──────────────────────────────────── -->
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap">
       <div>
-        <div class="page-title" id="dash-greeting">Dashboard</div>
-        <div class="page-sub" id="dash-date-sub">March 2026 — Loan Tracking</div>
+        <div style="font-family:var(--font-head);font-size:22px;font-weight:800;color:var(--text);line-height:1.1" id="dash-greeting">Dashboard</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:3px" id="dash-date-sub">March 2026</div>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <span id="streak-badge-dash" class="streak-badge" style="display:none">🔥 0 day streak</span>
-        <button class="btn btn-ghost btn-sm" onclick="openRolloverModal()">📅 New Month</button>
-        <button class="btn btn-gold" onclick="openAddModal()">＋ New Borrower</button>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span id="streak-badge-dash" class="streak-badge" style="display:none"></span>
+        <button class="btn btn-ghost btn-sm" onclick="openRolloverModal()">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:13px;height:13px;vertical-align:middle;margin-right:4px"><rect x="3" y="4" width="14" height="13" rx="2"/><line x1="3" y1="8" x2="17" y2="8"/><line x1="7" y1="2" x2="7" y2="6"/><line x1="13" y1="2" x2="13" y2="6"/></svg>New Month
+        </button>
+        <button class="btn btn-gold" onclick="openAddModal()">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;vertical-align:middle;margin-right:4px"><line x1="10" y1="4" x2="10" y2="16"/><line x1="4" y1="10" x2="16" y2="10"/></svg>New
+        </button>
       </div>
     </div>
 
-    <!-- HIT LIST PANEL -->
+    <!-- ── Alerts strip (ranking gap + aging tomorrow) ────── -->
+    <div id="ranking-gap-alert" style="display:none;border-radius:12px;padding:10px 14px;margin-bottom:12px;align-items:center;gap:10px;font-size:13px;animation:fadeUp 0.3s ease both"></div>
+    <div id="dash-alerts"></div>
+    <div id="treadmill-alert" style="display:none;border-radius:12px;padding:12px 16px;margin-bottom:12px"></div>
+
+    <!-- ── Hit list (when active) ────────────────────────── -->
     <div id="hit-list-panel" class="hit-list-panel" style="display:none">
       <div class="hit-list-header">
-        <span style="font-weight:700;font-size:13px">📌 Today's Hit List <span id="hit-list-count" style="color:var(--text3);font-weight:400;font-size:11px"></span></span>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-ghost btn-xs" onclick="clearHitList()">Clear All</button>
+        <span style="font-weight:700;font-size:13px;display:flex;align-items:center;gap:6px">
+          <svg viewBox="0 0 20 20" fill="none" stroke="var(--gold)" stroke-width="1.7" style="width:14px;height:14px"><path d="M10 2l2.47 5h5.53l-4.5 3.27L15 16l-5-3.27L5 16l1.5-5.73L2 7h5.53z"/></svg>
+          Hit List <span id="hit-list-count" style="color:var(--text3);font-weight:400;font-size:11px"></span>
+        </span>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-xs" onclick="clearHitList()">Clear</button>
           <button class="btn btn-ghost btn-xs" onclick="toggleHitListPanel(false)">✕</button>
         </div>
       </div>
       <div id="hit-list-items"></div>
     </div>
 
-    <!-- Ranking Gap Alert -->
-    <div id="ranking-gap-alert" style="display:none;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-left:4px solid var(--red);border-radius:8px;padding:10px 14px;margin-bottom:14px;align-items:center;gap:10px;font-size:13px;animation:fadeUp 0.3s ease both"></div>
-
+    <!-- ── KPI grid ───────────────────────────────────────── -->
     <div class="kpi-grid" id="kpi-grid"></div>
 
+    <!-- ── Monthly progress + forecast ────────────────────── -->
     <div id="dash-target-section"></div>
 
-    <!-- Collection Gap Widget -->
-    <div id="dash-gap-widget" style="display:none;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:12px 16px;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+    <!-- ── Gap widget (shown when target set) ─────────────── -->
+    <div id="dash-gap-widget" style="display:none;background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:14px 16px;margin-bottom:14px;flex-wrap:wrap;gap:10px;box-shadow:inset 0 1px 0 var(--border-hi)">
       <div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:2px">📐 Required per remaining working day</div>
-        <div style="font-family:var(--font-mono);font-size:18px;font-weight:700" id="gap-widget-amount">₵0</div>
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Required / working day</div>
+        <div style="font-family:var(--font-mono);font-size:20px;font-weight:800;color:var(--gold)" id="gap-widget-amount">₵0</div>
       </div>
-      <div id="gap-widget-status" style="font-size:12px;color:var(--text2)"></div>
+      <div id="gap-widget-status" style="font-size:12px;color:var(--text2);align-self:center"></div>
     </div>
-    <div id="dash-alerts"></div>
 
-    <!-- Treadmill Alert -->
-    <div id="treadmill-alert" style="display:none;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-left:4px solid var(--red);border-radius:8px;padding:12px 18px;margin-bottom:14px"></div>
+    <!-- ── Action rows: top overdue + commitments (full width stacked) ── -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="card" style="border-radius:14px">
+        <div class="card-header" style="padding:12px 16px 0">
+          <span class="card-title" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3)">Top Overdue</span>
+          <span style="font-size:10px;color:var(--text3)">tap to act</span>
+        </div>
+        <div class="card-body" id="dash-top-due" style="padding:8px 0 0"></div>
+      </div>
+      <div class="card" style="border-radius:14px">
+        <div class="card-header" style="padding:12px 16px 0">
+          <span class="card-title" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3)">Commitments</span>
+          <span style="font-size:10px;color:var(--text3)">tap to follow up</span>
+        </div>
+        <div class="card-body" id="dash-top-commit" style="padding:8px 0 0"></div>
+      </div>
+    </div>
 
-    <!-- Aged Out collapsible -->
-    <div id="dash-agedout-card" style="display:none;background:rgba(96,165,250,0.07);border:1px solid rgba(96,165,250,0.2);border-radius:10px;margin-bottom:14px;overflow:hidden">
+    <!-- ── Collection chart + urgency (side by side) ──────── -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="card" style="border-radius:14px">
+        <div class="card-header" style="padding:12px 16px 0">
+          <span class="card-title" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3)">Collection Trend</span>
+          <span style="font-size:10px;color:var(--text3)" id="dash-days-label"></span>
+        </div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="chart-daily"></canvas></div></div>
+      </div>
+      <div class="card" style="border-radius:14px">
+        <div class="card-header" style="padding:12px 16px 0">
+          <span class="card-title" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3)">Urgency</span>
+          <span style="font-size:10px;color:var(--text3)">tap to filter</span>
+        </div>
+        <div class="card-body" id="dash-urgency"></div>
+      </div>
+    </div>
+
+    <!-- ── Aged-out (collapsible at bottom, low priority) ─── -->
+    <div id="dash-agedout-card" style="display:none;background:rgba(96,165,250,0.06);border:1px solid rgba(96,165,250,0.18);border-radius:14px;margin-bottom:14px;overflow:hidden">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer" onclick="toggleDashAgedOut()">
         <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:16px">📤</span>
+          <div style="width:28px;height:28px;border-radius:8px;background:rgba(96,165,250,0.12);display:flex;align-items:center;justify-content:center">
+            <svg viewBox="0 0 20 20" fill="none" stroke="var(--blue)" stroke-width="1.6" style="width:14px;height:14px"><path d="M10 3v10M6 10l4 4 4-4"/><line x1="3" y1="17" x2="17" y2="17"/></svg>
+          </div>
           <div>
             <div style="font-weight:700;font-size:13px">Aged Out Accounts</div>
             <div id="dash-agedout-sub" style="font-size:11px;color:var(--text3)">0 accounts</div>
@@ -1879,34 +1987,6 @@ tr.overdue-critical .heat-ring {
       <div id="dash-agedout-body" style="display:none;padding:0 16px 12px;max-height:260px;overflow-y:auto"></div>
     </div>
 
-    <!-- Priority 1: Action lists — most important for daily workflow -->
-    <div class="two-col">
-      <div class="card">
-        <div class="card-header"><span class="card-title">🏆 Top Overdue — Act Now</span><span style="font-size:10px;color:var(--text3)">tap any row</span></div>
-        <div class="card-body" id="dash-top-due"></div>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">✅ Highest Commitment</span><span style="font-size:10px;color:var(--text3)">tap to follow up</span></div>
-        <div class="card-body" id="dash-top-commit"></div>
-      </div>
-    </div>
-
-    <!-- Priority 2: Visual progress & urgency breakdown -->
-    <div class="two-col">
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">📉 Collection Progress</span>
-          <span style="font-size:11px;color:var(--text3)" id="dash-days-label"></span>
-        </div>
-        <div class="card-body">
-          <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">🚨 Urgency Breakdown</span><span style="font-size:10px;color:var(--text3)">tap band to filter</span></div>
-        <div class="card-body" id="dash-urgency"></div>
-      </div>
-    </div>
   </section>
 
   <!-- LOANS -->
@@ -2000,131 +2080,111 @@ tr.overdue-critical .heat-ring {
 
   <!-- ANALYTICS -->
   <section class="page" id="page-analytics">
-    <div class="page-header">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap">
       <div>
-        <div class="page-title">Analytics</div>
-        <div class="page-sub">Tap any card or chart to filter borrowers</div>
+        <div style="font-family:var(--font-head);font-size:22px;font-weight:800;color:var(--text)">Analytics</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:3px">Portfolio intelligence · tap cards to filter</div>
       </div>
     </div>
-    <div class="kpi-grid" id="analytics-kpis"></div>
-    <div class="analytics-grid">
-      <div class="card">
-        <div class="card-header"><span class="card-title">📊 Portfolio Status</span></div>
+
+    <!-- KPI strip -->
+    <div class="kpi-grid" id="analytics-kpis" style="margin-bottom:14px"></div>
+
+    <!-- Row 1: Status donut + OD age bar (most actionable visuals) -->
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px;margin-bottom:12px">
+      <div class="card" style="border-radius:14px">
+        <div class="card-header" style="padding:12px 16px 0">
+          <span class="card-title" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3)">Portfolio Status</span>
+        </div>
         <div class="card-body"><div class="chart-wrap"><canvas id="chart-status"></canvas></div></div>
       </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">💎 Loan Type Breakdown</span></div>
-        <div class="card-body"><div class="chart-wrap"><canvas id="chart-type"></canvas></div></div>
-      </div>
-      <div class="card full">
-        <div class="card-header"><span class="card-title">📅 Outstanding by OD Age</span></div>
+      <div class="card" style="border-radius:14px">
+        <div class="card-header" style="padding:12px 16px 0">
+          <span class="card-title" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3)">Outstanding by OD Age</span>
+        </div>
         <div class="card-body"><div class="chart-wrap"><canvas id="chart-od-bar"></canvas></div></div>
       </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">📋 Loan Type Performance</span></div>
-        <div class="card-body" id="analytics-type-table"></div>
+    </div>
+
+    <!-- Row 2: Rolling trend (full width — most important time series) -->
+    <div class="card" style="border-radius:14px;margin-bottom:12px">
+      <div class="card-header" style="padding:12px 16px 0">
+        <span class="card-title" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3)">Rolling 7-Day Collection Trend</span>
       </div>
-      <div class="card full">
-        <div class="card-header"><span class="card-title">🔥 Risk Aging Matrix</span></div>
+      <div class="card-body"><div class="chart-wrap"><canvas id="chart-rolling"></canvas></div></div>
+    </div>
+
+    <!-- Row 3: Risk matrix + collection heatmap -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="card" style="border-radius:14px">
+        <div class="card-header" style="padding:12px 16px 0">
+          <span class="card-title" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3)">Risk Aging Matrix</span>
+        </div>
         <div class="card-body" id="analytics-aging"></div>
       </div>
-      <div class="card full">
-        <div class="card-header">
-          <span class="card-title">📅 Daily Collection Heatmap</span>
-          <span style="font-size:11px;color:var(--text3)" id="analytics-heatmap-meta"></span>
+      <div class="card" style="border-radius:14px">
+        <div class="card-header" style="padding:12px 16px 0">
+          <span class="card-title" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3)">Daily Collection Heatmap</span>
+          <span style="font-size:10px;color:var(--text3)" id="analytics-heatmap-meta"></span>
         </div>
         <div class="card-body" id="analytics-heatmap"></div>
       </div>
-      <div class="card full">
-        <div class="card-header"><span class="card-title">📈 Rolling 7-Day Collection Trend</span></div>
-        <div class="card-body"><div class="chart-wrap"><canvas id="chart-rolling"></canvas></div></div>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">🎯 Account Concentration Risk</span></div>
-        <div class="card-body" id="analytics-concentration"></div>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">⭐ Payment Behaviour Scores</span></div>
+    </div>
+
+    <!-- Row 4: Behaviour + efficiency + concentration -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="card" style="border-radius:14px">
+        <div class="card-header" style="padding:12px 16px 0">
+          <span class="card-title" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3)">Payment Behaviour</span>
+        </div>
         <div class="card-body" id="analytics-behaviour"></div>
       </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">📅 Account Aging Timeline</span></div>
-        <div class="card-body" id="analytics-aging-timeline"></div>
-      </div>
-      <div class="card full">
-        <div class="card-header"><span class="card-title">📊 OD Fee Accrual Tracker</span></div>
-        <div class="card-body"><div class="chart-wrap"><canvas id="chart-odfee-accrual"></canvas></div></div>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">⚡ Collection Efficiency</span></div>
+      <div class="card" style="border-radius:14px">
+        <div class="card-header" style="padding:12px 16px 0">
+          <span class="card-title" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3)">Collection Efficiency</span>
+        </div>
         <div class="card-body" id="analytics-efficiency"></div>
       </div>
-      <div class="card full">
-        <div class="card-header"><span class="card-title">📊 Month vs Last Month</span><span style="font-size:10px;color:var(--text3)">side-by-side</span></div>
-        <div class="card-body" id="analytics-month-compare" style="padding:0 4px"></div>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">📅 Day of Week Performance</span><span style="font-size:11px;color:var(--text3)">When you collect most</span></div>
-        <div class="card-body" id="analytics-dow"></div>
-      </div>
-      <div class="card full">
-        <div class="card-header"><span class="card-title">🤖 Smart Account Clusters</span><span style="font-size:11px;color:var(--text3)">Auto-triage your portfolio</span></div>
-        <div class="card-body" id="analytics-clusters"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- WHATSAPP DISPATCH -->
-  <section class="page" id="page-dispatch">
-    <div class="page-header">
-      <div>
-        <div class="page-title" style="font-size:22px">WhatsApp</div>
-        <div class="page-sub" id="dispatch-stats">Grouped by OD day</div>
-      </div>
-    </div>
-
-    <!-- Controls bar -->
-    <div class="bl-filter-bar" style="margin-bottom:12px">
-      <!-- Message mode toggle -->
-      <div style="display:flex;gap:6px">
-        <button class="msg-toggle-btn" data-mode="full" onclick="setDispatchMode('full')" style="flex:1;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-body);transition:all 0.15s">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px;vertical-align:middle;margin-right:4px"><circle cx="10" cy="10" r="8"/><path d="M10 6v1.5M10 12.5V14M7.5 8.5a2.5 2.5 0 015 1c0 1.38-1.12 2-2.5 2.5"/></svg>Full Amount
-        </button>
-        <button class="msg-toggle-btn active" data-mode="generous" onclick="setDispatchMode('generous')" style="flex:1;padding:9px 12px;border-radius:10px;border:1.5px solid var(--gold);background:rgba(240,160,48,0.1);color:var(--gold);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font-body);transition:all 0.15s">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px;vertical-align:middle;margin-right:4px"><circle cx="7" cy="7" r="3"/><circle cx="14" cy="14" r="3"/><line x1="3" y1="17" x2="17" y2="3"/></svg>Generous Offer
-        </button>
-      </div>
-      <!-- Filters row -->
-      <div class="bl-chips">
-        <select class="bl-chip-sel" id="dispatch-filter" onchange="renderDispatch()">
-          <option value="">All Active</option>
-          <option value="Unpaid">Unpaid</option>
-          <option value="Partial">Partial</option>
-          <option value="high">₵1,000+</option>
-          <option value="medium">₵400–999</option>
-          <option value="low">Below ₵400</option>
-          <option value="critical">Day 13+</option>
-          <option value="promised">Promised</option>
-        </select>
-        <div class="bl-search-wrap" style="flex:1;min-width:120px;max-width:200px">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" class="bl-search-icon"><circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="17" y2="17"/></svg>
-          <input class="bl-search" id="dispatch-search" placeholder="Search name…" oninput="renderDispatch()" style="height:34px;font-size:12px">
-          <button onclick="clearSearch('dispatch-search',renderDispatch)" class="bl-clear-btn">✕</button>
+      <div class="card" style="border-radius:14px">
+        <div class="card-header" style="padding:12px 16px 0">
+          <span class="card-title" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3)">Concentration Risk</span>
         </div>
-        <input type="number" class="bl-chip-sel" id="dispatch-min-amount" placeholder="₵ Min" oninput="renderDispatch()" style="width:72px" min="0">
-        <input type="number" class="bl-chip-sel" id="dispatch-max-amount" placeholder="₵ Max" oninput="renderDispatch()" style="width:72px" min="0">
-      </div>
-      <!-- Discount -->
-      <div style="display:flex;align-items:center;gap:10px;padding-top:6px;border-top:1px solid var(--border)">
-        <span style="font-size:12px;color:var(--text3);flex-shrink:0">OD Discount</span>
-        <input type="range" class="discount-slider" id="discount-slider" min="0" max="100" value="30" oninput="updateDiscount(this.value)" style="flex:1">
-        <span style="font-family:var(--font-mono);color:var(--gold);font-size:13px;font-weight:700;min-width:36px;text-align:right" id="discount-label">30%</span>
-        <span style="font-size:11px;color:var(--text3);min-width:120px" id="discount-desc">customer pays 30% of OD fee</span>
+        <div class="card-body" id="analytics-concentration"></div>
       </div>
     </div>
 
-    <!-- Contact list -->
-    <div id="dispatch-list"></div>
+    <!-- Row 5: OD fee accrual + loan type performance -->
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="card" style="border-radius:14px">
+        <div class="card-header" style="padding:12px 16px 0">
+          <span class="card-title" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3)">OD Fee Accrual Tracker</span>
+        </div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="chart-odfee-accrual"></canvas></div></div>
+      </div>
+      <div class="card" style="border-radius:14px">
+        <div class="card-header" style="padding:12px 16px 0">
+          <span class="card-title" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3)">Loan Type Performance</span>
+        </div>
+        <div class="card-body" id="analytics-type-table"></div>
+      </div>
+    </div>
+
+    <!-- Row 6: Loan type donut + account aging timeline (less critical) -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="card" style="border-radius:14px">
+        <div class="card-header" style="padding:12px 16px 0">
+          <span class="card-title" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3)">Loan Type Breakdown</span>
+        </div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="chart-type"></canvas></div></div>
+      </div>
+      <div class="card" style="border-radius:14px">
+        <div class="card-header" style="padding:12px 16px 0">
+          <span class="card-title" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3)">Account Aging Timeline</span>
+        </div>
+        <div class="card-body" id="analytics-aging-timeline"></div>
+      </div>
+    </div>
+
   </section>
 
   <!-- DAILY LOG -->
@@ -3458,25 +3518,25 @@ function renderDashboard() {
   const kpiGrid = document.getElementById('kpi-grid');
   kpiGrid.innerHTML =
     '<div class="kpi-card gold" style="cursor:pointer" data-kpi="all" title="View all borrowers">'
-    + '<div class="kpi-label">Active Borrowers</div>'
+    + '<div class="kpi-label">Active</div>'
     + '<div class="kpi-value gold kpi-value-animate" data-val="' + active.length + '" data-fmt="num">0</div>'
     + '<div class="kpi-sub">' + paid.length + ' paid · ' + partial.length + ' partial · ' + unpaid.length + ' unpaid</div>'
-    + '<div style="font-size:10px;color:var(--text3);margin-top:4px">↗ tap to view all</div></div>'
+    + '</div>'
     + '<div class="kpi-card red" style="cursor:pointer" data-kpi="unpaid" title="View unpaid">'
-    + '<div class="kpi-label">Total Balance Owed</div>'
+    + '<div class="kpi-label">Balance Owed</div>'
     + '<div class="kpi-value red kpi-value-animate" data-val="' + totalDueToday + '" data-fmt="currency">₵0</div>'
     + '<div class="kpi-sub">Loan remaining + OD fees</div>'
-    + '<div style="font-size:10px;color:var(--text3);margin-top:4px">↗ tap to view unpaid</div></div>'
+    + '</div>'
     + '<div class="kpi-card green" style="cursor:pointer" data-kpi="partial" title="View partial">'
-    + '<div class="kpi-label">Total Collected</div>'
+    + '<div class="kpi-label">Collected</div>'
     + '<div class="kpi-value green kpi-value-animate" data-val="' + totalCollected + '" data-fmt="currency">₵0</div>'
     + '<div class="kpi-sub">From partial & paid accounts</div>'
-    + '<div style="font-size:10px;color:var(--text3);margin-top:4px">↗ tap to view partial</div></div>'
+    + '</div>'
     + '<div class="kpi-card blue" style="cursor:pointer" data-kpi="analytics" title="View analytics">'
     + '<div class="kpi-label">Recovery Rate</div>'
     + '<div class="kpi-value kpi-value-animate" style="color:var(--blue)" data-val="' + (recoveryRate*100).toFixed(1) + '" data-fmt="pct">0%</div>'
     + '<div class="kpi-sub">' + fmtC(totalOutstanding) + ' still outstanding</div>'
-    + '<div style="font-size:10px;color:var(--text3);margin-top:4px">↗ tap for analytics</div></div>';
+    + '</div>';
   kpiGrid.querySelectorAll('[data-kpi]').forEach(function(el) {
     el.addEventListener('click', function() {
       const k = el.dataset.kpi;
@@ -3540,7 +3600,7 @@ function renderDashboard() {
   const neededPerDay = dlF > 0 ? Math.ceil(Math.max(0, monthTarget - logTotal) / dlF) : 0;
   const forecastHtml = monthTarget > 0 ? (
     '<div style="margin-top:14px;background:rgba(96,165,250,0.07);border:1px solid rgba(96,165,250,0.18);border-radius:10px;padding:14px 16px">'
-    + '<div style="font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">📈 How to Hit Your Target</div>'
+    + '<div style="font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">Forecast</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">'
     + '<div style="background:var(--surface2);border-radius:8px;padding:8px;text-align:center">'
     + '<div style="font-family:var(--font-mono);font-size:14px;font-weight:700;color:' + projCol + '">' + fmtC(projectedF) + '</div>'
@@ -3564,7 +3624,7 @@ function renderDashboard() {
     '<div class="target-section">'
     + '<div class="target-header">'
     + '<div><div class="target-label">📅 Monthly Collection Progress</div>'
-    + '<div style="font-size:11px;color:var(--text3);margin-top:3px">Collected so far vs your target</div></div>'
+    + '</div>'
     + '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
     + '<div class="target-value">' + fmtC(logTotal) + ' / '
     + '<input type="number" id="target-input" value="' + monthTarget + '" min="0"'
@@ -4433,8 +4493,14 @@ function renderAnalytics() {
 // ============================================================
 function setDispatchMode(mode) {
   dispatchMode = mode;
-  document.querySelectorAll('.msg-toggle-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('[data-mode="' + mode + '"]').forEach(b => b.classList.add('active'));
+  document.querySelectorAll('.msg-toggle-btn').forEach(b => {
+    const on = b.dataset.mode === mode;
+    b.classList.toggle('active', on);
+    b.style.borderColor  = on ? 'var(--gold)'              : 'var(--border2)';
+    b.style.background   = on ? 'rgba(240,160,48,0.1)'     : 'transparent';
+    b.style.color        = on ? 'var(--gold)'              : 'var(--text2)';
+    b.style.fontWeight   = on ? '700'                      : '600';
+  });
   renderDispatch();
 }
 
@@ -10486,16 +10552,14 @@ function renderLockAgentList() {
     const avatarHtml  = avatar
       ? `<img src="${avatar}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0">`
       : `<div class="lock-agent-avatar" style="background:${col}22;color:${col}">${initials}</div>`;
-    return `<div style="position:relative;margin-bottom:8px">
-      <button class="lock-agent-card" style="width:100%;margin-bottom:0;${isActive?'border-color:var(--gold);':''}padding-right:48px" onclick="lockSelectAgent('${a.id}')">
+    return `<div style="margin-bottom:8px">
+      <button class="lock-agent-card" style="width:100%;${isActive?'border-color:var(--gold);background:rgba(240,160,48,0.06);':''}" onclick="lockSelectAgent('${a.id}')">
         ${avatarHtml}
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${displayName}${isActive ? ' <span style="font-size:10px;color:var(--green);font-weight:600">● Active</span>' : ''}</div>
+          <div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#fff">${displayName}${isActive ? ' <span style="font-size:10px;color:var(--green);font-weight:600">● Active</span>' : ''}</div>
           <div style="font-size:11px;color:var(--text3)">${a.stage||'M2'} · ${a.stage ? (STAGE_CONFIG[a.stage]?.name||'') : 'Active Default'}</div>
         </div>
-        <div style="font-size:18px;color:var(--text3)">${isActive ? '🔓' : '🔒'}</div>
       </button>
-      <button onclick="promptDeleteAgent('${a.id}','${displayName.replace(/'/g,"\\'")}',${isActive})" title="Delete agent" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:6px;border-radius:6px;color:var(--text3);font-size:14px;transition:color 0.15s,background 0.15s;z-index:2" onmouseover="this.style.color='var(--red)';this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.color='var(--text3)';this.style.background='none'">🗑</button>
     </div>`;
   }).join('');
 }
