@@ -962,22 +962,36 @@ select.form-input option { background: var(--surface2); }
   position: fixed; bottom: 24px; right: 24px;
   z-index: 9999;
   display: flex; flex-direction: column; gap: 8px;
+  pointer-events: none;
+}
+@keyframes toastOut {
+  from { opacity:1; transform:translateX(0) scale(1); max-height:80px; margin-bottom:0; }
+  to   { opacity:0; transform:translateX(20px) scale(0.95); max-height:0; margin-bottom:-8px; }
 }
 .toast {
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  border-radius: var(--radius-sm);
+  background: rgba(22,27,38,0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-hi);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 var(--border-hi);
+  border-radius: 10px;
   padding: 10px 16px;
   font-size: 13px;
   color: var(--text);
   display: flex; align-items: center; gap: 8px;
-  animation: toastIn 0.2s ease;
-  max-width: 280px;
+  animation: toastIn 0.22s cubic-bezier(0.34,1.2,0.64,1) both;
+  max-width: 300px;
+  pointer-events: all;
+  cursor: default;
+  overflow: hidden;
 }
+.toast.exiting { animation: toastOut 0.2s ease forwards; }
 .toast.success { border-left: 3px solid var(--green); }
-.toast.error { border-left: 3px solid var(--red); }
-.toast.info { border-left: 3px solid var(--gold); }
+.toast.error   { border-left: 3px solid var(--red); }
+.toast.info    { border-left: 3px solid var(--gold); }
+.toast.warn    { border-left: 3px solid var(--orange); }
 /* toastIn defined in animations block above */
+
 
 /* PROGRESS BAR */
 .progress-bar-wrap { background: var(--surface2); border-radius: 4px; height: 8px; margin-top: 8px; overflow: hidden; }
@@ -1362,14 +1376,6 @@ tbody tr:hover td { background: rgba(255,255,255,0.025) !important; }
 /* Modal backdrop blur */
 #modal-overlay { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 
-/* Toast premium look */
-.toast-item {
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  border: 1px solid var(--border-hi) !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 var(--border-hi) !important;
-}
-
 /* Overdue critical pulse — red left border glow */
 tr.overdue-critical td { border-left: none; }
 tr.overdue-critical .heat-ring {
@@ -1425,7 +1431,6 @@ tr.overdue-critical .heat-ring {
 
 /* Settings rows hover */
 .settings-row:hover { background: rgba(255,255,255,0.03) !important; }
-
 
 
 /* ═══ BORROWERS LIST REDESIGN ══════════════════════════════ */
@@ -3332,9 +3337,7 @@ document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape' && _cmdOpen) closeCmd();
 });
 
-// ============================================================
-// SEED DATA
-// ============================================================
+// ── SEED DATA ──────────────────────────────────────────
 const SEED_BORROWERS = [
   {n:"Frimpong Kojo Bright",p:"+233 24 864 2361",pr:260,ld:344,of:36,ap:0,sd:"2026-03-12",lt:"LoanBase"},
   {n:"Monica Enyonam Attiogbe",p:"+233 24 499 3048",pr:1300,ld:1820,of:182,ap:0,sd:"2026-03-12",lt:"LoanBase"},
@@ -3456,10 +3459,7 @@ const SEED_LOG = [
   {date:"2026-03-17",collected:1604,notes:""}
 ];
 
-// ============================================================
-// STATE
-// ============================================================
-// ============================================================
+// ── STATE ──────────────────────────────────────────────
 // SUPABASE CONFIG
 // Paste your values from supabase.com > Project Settings > API
 // ============================================================
@@ -3477,9 +3477,7 @@ function _updateOfflineBanner() {
 window.addEventListener('online',  () => { _updateOfflineBanner(); toast('Back online — syncing…','success'); if(_db)_pushToSupabase(); });
 window.addEventListener('offline', () => { _updateOfflineBanner(); toast('You are offline — changes saved locally','warn'); });
 
-// ============================================================
-// STAGE CONFIGURATION — M0 through M5
-// ============================================================
+// ── STAGE CONFIGURATION — M0 through M5 ────────────────
 const STAGE_CONFIG = {
   M0: { label:'M0', name:'Pre-Due / Due Today',    days:[-1,0],  treadmillDay:0,  odBand:[0,0],   color:'var(--blue)',   colorHex:'#3b82f6', tone:'Positive reminder',  legalNote:'No legal exposure yet',           desc:'Loan due today. No default yet. Cheapest moment to close.' },
   M1: { label:'M1', name:'Early Default',          days:[1,5],   treadmillDay:1,  odBand:[1,5],   color:'var(--green)',  colorHex:'#22c55e', tone:'Urgent, open',       legalNote:'Bureau being prepared (Act 726)',  desc:'Missed due date. Still private. Close before Day 6.' },
@@ -3509,7 +3507,6 @@ function getAgentStage() {
 }
 
 
-
 const LEGACY_STATE_KEY = 'mar_tracker_v3'; // for one-time migration
 const AGENTS_LS_KEY   = 'sq_agents';        // localStorage key for agent list
 const DEV_OVERRIDE    = 'SQV-DEV-2025';    // developer recovery code
@@ -3531,6 +3528,42 @@ let charts = {};
 let dispatchMode = 'generous';
 let _saveTimer = null;           // debounce handle
 let _db = null;                  // Supabase client
+
+// ── Smart chart updater — updates data in-place if chart exists,
+//    only destroys+recreates when type or axis structure changes ──
+function updateOrCreateChart(key, ctxEl, config) {
+  if (!ctxEl) return;
+  const existing = charts[key];
+  if (existing) {
+    const sameType = existing.config.type === config.type;
+    const sameDatasetCount = existing.data.datasets.length === config.data.datasets.length;
+    if (sameType && sameDatasetCount) {
+      // Fast path: swap data & options in-place then update
+      existing.data.labels = config.data.labels;
+      config.data.datasets.forEach((ds, i) => {
+        Object.assign(existing.data.datasets[i], ds);
+      });
+      if (config.options) {
+        existing.options = config.options;
+      }
+      existing.update('none'); // 'none' = skip animation on data refresh
+      return;
+    }
+    existing.destroy();
+  }
+  charts[key] = new Chart(ctxEl, config);
+}
+
+// ── HTML escape — always use when injecting user data into innerHTML ──
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 // ── Supabase init ────────────────────────────────────────────
 function initSupabase() {
@@ -3716,9 +3749,7 @@ async function _pushToSupabase() {
   }
 }
 
-// ============================================================
-// COMPUTED
-// ============================================================
+// ── COMPUTED ───────────────────────────────────────────
 function getOdAge(startDate) {
   const start = new Date(startDate);
   const today = new Date();
@@ -3872,9 +3903,7 @@ function statusBadge(status) {
   return `<span class="badge ${m[status]}">${e[status]} ${status}</span>`;
 }
 
-// ============================================================
-// DASHBOARD
-// ============================================================
+// ── DASHBOARD ──────────────────────────────────────────
 function renderDashAgedOut() {
   const card = document.getElementById('dash-agedout-card');
   const sub  = document.getElementById('dash-agedout-sub');
@@ -4080,7 +4109,7 @@ function renderDashboard() {
       + '</div>'
       + '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px" id="alert-aging-names">'
       + agingTomorrow.map(b => '<span style="background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:3px 10px;font-size:11px;cursor:pointer" data-payid="' + b.id + '" title="Record payment">'
-        + b.name.split(' ')[0] + ' · ' + fmtC(getDueToday(b)) + '</span>').join('')
+        + escapeHtml(b.name.split(' ')[0]) + ' · ' + fmtC(getDueToday(b)) + '</span>').join('')
       + '</div></div>';
   }
   if (criticalToday.length > 0 && agingTomorrow.length < criticalToday.length) {
@@ -4245,10 +4274,9 @@ function renderDailyChart() {
   });
   const data = logs.map(e => e.collected || 0);
 
-  if (charts['daily']) charts['daily'].destroy();
   const ctx = document.getElementById('chart-daily');
   if (!ctx) return;
-  charts['daily'] = new Chart(ctx, {
+  updateOrCreateChart('daily', ctx, {
     type: 'bar',
     data: {
       labels,
@@ -4272,9 +4300,7 @@ function renderDailyChart() {
   });
 }
 
-// ============================================================
-// LOANS TABLE
-// ============================================================
+// ── LOANS TABLE ────────────────────────────────────────
 function renderLoansTable() {
   const search = document.getElementById('loan-search')?.value?.toLowerCase() || '';
   const fStatus = document.getElementById('loan-filter-status')?.value || '';
@@ -4472,9 +4498,7 @@ function sortLoans(col) {
   initRowSwipe();
 }
 
-// ============================================================
-// ANALYTICS
-// ============================================================
+// ── ANALYTICS ──────────────────────────────────────────
 function renderAnalytics() {
   const all = state.borrowers;
   const active = getActiveBorrowers();
@@ -4554,34 +4578,27 @@ function renderAnalytics() {
   }, 60);
 
   renderMonthComparison();
-  if (charts['status']) charts['status'].destroy();
   const ctxS = document.getElementById('chart-status');
-  if (ctxS) {
-    charts['status'] = new Chart(ctxS, {
-      type: 'doughnut',
-      data: {
-        labels: ['✅ Paid', '⚠ Partial', '⏳ Unpaid'],
-        datasets: [{ data: [paid.length, partial.length, unpaid.length], backgroundColor: ['#22c55e','#f97316','#ef4444'], borderWidth: 0, hoverOffset: 6 }]
-      },
-      options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{ color:chartTextColor(), font:{ family:'Instrument Sans', size:12 } } } } }
-    });
-  }
+  updateOrCreateChart('status', ctxS, {
+    type: 'doughnut',
+    data: {
+      labels: ['✅ Paid', '⚠ Partial', '⏳ Unpaid'],
+      datasets: [{ data: [paid.length, partial.length, unpaid.length], backgroundColor: ['#22c55e','#f97316','#ef4444'], borderWidth: 0, hoverOffset: 6 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{ color:chartTextColor(), font:{ family:'Instrument Sans', size:12 } } } } }
+  });
 
-  // Loan type pie
   const lbActive = active.filter(b => b.loanType === 'LoanBase');
   const lbpActive = active.filter(b => b.loanType === 'LoanBase Pro');
-  if (charts['type']) charts['type'].destroy();
   const ctxT = document.getElementById('chart-type');
-  if (ctxT) {
-    charts['type'] = new Chart(ctxT, {
-      type: 'doughnut',
-      data: {
-        labels: ['LoanBase', 'LoanBase Pro'],
-        datasets: [{ data: [lbActive.length, lbpActive.length], backgroundColor: ['#22c55e','#f97316'], borderColor: ['#16a34a','#ea6500'], borderWidth: 2, hoverOffset: 8 }]
-      },
-      options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{ color:chartTextColor(), font:{ family:'Instrument Sans', size:12 } } } } }
-    });
-  }
+  updateOrCreateChart('type', ctxT, {
+    type: 'doughnut',
+    data: {
+      labels: ['LoanBase', 'LoanBase Pro'],
+      datasets: [{ data: [lbActive.length, lbpActive.length], backgroundColor: ['#22c55e','#f97316'], borderColor: ['#16a34a','#ea6500'], borderWidth: 2, hoverOffset: 8 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{ color:chartTextColor(), font:{ family:'Instrument Sans', size:12 } } } } }
+  });
 
   // OD age bar
   const odGroups = {};
@@ -4593,38 +4610,39 @@ function renderAnalytics() {
     odGroups[key].outstanding += getRemaining(b);
   });
   const sortedOd = Object.entries(odGroups).sort((a,b) => a[1].od - b[1].od);
-  if (charts['odbar']) charts['odbar'].destroy();
   const ctxOd = document.getElementById('chart-od-bar');
-  if (ctxOd) {
-    charts['odbar'] = new Chart(ctxOd, {
-      type: 'bar',
-      data: {
-        labels: sortedOd.map(([k]) => k),
-        datasets: [
-          { label: 'Outstanding (₵)', data: sortedOd.map(([,v]) => v.outstanding), backgroundColor: 'rgba(232,160,32,0.6)', borderColor: '#e8a020', borderWidth: 1, borderRadius: 3, yAxisID: 'y' },
-          { label: 'Borrowers', data: sortedOd.map(([,v]) => v.count), backgroundColor: 'rgba(96,165,250,0.4)', borderColor: '#60a5fa', borderWidth: 1, borderRadius: 3, type: 'line', yAxisID: 'y1' }
-        ]
+  const _wasNewOdbar = !charts['odbar'];
+  updateOrCreateChart('odbar', ctxOd, {
+    type: 'bar',
+    data: {
+      labels: sortedOd.map(([k]) => k),
+      datasets: [
+        { label: 'Outstanding (₵)', data: sortedOd.map(([,v]) => v.outstanding), backgroundColor: 'rgba(232,160,32,0.6)', borderColor: '#e8a020', borderWidth: 1, borderRadius: 3, yAxisID: 'y' },
+        { label: 'Borrowers', data: sortedOd.map(([,v]) => v.count), backgroundColor: 'rgba(96,165,250,0.4)', borderColor: '#60a5fa', borderWidth: 1, borderRadius: 3, type: 'line', yAxisID: 'y1' }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ labels:{ color:chartTextColor(), font:{ family:'Instrument Sans', size:12 } } } },
+      scales: {
+        x:{ grid:{ color:chartColor(0.06) }, ticks:{ color:chartTextColor(), font:{ family:'IBM Plex Mono', size:11 } } },
+        y:{ grid:{ color:chartColor(0.06) }, ticks:{ color:chartTextColor(), font:{ family:'IBM Plex Mono', size:11 }, callback: v=>'₵'+fmt(v) } },
+        y1:{ position:'right', grid:{ display:false }, ticks:{ color:chartTextColor(), font:{ family:'IBM Plex Mono', size:11 } } }
       },
-      options: {
-        responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{ labels:{ color:chartTextColor(), font:{ family:'Instrument Sans', size:12 } } } },
-        scales: {
-          x:{ grid:{ color:chartColor(0.06) }, ticks:{ color:chartTextColor(), font:{ family:'IBM Plex Mono', size:11 } } },
-          y:{ grid:{ color:chartColor(0.06) }, ticks:{ color:chartTextColor(), font:{ family:'IBM Plex Mono', size:11 }, callback: v=>'₵'+fmt(v) } },
-          y1:{ position:'right', grid:{ display:false }, ticks:{ color:chartTextColor(), font:{ family:'IBM Plex Mono', size:11 } } }
-        },
-        onClick: function(evt, items) {
-          if (!items.length) return;
-          const label = sortedOd[items[0].index]?.[0]; // e.g. "Day 8"
-          if (!label) return;
-          const od = parseInt(label.replace('Day ',''));
-          if (!isNaN(od)) filterAndNavigate('loans', '', od);
-        },
-        onHover: function(evt, items) { evt.native.target.style.cursor = items.length ? 'pointer' : 'default'; }
-      }
-    });
-    // Add hint
+      onClick: function(evt, items) {
+        if (!items.length) return;
+        const label = sortedOd[items[0].index]?.[0];
+        if (!label) return;
+        const od = parseInt(label.replace('Day ',''));
+        if (!isNaN(od)) filterAndNavigate('loans', '', od);
+      },
+      onHover: function(evt, items) { evt.native.target.style.cursor = items.length ? 'pointer' : 'default'; }
+    }
+  });
+  // Add hint only once (guard against re-render duplicating it)
+  if (ctxOd && _wasNewOdbar && !ctxOd.parentNode.querySelector('.chart-od-hint')) {
     const hint = document.createElement('div');
+    hint.className = 'chart-od-hint';
     hint.style.cssText = 'font-size:10px;color:var(--text3);text-align:center;margin-top:4px';
     hint.textContent = '↗ Click any bar to filter borrowers by that OD day';
     ctxOd.parentNode.appendChild(hint);
@@ -4724,10 +4742,9 @@ function renderAnalytics() {
   const week2 = last14.slice(7).reduce((s,e)=>s+(e.collected||0),0) / 7;
   const trendDir = week2 > week1 ? '↑' : week2 < week1 ? '↓' : '→';
   const trendCol = week2 > week1 ? 'var(--green)' : week2 < week1 ? 'var(--red)' : 'var(--gold)';
-  if (charts['rolling']) charts['rolling'].destroy();
-  const ctxR = document.getElementById('chart-rolling');
-  if (ctxR && last14.length) {
-    charts['rolling'] = new Chart(ctxR, {
+  if (last14.length) {
+    const ctxR = document.getElementById('chart-rolling');
+    updateOrCreateChart('rolling', ctxR, {
       type: 'line',
       data: {
         labels: last14.map(e => { const d=new Date(e.date); return d.getDate()+''; }),
@@ -4855,10 +4872,9 @@ function renderAnalytics() {
     feeByDay[key] = (feeByDay[key]||0) + fee;
   });
   const feeDays = Object.entries(feeByDay).sort((a,b)=>parseInt(a[0].slice(4))-parseInt(b[0].slice(4)));
-  if (charts['odfee']) charts['odfee'].destroy();
-  const ctxFee = document.getElementById('chart-odfee-accrual');
-  if (ctxFee && feeDays.length) {
-    charts['odfee'] = new Chart(ctxFee, {
+  if (feeDays.length) {
+    const ctxFee = document.getElementById('chart-odfee-accrual');
+    updateOrCreateChart('odfee', ctxFee, {
       type: 'bar',
       data: {
         labels: feeDays.map(([k])=>k),
@@ -4907,9 +4923,7 @@ function renderAnalytics() {
   if (clustersEl) clustersEl.innerHTML = renderSmartClusters();
 }
 
-// ============================================================
-// WHATSAPP DISPATCH
-// ============================================================
+// ── WHATSAPP DISPATCH ──────────────────────────────────
 function setDispatchMode(mode) {
   dispatchMode = mode;
   document.querySelectorAll('.msg-toggle-btn').forEach(b => {
@@ -4999,7 +5013,7 @@ function renderDispatch() {
       html += '<div class="dispatch-item">'
         + '<div class="dispatch-rank">' + (i+1) + '</div>'
         + '<div class="dispatch-info">'
-        + '<div class="dispatch-name">' + b.name + (b.promisedToPay ? ' <span class="promise-badge">🤝 Promised</span>' : '') + '</div>'
+        + '<div class="dispatch-name">' + escapeHtml(b.name) + (b.promisedToPay ? ' <span class="promise-badge">🤝 Promised</span>' : '') + '</div>'
         + '<div class="dispatch-meta">' + b.phone
         + ' &nbsp;·&nbsp; <span class="' + odCls + '">Day ' + b.odAge + '</span>'
         + ' &nbsp;·&nbsp; ' + (b.loanType==='LoanBase Pro' ? '<span class="badge badge-pro">Pro</span>' : '<span class="badge badge-loanbase">Base</span>')
@@ -5025,9 +5039,7 @@ function copyDispatchMsg(id) {
   });
 }
 
-// ============================================================
-// DAILY LOG
-// ============================================================
+// ── DAILY LOG ──────────────────────────────────────────
 function renderLog() {
   const logs = [...state.dailyLog].sort((a,b) => a.date.localeCompare(b.date));
   const total = logs.reduce((s,e) => s + (e.collected||0), 0);
@@ -5052,12 +5064,11 @@ function renderLog() {
   if (logDateEl && !logDateEl.value) logDateEl.value = todayStr;
 
   // Chart
-  if (charts['log']) charts['log'].destroy();
   const ctx = document.getElementById('chart-log');
   if (ctx) {
     let running = 0;
     const runningData = logs.map(e => { running += (e.collected||0); return running; });
-    charts['log'] = new Chart(ctx, {
+    updateOrCreateChart('log', ctx, {
       type: 'line',
       data: {
         labels: logs.map(e => { const d = new Date(e.date); return String(d.getDate()); }),
@@ -5540,9 +5551,7 @@ function deleteLogEntry(date) {
   toast('Entry deleted', 'info');
 }
 
-// ============================================================
-// MODALS
-// ============================================================
+// ── MODALS ─────────────────────────────────────────────
 function openAddModal() {
   document.getElementById('modal-title').textContent = 'Add Borrower';
   document.getElementById('modal-body').innerHTML =
@@ -5905,9 +5914,9 @@ function borrowerForm(b) {
   const odFeeHint = b ? ('Auto: ' + fmtC(getOdFee(b))) : 'Auto-calculated from OD age + principal';
   return '<div class="form-row">'
     + '<div class="form-group"><label>Full Name</label>'
-    + '<input type="text" class="form-input" id="f-name" placeholder="e.g. Kofi Mensah" value="' + (b ? b.name : '') + '"></div>'
+    + '<input type="text" class="form-input" id="f-name" placeholder="e.g. Kofi Mensah" value="' + (b ? escapeHtml(b.name) : '') + '"></div>'
     + '<div class="form-group"><label>Phone</label>'
-    + '<input type="text" class="form-input" id="f-phone" placeholder="+233 XX XXX XXXX" value="' + (b ? b.phone : '') + '"></div>'
+    + '<input type="text" class="form-input" id="f-phone" placeholder="+233 XX XXX XXXX" value="' + (b ? escapeHtml(b.phone) : '') + '"></div>'
     + '</div>'
     + '<div class="form-row">'
     + '<div class="form-group"><label>Principal (₵)</label>'
@@ -6125,9 +6134,7 @@ function clearAgedOut() {
 }
 
 
-// ============================================================
-// SMS BLAST
-// ============================================================
+// ── SMS BLAST ──────────────────────────────────────────
 let smsTemplate = 'friendly';
 let smsSelected = new Set();
 let seqList = [];
@@ -6611,9 +6618,7 @@ function doSmsExportXLSX() {
   closeModal(); toast('📊 Excel exported — ' + reviewContacts.length + ' contacts', 'success');
 }
 
-// ============================================================
-// NAV
-// ============================================================
+// ── NAV ────────────────────────────────────────────────
 let currentPage = 'dashboard';
 
 function navigate(page) {
@@ -6683,22 +6688,55 @@ function updateBadges() {
   if (sp) { sp.textContent = ptpToday; sp.style.display = ptpToday > 0 ? 'inline' : 'none'; }
 }
 
-// ============================================================
-// TOAST
-// ============================================================
+// ── TOAST ──────────────────────────────────────────────
+// ── Toast queue — max 3 visible, FIFO with exit animation ────
+const _toastQueue = [];
+let _toastActive = 0;
+const TOAST_MAX = 3;
+const TOAST_DURATION = 3200;
+
 function toast(msg, type = 'info') {
   const area = document.getElementById('toast-area');
+  if (!area) return;
+
+  // Haptic feedback per type
+  if (typeof haptic === 'function') {
+    if (type === 'success') haptic('light');
+    else if (type === 'error') haptic('medium');
+  }
+
+  // If at cap, remove the oldest with exit animation
+  if (_toastActive >= TOAST_MAX) {
+    const oldest = area.querySelector('.toast');
+    if (oldest) _dismissToast(oldest);
+  }
+
   const el = document.createElement('div');
   el.className = `toast ${type}`;
-  const icons = { success:'✅', error:'❌', info:'ℹ️' };
-  el.innerHTML = `${icons[type]||'ℹ️'} ${msg}`;
+  const icons = { success: '✅', error: '❌', info: 'ℹ️', warn: '⚠️' };
+  el.innerHTML = `${icons[type] || 'ℹ️'} ${escapeHtml(msg)}`;
+  // Click to dismiss early
+  el.addEventListener('click', () => _dismissToast(el));
   area.appendChild(el);
-  setTimeout(() => el.remove(), 3000);
+  _toastActive++;
+
+  const timer = setTimeout(() => _dismissToast(el), TOAST_DURATION);
+  el._toastTimer = timer;
 }
 
-// ============================================================
-// MOBILE DRAWER
-// ============================================================
+function _dismissToast(el) {
+  if (!el || el._dismissing) return;
+  el._dismissing = true;
+  clearTimeout(el._toastTimer);
+  el.classList.add('exiting');
+  el.addEventListener('animationend', () => {
+    el.remove();
+    _toastActive = Math.max(0, _toastActive - 1);
+  }, { once: true });
+}
+
+
+// ── MOBILE DRAWER ──────────────────────────────────────
 function openDrawer() {
   document.getElementById('mobile-drawer').classList.add('open');
   document.getElementById('mobile-drawer-overlay').classList.add('open');
@@ -6711,7 +6749,6 @@ function navigateDrawer(page) {
   closeDrawer();
   navigate(page);
 }
-
 
 
 function haptic(type) {
@@ -6798,9 +6835,7 @@ function openRiskCard(id) {
   },0);
 }
 
-// ============================================================
-// BULK SELECT
-// ============================================================
+// ── BULK SELECT ────────────────────────────────────────
 function toggleSelectAll(checked) {
   haptic('light');
   document.querySelectorAll('.row-cb').forEach(cb => { cb.checked = checked; });
@@ -6865,9 +6900,7 @@ function bulkAction(action) {
   purgeAgedOut(); saveState(); clearBulkSelect(); updateBadges(); renderCurrentPage();
 }
 
-// ============================================================
-// QUICK NOTE
-// ============================================================
+// ── QUICK NOTE ─────────────────────────────────────────
 function openQuickNote(id) {
   const b = state.borrowers.find(x => x.id === id);
   if (!b) return;
@@ -6909,9 +6942,7 @@ function openQuickNote(id) {
   }, 0);
 }
 
-// ============================================================
-// PAYMENT HISTORY MODAL
-// ============================================================
+// ── PAYMENT HISTORY MODAL ──────────────────────────────
 function openHistoryModal(id) {
   const b = state.borrowers.find(x => x.id === id);
   if (!b) return;
@@ -6941,9 +6972,7 @@ function openHistoryModal(id) {
   document.getElementById('modal-overlay').classList.add('open');
 }
 
-// ============================================================
-// OD AGE ADVANCE NOTIFICATION
-// ============================================================
+// ── OD AGE ADVANCE NOTIFICATION ────────────────────────
 function checkOdAdvance() {
   const lastCheck = localStorage.getItem('last_od_check');
   const today = new Date().toISOString().split('T')[0];
@@ -6963,9 +6992,7 @@ function checkOdAdvance() {
   }
 }
 
-// ============================================================
-// MONTHLY ROLLOVER
-// ============================================================
+// ── MONTHLY ROLLOVER ───────────────────────────────────
 function openRolloverModal() {
   const active = getActiveBorrowers();
   const paid = state.borrowers.filter(b => getStatus(b) === 'Paid');
@@ -7041,9 +7068,7 @@ function doRollover() {
   toast('✅ Rolled over to ' + nm + '. Fresh start!', 'success');
 }
 
-// ============================================================
-// COLLECTION PACING HELPER
-// ============================================================
+// ── COLLECTION PACING HELPER ───────────────────────────
 function _pacingText(logTotal, monthTarget, dailyLog) {
   if (!monthTarget || monthTarget <= 0) return '<span style="font-size:11px;color:var(--text3)">Set a target to see pacing</span>';
   const now = new Date();
@@ -7063,9 +7088,7 @@ function _pacingText(logTotal, monthTarget, dailyLog) {
 }
 
 
-// ============================================================
-// PTP REPORT
-// ============================================================
+// ── PTP REPORT ─────────────────────────────────────────
 var ptpTab = 'morning';
 // Outcomes stored per-session: { borrowerId: 'paid'|'part paid'|'no answer'|'yet to pay'|'still on it'|custom }
 var ptpOutcomes = {};
@@ -7453,9 +7476,7 @@ function renderPtp() {
 }
 
 
-// ============================================================
-// GLOBAL SEARCH
-// ============================================================
+// ── GLOBAL SEARCH ──────────────────────────────────────
 function renderGlobalSearch() {
   var q = (document.getElementById('global-search-input')?.value || '').toLowerCase().trim();
   var res = document.getElementById('global-search-results');
@@ -7499,9 +7520,7 @@ function openGlobalSearch() {
 }
 
 
-// ============================================================
-// PTP HISTORY
-// ============================================================
+// ── PTP HISTORY ────────────────────────────────────────
 function renderPtpHistory() {
   var el = document.getElementById('ptp-history-body');
   if (!el) return;
@@ -7557,9 +7576,7 @@ function savePtpSnapshot() {
   saveState();
 }
 
-// ============================================================
-// PTP STATS (Conversion Rate)
-// ============================================================
+// ── PTP STATS (Conversion Rate) ────────────────────────
 function renderPtpStats() {
   var el = document.getElementById('ptp-stats-body');
   if (!el) return;
@@ -7602,9 +7619,7 @@ function renderPtpStats() {
     + '</div></div>';
 }
 
-// ============================================================
-// COLLECTION FORECAST
-// ============================================================
+// ── COLLECTION FORECAST ────────────────────────────────
 function _buildForecastHtml() {
   var now = new Date();
   var daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
@@ -7649,9 +7664,7 @@ function renderForecast() {
   if (el) el.innerHTML = _buildForecastHtml();
 }
 
-// ============================================================
-// PORTFOLIO SEGMENTS
-// ============================================================
+// ── PORTFOLIO SEGMENTS ─────────────────────────────────
 function renderSegments() {
   var el = document.getElementById('segments-body');
   if (!el) return;
@@ -7704,9 +7717,7 @@ function renderSegments() {
   }).join('');
 }
 
-// ============================================================
-// FILTER + NAVIGATE HELPER
-// ============================================================
+// ── FILTER + NAVIGATE HELPER ───────────────────────────
 function filterAndNavigate(page, status, odAge, loanType) {
   navigate(page);
   setTimeout(function() {
@@ -7725,9 +7736,7 @@ function filterAndNavigate(page, status, odAge, loanType) {
   }, 80);
 }
 
-// ============================================================
-// DEBOUNCED SEARCH
-// ============================================================
+// ── DEBOUNCED SEARCH ───────────────────────────────────
 var _loanSearchTimer = null;
 function debouncedRenderLoans() {
   clearTimeout(_loanSearchTimer);
@@ -7740,9 +7749,7 @@ function debouncedGlobalSearch() {
   _globalSearchTimer = setTimeout(renderGlobalSearch, 120);
 }
 
-// ============================================================
-// SEARCH CLEAR HELPER
-// ============================================================
+// ── SEARCH CLEAR HELPER ────────────────────────────────
 function clearSearch(inputId, renderFn) {
   const el = document.getElementById(inputId);
   if (el) { el.value = ''; el.focus(); }
@@ -7750,9 +7757,7 @@ function clearSearch(inputId, renderFn) {
   if (renderFn) renderFn();
 }
 
-// ============================================================
-// THEME
-// ============================================================
+// ── THEME ──────────────────────────────────────────────
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   document.body.setAttribute('data-theme', theme);
@@ -7774,9 +7779,7 @@ function toggleTheme() {
   applyTheme(current === 'dark' ? 'light' : 'dark');
 }
 
-// ============================================================
-// SUPABASE SETUP HELPERS
-// ============================================================
+// ── SUPABASE SETUP HELPERS ─────────────────────────────
 function checkSetupNeeded() {
   const overlay = document.getElementById('setup-overlay');
   if (!overlay) return;
@@ -7830,9 +7833,7 @@ async function saveSupabaseConfig() {
 }
 
 
-// ============================================================
-// UNDO SYSTEM
-// ============================================================
+// ── UNDO SYSTEM ────────────────────────────────────────
 let _undoStack = [];
 function pushUndo(label, snapshot) {
   _undoStack.push({ label, snapshot: JSON.parse(JSON.stringify(snapshot)) });
@@ -7884,9 +7885,7 @@ document.addEventListener('keydown', function(e) {
   });
 })();
 
-// ============================================================
-// HIT LIST
-// ============================================================
+// ── HIT LIST ───────────────────────────────────────────
 function getHitList() { return state.hitList || []; }
 function addToHitList(id) {
   if (!state.hitList) state.hitList = [];
@@ -7966,9 +7965,7 @@ function renderHitList() {
   }
 })();
 
-// ============================================================
-// STREAK + PERSONAL BEST
-// ============================================================
+// ── STREAK + PERSONAL BEST ─────────────────────────────
 function calcStreak() {
   const logs = [...state.dailyLog].sort((a,b) => b.date.localeCompare(a.date));
   let streak = 0;
@@ -8007,9 +8004,7 @@ function checkPersonalBest(amount) {
   }
 }
 
-// ============================================================
-// CONFETTI
-// ============================================================
+// ── CONFETTI ───────────────────────────────────────────
 function fireConfetti() {
   const canvas = document.getElementById('confetti-canvas');
   if (!canvas) return;
@@ -8062,9 +8057,7 @@ function fireConfetti() {
   toast('🎉 Monthly target reached! Outstanding work!', 'success');
 }
 
-// ============================================================
-// EOD REPORT (One-Tap)
-// ============================================================
+// ── EOD REPORT (One-Tap) ───────────────────────────────
 function generateEODReport() {
   const today = new Date().toISOString().split('T')[0];
   const todayLog = state.dailyLog.find(e => e.date === today);
@@ -8087,9 +8080,7 @@ function generateEODReport() {
   document.getElementById('modal-overlay').classList.add('open');
 }
 
-// ============================================================
-// COLLECTION GAP WIDGET
-// ============================================================
+// ── COLLECTION GAP WIDGET ──────────────────────────────
 function renderGapWidget() {
   const logTotal = state.dailyLog.reduce((s,e) => s+(Number(e.collected)||0), 0);
   const monthTarget = state.monthlyTarget || 0;
@@ -8109,9 +8100,7 @@ function renderGapWidget() {
   if (statusEl) statusEl.textContent = remaining === 0 ? '🎉 Monthly target hit!' : `${dl} days left · ${fmtC(remaining)} remaining`;
 }
 
-// ============================================================
-// TREADMILL ALERT (Day 6 new entries)
-// ============================================================
+// ── TREADMILL ALERT (Day 6 new entries) ────────────────
 function renderTreadmillAlert() {
   const allDay6 = state.borrowers.filter(b => getOdAge(b.startDate) === 6);
   const el = document.getElementById('treadmill-alert');
@@ -8139,9 +8128,7 @@ function renderTreadmillAlert() {
     </div>`;
 }
 
-// ============================================================
-// PRIORITY SCORE ENGINE
-// ============================================================
+// ── PRIORITY SCORE ENGINE ──────────────────────────────
 function calcPriorityScore(b) {
   let score = 0;
   const od = getOdAge(b.startDate);
@@ -8160,9 +8147,7 @@ function calcPriorityScore(b) {
   return Math.min(10, score);
 }
 
-// ============================================================
-// BORROWER BADGES (star / warning)
-// ============================================================
+// ── BORROWER BADGES (star / warning) ───────────────────
 function getBorrowerBadges(b) {
   const badges = [];
   const payRatio = b.loanDue > 0 ? b.amountPaid / b.loanDue : 0;
@@ -8177,9 +8162,7 @@ function getBorrowerBadges(b) {
   return badges.length ? ' ' + badges.join('') : '';
 }
 
-// ============================================================
-// HEAT RING CLASS
-// ============================================================
+// ── HEAT RING CLASS ────────────────────────────────────
 function getHeatClass(odAge) {
   if (odAge >= 15) return 'd15';
   if (odAge >= 13) return 'd13';
@@ -8189,9 +8172,7 @@ function getHeatClass(odAge) {
   return 'd6';
 }
 
-// ============================================================
-// CALL LOG PER BORROWER
-// ============================================================
+// ── CALL LOG PER BORROWER ──────────────────────────────
 function openCallLogModal(id) {
   const b = state.borrowers.find(x => x.id === id);
   if (!b) return;
@@ -8289,9 +8270,7 @@ function logCallOutcome(id, outcome, btn) {
   toast('📞 Logged: ' + outcome, 'success');
 }
 
-// ============================================================
-// WHATSAPP QUEUE BUILDER
-// ============================================================
+// ── WHATSAPP QUEUE BUILDER ─────────────────────────────
 let _waQueue = [];
 let _waQueueIdx = 0;
 function startWaQueue(ids) {
@@ -8327,9 +8306,7 @@ function showWaQueueModal() {
      <button class="eod-btn" onclick="sendNextInWaQueue()">Send Next ▶</button>`;
 }
 
-// ============================================================
-// SMART CLUSTERS (Auto-group)
-// ============================================================
+// ── SMART CLUSTERS (Auto-group) ────────────────────────
 function renderSmartClusters() {
   const active = getActiveBorrowers();
   const high     = active.filter(b => b.amountPaid > 0 && calcPriorityScore(b) <= 5);
@@ -8442,9 +8419,7 @@ function showClusterPopup(cls) {
   document.getElementById('modal-overlay').classList.add('open');
 }
 
-// ============================================================
-// PREDICTED PAYMENT DATE
-// ============================================================
+// ── PREDICTED PAYMENT DATE ─────────────────────────────
 function getPredictedPayDate(b) {
   if (!b.payLog || b.payLog.length < 2) return null;
   const dates = b.payLog.map(p => new Date(p.date).getTime()).sort((a,c)=>a-c);
@@ -8456,10 +8431,7 @@ function getPredictedPayDate(b) {
   return predicted.toISOString().split('T')[0];
 }
 
-// ============================================================
-// RANKING TRACKER
-// ============================================================
-// ============================================================
+// ── RANKING TRACKER ────────────────────────────────────
 // RANKING TRACKER — Full Implementation
 // ============================================================
 let _rankType = 'daily';
@@ -8739,7 +8711,6 @@ function _renderRankingChart(myName) {
   const history = (state.rankingHistory || []);
   const ctx = document.getElementById('chart-ranking');
   if (!ctx) return;
-  if (charts['ranking']) charts['ranking'].destroy();
 
   const daily   = [...history].filter(s=>s.type==='daily').sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
   const monthly = [...history].filter(s=>s.type==='monthly').sort((a,b)=>a.date.localeCompare(b.date));
@@ -8753,7 +8724,7 @@ function _renderRankingChart(myName) {
 
   const allDates = [...new Set([...daily.map(s=>s.date+' '+s.time), ...monthly.map(s=>s.date), ...proj.map(s=>s.date)])].sort();
 
-  charts['ranking'] = new Chart(ctx, {
+  updateOrCreateChart('ranking', ctx, {
     type: 'line',
     data: {
       labels: daily.map(s=>s.date.slice(5)+(s.isEOD?' EOD':' '+s.time)),
@@ -8775,9 +8746,7 @@ function _renderRankingChart(myName) {
 }
 
 
-// ============================================================
-// SUPERVISOR REPORTS PAGE
-// ============================================================
+// ── SUPERVISOR REPORTS PAGE ────────────────────────────
 function renderReportsPage() { /* nothing dynamic needed, HTML handles it */ }
 function generateReport(type) {
   const agent = document.getElementById('rpt-agent')?.value || 'Shadrack Agyei Arthur';
@@ -8827,9 +8796,7 @@ function whatsappReport() {
   window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
 }
 
-// ============================================================
-// DATA HEALTH PAGE
-// ============================================================
+// ── DATA HEALTH PAGE ───────────────────────────────────
 function renderHealthPage() {
   const body = document.getElementById('health-body');
   if (!body) return;
@@ -8860,18 +8827,9 @@ function renderHealthPage() {
 
 // ============================================================
 // UNIFIED PTP HUB (replaces separate ptp/ptp-history/ptp-stats)
-// ============================================================
 
 
-
-
-
-
-
-
-// ============================================================
-// DOW (Day-of-week) CHART for Analytics
-// ============================================================
+// ── DOW (Day-of-week) CHART for Analytics ──────────────
 function renderDowChart(containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -8900,9 +8858,7 @@ function renderDowChart(containerId) {
     <div style="font-size:11px;color:var(--gold);margin-top:6px">Best day: ${days[bestIdx]} (avg ${fmtC(Math.round(avgs[bestIdx]))})</div>`;
 }
 
-// ============================================================
-// CHARACTER RING (SMS Blast)
-// ============================================================
+// ── CHARACTER RING (SMS Blast) ─────────────────────────
 function renderCharRing(count, maxChars) {
   maxChars = maxChars || 160;
   const pct = Math.min(count/maxChars, 1);
@@ -8918,15 +8874,11 @@ function renderCharRing(count, maxChars) {
   </div>`;
 }
 
-// ============================================================
-// HAPTIC FEEDBACK (consistent)
-// ============================================================
+// ── HAPTIC FEEDBACK (consistent) ───────────────────────
 // haptic() defined above
 
 
-// ============================================================
-// RANKING IMAGE UPLOAD
-// ============================================================
+// ── RANKING IMAGE UPLOAD ───────────────────────────────
 function previewRankingImage(input) {
   const file = input.files[0];
   if (!file) return;
@@ -8945,10 +8897,7 @@ function previewRankingImage(input) {
 }
 
 
-
-// ============================================================
-// DASHBOARD FORECAST CARD — show projected amount
-// ============================================================
+// ── DASHBOARD FORECAST CARD — show projected amount ────
 function renderForecastOnDashboard() {
   const fBody = document.getElementById('dash-forecast-body');
   if (!fBody) return;
@@ -8978,42 +8927,15 @@ function renderForecastOnDashboard() {
     ${target > 0 ? `<div style="margin-top:10px;background:var(--border);border-radius:4px;height:6px;overflow:hidden"><div style="width:${Math.min(100,pct).toFixed(0)}%;height:100%;background:${col};border-radius:4px;transition:width 0.6s ease"></div></div>` : ''}`;
 }
 
-// ============================================================
-// PAGE TRANSITIONS — enhanced
-// ============================================================
+// ── PAGE TRANSITIONS — enhanced ────────────────────────
 (function() {
   // Add slide classes to every page on navigation
   const origNavigate = window.navigate;
   window._lastPage = null;
 })();
 
-// ============================================================
-// ADDITIONAL HAPTIC FEEDBACK HOOKS
-// ============================================================
-// Toast haptic
-const _origToast = window.toast;
-if (typeof window.toast === 'function') {
-  window._toastWrapped = true;
-}
-function toastWithHaptic(msg, type) {
-  if (type === 'success') haptic('light');
-  if (type === 'error') haptic('medium');
-  toast(msg, type);
-}
 
-// ============================================================
-// MODERN PTP HUB — full redesign
-// ============================================================
-
-
-// ============================================================
-// PTP HUB — unified, scrollable, working taps
-// ============================================================
-
-
-// ============================================================
-// PTP HUB — Morning · EOD · History · Stats
-// ============================================================
+// ── PTP HUB — Morning · EOD · History · Stats ──────────
 let _ptpTab = 'morning';
 
 function renderPtpHub() {
@@ -9768,9 +9690,7 @@ function buildPtpStatsHtml() {
 }
 
 
-// ============================================================
-// AI RANKING SCAN (item 1) — uses CLAUDE_API_KEY constant
-// ============================================================
+// ── AI RANKING SCAN (item 1) — uses CLAUDE_API_KEY constant 
 async function scanRankingImage() {
   const imageInput = document.getElementById('ranking-image-upload');
   const file = imageInput?.files?.[0];
@@ -9820,9 +9740,7 @@ async function scanRankingImage() {
   if (btn) btn.disabled = false;
 }
 
-// ============================================================
-// RANKING GAP ALERT ON APP OPEN (item 4)
-// ============================================================
+// ── RANKING GAP ALERT ON APP OPEN (item 4) ─────────────
 function checkRankingGapAlert() {
   const history = state.rankingHistory || [];
   const myName = (localStorage.getItem('ranking_my_name') || '').toLowerCase();
@@ -9853,9 +9771,7 @@ function dismissRankingAlert(date) {
   if (el) el.style.display = 'none';
 }
 
-// ============================================================
-// INSTANT PAY — NO MODAL (item 10)
-// ============================================================
+// ── INSTANT PAY — NO MODAL (item 10) ───────────────────
 function quickPay(id, pct) {
   const b = state.borrowers.find(x => x.id === id);
   if (!b) return;
@@ -9912,9 +9828,7 @@ function closeQuickPayBar() {
   }
 }
 
-// ============================================================
-// PULL TO REFRESH (item 13)
-// ============================================================
+// ── PULL TO REFRESH (item 13) ──────────────────────────
 function initPullToRefresh() {
   if (!('ontouchstart' in window) || window.innerWidth >= 900) return; // desktop: skip
   const main = document.getElementById('main');
@@ -9958,9 +9872,7 @@ function initPullToRefresh() {
   }, { passive: true });
 }
 
-// ============================================================
-// OFFLINE WORK QUEUE (item 42)
-// ============================================================
+// ── OFFLINE WORK QUEUE (item 42) ───────────────────────
 function queueOfflineAction(action) {
   if (navigator.onLine) return; // only queue when offline
   action.timestamp = new Date().toISOString();
@@ -9988,9 +9900,7 @@ async function replayOfflineQueue() {
   toast('All changes synced ✅', 'success');
 }
 
-// ============================================================
-// BEST TIME TO CALL (item 29)
-// ============================================================
+// ── BEST TIME TO CALL (item 29) ────────────────────────
 function getBestCallHour(b) {
   const log = b.payLog || [];
   if (log.length < 2) return null;
@@ -10011,9 +9921,7 @@ function getBestCallIndicator(b) {
   return `<span title="Best time: ${bestHour}:00" style="font-size:9px;color:var(--text3)">⏰${bestHour}:00</span>`;
 }
 
-// ============================================================
-// MESSAGE PERFORMANCE TRACKER (item 33)
-// ============================================================
+// ── MESSAGE PERFORMANCE TRACKER (item 33) ──────────────
 function recordTemplateSent(templateId, borrowerId) {
   if (!state.templatePerf) state.templatePerf = {};
   if (!state.templatePerf[templateId]) state.templatePerf[templateId] = { sent: 0, paid: 0, lastSent: [] };
@@ -10040,9 +9948,7 @@ function getTemplateRanking() {
   return result;
 }
 
-// ============================================================
-// SMART REPLY SUGGESTIONS (item 34)
-// ============================================================
+// ── SMART REPLY SUGGESTIONS (item 34) ──────────────────
 function getSmartReplySuggestions(b) {
   const od = getOdAge(b.startDate);
   const status = getStatus(b);
@@ -10078,9 +9984,7 @@ function getSmartReplySuggestions(b) {
   ];
 }
 
-// ============================================================
-// PDF EXPORT (item 39)
-// ============================================================
+// ── PDF EXPORT (item 39) ───────────────────────────────
 function generatePdfExport() {
   const active = getActiveBorrowers();
   const totalOutstanding = active.reduce((s,b)=>s+getRemaining(b),0);
@@ -10648,9 +10552,7 @@ function toggleRankingKeyVisibility() {
 }
 
 
-// ============================================================
-// ONBOARDING WIZARD
-// ============================================================
+// ── ONBOARDING WIZARD ──────────────────────────────────
 let _obSelectedStage = 'M2';
 let _obParsedRows = [];
 let _obColumnMap = {};
@@ -10976,9 +10878,7 @@ function obFinish() {
 function updateSidebarAgentInfo() { /* agent info in Settings only */ }
 
 
-// ============================================================
-// AGENT AUTH — PIN PROTECTION & MULTI-AGENT MANAGEMENT
-// ============================================================
+// ── AGENT AUTH — PIN PROTECTION & MULTI-AGENT MANAGEMENT 
 let _pinBuffer = '';
 let _pinTarget = null;   // agent being unlocked
 let _pinMode = 'unlock'; // 'unlock' | 'set' | 'confirm'
@@ -11373,9 +11273,7 @@ async function authSignInWithCode() {
 
 // Settings page functions
 
-// ============================================================
-// SETTINGS — Profile, Theme, Haptic, Target, Copy Code
-// ============================================================
+// ── SETTINGS — Profile, Theme, Haptic, Target, Copy Code 
 
 function _getProfileData() {
   if (!_activeAgent) return {};
@@ -11765,7 +11663,6 @@ function settingsSaveTarget() {
 }
 
 
-
 function settingsChangePin() {
   if(!_activeAgent) return;
   _pinTarget=_activeAgent; _pinBuffer=''; _pinSetBuffer=''; _pinMode='set';
@@ -12047,9 +11944,7 @@ function showSkeletons(show) {
   }
 }
 
-// ============================================================
-// INIT
-// ============================================================
+// ── INIT ───────────────────────────────────────────────
 function updateStatusBarColor(page) {
   const colorMap = {
     dashboard: '#06080f', loans: '#06080f', ptp: '#06080f',
