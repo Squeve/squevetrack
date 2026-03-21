@@ -1653,6 +1653,110 @@ tr.overdue-critical .heat-ring {
 .settings-row.danger { color: var(--red); }
 .settings-row.danger:hover { background: rgba(239,68,68,0.06); }
 
+/* ═══ PREMIUM FEATURES CSS ═════════════════════════════════ */
+
+/* AMOLED theme */
+[data-theme="amoled"] {
+  --bg:#000;--surface:#0a0a0a;--surface2:#111;--border:#1a1a1a;
+  --border2:#222;--border-hi:rgba(255,255,255,0.05);
+  --text:#f0f0f0;--text2:#888;--text3:#444;
+}
+[data-theme="amoled"] .card,[data-theme="amoled"] .kpi-card {
+  background:#0d0d0d!important;border-color:#1e1e1e!important;
+}
+[data-theme="amoled"] #sidebar,[data-theme="amoled"] #mobile-header,
+[data-theme="amoled"] #mobile-drawer,[data-theme="amoled"] #lock-screen > div > div:first-child {
+  background:#050505!important;
+}
+
+/* Command palette */
+#cmd-overlay {
+  position:fixed;inset:0;z-index:9998;
+  background:rgba(0,0,0,0.65);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  display:none;align-items:flex-start;justify-content:center;padding-top:80px;
+}
+#cmd-overlay.open{display:flex;animation:fadeIn 0.15s ease both}
+#cmd-box {
+  width:100%;max-width:520px;margin:0 16px;
+  background:var(--surface);border:1px solid var(--border2);border-radius:16px;overflow:hidden;
+  box-shadow:0 24px 60px rgba(0,0,0,0.6),inset 0 1px 0 var(--border-hi);
+  animation:modalSpring 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+#cmd-input {
+  width:100%;padding:16px 18px;background:transparent;
+  border:none;border-bottom:1px solid var(--border);
+  color:var(--text);font-size:15px;font-family:var(--font-body);outline:none;
+}
+#cmd-results{max-height:360px;overflow-y:auto}
+.cmd-item {
+  display:flex;align-items:center;gap:12px;padding:11px 18px;cursor:pointer;
+  transition:background 0.1s;border-bottom:1px solid var(--border);
+  font-size:13px;color:var(--text2);
+}
+.cmd-item:last-child{border-bottom:none}
+.cmd-item:hover,.cmd-item.cmd-active{background:rgba(240,160,48,0.07);color:var(--text)}
+.cmd-icon{width:28px;height:28px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.05)}
+.cmd-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);padding:8px 18px 4px}
+
+/* Today's Focus Mode */
+#focus-overlay {
+  position:fixed;inset:0;z-index:9000;background:var(--bg);overflow-y:auto;display:none;
+}
+#focus-overlay.open{display:block;animation:pageEnter 0.2s ease both}
+.focus-section-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);padding:14px 0 6px}
+.focus-row {
+  display:flex;align-items:center;gap:12px;padding:12px 0;
+  border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;
+}
+.focus-row:last-child{border-bottom:none}
+
+/* Offline banner */
+#offline-banner {
+  position:fixed;top:0;left:0;right:0;z-index:9997;
+  background:rgba(239,68,68,0.1);border-bottom:1px solid rgba(239,68,68,0.3);
+  padding:7px 16px;text-align:center;font-size:11px;font-weight:700;
+  color:var(--red);display:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+}
+#offline-banner.show{display:block;animation:fadeIn 0.2s ease both}
+
+/* Call timer bar */
+#call-timer-bar {
+  position:fixed;bottom:0;left:0;right:0;z-index:8000;
+  background:rgba(10,12,20,0.95);border-top:1px solid var(--border2);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  padding:12px 20px;display:none;
+  align-items:center;justify-content:space-between;gap:12px;
+  box-shadow:0 -4px 20px rgba(0,0,0,0.3);
+}
+#call-timer-bar.active{display:flex;animation:fadeUp 0.2s ease both}
+#call-timer-dot{width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0;animation:pulseGold 1s ease infinite}
+#call-timer-display{font-family:var(--font-mono);font-size:20px;font-weight:800;color:#fff;letter-spacing:2px}
+
+/* WA quick button */
+.bl-action-btn.wa{border-color:rgba(37,211,102,0.3);color:#25d366;background:rgba(37,211,102,0.06)}
+.bl-action-btn.wa:hover{background:rgba(37,211,102,0.14)}
+
+/* Note template chips */
+.note-chip {
+  display:inline-flex;align-items:center;padding:4px 10px;border-radius:20px;
+  background:rgba(255,255,255,0.04);border:1px solid var(--border2);
+  font-size:11px;color:var(--text2);cursor:pointer;margin:2px;transition:all 0.12s;
+}
+.note-chip:hover{border-color:var(--gold);color:var(--gold);background:rgba(240,160,48,0.06)}
+
+/* Performance share card */
+#perf-overlay{
+  position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.7);
+  backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:20px;
+}
+#perf-overlay.open{display:flex;animation:fadeIn 0.15s ease both}
+#perf-card{
+  background:linear-gradient(135deg,#0d0f1a 0%,#0a0c14 100%);
+  border:1px solid rgba(240,160,48,0.2);border-radius:20px;overflow:hidden;
+  max-width:340px;width:100%;padding:24px;
+  box-shadow:0 24px 60px rgba(0,0,0,0.5),0 0 40px rgba(240,160,48,0.08);
+}
+
 /* ═══ MOBILE EFFECTS (max-width: 900px) ═══════════════════ */
 @media (max-width: 900px) {
   /* Cards on mobile — no backdrop-filter (GPU lag on scroll) */
@@ -2515,11 +2619,12 @@ tr.overdue-critical .heat-ring {
         </div>
         <div class="settings-row-label">
           <div class="settings-row-label-main">Appearance</div>
-          <div class="settings-row-label-sub">Dark or light theme</div>
+          <div class="settings-row-label-sub" id="theme-sub-lbl">Dark, light, or AMOLED</div>
         </div>
         <div style="display:flex;background:var(--surface2);border-radius:20px;padding:2px;gap:2px;border:1px solid var(--border)">
-          <button id="theme-btn-dark" onclick="settingsSetTheme('dark')" style="padding:4px 12px;border:none;border-radius:18px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font-body);transition:all 0.15s">Dark</button>
-          <button id="theme-btn-light" onclick="settingsSetTheme('light')" style="padding:4px 12px;border:none;border-radius:18px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font-body);transition:all 0.15s">Light</button>
+          <button id="theme-btn-dark" onclick="settingsSetTheme('dark')" style="padding:4px 10px;border:none;border-radius:18px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font-body);transition:all 0.15s">Dark</button>
+          <button id="theme-btn-light" onclick="settingsSetTheme('light')" style="padding:4px 10px;border:none;border-radius:18px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font-body);transition:all 0.15s">Light</button>
+          <button id="theme-btn-amoled" onclick="settingsSetTheme('amoled')" style="padding:4px 10px;border:none;border-radius:18px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font-body);transition:all 0.15s">AMOLED</button>
         </div>
       </div>
       <!-- Haptic -->
@@ -2737,7 +2842,7 @@ tr.overdue-critical .heat-ring {
   <button class="mhdr-hamburger" onclick="openDrawer()" aria-label="Menu">&#9776;</button>
   <div class="mhdr-title" id="mhdr-title" style="display:flex;align-items:center;gap:7px"><div style="width:24px;height:24px;border-radius:7px;background:var(--gold-grad);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 8px rgba(240,160,48,0.4)"><span style="font-family:var(--font-head);font-size:10px;font-weight:800;color:#000;letter-spacing:-0.5px">ST</span></div>SqueveTrack</div>
   <div id="offline-badge" style="display:none;align-items:center;gap:4px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);border-radius:12px;padding:2px 8px;font-size:10px;color:var(--red);font-weight:700">OFFLINE</div>
-  <button class="mhdr-theme" onclick="openGlobalSearch()" title="Search" style="margin-right:4px"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:18px;height:18px;vertical-align:middle"><circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="17" y2="17"/></svg></button>
+  <button class="mhdr-theme" onclick="openCmd()" title="Search / Command" style="margin-right:4px"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:18px;height:18px;vertical-align:middle"><circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="17" y2="17"/></svg></button>
   <button class="mhdr-theme" onclick="if(typeof _pushToSupabase==='function'){_pushToSupabase();toast('Syncing…','info');haptic('light')}" title="Force Sync"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:18px;height:18px;vertical-align:middle"><path d="M4 10a6 6 0 016-6 6 6 0 015.66 4M16 10a6 6 0 01-6 6 6 6 0 01-5.66-4"/><polyline points="17,4 17,8 13,8"/><polyline points="3,16 3,12 7,12"/></svg></button>
 </header>
 
@@ -2882,6 +2987,347 @@ tr.overdue-critical .heat-ring {
 <div id="toast-area"></div>
 
 <script>
+// ═══ AUTO EOD NOTIFICATION
+
+// ═══ AUTO EOD NOTIFICATION ══════════════════════════════════
+function _scheduleEodNotif() {
+  if (!('Notification' in window)) return;
+  const now = new Date();
+  const eod = new Date(now);
+  eod.setHours(17, 0, 0, 0);
+  if (now >= eod) eod.setDate(eod.getDate() + 1);
+  const msUntil = eod - now;
+  setTimeout(function() {
+    if (Notification.permission === 'granted') {
+      const n = new Notification('SqueveTrack · EOD Time', {
+        body: 'Time to log your collections and send your EOD report.',
+        icon: './icon-192.png',
+        tag: 'sq-eod'
+      });
+      n.onclick = function() { window.focus(); navigate('log'); };
+    } else {
+      // Fallback: toast
+      toast('Time to log collections and send EOD report', 'info');
+    }
+    // Reschedule for tomorrow
+    _scheduleEodNotif();
+  }, msUntil);
+}
+
+function _requestNotifPermission() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    Notification.requestPermission().then(p => {
+      if (p === 'granted') { toast('EOD reminders enabled ✓', 'success'); _scheduleEodNotif(); }
+    });
+  } else if (Notification.permission === 'granted') {
+    _scheduleEodNotif();
+  }
+}
+
+// ═══ PERFORMANCE SHARE CARD ═════════════════════════════════
+function openPerfCard() {
+  const overlay = document.getElementById('perf-overlay');
+  if (!overlay) return;
+  overlay.classList.add('open');
+  haptic('light');
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  const weekStr = weekStart.toLocaleDateString('en-GB',{day:'numeric',month:'short'}) + ' – ' + now.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+  document.getElementById('perf-week-label').textContent = weekStr;
+  const all = state.borrowers;
+  const paid = all.filter(b => getStatus(b)==='Paid');
+  const partial = all.filter(b => getStatus(b)==='Partial');
+  const totalDue = all.reduce((s,b) => s+b.loanDue, 0);
+  const totalColl = all.reduce((s,b) => s+(b.amountPaid||0), 0);
+  const rate = totalDue > 0 ? (totalColl/totalDue*100).toFixed(1) : '0.0';
+  const weekLogs = state.dailyLog.filter(e => e.date >= weekStart.toISOString().split('T')[0]);
+  const weekColl = weekLogs.reduce((s,e) => s+(e.collected||0), 0);
+  const bestDay = state.dailyLog.reduce((b,e) => (e.collected||0) > (b.collected||0) ? e : b, {collected:0});
+  const streak = _getStreakCount();
+  const stats = [
+    {label:'Recovery Rate', val:rate+'%', col:'var(--gold)'},
+    {label:'Week Collected', val:fmtC(weekColl), col:'var(--green)'},
+    {label:'Accounts Paid', val:paid.length, col:'var(--blue)'},
+    {label:'Best Day', val:fmtC(bestDay.collected||0), col:'var(--purple)'},
+    {label:'Active Streak', val:streak+'d', col:'var(--orange)'},
+    {label:'Partial Paid', val:partial.length, col:'var(--text2)'},
+  ];
+  const statsEl = document.getElementById('perf-card-stats');
+  if (statsEl) {
+    statsEl.innerHTML = stats.map(s =>
+      '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:10px 12px">'
+      + '<div style="font-family:var(--font-mono);font-size:16px;font-weight:800;color:'+s.col+';line-height:1">'+s.val+'</div>'
+      + '<div style="font-size:9px;color:rgba(255,255,255,0.3);margin-top:4px;text-transform:uppercase;letter-spacing:0.5px">'+s.label+'</div>'
+      + '</div>'
+    ).join('');
+  }
+  const footEl = document.getElementById('perf-card-foot');
+  if (footEl) footEl.textContent = 'Generated by SqueveTrack · LoanBase Recovery · ' + now.toLocaleDateString('en-GB');
+}
+
+function sharePerfCard() {
+  const name = (_activeAgent?.name||'Agent').split(' ')[0];
+  const rate = document.querySelector('#perf-card-stats div:first-child .font-mono')?.textContent || '';
+  const text = 'SqueveTrack Weekly Performance | Agent: ' + name + ' | Powered by SqueveTrack'
+  if (navigator.share) {
+    navigator.share({ title:'SqueveTrack Performance', text: text }).catch(()=>{});
+  } else {
+    navigator.clipboard?.writeText(text).then(()=>toast('Performance stats copied!','success'));
+  }
+  haptic('success');
+}
+
+function _getStreakCount() {
+  const logs = [...state.dailyLog].sort((a,b)=>b.date.localeCompare(a.date));
+  let streak = 0;
+  let d = new Date();
+  for (const entry of logs) {
+    const dStr = d.toISOString().split('T')[0];
+    if (entry.date === dStr && (entry.collected||0) > 0) { streak++; d.setDate(d.getDate()-1); }
+    else if (entry.date < dStr) break;
+  }
+  return streak;
+}
+
+// ═══ CALL TIME HEATMAP ══════════════════════════════════════
+function renderCallTimeHeatmap(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  // Aggregate call outcomes by hour
+  const hourData = Array.from({length:24}, (_,i) => ({h:i, total:0, answered:0}));
+  state.borrowers.forEach(b => {
+    (b.callLog||[]).forEach(cl => {
+      // Parse timestamp: "DD/MM/YYYY, HH:MM:SS"
+      const match = cl.timestamp?.match(/(\d{1,2})\/(\d{1,2})\/(\d{4}),\s*(\d{1,2}):/);
+      if (match) {
+        const h = parseInt(match[4]);
+        if (h >= 0 && h < 24) {
+          hourData[h].total++;
+          if (cl.outcome === 'Answered' || cl.outcome === 'Promised') hourData[h].answered++;
+        }
+      }
+    });
+  });
+  const maxTotal = Math.max(...hourData.map(h => h.total), 1);
+  const workHours = hourData.filter(h => h.h >= 7 && h.h <= 19);
+  if (!workHours.some(h => h.total > 0)) {
+    el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text3);font-size:12px">No call log data yet</div>';
+    return;
+  }
+  let html = '<div style="padding:14px">';
+  html += '<div style="display:flex;gap:3px;align-items:flex-end;height:60px;margin-bottom:6px">';
+  workHours.forEach(h => {
+    const pct = h.total > 0 ? (h.total / maxTotal * 100) : 0;
+    const rate = h.total > 0 ? Math.round(h.answered/h.total*100) : 0;
+    const col = rate >= 60 ? 'var(--green)' : rate >= 30 ? 'var(--gold)' : h.total > 0 ? 'var(--red)' : 'var(--border2)';
+    html += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px" title="'+h.h+':00 — '+h.total+' calls, '+rate+'% answered">'
+      + '<div style="width:100%;border-radius:2px 2px 0 0;background:'+col+';height:'+Math.max(pct,4)+'%;min-height:2px;transition:height 0.3s;opacity:0.85"></div>'
+    + '</div>';
+  });
+  html += '</div><div style="display:flex;gap:3px">';
+  workHours.forEach(h => {
+    const label = h.h < 12 ? h.h+'a' : h.h===12 ? '12p' : (h.h-12)+'p';
+    html += '<div style="flex:1;text-align:center;font-size:8px;color:var(--text3)">'+label+'</div>';
+  });
+  html += '</div>';
+  // Best hour
+  const best = [...workHours].filter(h=>h.total>0).sort((a,b) => (b.answered/Math.max(b.total,1)) - (a.answered/Math.max(a.total,1)))[0];
+  if (best) {
+    const bestLabel = best.h < 12 ? best.h+':00 AM' : best.h===12 ? '12:00 PM' : (best.h-12)+':00 PM';
+    html += '<div style="margin-top:10px;font-size:11px;color:var(--text2)">Best time: <span style="color:var(--green);font-weight:700">'+bestLabel+'</span> ('+Math.round(best.answered/best.total*100)+'% answer rate)</div>';
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// ═══ TODAY'S FOCUS MODE ═════════════════════════════════════
+function openFocusMode() {
+  const overlay = document.getElementById('focus-overlay');
+  if (!overlay) return;
+  overlay.classList.add('open');
+  haptic('light');
+  const h = new Date().getHours();
+  const period = h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening';
+  const name = (_activeAgent?.name||'').split(' ')[0] || '';
+  document.getElementById('focus-greeting').textContent = 'Good ' + period + (name?', '+name:'') + ' 👋';
+  document.getElementById('focus-sub').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}) + ' · Focus Mode';
+  _renderFocusBody();
+}
+
+function closeFocus() {
+  document.getElementById('focus-overlay')?.classList.remove('open');
+}
+
+function _renderFocusBody() {
+  const el = document.getElementById('focus-body');
+  if (!el || !state) return;
+  const active = getActiveBorrowers();
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayLog = state.dailyLog.find(e => e.date === todayStr);
+  const collected = todayLog?.collected || 0;
+  const target = state.monthlyTarget || 0;
+  const critical = active.filter(b => getOdAge(b.startDate) >= 13).sort((a,b) => getOdAge(b.startDate) - getOdAge(a.startDate));
+  const ptps = (state.ptpList || []).filter(p => { const d = p.promiseDate?.split(' ')[0]; return d === todayStr; });
+  const promised = active.filter(b => b.promisedToPay);
+
+  let html = '';
+
+  // Today's summary strip
+  const dim = new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate();
+  const dLeft = dim - new Date().getDate();
+  const needed = target > 0 && dLeft > 0 ? Math.ceil(Math.max(0, target - state.dailyLog.reduce((s,e)=>s+(e.collected||0),0)) / dLeft) : 0;
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px">'
+    + '<div style="background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:12px;text-align:center;box-shadow:inset 0 1px 0 var(--border-hi)">'
+      + '<div style="font-family:var(--font-mono);font-size:16px;font-weight:800;color:var(--gold)">' + fmtC(collected) + '</div>'
+      + '<div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:3px">Logged Today</div>'
+    + '</div>'
+    + '<div style="background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:12px;text-align:center;box-shadow:inset 0 1px 0 var(--border-hi)">'
+      + '<div style="font-family:var(--font-mono);font-size:16px;font-weight:800;color:var(--red)">' + critical.length + '</div>'
+      + '<div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:3px">Critical (13+)</div>'
+    + '</div>'
+    + '<div style="background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:12px;text-align:center;box-shadow:inset 0 1px 0 var(--border-hi)">'
+      + '<div style="font-family:var(--font-mono);font-size:16px;font-weight:800;color:var(--green)">' + fmtC(needed) + '</div>'
+      + '<div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:3px">Need / Day</div>'
+    + '</div>'
+  + '</div>';
+
+  // Critical accounts
+  if (critical.length) {
+    html += '<div class="focus-section-label">Critical — Act Today</div>'
+      + '<div style="background:var(--surface);border:1px solid rgba(239,68,68,0.2);border-radius:12px;overflow:hidden;margin-bottom:14px">';
+    critical.slice(0,8).forEach(b => {
+      const od = getOdAge(b.startDate);
+      html += '<div class="focus-row" data-fid="'+b.id+'">'
+        + '<div style="width:3px;height:36px;border-radius:2px;background:'+(od>=15?'var(--red)':od>=13?'#f44':'var(--orange)')+';flex-shrink:0"></div>'
+        + '<div style="flex:1;min-width:0">'
+          + '<div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+b.name+'</div>'
+          + '<div style="font-size:11px;color:var(--text3)">'+b.phone+' · Day '+od+'</div>'
+        + '</div>'
+        + '<div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--red);flex-shrink:0">'+fmtC(getDueToday(b))+'</div>'
+      + '</div>';
+    });
+    html += '</div>';
+  }
+
+  // Today's PTPs
+  if (promised.length) {
+    html += '<div class="focus-section-label">Promises to Pay Today</div>'
+      + '<div style="background:var(--surface);border:1px solid rgba(167,139,250,0.2);border-radius:12px;overflow:hidden;margin-bottom:14px">';
+    promised.slice(0,6).forEach(b => {
+      html += '<div class="focus-row" data-fid="'+b.id+'">'
+        + '<div style="width:3px;height:36px;border-radius:2px;background:var(--purple);flex-shrink:0"></div>'
+        + '<div style="flex:1;min-width:0">'
+          + '<div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+b.name+'</div>'
+          + '<div style="font-size:11px;color:var(--text3)">Promised · Day '+getOdAge(b.startDate)+'</div>'
+        + '</div>'
+        + '<div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--purple);flex-shrink:0">'+fmtC(getDueToday(b))+'</div>'
+      + '</div>';
+    });
+    html += '</div>';
+  }
+
+  if (!critical.length && !promised.length) {
+    html += '<div style="text-align:center;padding:40px 20px;color:var(--text3)">'
+      + '<div style="font-size:32px;margin-bottom:12px">✓</div>'
+      + '<div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px">All clear!</div>'
+      + '<div style="font-size:13px">No critical accounts or pending PTPs.</div>'
+    + '</div>';
+  }
+  el.innerHTML = html;
+}
+
+// ═══ COMMAND PALETTE ════════════════════════════════════════
+let _cmdOpen = false;
+let _cmdIdx  = 0;
+
+function openCmd() {
+  document.getElementById('cmd-overlay').classList.add('open');
+  _cmdOpen = true;
+  _cmdIdx = 0;
+  const inp = document.getElementById('cmd-input');
+  if (inp) { inp.value = ''; inp.focus(); }
+  cmdFilter('');
+}
+function closeCmd() {
+  document.getElementById('cmd-overlay').classList.remove('open');
+  _cmdOpen = false;
+}
+
+function _getCmdItems(q) {
+  const pages = [
+    { icon:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px"><rect x="2" y="2" width="7" height="7" rx="1.5"/><rect x="11" y="2" width="7" height="7" rx="1.5"/><rect x="2" y="11" width="7" height="7" rx="1.5"/><rect x="11" y="11" width="7" height="7" rx="1.5"/></svg>', label:'Dashboard', sub:'Overview', fn: ()=>navigate('dashboard') },
+    { icon:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px"><circle cx="7" cy="6" r="3"/><path d="M1 18c0-3.31 2.69-6 6-6h.5M14 6a3 3 0 110 6M19 18c0-3.31-2.69-6-6-6"/></svg>', label:'Borrowers', sub:'Full list', fn: ()=>navigate('loans') },
+    { icon:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px"><polyline points="2,15 7,9 11,12 18,5"/></svg>', label:'Analytics', sub:'Charts & insights', fn: ()=>navigate('analytics') },
+    { icon:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px"><path d="M3 5h14a1 1 0 011 1v8H2V6a1 1 0 011-1z"/><polyline points="2,5 10,11 18,5"/></svg>', label:'WhatsApp Dispatch', sub:'Send messages', fn: ()=>navigate('dispatch') },
+    { icon:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px"><rect x="3" y="2" width="14" height="16" rx="1.5"/><line x1="7" y1="7" x2="13" y2="7"/></svg>', label:'Daily Log', sub:'Collection entries', fn: ()=>navigate('log') },
+    { icon:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px"><circle cx="10" cy="10" r="8"/><polyline points="10,6 10,10 13,13"/></svg>', label:'PTP Hub', sub:'Promises to pay', fn: ()=>navigate('ptp') },
+    { icon:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px"><circle cx="10" cy="10" r="3"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2"/></svg>', label:'Settings', sub:'Preferences', fn: ()=>navigate('health') },
+    { icon:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px"><circle cx="10" cy="10" r="8"/><polyline points="10,6 10,10 13,13"/></svg>', label:"Today's Focus", sub:'Daily priorities', fn: ()=>openFocusMode() },
+    { icon:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px"><line x1="10" y1="4" x2="10" y2="16"/><line x1="4" y1="10" x2="16" y2="10"/></svg>', label:'New Borrower', sub:'Add account', fn: ()=>{ closeCmd(); openAddModal(); } },
+    { icon:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px"><path d="M4 10a6 6 0 016-6 6 6 0 015.66 4M16 10a6 6 0 01-6 6"/><polyline points="17,4 17,8 13,8"/></svg>', label:'Force Sync', sub:'Push to cloud', fn: ()=>{ closeCmd(); if(typeof _pushToSupabase==='function'){_pushToSupabase();toast('Syncing…','info');} } },
+  ];
+  const ql = q.toLowerCase();
+  // Borrower matches
+  const bMatches = ql.length >= 2 ? state.borrowers.filter(b =>
+    b.name.toLowerCase().includes(ql) || b.phone.includes(ql)
+  ).slice(0,5).map(b => ({
+    icon:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px"><circle cx="10" cy="7" r="3"/><path d="M4 17c0-3.31 2.69-6 6-6s6 2.69 6 6"/></svg>',
+    label: b.name,
+    sub: b.phone + ' · Day ' + getOdAge(b.startDate),
+    fn: ()=>{ closeCmd(); openBorrowerDetail(b.id); }
+  })) : [];
+  const pageMatches = ql ? pages.filter(p => p.label.toLowerCase().includes(ql) || p.sub.toLowerCase().includes(ql)) : pages;
+  return [...bMatches, ...pageMatches];
+}
+
+function cmdFilter(q) {
+  const items = _getCmdItems(q);
+  _cmdIdx = 0;
+  const el = document.getElementById('cmd-results');
+  if (!el) return;
+  if (!items.length) { el.innerHTML = '<div style="padding:20px;text-align:center;font-size:13px;color:var(--text3)">No results</div>'; return; }
+  let html = '';
+  if (q.length < 2 && !q) html += '<div class="cmd-label">Pages & Actions</div>';
+  items.forEach((item, i) => {
+    html += '<div class="cmd-item' + (i===0?' cmd-active':'') + '" data-cidx="'+i+'" onclick="cmdRun('+i+')">'      + '<div class="cmd-icon">'+item.icon+'</div>'      + '<div><div style="font-size:13px;font-weight:600;color:var(--text)">'+item.label+'</div>'      + '<div style="font-size:11px;color:var(--text3)">'+item.sub+'</div></div>'      + '</div>';
+  });
+  el.innerHTML = html;
+  window._cmdItems = items;
+}
+
+function cmdRun(idx) {
+  const items = window._cmdItems || [];
+  if (items[idx]) { closeCmd(); items[idx].fn(); haptic('light'); }
+}
+
+function cmdKey(e) {
+  const items = window._cmdItems || [];
+  const els = document.querySelectorAll('.cmd-item');
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _cmdIdx = Math.min(_cmdIdx+1, items.length-1);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _cmdIdx = Math.max(_cmdIdx-1, 0);
+  } else if (e.key === 'Enter') {
+    e.preventDefault(); cmdRun(_cmdIdx); return;
+  } else if (e.key === 'Escape') {
+    closeCmd(); return;
+  }
+  els.forEach((el,i) => el.classList.toggle('cmd-active', i===_cmdIdx));
+  els[_cmdIdx]?.scrollIntoView({block:'nearest'});
+}
+
+// Open cmd on / key when not in input
+document.addEventListener('keydown', function(e) {
+  if (e.key === '/' && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName) && !_cmdOpen) {
+    e.preventDefault(); openCmd();
+  }
+  if (e.key === 'Escape' && _cmdOpen) closeCmd();
+});
+
 // ============================================================
 // SEED DATA
 // ============================================================
@@ -3017,6 +3463,15 @@ const SUPABASE_URL  = 'https://bbjpifrkzvzskwvjbhot.supabase.co';
 const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJianBpZnJrenZ6c2t3dmpiaG90Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3OTMzMzMsImV4cCI6MjA4OTM2OTMzM30.DMB1T7njYCMRKvPXuUiy-8T0wYuYQSo0fn5c0TPQQes';
 const CLAUDE_API_KEY = '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';
 let _offlineQueue = [];   // actions queued while offline
+// Offline banner
+function _updateOfflineBanner() {
+  const banner = document.getElementById('offline-banner');
+  if (!banner) return;
+  if (!navigator.onLine) { banner.classList.add('show'); }
+  else { banner.classList.remove('show'); }
+}
+window.addEventListener('online',  () => { _updateOfflineBanner(); toast('Back online — syncing…','success'); if(_db)_pushToSupabase(); });
+window.addEventListener('offline', () => { _updateOfflineBanner(); toast('You are offline — changes saved locally','warn'); });
 
 // ============================================================
 // STAGE CONFIGURATION — M0 through M5
@@ -3210,6 +3665,23 @@ async function loadState() {
 }
 
 // ── Save: localStorage immediately + Supabase debounced ──────
+function _trackBorrowerScores() {
+  // Store today's scores for trend display
+  const today = new Date().toISOString().split('T')[0];
+  if (!state.scoreHistory) state.scoreHistory = {};
+  state.borrowers.forEach(b => {
+    if (!state.scoreHistory[b.id]) state.scoreHistory[b.id] = [];
+    const hist = state.scoreHistory[b.id];
+    const score = calcPriorityScore(b);
+    // Update or append today
+    const last = hist[hist.length-1];
+    if (last && last.d === today) last.s = score;
+    else hist.push({d: today, s: score});
+    // Keep only 14 days
+    if (hist.length > 14) state.scoreHistory[b.id] = hist.slice(-14);
+  });
+}
+
 function saveState() {
   // Always write to localStorage instantly (instant UI feedback)
   localStorage.setItem(getStateKey(), JSON.stringify(state));
@@ -3926,6 +4398,7 @@ function renderLoansTable() {
         + '<button class="bl-action-btn" id="hist-' + r.id + '" data-action="hist"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" style="width:13px;height:13px"><circle cx="10" cy="10" r="8"/><polyline points="10,6 10,10 13,13"/></svg>' + (callCount>0?'<span style="font-size:9px;color:var(--blue);font-family:var(--font-mono)">' + callCount + '</span>':'') + '</button>'
         + '<button class="bl-action-btn" data-action="hitlist" style="' + (inHitList?'border-color:var(--gold);color:var(--gold)':'') + '"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" style="width:13px;height:13px"><path d="M10 2l2.47 5h5.53l-4.5 3.27L15 16l-5-3.27L5 16l1.5-5.73L2 7h5.53z"/></svg></button>'
         + '<button class="bl-action-btn" data-action="edit"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" style="width:13px;height:13px"><path d="M4 16l9-9 3 3-9 9H4z"/><path d="M14 5l1-1a1 1 0 011.41 0l.59.59a1 1 0 010 1.41L16 7"/></svg></button>'
+        + '<button class="bl-action-btn wa" data-action="wa"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" style="width:13px;height:13px"><path d="M3 5h14a1 1 0 011 1v8a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1z"/><polyline points="2,5 10,11 18,5"/></svg>WA</button>'
         + '<button class="bl-action-btn danger" data-action="delete"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" style="width:13px;height:13px"><polyline points="3,6 5,6 17,6"/><path d="M8 6V4h4v2"/><rect x="5" y="6" width="10" height="11" rx="1"/></svg></button>'
       + '</div>';
     // Wire card events via delegation on the element
@@ -3935,12 +4408,13 @@ function renderLoansTable() {
       e.stopPropagation();
       const a = btn.dataset.action;
       if (a === 'pay')     toggleQuickPayBar(r.id);
-      else if (a === 'ptp')     togglePromise(r.id);
+      else if (a === 'ptp')     { togglePromise(r.id); haptic('ptp'); }
       else if (a === 'note')    openQuickNote(r.id);
       else if (a === 'hist')    openHistoryModal(r.id);
       else if (a === 'hitlist') addToHitList(r.id);
       else if (a === 'edit')    openEditModal(r.id);
       else if (a === 'delete')  deleteBorrower(r.id);
+      else if (a === 'wa') { const ph = r.phone.replace(/\D/g,''); const msg = encodeURIComponent(getSmsMessage(r, dispatchMode==='generous')); window.open('https://wa.me/'+ph+'?text='+msg,'_blank'); }
       haptic('light');
     });
     return d;
@@ -4418,6 +4892,7 @@ function renderAnalytics() {
     + '<div class="summary-row"><span class="summary-label">Zero collection days</span><span class="summary-value text-red">'+(logsTotal-logsWithCollect)+'</span></div>'
     + '<div class="summary-row"><span class="summary-label">Avg on active day</span><span class="summary-value text-gold">'+fmtC(Math.round(avgOnGoodDay))+'</span></div>'
     + '<div class="summary-row"><span class="summary-label">Total days logged</span><span class="summary-value">'+logsTotal+'</span></div>';
+  renderCallTimeHeatmap('analytics-calltime');
 
   // ── Day of Week Chart ───────────────────────────────────
   const dowContainer = document.getElementById('analytics-dow');
@@ -6142,6 +6617,7 @@ function navigate(page) {
       pageEl.style.animation = '';
       pageEl.classList.add('active');
     });
+    // Show page immediately, then render (avoids blank flash)
   }
   document.querySelectorAll('[data-page="' + page + '"]').forEach(el => el.classList.add('active'));
   document.getElementById('main').scrollTop = 0;
@@ -6226,9 +6702,18 @@ function navigateDrawer(page) {
 function haptic(type) {
   if (localStorage.getItem('sq_haptic') === 'off') return;
   if (!navigator.vibrate) return;
-  if (type === 'success') navigator.vibrate([30,20,60]);
-  else if (type === 'warning') navigator.vibrate([20,30,20]);
-  else navigator.vibrate(15);
+  const patterns = {
+    light:   [12],
+    medium:  [25],
+    success: [20,15,40,10,60],   // triple tap — payment saved
+    error:   [50,30,50,30,50],   // urgent buzz — error
+    pay:     [30,10,30,10,80],   // payment confirmed
+    ptp:     [20,20,20],         // promise set
+    aged:    [80,40,80],         // aged-out warning — heavy
+    warn:    [40,20,40],         // moderate warning
+    unlock:  [15,10,15,10,50],   // unlock app
+  };
+  navigator.vibrate(patterns[type] || patterns.light);
 }
 
 
@@ -6378,8 +6863,12 @@ function openQuickNote(id) {
     + '<label>Note</label>'
     + '<textarea class="form-input" id="quick-note-text" rows="4" placeholder="e.g. Called — no answer. Will try again tomorrow.">'+(b.notes||'')+'</textarea>'
     + '</div>'
+    + '<div style="margin-bottom:10px">'
+    + '<div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px">Quick Templates</div>'
+    + ['Relocated', 'Wrong number', 'Phone off', 'Partial arranged', 'Will pay tomorrow', 'No answer — will retry', 'Refused to pay', 'Promise broken', 'Made payment today', 'Requested callback'].concat(JSON.parse(localStorage.getItem('sq_note_templates')||'[]')).map(t => '<span class="note-chip" onclick="document.getElementById(\'quick-note-text\').value=\''+t+'\';haptic(\'light\')">'+t+'</span>').join('')
+    + '</div>'
     + '<div style="margin-bottom:12px">'
-    + '<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">💡 Smart Suggestions</div>'
+    + '<div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px">Smart Suggestions</div>'
     + suggestions.map(s =>
         `<div onclick="document.getElementById('quick-note-text').value='${s.replace(/'/g,'\\\'').replace(/\n/g,' ')}';haptic('light')"
           style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:11px;color:var(--text2);cursor:pointer;margin-bottom:5px;line-height:1.5;transition:border-color 0.15s"
@@ -6397,7 +6886,7 @@ function openQuickNote(id) {
     const snb = document.getElementById('save-note-btn');
     if (snb) snb.addEventListener('click', function() {
       b.notes = document.getElementById('quick-note-text').value.trim();
-      haptic('medium');
+      haptic('success');
       saveState(); closeModal();
       toast('Note saved for ' + b.name.split(' ')[0], 'success');
       renderCurrentPage();
@@ -7231,11 +7720,13 @@ function clearSearch(inputId, renderFn) {
 // THEME
 // ============================================================
 function applyTheme(theme) {
-  // Apply to both html and body for full coverage
   document.documentElement.setAttribute('data-theme', theme);
   document.body.setAttribute('data-theme', theme);
   localStorage.setItem('m2_theme', theme);
-  const isDark = theme === 'dark';
+  // Update settings sub-label
+  const themeSub = document.querySelector('[id="theme-btn-dark"]')?.closest('.settings-row')?.querySelector('.settings-row-label-sub');
+  if (themeSub) themeSub.textContent = theme === 'amoled' ? 'AMOLED black — best for OLED screens' : theme === 'light' ? 'Light mode' : 'Dark mode';
+  const isDark = (theme === 'dark' || theme === 'amoled');
   // Sidebar toggle button
   const icon = document.getElementById('theme-icon');
   const label = document.getElementById('theme-label');
@@ -7711,9 +8202,50 @@ function openCallLogModal(id) {
           </div>`;
         }).join('')}
     </div>`;
-  document.getElementById('modal-footer').innerHTML = `<button class="btn btn-ghost" onclick="closeModal()">Close</button>`;
+  document.getElementById('modal-footer').innerHTML = `
+    <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+    <button class="btn btn-gold btn-sm" onclick="startCallTimer('${b.id}','${b.name.split(' ')[0]}');closeModal();haptic('light')">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:13px;height:13px;vertical-align:middle;margin-right:4px"><circle cx="10" cy="10" r="8"/><polyline points="10,6 10,10 13,13"/></svg>Start Timer
+    </button>`;
   document.getElementById('modal-overlay').classList.add('open');
   haptic('light');
+}
+
+let _callTimerInterval = null;
+let _callTimerStart = null;
+let _callTimerBid = null;
+
+function startCallTimer(id, name) {
+  _callTimerBid = id;
+  _callTimerStart = Date.now();
+  const bar = document.getElementById('call-timer-bar');
+  const nameEl = document.getElementById('call-timer-name');
+  if (nameEl) nameEl.textContent = name;
+  if (bar) bar.classList.add('active');
+  clearInterval(_callTimerInterval);
+  _callTimerInterval = setInterval(function() {
+    const secs = Math.floor((Date.now() - _callTimerStart) / 1000);
+    const m = Math.floor(secs / 60), s = secs % 60;
+    const el = document.getElementById('call-timer-display');
+    if (el) el.textContent = m + ':' + String(s).padStart(2,'0');
+  }, 1000);
+}
+
+function endCallTimer() {
+  clearInterval(_callTimerInterval);
+  const bar = document.getElementById('call-timer-bar');
+  if (bar) bar.classList.remove('active');
+  const duration = _callTimerStart ? Math.round((Date.now() - _callTimerStart)/1000) : 0;
+  _callTimerStart = null;
+  // Re-open call log modal to record outcome
+  if (_callTimerBid) {
+    openCallLogModal(_callTimerBid);
+    // Pre-fill duration note
+    setTimeout(() => {
+      const b = state.borrowers.find(x => x.id === _callTimerBid);
+      if (b) toast('Call ended (' + Math.floor(duration/60) + 'm ' + (duration%60) + 's) — log outcome', 'info');
+    }, 100);
+  }
 }
 
 function logCallOutcome(id, outcome, btn) {
@@ -8716,6 +9248,19 @@ function ptpShowHistoryDay(date) {
     <div style="font-size:12px;color:var(--text2)">Total collected from PTPs: <strong>${fmtC(day.collected||0)}</strong></div>`;
   document.getElementById('modal-footer').innerHTML = '<button class="btn btn-ghost" onclick="closeModal()">Close</button>';
   document.getElementById('modal-overlay').classList.add('open');
+}
+
+function _getPtpConversionRate(days) {
+  const history = state.ptpHistory || [];
+  const cutoff = new Date(Date.now() - days*86400000).toISOString().split('T')[0];
+  const relevant = history.filter(d => d.date >= cutoff);
+  if (!relevant.length) return null;
+  let totalSet = 0, totalPaid = 0;
+  relevant.forEach(d => {
+    totalSet  += (d.ptpCount || 0);
+    totalPaid += (d.paid || 0) + Math.round((d.partial||0)*0.5);
+  });
+  return totalSet > 0 ? Math.round(totalPaid / totalSet * 100) : 0;
 }
 
 function buildPtpStatsHtml2() {
@@ -10881,15 +11426,15 @@ function renderSettingsPage() {
   if (ptpCountEl) ptpCountEl.textContent = (state.ptpHistory?.length || 0) + ' days recorded';
 
   // Theme buttons
-  const isDark = (localStorage.getItem('m2_theme') || 'dark') === 'dark';
-  const darkBtn  = document.getElementById('theme-btn-dark');
-  const lightBtn = document.getElementById('theme-btn-light');
-  if (darkBtn && lightBtn) {
-    const on = 'background:var(--gold);color:#000;';
-    const off = 'background:transparent;color:var(--text3);';
-    darkBtn.style.cssText  += isDark  ? on : off;
-    lightBtn.style.cssText += !isDark ? on : off;
-  }
+  const savedThemeNow = localStorage.getItem('m2_theme') || 'dark';
+  const darkBtn   = document.getElementById('theme-btn-dark');
+  const lightBtn  = document.getElementById('theme-btn-light');
+  const amoledBtn = document.getElementById('theme-btn-amoled');
+  const on  = 'var(--gold)'; const onC  = '#000';
+  const off = 'transparent'; const offC = 'var(--text3)';
+  if (darkBtn)   { darkBtn.style.background   = savedThemeNow==='dark'   ? on : off; darkBtn.style.color   = savedThemeNow==='dark'   ? onC : offC; }
+  if (lightBtn)  { lightBtn.style.background  = savedThemeNow==='light'  ? on : off; lightBtn.style.color  = savedThemeNow==='light'  ? onC : offC; }
+  if (amoledBtn) { amoledBtn.style.background = savedThemeNow==='amoled' ? on : off; amoledBtn.style.color = savedThemeNow==='amoled' ? onC : offC; }
 
   // Haptic toggle
   const hapticCheck  = document.getElementById('haptic-toggle');
@@ -11173,12 +11718,12 @@ function settingsClearPtpHistory() {
 function settingsSetTheme(theme) {
   applyTheme(theme);
   localStorage.setItem('m2_theme', theme);
-  const darkBtn  = document.getElementById('theme-btn-dark');
-  const lightBtn = document.getElementById('theme-btn-light');
-  const activeStyle  = 'background:var(--gold);color:#000;';
-  const inactiveStyle= 'background:transparent;color:var(--text3);';
-  if (darkBtn)  darkBtn.style.cssText  += theme==='dark'  ? activeStyle : inactiveStyle;
-  if (lightBtn) lightBtn.style.cssText += theme==='light' ? activeStyle : inactiveStyle;
+  const activeStyle   = 'background:var(--gold);color:#000;';
+  const inactiveStyle = 'background:transparent;color:var(--text3);';
+  ['dark','light','amoled'].forEach(t => {
+    const b = document.getElementById('theme-btn-' + t);
+    if (b) b.style.cssText += (t === theme) ? activeStyle : inactiveStyle;
+  });
   haptic('light');
 }
 
@@ -11498,6 +12043,10 @@ function updateStatusBarColor(page) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Init feature systems
+  _updateOfflineBanner();
+  _requestNotifPermission();
+
   await loadState();
 
   // Apply saved theme
@@ -12020,6 +12569,66 @@ document.addEventListener('DOMContentLoaded', async () => {
   <div style="display:flex;gap:12px;margin-top:8px">
     <button onclick="cropCancel()" style="padding:11px 28px;border-radius:20px;border:1px solid #555;background:transparent;color:#fff;font-size:13px;cursor:pointer">Cancel</button>
     <button onclick="cropConfirm()" style="padding:11px 28px;border-radius:20px;border:none;background:var(--gold);color:#000;font-size:13px;font-weight:700;cursor:pointer">Use Photo</button>
+  </div>
+</div>
+
+<!-- COMMAND PALETTE -->
+<div id="cmd-overlay" onclick="if(event.target===this)closeCmd()">
+  <div id="cmd-box">
+    <input id="cmd-input" placeholder="Search borrowers, pages, actions…" oninput="cmdFilter(this.value)" onkeydown="cmdKey(event)" autocomplete="off">
+    <div id="cmd-results"></div>
+  </div>
+</div>
+
+<!-- TODAY'S FOCUS MODE -->
+<div id="focus-overlay">
+  <div style="max-width:680px;margin:0 auto;padding:20px 16px 80px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <div style="font-family:var(--font-head);font-size:22px;font-weight:800" id="focus-greeting">Focus</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px" id="focus-sub"></div>
+      </div>
+      <button onclick="closeFocus()" style="background:none;border:1px solid var(--border2);border-radius:10px;padding:7px 14px;color:var(--text2);cursor:pointer;font-family:var(--font-body);font-size:12px">Exit Focus</button>
+    </div>
+    <div id="focus-body"></div>
+  </div>
+</div>
+
+<!-- OFFLINE BANNER -->
+<div id="offline-banner">No internet — changes saved locally and will sync when back online</div>
+
+<!-- CALL TIMER BAR -->
+<div id="call-timer-bar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div id="call-timer-dot"></div>
+    <div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px">Calling</div>
+      <div id="call-timer-name" style="font-size:13px;font-weight:700;color:#fff"></div>
+    </div>
+  </div>
+  <div id="call-timer-display">0:00</div>
+  <button onclick="endCallTimer()" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:8px 16px;color:var(--red);font-family:var(--font-body);font-size:12px;font-weight:700;cursor:pointer">End Call</button>
+</div>
+
+<!-- PERFORMANCE SHARE CARD -->
+<div id="perf-overlay" onclick="if(event.target===this)document.getElementById('perf-overlay').classList.remove('open')">
+  <div id="perf-card">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+      <div style="width:36px;height:36px;border-radius:10px;background:var(--gold-grad);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 14px rgba(240,160,48,0.4)">
+        <span style="font-family:var(--font-head);font-size:14px;font-weight:800;color:#000">ST</span>
+      </div>
+      <div>
+        <div style="font-family:var(--font-head);font-size:15px;font-weight:800;color:#fff">SqueveTrack</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:0.5px" id="perf-week-label">This Week</div>
+      </div>
+    </div>
+    <div id="perf-card-stats" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px"></div>
+    <div style="height:1px;background:rgba(255,255,255,0.07);margin-bottom:14px"></div>
+    <div id="perf-card-foot" style="font-size:11px;color:rgba(255,255,255,0.3);text-align:center"></div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button onclick="sharePerfCard()" style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--gold-grad);color:#000;font-family:var(--font-head);font-size:13px;font-weight:800;cursor:pointer">Share</button>
+      <button onclick="document.getElementById('perf-overlay').classList.remove('open')" style="flex:1;padding:10px;border:1px solid var(--border2);border-radius:10px;background:transparent;color:var(--text2);font-family:var(--font-body);font-size:13px;cursor:pointer">Close</button>
+    </div>
   </div>
 </div>
 
