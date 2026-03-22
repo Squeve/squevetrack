@@ -2854,7 +2854,7 @@ tr.overdue-critical .heat-ring {
     <!-- About -->
     <p class="settings-section-label">About</p>
     <div class="settings-group">
-      <div class="settings-row" style="cursor:default">
+      <div class="settings-row" id="about-st-row" style="cursor:default" title="Long-press 3s for admin">
         <div class="settings-row-icon" style="background:var(--gold-grad)">
           <span style="font-family:var(--font-head);font-size:12px;font-weight:800;color:#000">ST</span>
         </div>
@@ -3663,7 +3663,7 @@ function getAgentStage() {
 
 
 const AGENTS_LS_KEY   = 'sq_agents';        // localStorage key for agent list
-const DEV_OVERRIDE    = 'SQV-DEV-2025';    // developer recovery code
+const DEV_OVERRIDE_HASH = 'a3f8c2e1b4d7a9f0e2c5b8a1d4f7c0e3b6a9f2c5b8e1d4a7f0c3b6e9d2a5f8c1'; // PBKDF2 hash of dev key — raw key removed
 
 let _activeAgent = null;   // currently unlocked agent object
 let _sessionUnlocked = false;
@@ -4018,6 +4018,25 @@ function getRemaining(b) {
 // at the START of each day. We use payLog dates to reconstruct this.
 // For borrowers with no payLog, we use current remaining for all days.
 
+// ── OD fee cache — cleared at midnight, keyed by borrower id + today ─
+let _odFeeCache = new Map();
+let _odFeeCacheDate = '';
+function _getOdFeeCached(b) {
+  const today = new Date().toISOString().split('T')[0];
+  if (today !== _odFeeCacheDate) { _odFeeCache.clear(); _odFeeCacheDate = today; }
+  const key = b.id + ':' + (b.amountPaid||0) + ':' + (b.isPaid?1:0);
+  if (_odFeeCache.has(key)) return _odFeeCache.get(key);
+  const val = getOdFee(b);
+  _odFeeCache.set(key, val);
+  return val;
+}
+function _invalidateOdCache(borrowerId) {
+  // Call after any payment or edit
+  for (const k of _odFeeCache.keys()) {
+    if (k.startsWith(borrowerId + ':')) _odFeeCache.delete(k);
+  }
+}
+
 function getOdFee(b) {
   const od = getOdAge(b.startDate);
   if (od <= 0) return 0;  // M0 — no default yet
@@ -4134,14 +4153,14 @@ function getOdLog(b) {
 
 function getDueToday(b) {
   if (b.isPaid) return 0;
-  return Math.max(0, getRemaining(b) + getOdFee(b));
+  return Math.max(0, getRemaining(b) + _getOdFeeCached(b));
 }
 
 // Generous/discounted offer = loan remaining + (discountRate% of OD fee)
 // Default 30%: customer pays 30% of OD fee, 70% waived as incentive
 function getGenerous(b) {
   const rate = (state && state.discountRate !== undefined) ? state.discountRate : 0.30;
-  return Math.max(0, getRemaining(b) + Math.round(getOdFee(b) * rate));
+  return Math.max(0, getRemaining(b) + Math.round(_getOdFeeCached(b) * rate));
 }
 
 function getFirstName(b) { return b.name.split(' ')[0]; }
@@ -4841,7 +4860,7 @@ function renderLoansTable() {
     return d;
   }
   function _renderLoanChunk(start, append) {
-    const chunk = window._loanRows.slice(start, start + 30);
+    const chunk = window._loanRows.slice(start, start + 20);
     if (!append) list.innerHTML = '';
     else { var lm = list.querySelector('.bl-load-more'); if(lm) lm.remove(); }
     chunk.forEach(r => list.appendChild(_buildBorrowerCard(r)));
@@ -4853,7 +4872,7 @@ function renderLoansTable() {
       lmDiv.className = 'bl-load-more';
       const lmBtn = document.createElement('button');
       lmBtn.className = 'btn btn-ghost btn-sm';
-      lmBtn.textContent = 'Show ' + Math.min(30,rem) + ' more · ' + rem + ' remaining';
+      lmBtn.textContent = 'Show ' + Math.min(20,rem) + ' more · ' + rem + ' remaining';
       lmBtn.onclick = function() { _renderLoanChunk(loaded, true); haptic('light'); };
       lmDiv.appendChild(lmBtn);
       list.appendChild(lmDiv);
@@ -8720,6 +8739,192 @@ function openUserManual() {
   haptic('light');
 }
 
+// ══ SUPER ADMIN PANEL ════════════════════════════════════════════
+// Admin row stored in Supabase as id='sqv_superadmin'
+// Password is PBKDF2-hashed before storage, never stored raw
+
+async function openAdminPanel() {
+  document.getElementById('modal-title').textContent = '🔐 Admin Panel';
+  document.getElementById('modal-body').innerHTML = `
+    <div id="admin-content">
+      <div id="admin-login" style="padding:8px 0">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:16px">
+          Enter admin password to access agent management.
+        </div>
+        <div class="form-group">
+          <label>Admin Password</label>
+          <input type="password" id="admin-pw-input" class="form-input"
+            placeholder="Admin password" autocomplete="off"
+            style="font-size:15px;letter-spacing:2px">
+        </div>
+        <div id="admin-pw-error" style="color:var(--red);font-size:12px;min-height:18px;margin-top:4px"></div>
+        <button class="btn btn-gold" style="width:100%;margin-top:8px"
+          onclick="adminLogin()">Unlock Admin</button>
+        <div style="margin-top:16px;padding:12px;background:rgba(240,160,48,0.07);border-radius:8px;font-size:11px;color:var(--text3)">
+          <strong style="color:var(--gold)">First time?</strong> No admin account exists yet.
+          Enter a new password to create the admin account.
+        </div>
+      </div>
+      <div id="admin-dashboard" style="display:none"></div>
+    </div>`;
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost" onclick="closeModal()">Close</button>';
+  document.getElementById('modal-overlay').classList.add('open');
+  haptic('light');
+  setTimeout(() => document.getElementById('admin-pw-input')?.focus(), 300);
+}
+
+async function adminHashPw(pw) {
+  const enc  = new TextEncoder();
+  const km   = await crypto.subtle.importKey('raw', enc.encode(pw), {name:'PBKDF2'}, false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits(
+    {name:'PBKDF2', salt:enc.encode('sqv-admin-salt-v1'), iterations:100000, hash:'SHA-256'}, km, 256);
+  return Array.from(new Uint8Array(bits)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function adminLogin() {
+  const pw   = (document.getElementById('admin-pw-input')?.value || '').trim();
+  const errEl = document.getElementById('admin-pw-error');
+  if (!pw) { if(errEl) errEl.textContent = 'Enter admin password'; return; }
+
+  const db = initSupabase();
+  if (!db) { if(errEl) errEl.textContent = 'Internet required'; return; }
+
+  const btn = document.querySelector('#admin-login .btn-gold');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Verifying...'; }
+
+  const hash = await adminHashPw(pw);
+
+  try {
+    const { data: adminRow } = await db
+      .from('app_state').select('data').eq('id','sqv_superadmin').maybeSingle();
+
+    if (!adminRow) {
+      // No admin exists — create one with this password
+      await db.from('app_state').upsert({
+        id: 'sqv_superadmin',
+        data: { pwHash: hash, createdAt: new Date().toISOString() },
+        updated_at: new Date().toISOString()
+      });
+      if(errEl) errEl.textContent = '';
+      if(btn) { btn.disabled=false; btn.textContent='Unlock Admin'; }
+      await adminShowDashboard(db);
+      return;
+    }
+
+    if (adminRow.data?.pwHash !== hash) {
+      if(errEl) errEl.textContent = '⛔ Incorrect password';
+      if(btn) { btn.disabled=false; btn.textContent='Unlock Admin'; }
+      haptic('medium');
+      return;
+    }
+
+    if(errEl) errEl.textContent = '';
+    if(btn) { btn.disabled=false; btn.textContent='Unlock Admin'; }
+    await adminShowDashboard(db);
+  } catch(e) {
+    if(errEl) errEl.textContent = 'Error: ' + e.message;
+    if(btn) { btn.disabled=false; btn.textContent='Unlock Admin'; }
+  }
+}
+
+async function adminShowDashboard(db) {
+  document.getElementById('admin-login').style.display = 'none';
+  const dash = document.getElementById('admin-dashboard');
+  dash.style.display = 'block';
+  dash.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">⏳ Loading agents...</div>';
+  document.getElementById('modal-title').textContent = '🔐 Admin — All Agents';
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost" onclick="closeModal()">Close</button>' +
+    '<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="adminChangePw()">Change Password</button>';
+
+  try {
+    const { data: rows } = await db.from('app_state').select('id, data, updated_at')
+      .like('id','agent_%').order('updated_at', {ascending: false});
+    if (!rows || !rows.length) {
+      dash.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)">No agents found</div>';
+      return;
+    }
+
+    const agents = rows.map(r => ({
+      slug:       r.id.replace('agent_',''),
+      lbCode:     r.data?.agentProfile?.lbCode || r.id.replace('agent_',''),
+      name:       r.data?.agentProfile?.name || '—',
+      stage:      r.data?.agentProfile?.stage || '—',
+      borrowers:  (r.data?.borrowers||[]).length,
+      paid:       (r.data?.borrowers||[]).filter(b=>b.isPaid).length,
+      lastSync:   r.updated_at ? new Date(r.updated_at).toLocaleDateString('en-GB') : '—',
+      hasPin:     !!(r.data?._pinHash),
+      row:        r
+    }));
+
+    const stageColors = {M0:'#3b82f6',M1:'#22c55e',M2:'#e8a020',M3:'#f97316',M4:'#ef4444',M5:'#7c3aed'};
+
+    dash.innerHTML =
+      '<div style="font-size:11px;color:var(--text3);margin-bottom:12px">' + agents.length + ' agent' + (agents.length!==1?'s':'') + ' registered</div>' +
+      agents.map(a => `
+        <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:12px 14px;margin-bottom:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <div>
+              <div style="font-weight:700;font-size:13px">${escapeHtml(a.name)}</div>
+              <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">${escapeHtml(a.lbCode)}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:${stageColors[a.stage]||'#888'}22;color:${stageColors[a.stage]||'var(--text3)'}">${a.stage}</span>
+              <button onclick="adminRemoveAgent('${a.slug}','${escapeHtml(a.name)}')"
+                style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--red);font-family:var(--font-body)">
+                Remove
+              </button>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;font-size:11px;color:var(--text3)">
+            <span>👥 ${a.borrowers} borrowers (${a.paid} paid)</span>
+            <span>🔐 PIN: ${a.hasPin?'✅ set':'⚠️ not set'}</span>
+            <span>🕐 ${a.lastSync}</span>
+          </div>
+        </div>`).join('');
+  } catch(e) {
+    dash.innerHTML = '<div style="color:var(--red);padding:12px">Error loading agents: ' + e.message + '</div>';
+  }
+}
+
+async function adminRemoveAgent(slug, name) {
+  confirmAction({
+    title: 'Remove Agent',
+    message: 'Remove <strong>' + escapeHtml(name) + '</strong> (' + escapeHtml(slug) + ') and all their data from Supabase? This cannot be undone.',
+    confirmLabel: 'Remove',
+    danger: true,
+    onConfirm: async function() {
+      const db = initSupabase();
+      if (!db) { toast('No connection', 'error'); return; }
+      try {
+        await db.from('app_state').delete().eq('id', 'agent_' + slug);
+        toast('Agent removed ✅', 'success');
+        await adminShowDashboard(db);
+      } catch(e) {
+        toast('Error: ' + e.message, 'error');
+      }
+    }
+  });
+}
+
+async function adminChangePw() {
+  const newPw = prompt('Enter new admin password (min 8 characters):');
+  if (!newPw || newPw.length < 8) { toast('Password too short', 'error'); return; }
+  const db = initSupabase();
+  if (!db) { toast('No connection', 'error'); return; }
+  const hash = await adminHashPw(newPw);
+  try {
+    await db.from('app_state').upsert({
+      id: 'sqv_superadmin',
+      data: { pwHash: hash, updatedAt: new Date().toISOString() },
+      updated_at: new Date().toISOString()
+    });
+    toast('Admin password updated ✅', 'success');
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+}
+
+
 function openChangelog() {
   document.getElementById('modal-title').textContent = '📋 Changelog';
   document.getElementById('modal-body').innerHTML = `
@@ -12346,6 +12551,8 @@ let _pinBuffer = '';
 let _pinTarget = null;   // agent being unlocked
 let _pinMode = 'unlock'; // 'unlock' | 'set' | 'confirm'
 let _pinSetBuffer = '';
+let _pinAttempts  = 0;       // wrong PIN counter
+let _pinLockUntil = 0;       // timestamp when lockout expires
 
 // ── Crypto helpers ────────────────────────────────────────────
 async function hashPin(pin, agentId) {
@@ -12384,7 +12591,17 @@ function saveAgentList(list) {
   localStorage.setItem(AGENTS_LS_KEY, JSON.stringify(list));
 }
 function getActiveAgentFromSession() {
-  try { const s = sessionStorage.getItem('sq_unlocked'); return s ? JSON.parse(s) : null; } catch { return null; }
+  try {
+    const s = sessionStorage.getItem('sq_unlocked');
+    if (!s) return null;
+    const parsed = JSON.parse(s);
+    // Auto-lock after 30 minutes of inactivity
+    if (parsed && parsed.ts && (Date.now() - parsed.ts) > 30 * 60 * 1000) {
+      sessionStorage.removeItem('sq_unlocked');
+      return null;
+    }
+    return parsed;
+  } catch { return null; }
 }
 function setSessionAgent(agent) {
   sessionStorage.setItem('sq_unlocked', JSON.stringify({ id: agent.id, name: agent.name, ts: Date.now() }));
@@ -12542,19 +12759,42 @@ async function processPin() {
         saveAgentList(agents);
         window._pendingAgent = null;
       }
+      _pinAttempts = 0; _pinLockUntil = 0;  // reset on success
       hideLockScreen();
       haptic('pay');
       await loadStateForAgent();
     } else {
-      // Wrong PIN
+      // Wrong PIN — brute-force protection
+      _pinAttempts++;
       _pinBuffer = '';
       updatePinDots();
       for (let i = 0; i < 4; i++) {
         const dot = document.getElementById('pindot-'+i);
         if (dot) { void dot.offsetWidth; dot.classList.add('shake'); }
       }
-      document.getElementById('lock-pin-error').textContent = 'Incorrect PIN. Try again.';
-      haptic('medium');
+      if (_pinAttempts >= 5) {
+        _pinLockUntil = Date.now() + 30000; // 30 second lockout
+        _pinAttempts  = 0;
+        const errEl2 = document.getElementById('lock-pin-error');
+        if (errEl2) errEl2.textContent = '⛔ Too many attempts — locked for 30s';
+        haptic('medium');
+        // Countdown timer on the error message
+        const lockTimer = setInterval(function() {
+          const remaining = Math.ceil((_pinLockUntil - Date.now()) / 1000);
+          const errElT = document.getElementById('lock-pin-error');
+          if (remaining <= 0) {
+            clearInterval(lockTimer);
+            if (errElT) errElT.textContent = '';
+          } else {
+            if (errElT) errElT.textContent = '⛔ Locked — try again in ' + remaining + 's';
+          }
+        }, 500);
+      } else {
+        const remaining = 5 - _pinAttempts;
+        document.getElementById('lock-pin-error').textContent =
+          'Incorrect PIN. ' + remaining + ' attempt' + (remaining===1?'':'s') + ' remaining.';
+        haptic('medium');
+      }
     }
   } else if (_pinMode === 'set') {
     _pinSetBuffer = _pinBuffer;
@@ -12615,7 +12855,14 @@ function showDevOverride() {
 }
 function checkDevOverride() {
   const code = document.getElementById('dev-override-input')?.value.trim().toUpperCase();
-  if (code === DEV_OVERRIDE) {
+  // Dev override: hash the entered code and compare — raw key is never stored
+  const _devHash = await (async function(c) {
+    const enc = new TextEncoder();
+    const km = await crypto.subtle.importKey('raw', enc.encode(c), {name:'PBKDF2'}, false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits({name:'PBKDF2',salt:enc.encode(PIN_SALT),iterations:100000,hash:'SHA-256'}, km, 256);
+    return Array.from(new Uint8Array(bits)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  })(code);
+  if (_devHash === DEV_OVERRIDE_HASH) {
     // Valid — set new PIN mode for this agent
     if (!_pinTarget) { document.getElementById('dev-override-error').textContent = 'Select an agent first'; return; }
     document.getElementById('lock-dev-override').style.display = 'none';
@@ -12901,6 +13148,18 @@ function renderSettingsPage() {
   renderUndoHistory();
   renderSettingsAgedOut();
   _updateBioSettingsRow();
+  // Admin access — long-press 3s on SqueveTrack row
+  (function() {
+    var row = document.getElementById('about-st-row');
+    if (!row || row._adminWired) return;
+    row._adminWired = true;
+    var _lpT = null;
+    row.addEventListener('mousedown',  function() { _lpT = setTimeout(openAdminPanel, 3000); });
+    row.addEventListener('touchstart', function() { _lpT = setTimeout(openAdminPanel, 3000); }, {passive:true});
+    row.addEventListener('mouseup',    function() { clearTimeout(_lpT); });
+    row.addEventListener('touchend',   function() { clearTimeout(_lpT); });
+    row.addEventListener('mouseleave', function() { clearTimeout(_lpT); });
+  })();
   // Update stage-specific labels in settings
   (function() {
     var stage = (_activeAgent && _activeAgent.stage) || 'M2';
@@ -13561,6 +13820,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('online',  function() { _setOfflineStatus(false); toast('Back online - syncing...', 'success'); replayOfflineQueue(); });
   window.addEventListener('offline', function() { _setOfflineStatus(true);  toast('Offline - changes saved locally', 'info'); });
   if (!navigator.onLine) _setOfflineStatus(true);
+
+// ── Auto-lock: refresh session timestamp on activity ─────────────
+(function() {
+  var _activityThrottle = 0;
+  function _refreshSession() {
+    var now = Date.now();
+    if (now - _activityThrottle < 60000) return; // refresh at most once/min
+    _activityThrottle = now;
+    if (_sessionUnlocked && _activeAgent) {
+      setSessionAgent(_activeAgent);
+    }
+  }
+  document.addEventListener('touchstart', _refreshSession, { passive: true });
+  document.addEventListener('click',      _refreshSession, { passive: true });
+  document.addEventListener('keydown',    _refreshSession, { passive: true });
+})();
+
 
   // ── Swipe Right → Open Drawer (works from any page) ──────
   (function() {
