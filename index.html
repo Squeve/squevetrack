@@ -2192,6 +2192,10 @@ tr.overdue-critical .heat-ring {
         <div class="card-header"><span class="card-title" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3)">Best Call-Time</span></div>
         <div class="card-body" id="analytics-calltime"></div>
       </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">🗂️ Portfolio Segments</span><span style="font-size:11px;color:var(--text3)">Risk tier breakdown</span></div>
+        <div id="analytics-segments" style="padding:4px 0"></div>
+      </div>
     </div>
   </section>
 
@@ -2794,6 +2798,26 @@ tr.overdue-critical .heat-ring {
         <div class="settings-row-label">
           <div class="settings-row-label-main">Export Data</div>
           <div class="settings-row-label-sub">Download borrowers as CSV</div>
+        </div>
+        <span class="settings-chevron">›</span>
+      </button>
+      <button class="settings-row" onclick="exportBackup()">
+        <div class="settings-row-icon" style="background:rgba(34,197,94,0.12);color:var(--green)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><path d="M10 3v10M6 10l4 4 4-4"/><line x1="3" y1="17" x2="17" y2="17"/></svg>
+        </div>
+        <div class="settings-row-label">
+          <div class="settings-row-label-main">Export Full Backup</div>
+          <div class="settings-row-label-sub">Download all data as JSON</div>
+        </div>
+        <span class="settings-chevron">›</span>
+      </button>
+      <button class="settings-row" onclick="importBackup()">
+        <div class="settings-row-icon" style="background:rgba(167,139,250,0.12);color:var(--purple)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><path d="M10 17V7M6 10l4-4 4 4"/><line x1="3" y1="3" x2="17" y2="3"/></svg>
+        </div>
+        <div class="settings-row-label">
+          <div class="settings-row-label-main">Restore from Backup</div>
+          <div class="settings-row-label-sub">Import a .json backup file</div>
         </div>
         <span class="settings-chevron">›</span>
       </button>
@@ -4386,22 +4410,42 @@ function renderDailyChart() {
 
   const ctx = document.getElementById('chart-daily');
   if (!ctx) return;
+  // Calculate required daily amount for target line
+  const _monthTarget = state.monthlyTarget || 0;
+  const _logTotal    = state.dailyLog.reduce((s,e) => s+(Number(e.collected)||0), 0);
+  const _now         = new Date();
+  const _daysLeft    = new Date(_now.getFullYear(), _now.getMonth()+1, 0).getDate() - _now.getDate();
+  const _remaining   = Math.max(0, _monthTarget - _logTotal);
+  const _reqPerDay   = (_monthTarget > 0 && _daysLeft > 0) ? Math.ceil(_remaining / _daysLeft) : 0;
+  const datasets = [{
+    label: 'Collected (₵)',
+    data,
+    backgroundColor: data.map(v => v > 0 ? 'rgba(232,160,32,0.7)' : 'rgba(255,255,255,0.05)'),
+    borderColor: data.map(v => v > 0 ? '#e8a020' : 'rgba(255,255,255,0.1)'),
+    borderWidth: 1,
+    borderRadius: 3
+  }];
+  if (_reqPerDay > 0 && labels.length > 0) {
+    datasets.push({
+      label: 'Daily Target',
+      data: labels.map(() => _reqPerDay),
+      type: 'line',
+      borderColor: 'rgba(239,68,68,0.7)',
+      borderWidth: 1.5,
+      borderDash: [4,4],
+      pointRadius: 0,
+      fill: false,
+      tension: 0
+    });
+  }
   updateOrCreateChart('daily', ctx, {
     type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Collected (₵)',
-        data,
-        backgroundColor: data.map(v => v > 0 ? 'rgba(232,160,32,0.7)' : 'rgba(255,255,255,0.05)'),
-        borderColor: data.map(v => v > 0 ? '#e8a020' : 'rgba(255,255,255,0.1)'),
-        borderWidth: 1,
-        borderRadius: 3
-      }]
-    },
+    data: { labels, datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: _reqPerDay > 0, labels: { color: chartTextColor(), font: { size: 10 }, boxWidth: 12, padding: 8 } }
+      },
       scales: {
         x: { grid: { color: chartColor(0.06) }, ticks: { color: chartTextColor(), font: { family: 'IBM Plex Mono', size: 10 } } },
         y: { grid: { color: chartColor(0.06) }, ticks: { color: chartTextColor(), font: { family: 'IBM Plex Mono', size: 10 }, callback: v => '₵'+fmt(v) } }
@@ -4532,6 +4576,7 @@ function renderLoansTable() {
         + '<div class="bl-amounts">'
           + '<div class="bl-due" style="color:' + (r.dueToday>0?'var(--red)':'var(--green)') + '">' + (r.dueToday>0?fmtC(r.dueToday):'✓') + '</div>'
           + '<div class="bl-paid-label"><span class="bl-status ' + statusCls + '">' + r.status + '</span></div>'
+          + (r.instalment && r.instalment.freq ? (function(){ var s=getInstalmentStatus(r); return s ? '<div style="font-size:9px;margin-top:2px;font-weight:700;color:' + (s.onTrack?'var(--green)':'var(--red)') + '">' + (s.onTrack?'📅 On plan':'⚠️ Behind') + '</div>' : ''; })() : '')
         + '</div>'
       + '</div>'
       + '<div class="bl-actions">'
@@ -5144,7 +5189,8 @@ function renderDispatch() {
     'Unpaid: <b>' + unpaidN + '</b> &nbsp;·&nbsp; Partial: <b>' + partialN + '</b>'
     + ' &nbsp;·&nbsp; 🤝 Promised: <b>' + promisedN + '</b>'
     + ' &nbsp;·&nbsp; Showing: <b>' + list.length + '</b>'
-    + ' &nbsp;<button class="btn btn-ghost btn-xs" style="margin-left:4px;color:#25d366;border-color:#25d366" onclick="launchDispatchQueue()" title="Queue ' + list.length + ' contacts for personalised WhatsApp">💬 Queue All (' + list.length + ')</button>';
+    + ' &nbsp;<button class="btn btn-ghost btn-xs" style="margin-left:4px;color:#25d366;border-color:#25d366" onclick="launchDispatchQueue()" title="Queue contacts for personalised WhatsApp">💬 Queue All (' + list.length + ')</button>'
+    + ' &nbsp;<button class="btn btn-ghost btn-xs" style="margin-left:4px" onclick="openWaBroadcastExport()" title="Export broadcast list">📋 Broadcast List</button>';
 
   if (!list.length) {
     document.getElementById('dispatch-list').innerHTML = '<div class="empty-state" style="padding:30px 0"><div class="icon">✅</div><div>All accounts cleared!</div></div>';
@@ -5861,6 +5907,43 @@ function previewCSV(input) {
   reader.readAsText(file);
 }
 
+
+// ── Instalment schedule helpers ───────────────────────────────
+function getInstalmentStatus(b) {
+  if (!b.instalment || !b.instalment.amount || !b.instalment.freq) return null;
+  const { amount, freq, start } = b.instalment;
+  const freqDays = { daily:1, weekly:7, biweekly:14, monthly:30 };
+  const daysBetween = freqDays[freq] || 7;
+  const startD = new Date(start);
+  const today  = new Date();
+  const daysSince = Math.max(0, Math.floor((today - startD) / 86400000));
+  const instalmentsDue  = Math.floor(daysSince / daysBetween) + 1;
+  const totalExpected   = instalmentsDue * amount;
+  const totalPaid       = b.amountPaid || 0;
+  const onTrack         = totalPaid >= totalExpected;
+  const nextDue         = new Date(startD.getTime() + instalmentsDue * daysBetween * 86400000);
+  return { amount, freq, instalmentsDue, totalExpected, totalPaid, onTrack, nextDue: nextDue.toISOString().split('T')[0] };
+}
+
+function renderInstalmentBadge(b) {
+  const s = getInstalmentStatus(b);
+  if (!s) return '';
+  const color = s.onTrack ? 'var(--green)' : 'var(--red)';
+  const icon  = s.onTrack ? '✅' : '⚠️';
+  const shortFreq = {daily:'day',weekly:'wk',biweekly:'2wk',monthly:'mo'}[s.freq] || s.freq;
+  return '<div style="margin-top:8px;padding:8px 10px;background:' + (s.onTrack?'rgba(34,197,94,0.08)':'rgba(239,68,68,0.08)') + ';border:1px solid ' + (s.onTrack?'rgba(34,197,94,0.2)':'rgba(239,68,68,0.2)') + ';border-radius:8px">'
+    + '<div style="font-size:11px;font-weight:700;color:' + color + ';margin-bottom:3px">' + icon + ' Repayment Plan: ₵' + fmt(s.amount) + '/' + shortFreq + '</div>'
+    + '<div style="display:flex;gap:12px;font-size:10px;color:var(--text3)">'
+    + '<span>Expected: <strong style="color:var(--text2)">₵' + fmt(s.totalExpected) + '</strong></span>'
+    + '<span>Paid: <strong style="color:var(--text2)">₵' + fmt(s.totalPaid) + '</strong></span>'
+    + '<span>Next due: <strong style="color:' + color + '">' + s.nextDue + '</strong></span>'
+    + '</div>'
+    + '<div style="margin-top:5px;height:4px;background:var(--border);border-radius:2px;overflow:hidden">'
+    + '<div style="height:100%;width:' + Math.min(100,Math.round(s.totalPaid/Math.max(1,s.totalExpected)*100)) + '%;background:' + color + ';border-radius:2px;transition:width 0.4s"></div>'
+    + '</div>'
+    + '</div>';
+}
+
 function openBorrowerDetail(id) {
   var b = state.borrowers.find(function(x){ return x.id === id; });
   if (!b) return;
@@ -5916,6 +5999,7 @@ function openBorrowerDetail(id) {
     + '<div><div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:'+stColor+'">' + (st==='Paid'?'Paid ✅':fmtC(getDueToday(b))) + '</div><div style="font-size:10px;color:var(--text3)">Due Today</div></div>'
     + '</div>'
     + (predicted ? '<div style="margin-top:8px;padding:6px 10px;background:rgba(96,165,250,0.1);border-radius:6px;font-size:11px;color:var(--blue)">📅 Predicted next payment: <strong>' + predicted + '</strong></div>' : '')
+    + renderInstalmentBadge(b)
     + '</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">'
     + '<button class="btn btn-green" id="bd-pay">💰 Pay</button>'
@@ -6112,8 +6196,7 @@ function borrowerForm(b) {
     + '</select></div>'
     + '<div class="form-group"><label>Target Payment (₵) <span style="font-size:11px;color:var(--text3)">min expected this cycle</span></label>'
     + '<input type="number" class="form-input" id="f-target" placeholder="0 = no target" min="0" value="' + (b ? (b.targetPayment || 0) : 0) + '"></div>'
-    + '<div class="form-group"><label>Notes</label>'
-    + '<input type="text" class="form-input" id="f-notes" placeholder="Any remarks..." value="' + (b ? (b.notes || '') : '') + '"></div>';
+    + '<div class="form-group"><label>Notes</label>'    + '<input type="text" class="form-input" id="f-notes" placeholder="Any remarks..." value="' + (b ? (b.notes || '') : '') + '"></div>'    + '<div style="margin-top:8px;padding:12px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)">'    + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:8px">📅 Repayment Schedule (optional)</div>'    + '<div class="form-row">'    + '<div class="form-group"><label>Amount per instalment (₵)</label>'    + '<input type="number" class="form-input" id="f-inst-amt" placeholder="0" min="0" value="' + (b && b.instalment ? b.instalment.amount : '') + '"></div>'    + '<div class="form-group"><label>Frequency</label>'    + '<select class="form-input" id="f-inst-freq">'    + '<option value="">— None —</option>'    + '<option value="daily"' + (b && b.instalment && b.instalment.freq === 'daily' ? ' selected' : '') + '>Daily</option>'    + '<option value="weekly"' + (b && b.instalment && b.instalment.freq === 'weekly' ? ' selected' : '') + '>Weekly</option>'    + '<option value="biweekly"' + (b && b.instalment && b.instalment.freq === 'biweekly' ? ' selected' : '') + '>Bi-weekly</option>'    + '<option value="monthly"' + (b && b.instalment && b.instalment.freq === 'monthly' ? ' selected' : '') + '>Monthly</option>'    + '</select></div>'    + '</div>'    + '<div class="form-group"><label>Start date</label>'    + '<input type="date" class="form-input" id="f-inst-start" value="' + (b && b.instalment ? b.instalment.start : new Date().toISOString().split('T')[0]) + '"></div>'    + '</div>';
 }
 
 
@@ -6132,6 +6215,10 @@ function saveBorrower(id) {
   const loanType = document.getElementById('f-loantype').value;
   const targetPayment = parseFloat(document.getElementById('f-target')?.value) || 0;
   const notes = document.getElementById('f-notes').value.trim();
+  const instAmt   = parseFloat(document.getElementById('f-inst-amt')?.value) || 0;
+  const instFreq  = document.getElementById('f-inst-freq')?.value || '';
+  const instStart = document.getElementById('f-inst-start')?.value || '';
+  const instalment = (instAmt > 0 && instFreq) ? { amount: instAmt, freq: instFreq, start: instStart } : null;
 
   if (!name) return toast('Name is required', 'error');
   if (!loanDue) return toast('Loan due amount is required', 'error');
@@ -6139,10 +6226,10 @@ function saveBorrower(id) {
 
   if (id) {
     const b = state.borrowers.find(x => x.id === id);
-    if (b) Object.assign(b, { name, phone, principal, loanDue, amountPaid, startDate, loanType, notes });
+    if (b) Object.assign(b, { name, phone, principal, loanDue, amountPaid, startDate, loanType, notes, targetPayment, instalment });
     toast('Borrower updated', 'success');
   } else {
-    state.borrowers.push({ id: 'b' + Date.now(), name, phone, principal, loanDue, overdueFeee: 0, amountPaid, startDate, loanType, notes, targetPayment, promisedToPay: false, isPaid: false });
+    state.borrowers.push({ id: 'b' + Date.now(), name, phone, principal, loanDue, overdueFeee: 0, amountPaid, startDate, loanType, notes, targetPayment, instalment, promisedToPay: false, isPaid: false });
     toast('Borrower added', 'success');
   }
   saveState();
@@ -6177,6 +6264,69 @@ function closeModal() {
   if (modal) { modal.style.transform = ''; modal.classList.remove('dragging','snap-back'); }
   overlay?.classList.remove('open');
   currentModal = null;
+}
+
+
+// ── Biometric Unlock (WebAuthn) ──────────────────────────────
+const _BIO_KEY = 'sq_bio_cred_';
+
+function bioAvailable() {
+  return !!(window.PublicKeyCredential && navigator.credentials);
+}
+
+async function bioRegister(agentId) {
+  if (!bioAvailable()) return false;
+  try {
+    const uid = new TextEncoder().encode(agentId.padEnd(16,'0').slice(0,16));
+    const cred = await navigator.credentials.create({ publicKey: {
+      challenge: crypto.getRandomValues(new Uint8Array(32)),
+      rp: { name: 'SqueveTrack', id: location.hostname || 'localhost' },
+      user: { id: uid, name: agentId, displayName: 'Agent ' + agentId.slice(0,8) },
+      pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
+      authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'preferred' },
+      timeout: 60000
+    }});
+    if (!cred) return false;
+    const toB64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+    localStorage.setItem(_BIO_KEY + agentId, JSON.stringify({
+      credId: toB64(cred.rawId),
+      type: cred.type
+    }));
+    return true;
+  } catch { return false; }
+}
+
+async function bioAuthenticate(agentId) {
+  if (!bioAvailable()) return false;
+  const stored = localStorage.getItem(_BIO_KEY + agentId);
+  if (!stored) return false;
+  try {
+    const { credId } = JSON.parse(stored);
+    const fromB64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+    const cred = await navigator.credentials.get({ publicKey: {
+      challenge: crypto.getRandomValues(new Uint8Array(32)),
+      rpId: location.hostname || 'localhost',
+      allowCredentials: [{ type: 'public-key', id: fromB64(credId) }],
+      userVerification: 'required',
+      timeout: 60000
+    }});
+    return !!cred;
+  } catch { return false; }
+}
+
+function bioHasCred(agentId) {
+  return !!localStorage.getItem(_BIO_KEY + agentId);
+}
+
+async function bioUnlockAgent(agent) {
+  const ok = await bioAuthenticate(agent.id);
+  if (!ok) { toast('Biometric not recognised', 'error'); return; }
+  _activeAgent = agent;
+  _sessionUnlocked = true;
+  setSessionAgent(agent);
+  hideLockScreen();
+  haptic('pay');
+  await loadStateForAgent();
 }
 
 // ── In-app confirmation dialog (replaces native confirm()) ───────────────
@@ -8107,7 +8257,13 @@ function renderForecast() {
 
 // ── PORTFOLIO SEGMENTS ─────────────────────────────────
 function renderSegments() {
-  var el = document.getElementById('segments-body');
+  // Render into both segments page (if exists) and analytics panel
+  var el = document.getElementById('segments-body') || document.getElementById('analytics-segments');
+  // Also render into analytics-segments if separate
+  var analyticsEl = document.getElementById('analytics-segments');
+  if (analyticsEl && analyticsEl !== el) { _renderSegmentsInto(analyticsEl); }
+  if (!el) return; _renderSegmentsInto(el); }
+function _renderSegmentsInto(el) {
   if (!el) return;
   var active = getActiveBorrowers();
 
@@ -8140,7 +8296,7 @@ function renderSegments() {
     var list = segs[tier];
     var d = segDefs[tier];
     var total = list.reduce(function(s,b){ return s+getDueToday(b); }, 0);
-    return '<div class="card" style="margin-bottom:16px">'
+    return '<div style="margin-bottom:12px">'
       + '<div class="card-header"><span class="card-title" style="color:'+d.color+'">'+d.label+'</span>'
       + '<span style="font-size:11px;color:var(--text3)">'+list.length+' accounts &middot; '+fmtC(total)+'</span></div>'
       + '<div class="card-body">'
@@ -8158,7 +8314,8 @@ function renderSegments() {
   }).join('');
 }
 
-// ── FILTER + NAVIGATE HELPER ───────────────────────────
+// ── FILTER + NAVIGATE HELPER ───────────────────────────}
+
 function filterAndNavigate(page, status, odAge, loanType) {
   navigate(page);
   setTimeout(function() {
@@ -8500,6 +8657,60 @@ function generateEODReport() {
 }
 
 // ── COLLECTION GAP WIDGET ──────────────────────────────
+
+// ── JSON Backup & Restore ─────────────────────────────────────
+function exportBackup() {
+  const now = new Date();
+  const stamp = now.toISOString().split('T')[0];
+  const payload = JSON.stringify({ version: 2, exportedAt: now.toISOString(), agent: _activeAgent?.name || 'unknown', state }, null, 2);
+  const blob = new Blob([payload], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'SqueveTrack-backup-' + stamp + '.json';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  toast('Backup downloaded (' + stamp + ')', 'success');
+  haptic('success');
+}
+
+function importBackup() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.json,application/json';
+  inp.onchange = function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        const parsed = JSON.parse(ev.target.result);
+        const restored = parsed.state || parsed; // support both wrapped and raw
+        if (!restored.borrowers) { toast('Invalid backup file', 'error'); return; }
+        confirmAction({
+          title: 'Restore Backup?',
+          message: 'This will replace your current data with the backup from <strong>' + (parsed.exportedAt||'unknown date').split('T')[0] + '</strong>. Current data will be overwritten.',
+          confirmLabel: 'Restore',
+          danger: true,
+          onConfirm: function() {
+            state = migrateState(restored);
+            saveState();
+            purgeAgedOut();
+            updateBadges();
+            renderCurrentPage();
+            renderSettingsAgedOut();
+            toast('Backup restored ✅', 'success');
+            haptic('success');
+          }
+        });
+      } catch { toast('Could not read backup file', 'error'); }
+    };
+    reader.readAsText(file);
+  };
+  document.body.appendChild(inp); inp.click();
+  document.body.removeChild(inp);
+}
+
 function renderGapWidget() { /* removed — info shown in target section */ }
 
 // ── TREADMILL ALERT (Day 6 new entries) ────────────────
@@ -10834,42 +11045,132 @@ function openBorrowerTimeline(id) {
   const b = state.borrowers.find(x => x.id === id);
   if (!b) return;
   const events = [];
+
+  // Loan start
+  if (b.startDate) events.push({ date: b.startDate, time: '00:00', type: 'start',
+    icon: '🏦', label: 'Loan issued — ' + fmtC(b.loanDue) + ' (' + b.loanType + ')',
+    sub: 'Principal: ' + fmtC(b.principal || 0) });
+
+  // Payments
   (b.payLog||[]).forEach(p => events.push({
-    date: p.date, time: p.time||'', type: 'pay',
+    date: p.date, time: p.time || '12:00',
+    type: p.isPaid ? 'paid' : 'pay',
     icon: p.isPaid ? '✅' : '💰',
-    label: (p.delta >= 0 ? '+' : '') + fmtC(p.delta||0) + ' → total ' + fmtC(p.amount),
+    label: (p.delta >= 0 ? '+' : '') + fmtC(p.delta||0) + (p.isPaid ? ' — Account fully paid off!' : ' → balance ' + fmtC(p.amount)),
     sub: p.note || ''
   }));
+
+  // Calls
+  const callIcons = { Answered:'✅','No Answer':'📵',Promised:'🤝',Refused:'🚫',Redirected:'🔀',
+    Busy:'📞','Requested Callback':'📅','No Commitment':'😶',Fraud:'🚨','Phone Off':'📴','Wrong Number':'🔢' };
   (b.callLog||[]).forEach(cl => {
-    const icons = { Answered:'✅','No Answer':'📵',Promised:'🤝',Refused:'🚫',Redirected:'🔀',
-      Busy:'📞','Requested Callback':'📅','No Commitment':'😶',Fraud:'🚨','Phone Off':'📴','Wrong Number':'🔢' };
-    const rawDate = cl.timestamp || '';
-    const d = rawDate.includes('/') ? rawDate.split(',')[0].split('/').reverse().join('-') : rawDate.split('T')[0];
-    events.push({ date: d, time: rawDate, type: 'call', icon: icons[cl.outcome]||'📞', label: 'Call: ' + cl.outcome, sub: rawDate });
+    const raw = cl.timestamp || '';
+    const d = raw.includes('/') ? raw.split(',')[0].split('/').reverse().join('-') : raw.split('T')[0];
+    const t = raw.split(',')[1]?.trim() || raw.split('T')[1]?.slice(0,5) || '12:00';
+    events.push({ date: d, time: t, type: 'call', icon: callIcons[cl.outcome]||'📞',
+      label: 'Call — ' + cl.outcome, sub: cl.note || raw });
   });
+
+  // PTPs
   if (b.promisedToPay && b.promiseDate) {
-    events.push({ date: b.promiseDate.split(' ')[0], type: 'ptp', icon: '🤝', label: 'PTP set for ' + b.promiseDate, sub: b.promiseNote||'' });
+    events.push({ date: b.promiseDate.split(' ')[0], time: '09:00', type: 'ptp', icon: '🤝',
+      label: 'Promise to Pay — ' + b.promiseDate, sub: b.promiseNote || '' });
   }
-  if (b.ptpBreached) events.push({ date: b.promiseDate?.split(' ')[0]||'', type: 'breach', icon: '🔴', label: 'PTP Breached — no payment made on promised date', sub: '' });
-  if (b.notes) events.push({ date: '', type: 'note', icon: '📝', label: b.notes, sub: '' });
+  if (b.ptpBreached) {
+    events.push({ date: b.promiseDate?.split(' ')[0]||'', time: '23:59', type: 'breach', icon: '🔴',
+      label: 'PTP Breached — payment not made as promised', sub: 'Escalation recommended' });
+  }
+
+  // Notes
+  if (b.notes) events.push({ date: '', time: '', type: 'note', icon: '📝', label: b.notes, sub: 'Account note' });
+
+  // Instalment next due
+  const inst = getInstalmentStatus(b);
+  if (inst) {
+    const shortFreq = {daily:'day',weekly:'week',biweekly:'2 weeks',monthly:'month'}[inst.freq] || inst.freq;
+    events.push({ date: inst.nextDue, time: '08:00', type: 'inst',
+      icon: inst.onTrack ? '📅' : '⚠️',
+      label: 'Next instalment — ' + fmtC(inst.amount) + ' / ' + shortFreq,
+      sub: 'Paid ' + fmtC(inst.totalPaid) + ' of expected ' + fmtC(inst.totalExpected),
+      pinColor: inst.onTrack ? 'var(--green)' : 'var(--red)' });
+  }
+
   events.sort((a, z) => (z.date||'').localeCompare(a.date||'') || (z.time||'').localeCompare(a.time||''));
-  const typeColors = { pay:'var(--green)', call:'var(--blue)', ptp:'var(--purple)', breach:'var(--red)', note:'var(--gold)' };
-  document.getElementById('modal-title').textContent = '📜 Timeline — ' + b.name.split(' ')[0];
+
+  const typeColor = { start:'var(--blue)', pay:'var(--gold)', paid:'var(--green)',
+    call:'var(--text2)', ptp:'var(--purple)', breach:'var(--red)', note:'var(--gold)', inst:'var(--blue)' };
+  const typeBg = { start:'rgba(96,165,250,0.1)', pay:'rgba(240,160,48,0.08)', paid:'rgba(34,197,94,0.1)',
+    call:'rgba(255,255,255,0.04)', ptp:'rgba(167,139,250,0.1)', breach:'rgba(239,68,68,0.1)',
+    note:'rgba(240,160,48,0.06)', inst:'rgba(96,165,250,0.08)' };
+
+  document.getElementById('modal-title').textContent = b.name.split(' ')[0] + ' — Activity';
   document.getElementById('modal-body').innerHTML = !events.length
     ? '<div class="empty-state" style="padding:20px 0"><div>No activity recorded yet</div></div>'
-    : events.map(ev =>
-        '<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);align-items:flex-start">'
-        + '<span style="font-size:18px;flex-shrink:0;line-height:1.3">' + ev.icon + '</span>'
-        + '<div style="flex:1;min-width:0">'
-        + '<div style="font-size:12px;font-weight:600;color:' + (typeColors[ev.type]||'var(--text2)') + '">' + ev.label + '</div>'
-        + (ev.sub ? '<div style="font-size:10px;color:var(--text3)">' + ev.sub + '</div>' : '')
-        + '</div>'
-        + '<div style="font-size:10px;color:var(--text3);flex-shrink:0">' + (ev.date||'—') + '</div>'
-        + '</div>'
-      ).join('');
-  document.getElementById('modal-footer').innerHTML = '<button class="btn btn-ghost" onclick="closeModal()">Close</button>';
+    : '<div style="position:relative;padding-left:30px">'
+      + '<div style="position:absolute;left:10px;top:4px;bottom:4px;width:2px;background:linear-gradient(180deg,var(--gold) 0%,var(--border) 100%);border-radius:1px"></div>'
+      + events.map(ev => {
+          const col = ev.pinColor || typeColor[ev.type] || 'var(--text3)';
+          const bg  = typeBg[ev.type] || 'rgba(255,255,255,0.03)';
+          return '<div style="position:relative;margin-bottom:10px">'
+            + '<div style="position:absolute;left:-25px;top:8px;width:12px;height:12px;border-radius:50%;'
+            + 'background:' + col + ';box-shadow:0 0 0 3px var(--bg),0 0 0 5px ' + col + '33;z-index:1"></div>'
+            + '<div style="background:' + bg + ';border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:9px 12px">'
+            + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'
+            + '<div style="font-size:12px;font-weight:600;color:' + col + '">' + ev.icon + ' ' + ev.label + '</div>'
+            + '<div style="font-size:10px;color:var(--text3);white-space:nowrap;flex-shrink:0;margin-top:1px">' + (ev.date || '—') + '</div>'
+            + '</div>'
+            + (ev.sub ? '<div style="font-size:10px;color:var(--text3);margin-top:3px">' + ev.sub + '</div>' : '')
+            + '</div></div>';
+        }).join('')
+      + '</div>';
+
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost" onclick="closeModal()">Close</button>'
+    + '<button class="btn btn-ghost btn-sm" onclick="closeModal();openBorrowerDetail(\'' + id + '\')">← Detail</button>';
   document.getElementById('modal-overlay').classList.add('open');
   haptic('light');
+}
+
+
+// ── WhatsApp Broadcast List Export ───────────────────────────
+function openWaBroadcastExport() {
+  const active = getActiveBorrowers().filter(b => getStatus(b) !== 'Paid');
+  const byOd = [...active].sort((a,b) => getOdAge(b.startDate) - getOdAge(a.startDate));
+  const numbers = byOd.map(b => localPhone(b.phone)).filter(Boolean);
+  const display = byOd.map((b,i) => {
+    const num = numbers[i];
+    return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">'
+      + '<div style="flex:1;font-size:12px;font-weight:600">' + escapeHtml(b.name.split(' ')[0]) + '</div>'
+      + '<div style="font-family:var(--font-mono);font-size:11px;color:var(--text3)">' + num + '</div>'
+      + '<div style="font-size:11px;color:var(--red)">Day ' + getOdAge(b.startDate) + '</div>'
+      + '</div>';
+  }).join('');
+
+  const textBlock = numbers.join('\n');
+
+  document.getElementById('modal-title').textContent = '📋 WA Broadcast List (' + numbers.length + ')';
+  document.getElementById('modal-body').innerHTML =
+    '<div style="font-size:12px;color:var(--text2);margin-bottom:10px">Copy these numbers into WhatsApp → New Broadcast → Add Recipients. Sorted by highest OD age first.</div>'
+    + '<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:10px;max-height:240px;overflow-y:auto">'
+    + display + '</div>'
+    + '<textarea id="wa-broadcast-numbers" style="width:100%;height:80px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font-mono);font-size:11px;padding:8px;resize:none;box-sizing:border-box" readonly>' + textBlock + '</textarea>';
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost" onclick="closeModal()">Close</button>'
+    + '<button class="btn btn-green" onclick="copyWaBroadcast()">📋 Copy All Numbers</button>';
+  document.getElementById('modal-overlay').classList.add('open');
+  haptic('light');
+}
+
+function copyWaBroadcast() {
+  const ta = document.getElementById('wa-broadcast-numbers');
+  if (!ta) return;
+  navigator.clipboard.writeText(ta.value).then(() => {
+    toast('Numbers copied! Paste into WhatsApp Broadcast', 'success');
+    haptic('success');
+  }).catch(() => {
+    ta.select(); document.execCommand('copy');
+    toast('Numbers copied!', 'success');
+  });
 }
 
 // ── F5: OD Fee Breakdown Modal ───────────────────────────────
@@ -11509,6 +11810,16 @@ function lockSelectAgent(id) {
   // Highlight selected card
   document.querySelectorAll('.lock-agent-card').forEach(card => card.classList.remove('selected'));
   event?.currentTarget?.classList.add('selected');
+  // Show biometric unlock button if credential registered for this agent
+  const bioBtn = document.getElementById('bio-unlock-btn');
+  if (bioBtn) {
+    if (bioAvailable() && bioHasCred(_pinTarget.id)) {
+      bioBtn.style.display = 'flex';
+      bioBtn.onclick = function() { bioUnlockAgent(_pinTarget); };
+    } else {
+      bioBtn.style.display = 'none';
+    }
+  }
 }
 
 function pinPress(digit) {
@@ -11819,6 +12130,40 @@ function _getProfileData() {
   };
 }
 
+
+async function settingsToggleBiometric() {
+  if (!bioAvailable()) { toast('Biometric auth not supported on this device', 'error'); return; }
+  if (!_activeAgent) { toast('No active agent', 'error'); return; }
+  const id = _activeAgent.id;
+  if (bioHasCred(id)) {
+    // Disable
+    localStorage.removeItem(_BIO_KEY + id);
+    _updateBioSettingsRow();
+    toast('Biometric unlock disabled', 'info');
+    haptic('light');
+  } else {
+    // Register
+    toast('Follow the prompt to register your biometric', 'info');
+    const ok = await bioRegister(id);
+    if (ok) {
+      _updateBioSettingsRow();
+      toast('Biometric unlock enabled ✅', 'success');
+      haptic('success');
+    } else {
+      toast('Biometric registration failed or cancelled', 'error');
+    }
+  }
+}
+
+function _updateBioSettingsRow() {
+  if (!_activeAgent) return;
+  const sub = document.getElementById('bio-settings-sub');
+  const status = document.getElementById('bio-settings-status');
+  const enabled = bioHasCred(_activeAgent.id);
+  if (sub) sub.textContent = enabled ? 'Enabled — tap to disable' : 'Face ID / Fingerprint — tap to enable';
+  if (status) { status.textContent = enabled ? '✅' : '›'; status.style.color = enabled ? 'var(--green)' : ''; }
+}
+
 function renderSettingsPage() {
   const el = document.getElementById('settings-agent-card');
   if (el && _activeAgent) {
@@ -11900,6 +12245,7 @@ function renderSettingsPage() {
   renderHealthPage();
   renderUndoHistory();
   renderSettingsAgedOut();
+  _updateBioSettingsRow();
 }
 
 function openProfileEditModal() {
@@ -12971,6 +13317,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             </button>
           </div>
 
+          <button id="bio-unlock-btn" style="display:none;align-items:center;justify-content:center;gap:8px;width:100%;margin-bottom:10px;padding:12px;border-radius:12px;border:1px solid rgba(240,160,48,0.3);background:rgba(240,160,48,0.07);color:var(--ls-gold);font-size:13px;font-weight:600;font-family:var(--font-body);cursor:pointer;transition:all 0.15s" onclick="">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:18px;height:18px"><path d="M12 2C9.24 2 7 4.24 7 7v2H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2v-9a2 2 0 00-2-2h-2V7c0-2.76-2.24-5-5-5z"/><circle cx="12" cy="16" r="1.5" fill="currentColor"/></svg>
+            Use Biometrics
+          </button>
           <button class="ls-locked-out" onclick="showDevOverride()">Locked out?</button>
         </div>
       </div>
