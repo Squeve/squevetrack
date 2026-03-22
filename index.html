@@ -558,6 +558,14 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+/* Nav items fill the scroll area evenly — same behaviour as mobile drawer */
+#sidebar-nav-scroll .nav-item {
+  flex: 1;
+  min-height: 40px;
+  max-height: 72px;
 }
 .sidebar-logo {
   padding: 24px 20px 16px;
@@ -1099,6 +1107,8 @@ select.form-input option { background: var(--surface2); }
   will-change: transform;
   transform: translateX(0);
 }
+/* Nav list fills remaining space, scrolls if items overflow */
+
 #mobile-drawer.open { left: 0; }
 #mobile-drawer.open { left: 0; }
 .mdrawer-header {
@@ -1118,6 +1128,8 @@ select.form-input option { background: var(--surface2); }
   padding: 12px 20px; color: var(--text2); cursor: pointer;
   border-left: 3px solid transparent; font-size: 14px; font-weight: 500;
   transition: all 0.15s;
+
+  flex: 1;
 }
 .mdrawer-item:hover { color: var(--text); background: var(--surface2); }
 .mdrawer-item.active { color: var(--gold); background: rgba(232,160,32,0.08); border-left-color: var(--gold); font-weight: 700; }
@@ -1930,21 +1942,27 @@ tr.overdue-critical .heat-ring {
   <div class="nav-item" data-page="reports">
     <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 2h8l4 4v12H4V2z"/><polyline points="12,2 12,6 16,6"/><line x1="7" y1="9" x2="13" y2="9"/><line x1="7" y1="12" x2="13" y2="12"/><line x1="7" y1="15" x2="10" y2="15"/></svg></span> Reports
   </div>
+  <div class="nav-item" data-page="health">
+    <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="8"/><line x1="10" y1="6" x2="10" y2="10"/><line x1="10" y1="13" x2="10" y2="14"/></svg></span> Settings
+    <span class="nav-badge" id="badge-agedout" style="background:var(--orange);display:none">0</span>
+  </div>
   </div><!-- end sidebar-nav-scroll -->
-    <!-- Sync indicator — minimal dot + label -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <div id="sync-status" style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3)">
-        <span id="sync-dot" style="width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0;display:inline-block;transition:background 0.4s,box-shadow 0.4s"></span>
-        <span id="sync-label">Syncing…</span>
+    <!-- Sidebar footer — mirrors mobile drawer footer -->
+    <div style="border-top:1px solid var(--border);padding:12px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div id="sync-status" style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3)">
+          <span id="sync-dot" style="width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0;display:inline-block;transition:background 0.4s,box-shadow 0.4s"></span>
+          <span id="sync-label">Syncing…</span>
+        </div>
+        <button onclick="lockApp()" style="background:none;border:none;cursor:pointer;padding:6px;color:var(--text3);border-radius:8px;transition:color 0.15s" title="Lock App">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:18px;height:18px;display:block"><rect x="4" y="9" width="12" height="9" rx="2"/><path d="M7 9V6a3 3 0 016 0v3"/></svg>
+        </button>
       </div>
-      <button onclick="navigate('health')" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--text3);transition:color 0.15s;border-radius:6px" title="Settings">
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:16px;height:16px;display:block"><circle cx="10" cy="10" r="3"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42"/></svg>
+      <div id="pending-sync-label" style="display:none;font-size:10px;color:var(--gold);margin-bottom:6px;font-weight:600"></div>
+      <button id="install-btn" onclick="window._installPWA()" style="display:none;width:100%;background:var(--gold-grad);border:none;border-radius:8px;padding:8px 12px;cursor:pointer;font-family:var(--font-body);font-size:12px;font-weight:700;color:#000;align-items:center;justify-content:center;gap:6px;margin-bottom:4px">
+        Install App
       </button>
     </div>
-    <div id="pending-sync-label" style="display:none;font-size:10px;color:var(--gold);margin-bottom:6px;font-weight:600"></div>
-    <button id="install-btn" onclick="window._installPWA()" style="display:none;width:100%;background:var(--gold-grad);border:none;border-radius:8px;padding:8px 12px;cursor:pointer;font-family:var(--font-body);font-size:12px;font-weight:700;color:#000;align-items:center;justify-content:center;gap:6px;margin-bottom:6px">
-      Install App
-    </button>
   </div>
 </nav>
 
@@ -2178,8 +2196,14 @@ tr.overdue-critical .heat-ring {
         <div class="card-body" id="analytics-calltime"></div>
       </div>
       <div class="card">
-        <div class="card-header"><span class="card-title">🗂️ Portfolio Segments</span><span style="font-size:11px;color:var(--text3)">Risk tier breakdown</span></div>
-        <div id="analytics-segments" style="padding:4px 0"></div>
+        <div class="card-header" style="cursor:pointer;user-select:none" onclick="toggleAnalyticsSegments()">
+          <span class="card-title">🗂️ Portfolio Segments</span>
+          <span style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;color:var(--text3)">Risk tier breakdown</span>
+            <span id="analytics-seg-chevron" style="font-size:16px;color:var(--text3);transition:transform 0.22s">›</span>
+          </span>
+        </div>
+        <div id="analytics-segments" style="max-height:0;overflow:hidden;transition:max-height 0.35s cubic-bezier(0.4,0,0.2,1)"></div>
       </div>
     </div>
   </section>
@@ -2554,7 +2578,7 @@ tr.overdue-critical .heat-ring {
       <div class="card-header"><span class="card-title">👤 Report Settings</span></div>
       <div class="card-body">
         <div class="form-row">
-          <div class="form-group" style="margin-bottom:0"><label>Agent Name</label><input type="text" class="form-input" id="rpt-agent" placeholder="Shadrack Agyei Arthur" value="Shadrack Agyei Arthur"></div>
+          <div class="form-group" style="margin-bottom:0"><label>Agent Name</label><input type="text" class="form-input" id="rpt-agent" placeholder="Your full name" id="rpt-agent-val"></div>
           <div class="form-group" style="margin-bottom:0"><label>Supervisor</label><input type="text" class="form-input" id="rpt-supervisor" placeholder="NANA OSAE EMMANUEL" value="NANA OSAE EMMANUEL"></div>
         </div>
       </div>
@@ -2708,7 +2732,7 @@ tr.overdue-critical .heat-ring {
           <div style="width:36px;height:36px;border-radius:10px;background:rgba(96,165,250,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">📤</div>
           <div>
             <div style="font-size:13px;font-weight:600;color:var(--text)" id="settings-aged-count">0 accounts</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:2px">Day 16+ auto-removed · tap to expand</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">Auto-removed past stage range · tap to expand</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
@@ -2752,9 +2776,9 @@ tr.overdue-critical .heat-ring {
         </div>
         <div class="settings-row-label">
           <div class="settings-row-label-main">Aged-Out Threshold</div>
-          <div class="settings-row-label-sub">Day borrowers are auto-removed (M2 = Day 16)</div>
+          <div class="settings-row-label-sub" id="settings-agedout-sub">Accounts outside your stage range are moved here</div>
         </div>
-        <span class="settings-row-value" style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--orange)">Day 16</span>
+        <span class="settings-row-value" style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--orange)" id="settings-agedout-day">—</span>
       </div>
       <!-- Show stage badges -->
       <div class="settings-row" style="cursor:default">
@@ -2846,7 +2870,7 @@ tr.overdue-critical .heat-ring {
         </div>
         <div class="settings-row-label">
           <div class="settings-row-label-main">Developed by</div>
-          <div class="settings-row-label-sub">Shadrack Agyei Arthur</div>
+          <div class="settings-row-label-sub" id="settings-agent-name-sub">—</div>
         </div>
       </div>
     </div>
@@ -2901,7 +2925,14 @@ tr.overdue-critical .heat-ring {
   <div class="mdrawer-header">
     <div class="mdrawer-logo" id="mdrawer-logo" style="display:flex;align-items:center;gap:9px"><div style="width:30px;height:30px;border-radius:9px;background:var(--gold-grad);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 10px rgba(240,160,48,0.4)"><span style="font-family:var(--font-head);font-size:13px;font-weight:800;color:#000;letter-spacing:-0.5px">ST</span></div><span style="background:var(--gold-grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">SqueveTrack</span></div>
   </div>
+  <div id="mdrawer-nav-list" style="display:flex;flex-direction:column;flex:1;min-height:0">
   <div class="mdrawer-month" id="mdrawer-month">📅 —</div>
+  <div style="padding:6px 14px 8px">
+    <div style="position:relative">
+      <input class="search-input" id="drawer-search-input" placeholder="🔍 Search borrowers..." oninput="debouncedGlobalSearch('drawer')" style="width:100%;font-size:12px;box-sizing:border-box">
+      <button onclick="clearSearch('drawer-search-input',renderGlobalSearch)" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:0">✕</button>
+    </div>
+  </div>
   <div class="mdrawer-item active" data-page="dashboard" onclick="navigateDrawer('dashboard')">
     <span class="mdrawer-icon" style="display:flex;align-items:center;justify-content:center"><svg style="width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="7" height="7" rx="1.5"/><rect x="11" y="2" width="7" height="7" rx="1.5"/><rect x="2" y="11" width="7" height="7" rx="1.5"/><rect x="11" y="11" width="7" height="7" rx="1.5"/></svg></span> Dashboard
   </div>
@@ -2935,6 +2966,7 @@ tr.overdue-critical .heat-ring {
   <div class="mdrawer-item" data-page="health" onclick="navigateDrawer('health')">
     <span class="mdrawer-icon" style="display:flex;align-items:center;justify-content:center"><svg style="width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="8"/><line x1="10" y1="6" x2="10" y2="10"/><line x1="10" y1="13" x2="10" y2="14"/></svg></span> Settings
   </div>
+  </div><!-- /mdrawer-nav-list -->
   <div class="mdrawer-footer">
     <!-- Sync + actions row -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
@@ -3592,12 +3624,12 @@ const STAGE_CONFIG = {
 
 function getAccountStage(b) {
   const od = getOdAge(b.startDate);
-  if (od <= 0) return STAGE_CONFIG.M0;
-  if (od <= 5) return STAGE_CONFIG.M1;
-  if (od <= 15) return STAGE_CONFIG.M2;
-  if (od <= 40) return STAGE_CONFIG.M3;
-  if (od <= 60) return STAGE_CONFIG.M4;
-  return STAGE_CONFIG.M5;
+  if (od <= 0)  return STAGE_CONFIG.M0;   // Same day — no default
+  if (od <= 5)  return STAGE_CONFIG.M1;   // Day 1-5
+  if (od <= 15) return STAGE_CONFIG.M2;   // Day 6-15
+  if (od <= 40) return STAGE_CONFIG.M3;   // Day 16-40
+  if (od <= 60) return STAGE_CONFIG.M4;   // Day 41-60
+  return STAGE_CONFIG.M5;                 // Day 61+
 }
 
 function getStageBadgeHtml(b) {
@@ -3610,7 +3642,6 @@ function getAgentStage() {
 }
 
 
-const LEGACY_STATE_KEY = 'mar_tracker_v3'; // for one-time migration
 const AGENTS_LS_KEY   = 'sq_agents';        // localStorage key for agent list
 const DEV_OVERRIDE    = 'SQV-DEV-2025';    // developer recovery code
 
@@ -3660,7 +3691,7 @@ async function _decryptFromStorage(stored, agentId) {
 }
 
 function getStateKey() {
-  return _activeAgent ? 'squevetrack_' + _activeAgent.id : LEGACY_STATE_KEY;
+  return 'squevetrack_' + (_activeAgent ? _activeAgent.id : 'default');
 }
 function getSupabaseId() {
   return _activeAgent ? 'agent_' + _activeAgent.id : 'main';
@@ -3785,7 +3816,15 @@ function migrateState(s) {
 }
 
 function purgeAgedOut() {
-  const toRemove = state.borrowers.filter(b => getOdAge(b.startDate) >= 16);
+  // Age-out threshold depends on the agent's stage
+  // Threshold per stage: M0=Day1, M1=Day6, M2=Day16, M3=Day41, M4=Day61, M5=never
+  const stageMaxDay = {
+    M0: 1, M1: 6, M2: 16, M3: 41, M4: 61, M5: Infinity
+  };
+  const agentStage = (_activeAgent && _activeAgent.stage) ? _activeAgent.stage : 'M2';
+  const threshold = stageMaxDay[agentStage] !== undefined ? stageMaxDay[agentStage] : 16;
+  if (threshold === Infinity) return; // M5 agents don't age out
+  const toRemove = state.borrowers.filter(b => getOdAge(b.startDate) >= threshold);
   if (!toRemove.length) return;
   const today = new Date().toISOString().split('T')[0];
   toRemove.forEach(b => {
@@ -3794,11 +3833,12 @@ function purgeAgedOut() {
       state.agedOutLog.unshift({
         id: b.id, name: b.name, phone: b.phone, loanType: b.loanType,
         loanDue: b.loanDue, amountPaid: b.amountPaid,
-        odAge: getOdAge(b.startDate), agedDate: today, status: getStatus(b)
+        odAge: getOdAge(b.startDate), agedDate: today, status: getStatus(b),
+        stage: agentStage
       });
     }
   });
-  state.borrowers = state.borrowers.filter(b => getOdAge(b.startDate) < 16);
+  state.borrowers = state.borrowers.filter(b => getOdAge(b.startDate) < threshold);
 }
 
 // ── Load: Supabase first, localStorage fallback ──────────────
@@ -3893,7 +3933,18 @@ async function _pushToSupabase() {
     const pinHash = myAgent?.pinHash || state._pinHash || null;
     const { error } = await _db.from('app_state').upsert({
       id: getSupabaseId(),
-      data: { ...state, _pinHash: pinHash },
+      data: {
+        ...state,
+        _pinHash: pinHash,
+        // Always embed agent identity so any device can reconstruct from this row
+        agentProfile: {
+          ...(state.agentProfile || {}),
+          id:     _activeAgent?.id     || state.agentProfile?.id,
+          lbCode: _activeAgent?.lbCode || state.agentProfile?.lbCode,
+          name:   _activeAgent?.name   || state.agentProfile?.name,
+          stage:  _activeAgent?.stage  || state.agentProfile?.stage,
+        }
+      },
       updated_at: new Date().toISOString()
     });
     if (error) throw error;
@@ -3907,10 +3958,14 @@ async function _pushToSupabase() {
 
 // ── COMPUTED ───────────────────────────────────────────
 function getOdAge(startDate) {
-  const start = new Date(startDate);
-  const today = new Date();
-  const diff = Math.floor((today - start) / 86400000);
-  return diff + 1;
+  if (!startDate) return 0;
+  // Use UTC/GMT — all dates treated as GMT midnight to avoid local timezone drift
+  const start = new Date(startDate + 'T00:00:00Z');  // GMT midnight on start date
+  const now   = new Date();
+  const todayUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const diff  = Math.floor((todayUTC - start.getTime()) / 86400000);
+  // diff=0 = M0 (no default yet), diff=1 = Day 1 of default, etc.
+  return Math.max(0, diff);
 }
 
 function getStatus(b) {
@@ -3928,14 +3983,132 @@ function getRemaining(b) {
 // Auto-calculate OD fee from principal + current OD age
 // Formula (confirmed from Excel): OD Fee = Principal x (odAge x 2 + 2) / 100
 // Day 6=14%, Day 7=16%, Day 8=18% ... Day 15=32%
+// ── OD Fee Calculation ───────────────────────────────────────────
+// Rules:
+//   M0 (od=0):  No OD fee — customer has not defaulted yet
+//   Day 1:      4% × (principal − amountPaid)  one-time
+//   Day 2+:     +2% × (principal − amountPaid) per day accumulated
+//   70% rule:   OD stops accumulating once amountPaid >= 70% of principal
+//   Cap:        Total OD never exceeds 1× original principal
+//
+// The day-by-day formula requires knowing the remaining principal
+// at the START of each day. We use payLog dates to reconstruct this.
+// For borrowers with no payLog, we use current remaining for all days.
+
 function getOdFee(b) {
   const od = getOdAge(b.startDate);
-  const rate = (od * 2 + 2) / 100;
-  return Math.round((b.principal || 0) * rate);
+  if (od <= 0) return 0;  // M0 — no default yet
+
+  const principal = b.principal || 0;
+  if (principal <= 0) return 0;
+
+  const amountPaid = b.amountPaid || 0;
+  const threshold70 = principal * 0.70;
+
+  // ── Build daily payment timeline from payLog ──────────────────
+  // payLog entries: { date, delta, amount } — date is YYYY-MM-DD
+  const payLog = (b.payLog || []).filter(p => p.date && p.delta > 0);
+
+  // Sort payments by date ascending
+  const sortedPays = payLog.slice().sort((a, z) => a.date.localeCompare(z.date));
+
+  // Get start date (GMT)
+  const startDateStr = b.startDate;
+
+  // Calculate cumulative paid BEFORE each OD day starts (midnight GMT)
+  // Day N starts at midnight GMT of startDate + N days
+  function paidBeforeDay(dayN) {
+    if (sortedPays.length === 0) return amountPaid; // no log — use current
+    const dayStartDate = new Date(startDateStr + 'T00:00:00Z');
+    dayStartDate.setUTCDate(dayStartDate.getUTCDate() + dayN);
+    const dayStr = dayStartDate.toISOString().split('T')[0];
+    // Sum payments with date BEFORE this day (strictly before = paid on previous days)
+    let cumPaid = 0;
+    for (const p of sortedPays) {
+      if (p.date < dayStr) cumPaid += (p.delta || 0);
+    }
+    return cumPaid;
+  }
+
+  // ── Accumulate OD day by day ──────────────────────────────────
+  let totalOD = 0;
+  const cap = principal;
+
+  for (let day = 1; day <= od; day++) {
+    // Paid amount known at start of this day
+    const paidAtStart = paidBeforeDay(day);
+
+    // 70% rule — if already paid 70%+ by start of this day, OD stops
+    if (paidAtStart >= threshold70) break;
+
+    // Remaining principal at start of this day
+    const remaining = Math.max(0, principal - paidAtStart);
+    if (remaining <= 0) break;
+
+    // Rate: 4% on Day 1, 2% every other day
+    const rate = day === 1 ? 0.04 : 0.02;
+    const dayOD = Math.round(remaining * rate);
+
+    totalOD += dayOD;
+
+    // Cap check
+    if (totalOD >= cap) {
+      totalOD = cap;
+      break;
+    }
+  }
+
+  return totalOD;
 }
 
-// Full amount owed = loan remaining + full OD fee (= "Amt Due Today" in Excel)
-// Returns 0 for fully paid customers so Due Today column stays clean
+// Detailed daily OD log for the OD fee breakdown modal
+function getOdLog(b) {
+  const od = getOdAge(b.startDate);
+  if (od <= 0) return [];
+
+  const principal   = b.principal || 0;
+  if (principal <= 0) return [];
+
+  const amountPaid  = b.amountPaid || 0;
+  const threshold70 = principal * 0.70;
+  const cap         = principal;
+  const payLog      = (b.payLog || []).filter(p => p.date && p.delta > 0);
+  const sortedPays  = payLog.slice().sort((a, z) => a.date.localeCompare(z.date));
+  const startDateStr = b.startDate;
+
+  function paidBeforeDay(dayN) {
+    if (sortedPays.length === 0) return amountPaid;
+    const dayStartDate = new Date(startDateStr + 'T00:00:00Z');
+    dayStartDate.setUTCDate(dayStartDate.getUTCDate() + dayN);
+    const dayStr = dayStartDate.toISOString().split('T')[0];
+    let cumPaid = 0;
+    for (const p of sortedPays) {
+      if (p.date < dayStr) cumPaid += (p.delta || 0);
+    }
+    return cumPaid;
+  }
+
+  const log = [];
+  let cumOD = 0;
+
+  for (let day = 1; day <= od; day++) {
+    const paidAtStart = paidBeforeDay(day);
+    if (paidAtStart >= threshold70) {
+      log.push({ day, rate: '—', base: 0, fee: 0, cumulative: cumOD, stopped: '70% paid' });
+      break;
+    }
+    const remaining = Math.max(0, principal - paidAtStart);
+    if (remaining <= 0) { break; }
+    const rate   = day === 1 ? 0.04 : 0.02;
+    const dayOD  = Math.round(remaining * rate);
+    cumOD += dayOD;
+    if (cumOD >= cap) { cumOD = cap; log.push({ day, rate: (rate*100)+'%', base: remaining, fee: dayOD, cumulative: cumOD, stopped: 'cap' }); break; }
+    log.push({ day, rate: (rate*100)+'%', base: remaining, fee: dayOD, cumulative: cumOD, stopped: null });
+  }
+  return log;
+}
+
+
 function getDueToday(b) {
   if (b.isPaid) return 0;
   return Math.max(0, getRemaining(b) + getOdFee(b));
@@ -3978,23 +4151,30 @@ function getSmsMessage(b, useGenerous) {
   const fullAmount = fmtC(getDueToday(b));
   const type = b.loanType;
   const guide = payGuide(b);
+  // Stage-relative urgency thresholds for message tone
+  const [minDay, maxDay] = getAgentDayRange();
+  const range = Math.max(1, maxDay - minDay);
+  const stagePct = Math.min(1, Math.max(0, (od - minDay) / range));
+  const isEarlyStage  = stagePct < 0.33;   // first third of stage
+  const isMidStage    = stagePct < 0.66;   // first two-thirds
+  // isLateStage = stagePct >= 0.66 (last third — most aggressive)
 
   if (isPartial) {
     if (useGenerous) {
       // Partial payer + generous mode: acknowledge payment, then offer discount
       const saving = fmtC(Math.round(getOdFee(b) * (1 - (state.discountRate||0.30))));
-      if (od <= 8) {
+      if (isEarlyStage) {
         return name + ', we acknowledge your recent payment on your ' + type + ' loan. As a goodwill gesture, we are offering you a ONE-TIME discount to clear your remaining balance. Settle today for ' + genAmount + ' instead of ' + fullAmount + ' and save ' + saving + ' in penalty fees. This offer is valid TODAY ONLY.' + guide;
       }
-      if (od <= 12) {
+      if (isMidStage) {
         return name + ', your partial payment has been noted. Despite your account being overdue, we are offering a discounted settlement of ' + genAmount + ' (saving you ' + saving + ') instead of the full ' + fullAmount + '. Pay today to close your account and avoid further escalation. This is a limited offer.' + guide;
       }
       return name + ', your partial payment was acknowledged. However your ' + type + ' loan remains CRITICALLY OVERDUE. As a final gesture before legal recovery, we will accept ' + genAmount + ' (saving ' + saving + ') instead of the full ' + fullAmount + '. This offer expires in 24 HOURS. Pay immediately or contact us.' + guide;
     }
-    if (od <= 8) {
+    if (isEarlyStage) {
       return name + ', we acknowledge your recent payment on your ' + type + ' loan account. However, your remaining balance of ' + amount + ' is still outstanding and must be settled TODAY. Daily penalty charges continue to accrue until your account is fully cleared. Do not delay.' + guide;
     }
-    if (od <= 12) {
+    if (isMidStage) {
       return name + ', despite your partial payment, your ' + type + ' loan balance of ' + amount + ' remains UNPAID and overdue. This account is now under review for escalation. You must settle the full outstanding amount TODAY to prevent formal recovery proceedings from being initiated.' + guide;
     }
     return name + ', your partial payment has been noted. However, your ' + type + ' loan balance of ' + amount + ' is CRITICALLY OVERDUE. This account has been flagged for immediate legal recovery. You have 24 HOURS to settle in full before formal proceedings begin. This is your final notice.' + guide;
@@ -4003,19 +4183,19 @@ function getSmsMessage(b, useGenerous) {
   if (useGenerous) {
     // All OD days get the discount message — tone escalates with urgency
     const saving = fmtC(Math.round(getOdFee(b) * (1 - (state.discountRate||0.30))));
-    if (od <= 8) {
+    if (isEarlyStage) {
       return name + ', as a goodwill gesture, we are offering you a ONE-TIME discount on your ' + type + ' loan. Settle your account today for ' + genAmount + ' instead of the full ' + fullAmount + ' and save ' + saving + ' in penalty fees. This offer is valid TODAY ONLY and will not be extended.' + guide;
     }
-    if (od <= 12) {
+    if (isMidStage) {
       return name + ', this is your FINAL opportunity to settle your ' + type + ' loan at a discounted rate. Pay ' + genAmount + ' today (saving ' + saving + ') to clear your account before formal recovery proceedings are initiated. After today, the full overdue balance of ' + fullAmount + ' plus additional legal costs will apply. Do not miss this.' + guide;
     }
     return name + ', LAST OFFER BEFORE LEGAL ACTION. We are prepared to accept ' + genAmount + ' (saving you ' + saving + ') as full and final settlement of your ' + type + ' loan before formal recovery begins. This concession expires within 24 hours. After this, you will be liable for the full amount of ' + fullAmount + ' plus all legal and recovery costs. Act now.' + guide;
   }
 
-  if (od <= 8) {
+  if (isEarlyStage) {
     return name + ', your ' + type + ' loan repayment of ' + amount + ' is now OVERDUE. Every day of non-payment attracts additional penalty charges on your account. You are required to make full payment TODAY. Failure to do so will result in escalation and further fees being applied to your outstanding balance.' + guide;
   }
-  if (od <= 12) {
+  if (isMidStage) {
     return name + ', your ' + type + ' loan of ' + amount + ' remains UNPAID and continues to accrue daily penalty charges. This account is under active review and is approaching escalation. You MUST settle this balance in full TODAY. Further delay will result in formal recovery action being taken without additional notice.' + guide;
   }
   return name + ', FINAL NOTICE. Your ' + type + ' loan of ' + amount + ' is CRITICALLY OVERDUE. This account has been referred for formal legal recovery. You have 24 HOURS to make full payment before proceedings are initiated. Once legal action begins, you will be responsible for all associated costs in addition to your outstanding balance. Make payment or contact us IMMEDIATELY.' + guide;
@@ -4027,11 +4207,18 @@ function getWaLink(b, useGenerous) {
   return 'https://wa.me/' + phone + '?text=' + msg;
 }
 
-// M2 scope: active means Day 6-15 unpaid/partial
+// Returns the agent stage day range [min, max] — dynamic per stage
+function getAgentDayRange() {
+  const stage = (_activeAgent && _activeAgent.stage) ? _activeAgent.stage : 'M2';
+  const bands = { M0:[0,0], M1:[1,5], M2:[6,15], M3:[16,40], M4:[41,60], M5:[61,89] };
+  return bands[stage] || bands.M2;
+}
+
 function getActiveBorrowers() {
-  return state.borrowers.filter(b => {
+  const [minDay, maxDay] = getAgentDayRange();
+  return state.borrowers.filter(function(b) {
     const od = getOdAge(b.startDate);
-    return getStatus(b) !== 'Paid' && od >= 6 && od <= 15;
+    return getStatus(b) !== 'Paid' && od >= minDay && od <= maxDay;
   });
 }
 
@@ -4047,9 +4234,13 @@ function fmt(n) {
 function fmtC(n) { return '₵' + fmt(n); }
 
 function odClass(od) {
-  if (od >= 15) return 'od-critical';
-  if (od >= 13) return 'od-high';
-  if (od >= 11) return 'od-medium';
+  // Classify urgency relative to the agent's stage range
+  const [minDay, maxDay] = getAgentDayRange();
+  const range = Math.max(1, maxDay - minDay);
+  const pct = Math.min(1, (od - minDay) / range);  // 0=start of stage, 1=end
+  if (pct >= 0.80) return 'od-critical';
+  if (pct >= 0.60) return 'od-high';
+  if (pct >= 0.30) return 'od-medium';
   return 'od-low';
 }
 
@@ -4232,7 +4423,7 @@ function renderDashboard() {
     alertHtml += '<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-left:4px solid var(--red);border-radius:8px;padding:14px 18px;margin-bottom:14px;animation:fadeUp 0.3s ease both">'
       + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">'
       + '<div><div style="font-weight:700;color:var(--red);font-size:13px">⚠️ ' + agingTomorrow.length + ' account' + (agingTomorrow.length>1?'s':'') + ' aging out tomorrow</div>'
-      + '<div style="font-size:11px;color:var(--text3);margin-top:2px">These accounts hit Day 16 tomorrow and will be removed from M2. Last chance to collect today.</div></div>'
+      + '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + (function(){var _s=(_activeAgent&&_activeAgent.stage)||'M2';var _b={M0:1,M1:6,M2:16,M3:41,M4:61};var _d=_b[_s]||16;return 'These accounts hit Day '+_d+' tomorrow and will be removed from '+_s+'. Last chance to collect today.';})() + '</div></div>'
       + '<button class="btn btn-red btn-sm" id="alert-aging-btn">View Now ↗</button>'
       + '</div>'
       + '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px" id="alert-aging-names">'
@@ -4311,7 +4502,8 @@ function renderDashboard() {
   const sortedOd = Object.entries(odGroups).sort((a,b) => b[1].od - a[1].od);
   const maxOdTotal = Math.max(...sortedOd.map(([,v]) => v.total), 1);
   document.getElementById('dash-urgency').innerHTML = sortedOd.map(([k,v]) => {
-    const cls = v.od >= 15 ? '#ef4444' : v.od >= 13 ? '#f97316' : v.od >= 11 ? '#fbbf24' : '#60a5fa';
+    const _dr=getAgentDayRange(),_drr=Math.max(1,_dr[1]-_dr[0]),_dp=(v.od-_dr[0])/_drr;
+    const cls = _dp>=0.80?'#ef4444':_dp>=0.60?'#f97316':_dp>=0.30?'#fbbf24':'#60a5fa';
     const w = (v.total / maxOdTotal * 100).toFixed(0);
     return '<div class="urgency-row" style="cursor:pointer" onclick="showBorrowersPopup(\'\',\'\','+v.od+');haptic(\'light\')" title="View Day '+v.od+' accounts">'
       + '<div class="urgency-day">'+k+'</div>'
@@ -5026,11 +5218,12 @@ function renderAnalytics() {
       + '<div style="font-size:11px;color:var(--text3);margin-bottom:6px">Account positions (Day 6 → 15)</div>'
       + '<div style="position:relative;height:24px;background:linear-gradient(to right,rgba(96,165,250,0.12),rgba(168,85,247,0.2));border-radius:6px">';
     active.forEach(function(b) {
-      var od=getOdAge(b.startDate), pct2=Math.round((od-6)/9*100);
-      var dc=od>=14?'#a855f7':od>=12?'#ef4444':od>=10?'#f97316':od>=8?'#e8a020':'#60a5fa';
+      var od=getOdAge(b.startDate), pct2=(function(){var _r=getAgentDayRange();return Math.round(_r[1]-_r[0]>0?(od-_r[0])/(_r[1]-_r[0])*100:0);})();
+      var _r2=getAgentDayRange(),_rr=Math.max(1,_r2[1]-_r2[0]),_pp=(od-_r2[0])/_rr;
+      var dc=_pp>=0.90?'#a855f7':_pp>=0.70?'#ef4444':_pp>=0.50?'#f97316':_pp>=0.25?'#e8a020':'#60a5fa';
       agHtml += '<div style="position:absolute;left:'+pct2+'%;top:50%;transform:translate(-50%,-50%);width:8px;height:8px;border-radius:50%;background:'+dc+';opacity:0.85" title="'+b.name+' Day '+od+'"></div>';
     });
-    agHtml += '</div><div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:2px"><span>Day 6</span><span>Day 15</span></div></div>';
+    agHtml += '</div><div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:2px"><span>Day '+getAgentDayRange()[0]+'</span><span>Day '+getAgentDayRange()[1]+'</span></div></div>';
     agingEl.innerHTML = agHtml;
     agingEl.querySelectorAll('.ag-band').forEach(function(el){
       el.addEventListener('click',function(){ haptic('light'); showBorrowersPopup('','',parseInt(el.dataset.agmin)); });
@@ -5162,7 +5355,7 @@ function renderDispatch() {
     if (filter === 'high') return s !== 'Paid' && due >= 1000;
     if (filter === 'medium') return s !== 'Paid' && due >= 400 && due < 1000;
     if (filter === 'low') return s !== 'Paid' && due < 400;
-    if (filter === 'critical') return s !== 'Paid' && od >= 13;
+    if (filter === 'critical') { const [_cMin,_cMax]=getAgentDayRange(); return s !== 'Paid' && od >= Math.round(_cMin + (_cMax-_cMin)*0.75); }
     if (filter === 'promised') return b.promisedToPay;
     return s !== 'Paid';
   }).filter(b => !dispatchSearch || b.name.toLowerCase().includes(dispatchSearch) || b.phone.includes(dispatchSearch))
@@ -5186,8 +5379,7 @@ function renderDispatch() {
     + ' &nbsp;·&nbsp; 🤝 Promised: <b>' + promisedN + '</b>'
     + ' &nbsp;·&nbsp; Showing: <b>' + list.length + '</b>'
     + ' &nbsp;<button class="btn btn-ghost btn-xs" style="margin-left:4px;color:#25d366;border-color:#25d366" onclick="launchDispatchQueue()" title="Queue contacts for personalised WhatsApp">💬 Queue All (' + list.length + ')</button>'
-    + ' &nbsp;<button class="btn btn-ghost btn-xs" style="margin-left:4px" onclick="openWaBroadcastExport()">📋 Broadcast List</button>'
-    + ' &nbsp;<button class="btn btn-ghost btn-xs" style="margin-left:4px" onclick="openWaBroadcastExport()" title="Export broadcast list">📋 Broadcast List</button>';
+    + ' &nbsp;<button class="btn btn-ghost btn-xs" style="margin-left:4px" onclick="openWaBroadcastExport()">📋 Broadcast List</button>';
 
   if (!list.length) {
     document.getElementById('dispatch-list').innerHTML = '<div class="empty-state" style="padding:30px 0"><div class="icon">✅</div><div>All accounts cleared!</div></div>';
@@ -5204,7 +5396,7 @@ function renderDispatch() {
 
   let html = '';
   Object.values(groups).forEach(g => {
-    const cls = g.od >= 15 ? 'od-critical' : g.od >= 13 ? 'od-high' : g.od >= 11 ? 'od-medium' : 'od-low';
+    const cls = odClass(g.od);
     const grpTotal = g.items.reduce((s,b) => s + (useGenerous ? b.generous : b.dueToday), 0);
     html += '<div class="dispatch-group-hdr">'
       + '<span class="' + cls + '">Day ' + g.od + ' &mdash; ' + g.items.length + ' account' + (g.items.length>1?'s':'') + '</span>'
@@ -5641,7 +5833,14 @@ function doExportPDF(mode) {
   const today = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
   const month = new Date().toLocaleDateString('en-GB',{month:'long',year:'numeric'});
   // OD age breakdown
-  const agingBands = [{label:'Day 6-7',min:6,max:7},{label:'Day 8-9',min:8,max:9},{label:'Day 10-11',min:10,max:11},{label:'Day 12-13',min:12,max:13},{label:'Day 14-15',min:14,max:15}];
+  const [_aBandMin,_aBandMax] = getAgentDayRange();
+  const _aBandRange = _aBandMax - _aBandMin;
+  const _aBandSize  = Math.ceil(_aBandRange / 5);
+  const agingBands  = Array.from({length:5}, function(_,i) {
+    const min = _aBandMin + i * _aBandSize;
+    const max = Math.min(_aBandMax, min + _aBandSize - 1);
+    return {label:'Day '+min+'-'+max, min, max};
+  }).filter(function(band){ return band.min <= _aBandMax; });
   const agingRows = agingBands.map(band => {
     const grp = active.filter(b=>{const od=getOdAge(b.startDate);return od>=band.min&&od<=band.max;});
     const due = grp.reduce((s,b)=>s+getDueToday(b),0);
@@ -5833,9 +6032,9 @@ function importFromClipboard() {
     const [name, phone, loanDue, principal, amountPaid, loanType, odAgeStr] = cols;
     if (!name || !loanDue) { skipped++; return; }
     const odAge = parseInt(odAgeStr) || 6;
-    const d = new Date(); d.setDate(d.getDate() - (odAge - 1));
+    const d = new Date(); d.setUTCDate(d.getUTCDate() - odAge);  // odAge days ago = Day odAge in GMT
     state.borrowers.push({
-      id: 'b' + Date.now() + Math.random().toString(36).slice(2),
+      id: (crypto && crypto.randomUUID ? crypto.randomUUID() : 'b' + Date.now() + Math.random().toString(36).slice(2)),
       name, phone: phone || '', principal: parseFloat(principal)||0,
       loanDue: parseFloat(loanDue)||0, overdueFeee: 0,
       amountPaid: parseFloat(amountPaid)||0,
@@ -5868,9 +6067,9 @@ function importFromCSV() {
       const name = get(row,'name'); const loanDue = get(row,'loandue');
       if (!name || !loanDue) { skipped++; return; }
       const odAge = parseInt(get(row,'odage')) || 6;
-      const d = new Date(); d.setDate(d.getDate() - (odAge - 1));
+      const d = new Date(); d.setUTCDate(d.getUTCDate() - odAge);  // odAge days ago = Day odAge in GMT
       state.borrowers.push({
-        id: 'b' + Date.now() + Math.random().toString(36).slice(2),
+        id: (crypto && crypto.randomUUID ? crypto.randomUUID() : 'b' + Date.now() + Math.random().toString(36).slice(2)),
         name, phone: get(row,'phone')||'',
         principal: parseFloat(get(row,'principal'))||0,
         loanDue: parseFloat(loanDue)||0, overdueFeee: 0,
@@ -5959,7 +6158,7 @@ function openBorrowerDetail(id) {
   var lastCall = (b.callLog||[]).slice(-1)[0];
   var lastPay  = log.slice(-1)[0];
   var recentCallIcon = lastCall ? ({Answered:'✅',Promised:'🤝',Refused:'🚫','No Answer':'📵',Redirected:'🔀',Busy:'📞','Requested Callback':'📅','No Commitment':'😶',Fraud:'🚨','Phone Off':'📴','Wrong Number':'🔢'}[lastCall.outcome]||'📞') : null;
-  var odTrend = od >= 13 ? '🔺 Critical' : od >= 10 ? '⚠️ High' : od >= 8 ? '🟡 Moderate' : '🟢 Early';
+  var odTrend = (function(){var _r=getAgentDayRange(),_min=_r[0],_rng=Math.max(1,_r[1]-_min),_p=(od-_min)/_rng; return _p>=0.80?'🔺 Critical':_p>=0.55?'⚠️ High':_p>=0.25?'🟡 Moderate':'🟢 Early';})();
   var payVelocity = log.length >= 2 ? (() => {
     var recent = log.slice(-3).reduce((s,p)=>s+(p.delta||0),0);
     return recent > 0 ? '📈 Paying' : '📉 Stalled';
@@ -6151,17 +6350,21 @@ function recordPayment(id) {
 
 function buildOdOptions(b) {
   const currentOd = b ? getOdAge(b.startDate) : 1;
+  // Restrict day options to the range of the active agent's stage
+  const stage = (_activeAgent && STAGE_CONFIG[_activeAgent.stage]) ? _activeAgent.stage : null;
+  const stageBands = {
+    M0: [0, 0], M1: [1, 5], M2: [6, 15], M3: [16, 40], M4: [41, 60], M5: [61, 89]
+  };
+  const [minDay, maxDay] = stage && stageBands[stage] ? stageBands[stage] : [1, 89];
+  // Clamp current OD to stage range for pre-selection
+  const preselect = b ? Math.min(Math.max(currentOd, minDay), maxDay) : minDay;
   let html = '';
-  for (let i = 1; i <= 20; i++) {
-    const sel = currentOd === i ? ' selected' : '';
+  for (let i = Math.max(1, minDay); i <= maxDay; i++) {
+    const sel = preselect === i ? ' selected' : '';
     let label = 'Day ' + i;
-    if (i === 1) label += ' (Today)';
-    else if (i === 2) label += ' (Yesterday)';
-    if (i >= 14) label += ' ⚠️';
+    if (i === 1) label += ' — M1 start (4%)';
     html += '<option value="' + i + '"' + sel + '>' + label + '</option>';
   }
-  const sel21 = currentOd >= 21 ? ' selected' : '';
-  html += '<option value="21"' + sel21 + '>Day 21+</option>';
   return html;
 }
 
@@ -6206,7 +6409,7 @@ function saveBorrower(id) {
   const odAge = parseInt(document.getElementById('f-odage').value) || 6;
   const startDate = (() => {
     const d = new Date();
-    d.setDate(d.getDate() - (odAge - 1));
+    d.setUTCDate(d.getUTCDate() - odAge);  // odAge days ago = Day odAge in GMT
     return d.toISOString().split('T')[0];
   })();
   const loanType = document.getElementById('f-loantype').value;
@@ -6226,7 +6429,7 @@ function saveBorrower(id) {
     if (b) Object.assign(b, { name, phone, principal, loanDue, amountPaid, startDate, loanType, notes, targetPayment, instalment });
     toast('Borrower updated', 'success');
   } else {
-    state.borrowers.push({ id: 'b' + Date.now(), name, phone, principal, loanDue, overdueFeee: 0, amountPaid, startDate, loanType, notes, targetPayment, instalment, promisedToPay: false, isPaid: false });
+    state.borrowers.push({ id: (crypto && crypto.randomUUID ? crypto.randomUUID() : 'b' + Date.now()), name, phone, principal, loanDue, overdueFeee: 0, amountPaid, startDate, loanType, notes, targetPayment, instalment, promisedToPay: false, isPaid: false });
     toast('Borrower added', 'success');
   }
   saveState();
@@ -6359,38 +6562,84 @@ function initModalSwipeDown() {
 
   let startY = 0, startX = 0, curY = 0, dragging = false, cancelled = false;
   let lastT = 0, lastY = 0, velocity = 0, rafId = null;
-  let startScrollTop = 0;  // capture body scroll position at touch start
+  let _touchTarget = null;
   const CLOSE_THRESHOLD = 90;
   const VELOCITY_CLOSE  = 0.4;
   const RESISTANCE      = 0.88;
 
-  function getBody() { return modal.querySelector('.modal-body'); }
+  // Walk up DOM from touch target and find any scrollable ancestor within modal
+  function isInsideScrollable(target) {
+    let el = target;
+    while (el && el !== modal) {
+      const st = el.scrollTop;
+      const sh = el.scrollHeight;
+      const ch = el.clientHeight;
+      // Element is scrollable AND has been scrolled down (not at top)
+      if (sh > ch + 2 && st > 2) return true;
+      el = el.parentElement;
+    }
+    return false;
+  }
+
+  // Only block drag if a scrollable ancestor has more content BELOW
+  // AND hasn't been scrolled to the very bottom yet.
+  // When user has scrolled back to top (scrollTop ≈ 0), allow drag through.
+  function hasMoreContentBelow(target) {
+    let el = target;
+    while (el && el !== modal) {
+      const sh = el.scrollHeight;
+      const ch = el.clientHeight;
+      const st = el.scrollTop;
+      // Scrollable, not at top (has been scrolled), and not at bottom
+      if (sh > ch + 2 && st > 2 && st < sh - ch - 2) return true;
+      // Scrollable, at top (st≈0), but has content below — still allow drag
+      // because user is at the natural starting position
+      el = el.parentElement;
+    }
+    return false;
+  }
 
   function onStart(e) {
     const t = e.touches[0];
     startY = t.clientY; startX = t.clientX;
     curY = 0; velocity = 0; lastY = startY; lastT = Date.now();
     dragging = false; cancelled = false;
-    // Capture scroll position at gesture start
-    const body = getBody();
-    startScrollTop = body ? body.scrollTop : 0;
+    _touchTarget = e.target;
   }
   function onMove(e) {
     if (cancelled) return;
     const t = e.touches[0];
     const dy = t.clientY - startY;
     const dx = t.clientX - startX;
+
+    // Cancel if predominantly horizontal
     if (!dragging && Math.abs(dx) > Math.abs(dy) + 6) { cancelled = true; return; }
-    const body = getBody();
-    // Cancel if body has been scrolled at all since touch started (user is scrolling content)
-    if (body && body.scrollTop > 4) { cancelled = true; return; }
-    // Cancel if downward pull but body still has scrollable content above
-    if (body && startScrollTop > 0) { cancelled = true; return; }
-    if (dy <= 0) { cancelled = true; return; }
+
     if (!dragging) {
-      if (dy < 10) return;
+      // Cancel if touch started inside a scrolled element
+      if (_touchTarget && isInsideScrollable(_touchTarget)) { cancelled = true; return; }
+      // Cancel if swiping up (dy < 0)
+      if (dy < 0) { cancelled = true; return; }
+      // Cancel if swiping down and there's scrollable content below that hasn't been reached
+      if (dy > 0 && _touchTarget && hasMoreContentBelow(_touchTarget)) { cancelled = true; return; }
+      // Need 12px intent before committing
+      if (dy < 12) return;
       dragging = true;
       modal.classList.add('dragging');
+    }
+
+    // Once dragging: still cancel if a scroll container has moved
+    if (dragging && _touchTarget && isInsideScrollable(_touchTarget)) {
+      // User started scrolling mid-drag — snap back
+      cancelled = true;
+      dragging = false;
+      modal.classList.remove('dragging');
+      cancelAnimationFrame(rafId);
+      modal.style.transition = 'transform 0.22s cubic-bezier(0.34,1.2,0.64,1)';
+      modal.style.transform = '';
+      overlay.style.background = '';
+      modal.addEventListener('transitionend', function() { modal.style.transition = ''; }, { once: true });
+      return;
     }
     const now = Date.now();
     velocity = (t.clientY - lastY) / Math.max(1, now - lastT);
@@ -6546,7 +6795,7 @@ function renderAgedOut() {
   const list = state.agedOutLog || [];
   const el = document.getElementById('agedout-list');
   if (!list.length) {
-    el.innerHTML = '<div class="empty-state" style="padding:30px 0"><div class="icon">📤</div><div>No aged-out accounts yet. Accounts hitting Day 16 will appear here.</div></div>';
+    el.innerHTML = '<div class="empty-state" style="padding:30px 0"><div class="icon">📤</div><div>No aged-out accounts yet. Accounts hitting Day ' + ((function(){var _s=(_activeAgent&&_activeAgent.stage)||'M2';var _b={M0:1,M1:6,M2:16,M3:41,M4:61};return _b[_s]||16;})()) + ' will appear here.</div></div>';
     return;
   }
   el.innerHTML = list.map(a => {
@@ -6605,7 +6854,13 @@ function renderSettingsAgedOut() {
   if (countEl)  countEl.textContent = list.length + ' account' + (list.length !== 1 ? 's' : '');
   if (clearBtn) clearBtn.style.display = list.length ? '' : 'none';
   if (!list.length) {
-    listEl.innerHTML = '<div style="padding:16px 0 18px;text-align:center;color:var(--text3);font-size:12px">No aged-out accounts yet.<br><span style="font-size:11px">Accounts reaching Day 16 will appear here.</span></div>';
+    listEl.innerHTML = (function(){
+    var _s=(_activeAgent&&_activeAgent.stage)||'M2';
+    var _bands={M0:1,M1:6,M2:16,M3:41,M4:61,M5:null};
+    var _d=_bands[_s];
+    var _msg=_d?'Accounts reaching Day '+_d+' will appear here.':'No accounts age out at this stage.';
+    return '<div style="padding:16px 0 18px;text-align:center;color:var(--text3);font-size:12px">No aged-out accounts yet.<br><span style="font-size:11px">'+_msg+'</span></div>';
+  })();
   } else {
     listEl.innerHTML = '<div style="padding-top:4px;padding-bottom:12px">' +
       list.map(function(a) {
@@ -6613,7 +6868,7 @@ function renderSettingsAgedOut() {
         return '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">'
           + '<div style="flex:1;min-width:0">'
           + '<div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escapeHtml(a.name) + '</div>'
-          + '<div style="font-size:10px;color:var(--text3);margin-top:2px">' + escapeHtml(a.phone) + ' · ' + a.loanType + ' · ' + a.agedDate + '</div>'
+          + '<div style="font-size:10px;color:var(--text3);margin-top:2px">' + escapeHtml(a.phone) + ' · ' + a.loanType + ' · Day ' + (a.odAge||'?') + ' · ' + a.agedDate + '</div>'
           + '</div>'
           + '<div style="font-family:var(--font-mono);font-size:12px;font-weight:700;flex-shrink:0;color:' + (remaining > 0 ? 'var(--red)' : 'var(--green)') + '">' + (remaining > 0 ? fmtC(remaining) + ' unpaid' : '✅ Cleared') + '</div>'
           + '</div>';
@@ -7643,7 +7898,7 @@ function doRollover() {
   // Reset
   const nextMonthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const nm = nextMonthNames[(new Date().getMonth()+1)%12] + ' ' + (new Date().getMonth()===11?new Date().getFullYear()+1:new Date().getFullYear());
-  state.borrowers = state.borrowers.filter(b => getStatus(b) !== 'Paid' && getOdAge(b.startDate) < 16 ? false : false); // clear all
+  state.borrowers = state.borrowers.filter(b => false); // clear all
   state.borrowers = [];
   state.dailyLog = [];
   state.monthlyTarget = newTarget || 0;
@@ -8075,7 +8330,7 @@ function renderPtp() {
 
 // ── GLOBAL SEARCH ──────────────────────────────────────
 function renderGlobalSearch() {
-  var q = (document.getElementById('global-search-input')?.value || '').toLowerCase().trim();
+  var q = ((document.getElementById('global-search-input')?.value || document.getElementById('drawer-search-input')?.value || '')).toLowerCase().trim();
   var res = document.getElementById('global-search-results');
   if (!res) return;
   if (!q) { res.style.display = 'none'; return; }
@@ -8262,6 +8517,29 @@ function renderForecast() {
 }
 
 // ── PORTFOLIO SEGMENTS ─────────────────────────────────
+// ── Analytics Segments collapse toggle ───────────────────────
+let _analyticsSegsOpen = false;
+function toggleAnalyticsSegments() {
+  _analyticsSegsOpen = !_analyticsSegsOpen;
+  const el  = document.getElementById('analytics-segments');
+  const chv = document.getElementById('analytics-seg-chevron');
+  if (!el) return;
+  if (_analyticsSegsOpen) {
+    el.style.maxHeight = el.scrollHeight + 60 + 'px';
+    setTimeout(function() {
+      if (_analyticsSegsOpen) { el.style.maxHeight = '2000px'; el.style.overflowY = 'auto'; }
+    }, 360);
+    if (chv) chv.style.transform = 'rotate(90deg)';
+    renderSegments();   // render on first open
+  } else {
+    el.style.overflowY = 'hidden';
+    el.style.maxHeight = el.scrollHeight + 'px';
+    requestAnimationFrame(function() { el.style.maxHeight = '0'; });
+    if (chv) chv.style.transform = '';
+  }
+  haptic('light');
+}
+
 function renderSegments() {
   // Target: analytics-segments panel (primary) or legacy segments-body page
   var el = document.getElementById('analytics-segments') || document.getElementById('segments-body');
@@ -8275,7 +8553,8 @@ function renderSegments() {
     var od = getOdAge(b.startDate);
     if (ratio >= 0.5) score += 3; else if (ratio > 0) score += 1;
     if (b.promisedToPay) score += 2;
-    if (od <= 9) score += 2; else if (od <= 12) score += 1;
+    var _sr=getAgentDayRange(),_smin=_sr[0],_srng=Math.max(1,_sr[1]-_smin),_sp=(od-_smin)/_srng;
+    if (_sp <= 0.40) score += 2; else if (_sp <= 0.70) score += 1;
     if (b.amountPaid > 0) score += 1;
     if (score >= 6) return 'A';
     if (score >= 3) return 'B';
@@ -8350,7 +8629,17 @@ function debouncedRenderLoans() {
 }
 
 var _globalSearchTimer = null;
-function debouncedGlobalSearch() {
+function debouncedGlobalSearch(source) {
+  // Sync drawer and sidebar search inputs
+  if (source === 'drawer') {
+    var dv = document.getElementById('drawer-search-input')?.value || '';
+    var si = document.getElementById('global-search-input');
+    if (si && si.value !== dv) si.value = dv;
+  } else {
+    var sv = document.getElementById('global-search-input')?.value || '';
+    var di = document.getElementById('drawer-search-input');
+    if (di && di.value !== sv) di.value = sv;
+  }
   clearTimeout(_globalSearchTimer);
   _globalSearchTimer = setTimeout(renderGlobalSearch, 120);
 }
@@ -8653,7 +8942,7 @@ function generateEODReport() {
   const ptpHonoured = ptpToday.filter(b => b.amountPaid > 0);
   const totalOutstanding = active.reduce((s,b) => s + getRemaining(b), 0);
   const date = new Date().toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short', year:'numeric'});
-  const text = `📊 *EOD COLLECTION REPORT*\n*${date}*\nAgent: Shadrack Agyei Arthur\nSupervisor: NANA OSAE EMMANUEL\n\n💰 Collected Today: *${fmtC(collected)}*\n👥 Active Accounts: ${active.length}\n✅ Fully Paid Today: ${paid.length}\n⚠️ Partial Payment: ${partial.length}\n🤝 PTPs Set: ${ptpToday.length}\n✔️ PTPs Honoured: ${ptpHonoured.length}\n💸 Total Outstanding: ${fmtC(totalOutstanding)}\n\n_Sent from SqueveTrack_`;
+  const text = `📊 *EOD COLLECTION REPORT*\n*${date}*\nAgent: ${(_activeAgent?.name||state.agentProfile?.name||"Agent")}\nSupervisor: ${(state.agentProfile?.supervisor||"")}\n\n💰 Collected Today: *${fmtC(collected)}*\n👥 Active Accounts: ${active.length}\n✅ Fully Paid Today: ${paid.length}\n⚠️ Partial Payment: ${partial.length}\n🤝 PTPs Set: ${ptpToday.length}\n✔️ PTPs Honoured: ${ptpHonoured.length}\n💸 Total Outstanding: ${fmtC(totalOutstanding)}\n\n_Sent from SqueveTrack_`;
   document.getElementById('modal-title').textContent = '📊 EOD Report';
   document.getElementById('modal-body').innerHTML =
     `<div class="report-output" style="font-size:12px;white-space:pre-wrap;user-select:all">${text}</div>`;
@@ -8723,7 +9012,9 @@ function renderGapWidget() { /* removed — info shown in target section */ }
 
 // ── TREADMILL ALERT (Day 6 new entries) ────────────────
 function renderTreadmillAlert() {
-  const allDay6 = state.borrowers.filter(b => getOdAge(b.startDate) === 6);
+  const stage = (_activeAgent && _activeAgent.stage) ? _activeAgent.stage : 'M2';
+  const tDay = (STAGE_CONFIG[stage] && STAGE_CONFIG[stage].treadmillDay) ? STAGE_CONFIG[stage].treadmillDay : 6;
+  const allDay6 = state.borrowers.filter(b => getOdAge(b.startDate) === tDay);
   const el = document.getElementById('treadmill-alert');
   if (!el) return;
   if (allDay6.length === 0) { el.style.display = 'none'; return; }
@@ -8732,7 +9023,7 @@ function renderTreadmillAlert() {
   el.innerHTML = `
     <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px">
       <div>
-        <div style="font-weight:700;color:var(--red);font-size:13px">🔄 Treadmill: ${allDay6.length} new Day 6 account${allDay6.length>1?'s':''}</div>
+        <div style="font-weight:700;color:var(--red);font-size:13px">🔄 Treadmill: ${allDay6.length} new Day ${tDay} account${allDay6.length>1?'s':''}</div>
         <div style="font-size:11px;color:var(--text3);margin-top:3px">New outstanding added: <strong style="color:var(--text)">${fmtC(total)}</strong> — act before they age further</div>
       </div>
       <button class="btn btn-red btn-sm" onclick="showTreadmillPopup();haptic('medium')">View All ↗</button>
@@ -8753,8 +9044,11 @@ function renderTreadmillAlert() {
 function calcPriorityScore(b) {
   let score = 0;
   const od = getOdAge(b.startDate);
-  // OD age (max 4 pts)
-  score += Math.min(4, Math.floor(od / 3));
+  const [minDay, maxDay] = getAgentDayRange();
+  const range = Math.max(1, maxDay - minDay);
+  // OD urgency within stage (max 4 pts) — how far through their stage are they?
+  const stagePct = Math.min(1, Math.max(0, (od - minDay) / range));
+  score += Math.round(stagePct * 4);
   // Amount outstanding (max 3 pts)
   const rem = getRemaining(b);
   if (rem > 2000) score += 3;
@@ -9330,7 +9624,7 @@ function _renderRankingChart(myName) {
 // ── SUPERVISOR REPORTS PAGE ────────────────────────────
 function renderReportsPage() { /* nothing dynamic needed, HTML handles it */ }
 function generateReport(type) {
-  const agent = document.getElementById('rpt-agent')?.value || 'Shadrack Agyei Arthur';
+  const agent = document.getElementById('rpt-agent')?.value || '';
   const sup = document.getElementById('rpt-supervisor')?.value || 'NANA OSAE EMMANUEL';
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-GB', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
@@ -10644,7 +10938,7 @@ function getSmartReplySuggestions(b) {
     `Following up on your promise to pay. Account is now Day ${od}. Please make payment today.`,
     `This is an urgent follow-up. Your promised payment is overdue. Call us to resolve.`
   ];
-  if (od >= 13) return [
+  if ((function(){var _r=getAgentDayRange();return od>=(_r[0]+Math.round((_r[1]-_r[0])*0.75));})()) return [
     `FINAL NOTICE: Account Day ${od}. Immediate payment required to avoid escalation.`,
     `Your account has been flagged for escalation (Day ${od}). Please pay ${fmtC(getDueToday(b))} immediately.`,
     `Last chance to resolve before this is escalated. Amount owed: ${fmtC(getDueToday(b))}.`
@@ -10654,7 +10948,7 @@ function getSmartReplySuggestions(b) {
     `Missed your call. Your loan payment of ${fmtC(getDueToday(b))} is due. Please respond today.`,
     `Unable to reach you. Please confirm payment arrangement for ${fmtC(getDueToday(b))}.`
   ];
-  if (od >= 8 && status === 'Unpaid') return [
+  if ((function(){var _r=getAgentDayRange();return od>=(_r[0]+Math.round((_r[1]-_r[0])*0.33));})() && status === 'Unpaid') return [
     `${b.name.split(' ')[0]}, your account is now Day ${od}. Please make a payment of ${fmtC(getDueToday(b))} today.`,
     `Friendly reminder: ${fmtC(getDueToday(b))} is due on your account. Please pay to avoid additional fees.`,
     `Account update: Day ${od} with ${fmtC(getDueToday(b))} outstanding. Please arrange payment today.`
@@ -10694,7 +10988,7 @@ function generatePdfExport() {
     .footer { margin-top: 20px; font-size: 10px; color: #999; border-top: 1px solid #eee; padding-top: 8px; }
   </style></head><body>
   <h1>📊 SqueveTrack Portfolio Summary</h1>
-  <div class="sub">Generated: ${today} · Agent: Shadrack Agyei Arthur · M2 Collection</div>
+  <div class="sub">Generated: ${today} · Agent: ${_activeAgent?.name||state.agentProfile?.name||"Agent"} · ${_activeAgent?.stage||"M2"} Collection</div>
   <div class="kpis">
     <div class="kpi"><div class="kpi-val">${rate}%</div><div class="kpi-lbl">Recovery Rate</div></div>
     <div class="kpi"><div class="kpi-val">₵${(logTotal/1000).toFixed(1)}k</div><div class="kpi-lbl">Total Collected</div></div>
@@ -10706,7 +11000,7 @@ function generatePdfExport() {
     <tr><th>#</th><th>Name</th><th>Phone</th><th>OD Age</th><th>Loan Due</th><th>Paid</th><th>Outstanding</th><th>Status</th></tr>
     ${topDue.map((b,i)=>`<tr><td>${i+1}</td><td>${b.name}</td><td>${b.phone}</td><td>Day ${getOdAge(b.startDate)}</td><td>₵${fmt(b.loanDue)}</td><td>₵${fmt(b.amountPaid||0)}</td><td>₵${fmt(getDueToday(b))}</td><td>${getStatus(b)}</td></tr>`).join('')}
   </table>
-  <div class="footer">SqueveTrack · LoanBase M2 Collection Manager · ${today}</div>
+  <div class="footer">SqueveTrack · LoanBase ${_activeAgent?.stage||'M2'} Collection Manager · ${today}</div>
   </body></html>`;
 
   const blob = new Blob([html], { type: 'text/html' });
@@ -11145,18 +11439,27 @@ function copyWaBroadcast() {
 function openOdFeeModal(id) {
   const b = state.borrowers.find(x => x.id === id);
   if (!b) return;
-  const od = getOdAge(b.startDate);
-  const rawFee = getOdFee(b);
-  const dailyRate = od > 0 ? rawFee / od : 0;
+  const od       = getOdAge(b.startDate);
+  const rawFee   = getOdFee(b);
+  const cap      = b.principal||0;
+  const capped   = rawFee >= cap;
+  const remaining = Math.max(0,(b.principal||0)-(b.amountPaid||0));
   const discounted = Math.round(rawFee * (state.discountRate||0.30));
+  const odLog      = getOdLog(b);
+  const threshold70 = Math.round((b.principal||0) * 0.70);
+  const stopped70   = odLog.length > 0 && odLog[odLog.length-1].stopped === '70% paid';
   const rows = [
-    ['Principal', fmtC(b.principal||0)],
-    ['Loan Due', fmtC(b.loanDue)],
-    ['OD Age', 'Day ' + od],
-    ['Daily Accrual Rate', fmtC(Math.round(dailyRate)) + ' / day'],
-    ['Total OD Fee', fmtC(rawFee)],
-    ['Generous Discount (' + Math.round((state.discountRate||0.30)*100) + '% of fee)', fmtC(discounted)],
-    ['Full Settlement Today', fmtC(getDueToday(b) + b.amountPaid)],
+    ['Original Principal',       fmtC(b.principal||0)],
+    ['Amount Paid',               fmtC(b.amountPaid||0)],
+    ['Remaining Principal',       fmtC(remaining)],
+    ['70% Threshold',             fmtC(threshold70) + (stopped70 ? ' ✅ Reached — OD frozen' : '')],
+    ['Days in Default',           od <= 0 ? 'M0 — No default yet' : 'Day ' + od],
+    ['Day 1 Rate',                '4% of remaining principal'],
+    ['Day 2+ Rate',               '2% per day of remaining principal'],
+    ['Total OD Fee',              fmtC(rawFee) + (capped ? ' ⚠️ Cap reached' : '')],
+    ['OD Cap (= Principal)',      fmtC(cap)],
+    ['Generous Offer (' + Math.round((state.discountRate||0.30)*100) + '% of OD)', fmtC(discounted)],
+    ['Full Settlement Today',     fmtC(getDueToday(b))],
   ];
   document.getElementById('modal-title').textContent = '📐 OD Fee Breakdown — ' + b.name.split(' ')[0];
   document.getElementById('modal-body').innerHTML =
@@ -11168,7 +11471,7 @@ function openOdFeeModal(id) {
         + '</div>'
       ).join('')
     + '</div>'
-    + '<div style="font-size:11px;color:var(--text3);line-height:1.8">Fee accrues from Day 6. At current pace this account adds <strong style="color:var(--red)">' + fmtC(Math.round(dailyRate)) + '</strong> per day.</div>';
+    + '<div style="font-size:11px;color:var(--text3);line-height:1.8">Fee accrues from Day 1. Day 1 = 4%, every subsequent day = 2% of remaining principal. OD stops at 70% paid or when it equals the principal.</div>';
   document.getElementById('modal-footer').innerHTML =
     '<button class="btn btn-ghost" onclick="closeModal()">Close</button>'
     + '<button class="btn btn-green" onclick="closeModal();openPayModal(\'' + id + '\')" >💰 Record Payment</button>';
@@ -11329,6 +11632,8 @@ function toggleRankingKeyVisibility() {
 
 // ── ONBOARDING WIZARD ──────────────────────────────────
 let _obSelectedStage = 'M2';
+let _obAgentCode     = '';   // raw agent code entered in onboarding
+let _obAgentSlug     = '';   // slugified version used as agent ID
 let _obParsedRows = [];
 let _obColumnMap = {};
 let _obHeaders = [];
@@ -11344,6 +11649,8 @@ function startOnboarding(isReset, isNewAgent) {
   overlay.style.display = 'block';
   document.body.style.overflow = 'hidden';
   _obSelectedStage = state.agentProfile?.stage || 'M2';
+  _obAgentCode = state.agentProfile?.lbCode || '';
+  _obAgentSlug = state.agentProfile?.id || '';
   obBuildStageGrid();
   obGoToStep(1);
   haptic('light');
@@ -11382,34 +11689,110 @@ function obGoToStep(n) {
   document.querySelectorAll('.ob-dot').forEach((d, i) => d.classList.toggle('active', i < n));
   // Pre-fill step 2 from existing profile
   if (n === 2 && state.agentProfile) {
+    const codeEl = document.getElementById('ob-agent-code');
     const nameEl = document.getElementById('ob-agent-name');
-    const supEl = document.getElementById('ob-supervisor');
-    const tgtEl = document.getElementById('ob-target');
-    if (nameEl && state.agentProfile.name) nameEl.value = state.agentProfile.name;
-    if (supEl && state.agentProfile.supervisor) supEl.value = state.agentProfile.supervisor;
-    if (tgtEl && state.agentProfile.target) tgtEl.value = state.agentProfile.target;
+    const supEl  = document.getElementById('ob-supervisor');
+    const tgtEl  = document.getElementById('ob-target');
+    if (codeEl && (state.agentProfile.lbCode || _obAgentCode)) codeEl.value = state.agentProfile.lbCode || _obAgentCode;
+    if (nameEl && state.agentProfile.name)       nameEl.value = state.agentProfile.name;
+    if (supEl  && state.agentProfile.supervisor) supEl.value  = state.agentProfile.supervisor;
+    if (tgtEl  && state.agentProfile.target)     tgtEl.value  = state.agentProfile.target;
   }
 }
 
-function obNextStep(n) {
+async function obNextStep(n) {
   if (n === 2) {
     if (!_obSelectedStage) { toast('Please select a stage', 'error'); return; }
   }
   if (n === 3) {
+    // Agent code is mandatory — it IS their identity
+    const rawCode = (document.getElementById('ob-agent-code')?.value || '').trim();
+    if (!rawCode) { toast('Please enter your LoanBase Agent Code', 'error'); return; }
+    const slugCode = slugifyCode(rawCode);
+    if (slugCode.length < 3) { toast('Agent code too short — enter your full LoanBase code', 'error'); return; }
+
     const name = document.getElementById('ob-agent-name')?.value.trim();
+    if (!name) { toast('Please enter your full name', 'error'); return; }
     const sup = document.getElementById('ob-supervisor')?.value.trim();
     const tgt = parseFloat(document.getElementById('ob-target')?.value) || 0;
-    if (!name) { toast('Please enter your name', 'error'); return; }
-    // Save to profile
+
+    // ── Sign-up requires internet — always verify on Supabase ──
+    // No offline bypass. Cannot guarantee uniqueness without server check.
+
+    // 1. Hard block if offline
+    if (!navigator.onLine) {
+      toast('📵 Internet required to create an account.', 'error');
+      const codeEl0 = document.getElementById('ob-agent-code');
+      if (codeEl0) codeEl0.style.borderColor = 'var(--red)';
+      return;
+    }
+
+    // 2. Block if Supabase not configured
+    const _db = initSupabase();
+    if (!_db) {
+      toast('📵 Cannot connect to server. Internet required to create an account.', 'error');
+      return;
+    }
+
+    // 3. Check local list — already on this device?
+    const existingLocal = getAgentList().find(a => a.id === slugCode);
+    if (existingLocal) {
+      toast('That code is already registered on this device. Sign in instead.', 'error');
+      obGoToStep(2);
+      return;
+    }
+
+    // 4. Verify on Supabase — mandatory, no fallback
+    const continueBtn = document.querySelector('#ob-step-2 .btn-gold');
+    const origText = continueBtn ? continueBtn.textContent : '';
+    if (continueBtn) { continueBtn.disabled = true; continueBtn.textContent = '⏳ Verifying...'; }
+    try {
+      const { data: existing, error: sbErr } = await _db
+        .from('app_state')
+        .select('id')
+        .eq('id', 'agent_' + slugCode)
+        .maybeSingle();
+      if (continueBtn) { continueBtn.disabled = false; continueBtn.textContent = origText; }
+      if (sbErr) {
+        toast('⚠️ Could not verify agent code. Check your connection and try again.', 'error');
+        return;
+      }
+      if (existing) {
+        toast('⚠️ That Agent Code already exists. Use your own unique LoanBase code.', 'error');
+        const codeEl = document.getElementById('ob-agent-code');
+        if (codeEl) { codeEl.style.borderColor = 'var(--red)'; codeEl.focus(); }
+        return;
+      }
+    } catch(e) {
+      // Network failure — hard stop, no offline bypass
+      if (continueBtn) { continueBtn.disabled = false; continueBtn.textContent = origText; }
+      toast('📵 No connection. Internet is required to create an account.', 'error');
+      return;
+    }
+    // Reset any red border on the code input
+    const codeEl2 = document.getElementById('ob-agent-code');
+    if (codeEl2) codeEl2.style.borderColor = '';
+
+    // Code is clear — store it
+    _obAgentCode = rawCode;
+    _obAgentSlug = slugCode;
+
     state.agentProfile = {
       ...state.agentProfile,
+      lbCode: rawCode,
+      id: slugCode,
       name, supervisor: sup || '', target: tgt, stage: _obSelectedStage
     };
     state.monthlyTarget = tgt;
     saveState();
   }
   if (n === 4 && document.getElementById('ob-step-3').style.display !== 'none') {
-    // Coming from step 3 via "skip" — go to complete
+    // Must have a valid agent code before completing — redirect to step 2 if missing
+    if (!_obAgentCode || !_obAgentSlug || _obAgentSlug.length < 3) {
+      toast('Please enter your LoanBase Agent Code first', 'error');
+      obGoToStep(2);
+      return;
+    }
     obShowComplete();
     return;
   }
@@ -11562,7 +11945,7 @@ function obImportMapped() {
       : 'LoanBase';
 
     state.borrowers.push({
-      id: 'b_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+      id: (crypto && crypto.randomUUID ? crypto.randomUUID() : 'b_' + Date.now() + '_' + Math.random().toString(36).slice(2,6)),
       name, phone, principal, loanDue, amountPaid: 0, startDate,
       loanType, notes: '', payLog: [], callLog: [],
       promisedToPay: false, ptpBreached: false, isPaid: false
@@ -11601,34 +11984,74 @@ function obCancel() {
   haptic('light');
 }
 
-function obFinish() {
-  const name = state.agentProfile?.name || document.getElementById('ob-agent-name')?.value?.trim() || 'Agent';
-  // Create or update agent record
-  const agents = getAgentList();
-  let agentRecord = agents.find(a => a.id === _activeAgent?.id);
-  if (!agentRecord) {
-    // New agent
-    const newId = _activeAgent?.id || genAgentId();
-    agentRecord = { id: newId, name, stage: _obSelectedStage, createdAt: new Date().toISOString(), pinHash: null };
-    agents.push(agentRecord);
-    saveAgentList(agents);
-    _activeAgent = agentRecord;
-    _pinTarget = agentRecord;
-  } else {
-    agentRecord.name = name;
-    agentRecord.stage = _obSelectedStage;
-    saveAgentList(agents);
-    _activeAgent = agentRecord;
+async function obFinish() {
+  const name     = state.agentProfile?.name || document.getElementById('ob-agent-name')?.value?.trim() || 'Agent';
+  const rawCode  = _obAgentCode || state.agentProfile?.lbCode || (document.getElementById('ob-agent-code')?.value||'').trim();
+  const slugCode = _obAgentSlug || (rawCode ? slugifyCode(rawCode) : null);
+
+  // Agent code is the identity — if missing we cannot proceed
+  if (!slugCode || slugCode.length < 3) {
+    toast('Agent code missing — please restart setup', 'error');
+    obGoToStep(2);
+    return;
   }
 
-  state.agentProfile = { ...state.agentProfile, id: _activeAgent.id, name, stage: _obSelectedStage, setupComplete: true };
+  const agents = getAgentList();
+  // Check if this slug is already registered (update) or new
+  let agentRecord = agents.find(a => a.id === slugCode);
+  if (!agentRecord) {
+    // Final safety check — if somehow a pinHash row exists on Supabase for this slug,
+    // this is a real account. Don't overwrite it — redirect to sign in.
+    const _dbCheck = initSupabase();
+    if (_dbCheck) {
+      try {
+        const { data: sbRow } = await _dbCheck
+          .from('app_state')
+          .select('data')
+          .eq('id', 'agent_' + slugCode)
+          .maybeSingle();
+        if (sbRow?.data?._pinHash) {
+          toast('⚠️ That code belongs to an existing account. Please sign in instead.', 'error');
+          obGoToStep(2);
+          return;
+        }
+      } catch(e) { /* offline — proceed */ }
+    }
+    agentRecord = {
+      id:        slugCode,
+      lbCode:    rawCode,
+      name,
+      stage:     _obSelectedStage,
+      createdAt: new Date().toISOString(),
+      pinHash:   null
+    };
+    agents.push(agentRecord);
+  } else {
+    // Existing local record — update profile fields only (never touch pinHash)
+    agentRecord.name   = name;
+    agentRecord.stage  = _obSelectedStage;
+    agentRecord.lbCode = rawCode;
+  }
+  saveAgentList(agents);
+  _activeAgent = agentRecord;
+  _pinTarget   = agentRecord;
+
+  // Save full profile including lbCode and slug id to state
+  state.agentProfile = {
+    ...state.agentProfile,
+    id:            slugCode,
+    lbCode:        rawCode,
+    name,
+    stage:         _obSelectedStage,
+    setupComplete: true
+  };
   saveState();
 
   const overlay = document.getElementById('onboarding-overlay');
   if (overlay) overlay.style.display = 'none';
   document.body.style.overflow = '';
 
-  // If agent has no PIN yet, go to PIN setup
+  // Go to PIN setup if no PIN yet
   if (!agentRecord.pinHash) {
     showLockScreen();
     lockSelectAgent(agentRecord.id);
@@ -11647,10 +12070,22 @@ function obFinish() {
   updateBadges();
   renderDashboard();
   haptic('pay');
-  toast('Welcome, ' + name + '! 🎉', 'success');
+  toast('Welcome back, ' + name + '! 🎉', 'success');
 }
 
-function updateSidebarAgentInfo() { /* agent info in Settings only */ }
+function updateSidebarAgentInfo() {
+  if (!_activeAgent) return;
+  const stage = _activeAgent.stage || 'M2';
+  const cfg   = STAGE_CONFIG[stage] || STAGE_CONFIG.M2;
+  const name  = localStorage.getItem('sq_displayname_' + _activeAgent.id) || _activeAgent.name || '';
+  const sub   = document.querySelector('.logo-sub');
+  if (sub) sub.textContent = name ? name + ' · ' + stage : 'LoanBase ' + stage;
+  // Also update the drawer agent info
+  const mdName  = document.getElementById('mdrawer-agent-name');
+  const mdStage = document.getElementById('mdrawer-agent-stage');
+  if (mdName)  mdName.textContent  = name;
+  if (mdStage) mdStage.textContent = cfg.label + ' — ' + cfg.name;
+}
 
 
 // ── AGENT AUTH — PIN PROTECTION & MULTI-AGENT MANAGEMENT 
@@ -11667,7 +12102,8 @@ async function hashPin(pin, agentId) {
   const keyMat   = await crypto.subtle.importKey(
     'raw', enc.encode(pin), { name: 'PBKDF2' }, false, ['deriveBits']
   );
-  // Combine static app salt + agent-specific id for uniqueness
+  // Salt = static app salt + agent slug (e.g. 'squevetrack-v1:shadrack-agyei-oct25')
+  // Agent ID is now always the slugified lbCode, not a random UUID
   const saltStr  = PIN_SALT + ':' + (agentId || 'default');
   const saltBuf  = enc.encode(saltStr);
   const bits     = await crypto.subtle.deriveBits(
@@ -11677,10 +12113,13 @@ async function hashPin(pin, agentId) {
   return Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
+// genAgentId: fallback for edge cases only — new agents always use slugifyCode(lbCode)
 function genAgentId() {
+  // Use cryptographically secure UUID — falls back to Math.random only if unavailable
+  if (crypto && crypto.randomUUID) return crypto.randomUUID();
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-    const r = Math.random()*16|0;
-    return (c==='x'?r:(r&0x3|0x8)).toString(16);
+    const r = (crypto.getRandomValues(new Uint8Array(1))[0] & 15);
+    return (c==='x' ? r : (r&0x3|0x8)).toString(16);
   });
 }
 
@@ -11885,7 +12324,7 @@ async function processPin() {
       const db = initSupabase();
       if (db) {
         try {
-          // 1. Write directly into the agent's data row
+          // 1. Write directly into the agent's data row (key = agent_{slug})
           const agentKey = 'agent_' + _pinTarget.id;
           const { data: agentRow } = await db.from('app_state').select('data').eq('id', agentKey).maybeSingle();
           if (agentRow?.data) {
@@ -11895,12 +12334,7 @@ async function processPin() {
               updated_at: new Date().toISOString()
             });
           }
-          // 2. Also stamp main so the migratedToAgent path carries the hash
-          await db.from('app_state').upsert({
-            id: 'main',
-            data: { migratedToAgent: _pinTarget.id, pinHash: hash },
-            updated_at: new Date().toISOString()
-          });
+          // (main stamp removed — slug-based system only)
         } catch(e) { console.warn('PIN save to Supabase failed:', e.message); }
       }
       hideLockScreen();
@@ -12026,24 +12460,25 @@ async function authSignInWithCode() {
     catch(e){console.warn('fetchRow',id,e?.message);return null;}
   }
 
-  // Try 1: direct slug key
+  // Try 1: direct slug key (primary path for all new agents)
   let row=await fetchRow('agent_'+slugCode);
 
-  // Try 2: scan all agent rows for matching lbCode
+  // Try 2: scan all agent rows for matching lbCode (legacy UUID-based agents)
   if(!row){
     try{
       const res=await db.from('app_state').select('*').like('id','agent_%');
       const rows=res?.data||[];
-      row=rows.find(r=>{const lb=r.data?.agentProfile?.lbCode||'';return lb&&slugifyCode(lb)===slugCode;})||null;
-      if(!row&&rows.length===1) row=rows[0]; // sole row = must be theirs
+      row=rows.find(r=>{
+        const lb=r.data?.agentProfile?.lbCode||'';
+        const rid=(r.id||'').replace('agent_','');
+        // Match by lbCode slug OR if the row ID itself matches
+        return (lb&&slugifyCode(lb)===slugCode)||(rid===slugCode);
+      })||null;
+      if(!row&&rows.length===1) row=rows[0]; // sole legacy row
     }catch{}
   }
 
-  // Try 3: main stamp → UUID row
-  if(!row){const m=await fetchRow('main');const p=m?.data?.migratedToAgent;if(p)row=await fetchRow('agent_'+p);}
-
-  // Try 4: main row IS legacy state
-  if(!row){const m=await fetchRow('main');if(m?.data?.borrowers?.length)row=m;}
+  // Try 3: not applicable — all accounts use slug keys
 
   if(!row){ setStatus('Account not found — check your code', true); return; }
 
@@ -12066,7 +12501,6 @@ async function authSignInWithCode() {
     foundData._skipPurgeOnce=true;
     try{
       await db.from('app_state').upsert({id:'agent_'+slugCode,data:foundData,updated_at:new Date().toISOString()});
-      await db.from('app_state').upsert({id:'main',data:{migratedToAgent:slugCode,pinHash},updated_at:new Date().toISOString()});
       if(foundId!=='main') await db.from('app_state').delete().eq('id','agent_'+foundId);
     }catch{}
   }
@@ -12214,6 +12648,24 @@ function renderSettingsPage() {
   renderUndoHistory();
   renderSettingsAgedOut();
   _updateBioSettingsRow();
+  // Update stage-specific labels in settings
+  (function() {
+    var stage = (_activeAgent && _activeAgent.stage) || 'M2';
+    var cfg   = STAGE_CONFIG[stage] || STAGE_CONFIG.M2;
+    var bands = { M0:1, M1:6, M2:16, M3:41, M4:61, M5:null };
+    var purgeDay = bands[stage];
+    var subEl = document.getElementById('settings-agedout-sub');
+    var dayEl = document.getElementById('settings-agedout-day');
+    if (subEl) {
+      subEl.textContent = purgeDay
+        ? stage + ' — accounts past Day ' + (purgeDay - 1) + ' move here'
+        : 'No age-out at ' + stage + ' stage';
+    }
+    if (dayEl) {
+      dayEl.textContent = purgeDay ? 'Day ' + purgeDay : 'None';
+      dayEl.style.color = cfg.colorHex;
+    }
+  })();
 }
 
 function openProfileEditModal() {
@@ -12239,11 +12691,8 @@ function openProfileEditModal() {
     +'<input type="text" id="profile-edit-name" class="form-input" value="'+displayName+'" placeholder="Your full name" style="margin-top:6px;font-size:15px;font-weight:600" autofocus>'
     +'<div style="font-size:11px;color:var(--text3);margin-top:5px">Shows on lock screen. Login code is unchanged.</div>'
     +'</div>'
-    +'<div style="background:var(--surface2);border-radius:8px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between">'
-    +'<div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">Agent Code (login)</div>'
-    +'<div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--gold);margin-top:2px">'+(_activeAgent.lbCode||_activeAgent.id)+'</div></div>'
-    +'<button onclick="settingsCopyCode()" style="background:none;border:none;cursor:pointer;font-size:18px" title="Copy">📋</button>'
-    +'</div>';
+    +(_activeAgent.lbCode ? '<div style="background:var(--surface2);border-radius:8px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px">Your Agent Login Code</div><div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--gold)">' + _activeAgent.lbCode + '</div></div><button onclick="settingsCopyCode()" style="background:none;border:none;cursor:pointer;font-size:18px" title="Copy">📋</button></div>' : '')
+;
 
   document.getElementById('modal-footer').innerHTML =
     '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
@@ -12345,8 +12794,22 @@ function cropTouchMove(e) {
     _cropY = e.touches[0].clientY - _cropDragStart.y;
     cropDraw();
   } else if (e.touches.length === 2 && _cropLastDist) {
-    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-    _cropScale = Math.max(0.3, Math.min(5, _cropScale * (dist / _cropLastDist)));
+    const t0 = e.touches[0], t1 = e.touches[1];
+    const dist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+    const ratio = dist / _cropLastDist;
+    const newScale = Math.max(0.3, Math.min(5, _cropScale * ratio));
+
+    // Zoom around the pinch midpoint so the image stays centred under fingers
+    const canvas = document.getElementById('crop-canvas');
+    const rect   = canvas.getBoundingClientRect();
+    // Midpoint of the two fingers in canvas coordinates
+    const midX = ((t0.clientX + t1.clientX) / 2) - rect.left;
+    const midY = ((t0.clientY + t1.clientY) / 2) - rect.top;
+    // Adjust position so the point under the midpoint stays fixed
+    _cropX = midX - (midX - _cropX) * (newScale / _cropScale);
+    _cropY = midY - (midY - _cropY) * (newScale / _cropScale);
+
+    _cropScale = newScale;
     _cropLastDist = dist;
     cropDraw();
   }
@@ -12550,7 +13013,6 @@ function settingsPinPress(k) {
         state._pinHash=hash;
         const db=initSupabase();if(db){try{
           await db.from('app_state').upsert({id:'agent_'+_pinTarget.id,data:{...state,_pinHash:hash},updated_at:new Date().toISOString()});
-          await db.from('app_state').upsert({id:'main',data:{migratedToAgent:_pinTarget.id,pinHash:hash},updated_at:new Date().toISOString()});
         }catch{}}
         closeModal();haptic('pay');toast('PIN changed ✅','success');
         _pinBuffer='';_pinSetBuffer='';_pinMode='unlock';
@@ -12593,106 +13055,7 @@ async function settingsConfirmDelete(){
 }
 
 
-async function migrateFromLegacyIfNeeded() {
-  // This device already has agents registered — nothing to do
-  const localAgents = getAgentList();
-  if (localAgents.length > 0) return false;
 
-  const db = initSupabase();
-
-  // ── Step 1: Check if migration already happened on another device ──
-  // After a successful migration we stamp the legacy 'main' row with
-  // { migratedToAgent: <agentId> }.  New devices see this and instead
-  // of re-migrating they just add the existing agent to their local list
-  // and ask the PIN.
-  if (db) {
-    try {
-      const { data: mainRow } = await db.from('app_state').select('data').eq('id','main').single();
-      if (mainRow?.data?.migratedToAgent) {
-        // Already migrated — cache data silently, show plain sign-in screen
-        // Do NOT add to agent list here — only add after PIN is confirmed
-        const agentId = mainRow.data.migratedToAgent;
-        try {
-          const { data: agentRow } = await db.from('app_state').select('data').eq('id','agent_' + agentId).single();
-          if (agentRow?.data) {
-            localStorage.setItem('squevetrack_' + agentId, JSON.stringify(agentRow.data));
-          }
-        } catch {}
-        showLockScreen();
-        return true;
-      }
-    } catch {}
-  }
-
-  // ── Step 2: Check for actual legacy data to migrate ──────────────
-  let legacyState = null;
-  if (db) {
-    try {
-      const { data } = await db.from('app_state').select('data').eq('id','main').single();
-      // Only treat as legacy if it has borrowers AND no migratedToAgent stamp
-      if (data?.data?.borrowers?.length && !data?.data?.migratedToAgent) {
-        legacyState = data.data;
-      }
-    } catch {}
-  }
-  if (!legacyState) {
-    try {
-      const raw = localStorage.getItem(LEGACY_STATE_KEY);
-      if (raw) { const parsed = JSON.parse(raw); if (parsed?.borrowers?.length) legacyState = parsed; }
-    } catch {}
-  }
-
-  if (legacyState) {
-    // ── First-ever migration on first device ──────────────────
-    const agentId = genAgentId();
-    const profile = legacyState.agentProfile || {};
-    const agentRecord = {
-      id: agentId,
-      name: profile.name || 'Shadrack Agyei Arthur',
-      stage: profile.stage || 'M2',
-      supervisor: profile.supervisor || '',
-      pinHash: null,
-      createdAt: new Date().toISOString(),
-    };
-    saveAgentList([agentRecord]);
-    _activeAgent = agentRecord;
-    _pinTarget = agentRecord;
-
-    // Save data under personal agent key
-    state = migrateState(legacyState);
-    state.agentProfile = { ...state.agentProfile, ...profile, id: agentId, setupComplete: true };
-    localStorage.setItem(getStateKey(), JSON.stringify(state));
-
-    if (db) {
-      try {
-        // Save personal agent data
-        await db.from('app_state').upsert({
-          id: getSupabaseId(), data: state, updated_at: new Date().toISOString()
-        });
-        // Stamp the legacy 'main' row so new devices know migration is done
-        // Include pinHash placeholder — will be updated when PIN is set
-        await db.from('app_state').upsert({
-          id: 'main',
-          data: { migratedToAgent: agentId, pinHash: null, agentName: agentRecord.name },
-          updated_at: new Date().toISOString()
-        });
-      } catch {}
-    }
-
-    // Show PIN setup — first time only
-    showLockScreen();
-    lockSelectAgent(agentId);
-    _pinBuffer = '';
-    _pinMode = 'set';
-    updatePinDots();
-    document.getElementById('lock-pin-section').style.display = 'block';
-    document.getElementById('lock-pin-name').textContent = agentRecord.name + ' — secure your account';
-    document.getElementById('lock-pin-error').textContent = 'Set a 4-digit PIN to protect your data. You only do this once.';
-    return true;
-  }
-
-  return false; // truly fresh install — no legacy data anywhere
-}
 
 
 // ── Agent deletion ────────────────────────────────────────────
@@ -12750,11 +13113,7 @@ async function deleteAgent(id) {
   if (db) {
     try {
       await db.from('app_state').delete().eq('id', 'agent_' + id);
-      // If this was the migrated agent, also clear the migration stamp
-      const { data: mainRow } = await db.from('app_state').select('data').eq('id','main').single();
-      if (mainRow?.data?.migratedToAgent === id) {
-        await db.from('app_state').delete().eq('id','main');
-      }
+// (main stamp removed — slug-based system)
     } catch(e) { console.warn('Supabase delete error:', e); }
   }
 
@@ -12806,6 +13165,7 @@ function updateStatusBarColor(page) {
   if (!meta) { meta = document.createElement('meta'); meta.name = 'theme-color'; document.head.appendChild(meta); }
   meta.content = color;
 }
+
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Init feature systems
@@ -12901,9 +13261,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     checkPtpBreaches(); updateDailyPill(); renderDashboard(); initPullToRefresh();
     _updateFab(currentPage);
   } else {
-    // No session — check for migration then show lock screen
-    const migrated = await migrateFromLegacyIfNeeded();
-    if (!migrated) {
+    // No session — show lock screen or onboarding
+    {
       if (agentList.length > 0) {
         showLockScreen();
       } else {
@@ -12914,16 +13273,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           try {
             const res = await db.from('app_state').select('id, data').like('id', 'agent_%');
             const rows = res?.data || [];
-            const valid = rows.filter(r => {
-              const raw = r.id.replace('agent_','');
-              const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(raw);
-              const isSqv  = raw.startsWith('sqv-');
-              const hasName = !!(r.data?.agentProfile?.name);
-              const hasBorr = (r.data?.borrowers?.length||0) > 0;
-              return !((isUuid||isSqv) && !hasName && !hasBorr);
-            });
-            const ghosts = rows.filter(r => !valid.includes(r)).map(r => r.id);
-            if (ghosts.length) { try { await db.from('app_state').delete().in('id', ghosts); } catch {} }
+            const valid = rows.filter(r => !!(r.data?.agentProfile?.lbCode));
             if (valid.length > 0) {
               // Cache data locally for fast sign-in, but do NOT add to agent list yet.
               // Agent cards only show on devices where sign-in has been confirmed (pinHash set).
@@ -12939,7 +13289,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (foundRemote) {
           showLockScreen();
         } else {
-          // Truly fresh — show auth screen (Sign In / New Agent)
+          // Truly fresh — show onboarding
           state = initState();
           showLockScreen();
         }
@@ -13194,6 +13544,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 .ob-stage-card { background:var(--surface2);border:2px solid var(--border2);border-radius:10px;padding:14px 16px;cursor:pointer;transition:all 0.15s;text-align:left }
 .ob-stage-card.selected { border-color:var(--gold);background:rgba(232,160,32,0.06) }
 .ob-stage-card:hover { border-color:var(--gold) }
+
+/* Drawer nav fills full height, items distribute evenly */
+#mdrawer-nav-list {
+  display: flex; flex-direction: column; flex: 1; min-height: 0;
+}
+#mdrawer-nav-list .mdrawer-item {
+  flex: 1; display: flex; align-items: center;
+  min-height: 48px; max-height: 80px;
+}
+.mdrawer-month {
+  flex-shrink: 0;
+}
 </style>
 <!-- LOCK SCREEN -->
 <div id="lock-screen" style="display:none;position:fixed;inset:0;z-index:9999;overflow-y:auto">
