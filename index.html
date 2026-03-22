@@ -11540,7 +11540,25 @@ async function processPin() {
 
   if (_pinMode === 'unlock') {
     const hash = await hashPin(_pinBuffer, _pinTarget.id);
-    if (hash === _pinTarget.pinHash) {
+    let matched = hash === _pinTarget.pinHash;
+
+    // Legacy fallback: if PBKDF2 hash doesn't match, try the old SHA-256 hash
+    // so existing PINs work without a reset. Silently upgrades on success.
+    if (!matched && _pinTarget.pinHash) {
+      const legacyData = new TextEncoder().encode(_pinBuffer + ':' + PIN_SALT);
+      const legacyBuf  = await crypto.subtle.digest('SHA-256', legacyData);
+      const legacyHash = Array.from(new Uint8Array(legacyBuf)).map(b => b.toString(16).padStart(2,'0')).join('');
+      if (legacyHash === _pinTarget.pinHash) {
+        matched = true;
+        // Silently upgrade stored hash to PBKDF2
+        const agents = getAgentList();
+        const idx = agents.findIndex(a => a.id === _pinTarget.id);
+        if (idx >= 0) { agents[idx].pinHash = hash; saveAgentList(agents); }
+        _pinTarget.pinHash = hash;
+      }
+    }
+
+    if (matched) {
       // Correct PIN — unlock
       _activeAgent = _pinTarget;
       _sessionUnlocked = true;
