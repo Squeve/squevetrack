@@ -1376,6 +1376,22 @@ tbody tr:hover td { background: rgba(255,255,255,0.025) !important; }
 /* Modal backdrop blur */
 #modal-overlay { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 
+/* Modal drag-handle pill (mobile swipe-down-to-close) */
+.modal-drag-handle {
+  width: 36px; height: 4px;
+  background: rgba(255,255,255,0.18);
+  border-radius: 2px;
+  margin: 10px auto 0;
+  flex-shrink: 0;
+  pointer-events: none; /* touch handled on .modal itself */
+}
+.modal.dragging { transition: none !important; animation: none !important; }
+@keyframes modalSnapBack {
+  from { transform: translateY(var(--sq-drag-y, 0px)); }
+  to   { transform: translateY(0); }
+}
+.modal.snap-back { animation: modalSnapBack 0.22s cubic-bezier(0.34,1.2,0.64,1) both !important; }
+
 /* Overdue critical pulse — red left border glow */
 tr.overdue-critical td { border-left: none; }
 tr.overdue-critical .heat-ring {
@@ -2713,6 +2729,12 @@ tr.overdue-critical .heat-ring {
       </button>
     </div>
 
+    <!-- Undo History -->
+    <p class="settings-section-label">Undo History</p>
+    <div class="settings-group" id="undo-history-panel">
+      <div id="undo-history-body" style="padding:4px 0"></div>
+    </div>
+
     <!-- Data -->
     <p class="settings-section-label">Data &amp; Sync</p>
     <div class="settings-group">
@@ -2848,6 +2870,7 @@ tr.overdue-critical .heat-ring {
 <!-- ADD/EDIT MODAL -->
 <div id="modal-overlay">
   <div class="modal">
+    <div class="modal-drag-handle"></div>
     <div class="modal-header">
       <div class="modal-title" id="modal-title">Add Borrower</div>
       <button class="modal-close" onclick="closeModal()">✕</button>
@@ -6041,9 +6064,95 @@ function deleteBorrower(id) {
 }
 
 function closeModal() {
-  document.getElementById('modal-overlay').classList.remove('open');
+  const overlay = document.getElementById('modal-overlay');
+  const modal   = overlay?.querySelector('.modal');
+  if (modal) { modal.style.transform = ''; modal.classList.remove('dragging','snap-back'); }
+  overlay?.classList.remove('open');
   currentModal = null;
 }
+
+// ── Swipe-down-to-close modals ─────────────────────────
+function initModalSwipeDown() {
+  const overlay = document.getElementById('modal-overlay');
+  if (!overlay) return;
+  const modal = overlay.querySelector('.modal');
+  if (!modal || modal._swipeInited) return;
+  modal._swipeInited = true;
+
+  let startY = 0, curY = 0, dragging = false;
+  const CLOSE_THRESHOLD = 120; // px pulled down to trigger close
+  const VELOCITY_CLOSE  = 0.6; // px/ms — fast flick also closes
+
+  let lastT = 0, lastY = 0, velocity = 0;
+
+  function onStart(e) {
+    // Only initiate drag from drag handle or modal-header
+    const target = e.target;
+    const inHandle = target.closest('.modal-drag-handle') || target.closest('.modal-header');
+    if (!inHandle) return;
+    // Don't drag if scrollable content is scrolled
+    const body = modal.querySelector('.modal-body');
+    if (body && body.scrollTop > 2) return;
+    startY = e.touches ? e.touches[0].clientY : e.clientY;
+    curY   = 0; lastT = Date.now(); lastY = startY; velocity = 0;
+    dragging = true;
+    modal.classList.add('dragging');
+  }
+
+  function onMove(e) {
+    if (!dragging) return;
+    const y = e.touches ? e.touches[0].clientY : e.clientY;
+    const now = Date.now();
+    velocity  = (y - lastY) / Math.max(1, now - lastT);
+    lastY = y; lastT = now;
+    curY = Math.max(0, y - startY); // only allow downward drag
+    modal.style.transform = `translateY(${curY}px)`;
+    // Fade backdrop as it's dragged
+    overlay.style.background = `rgba(0,0,0,${0.7 * (1 - curY / 400)})`;
+    if (e.cancelable) e.preventDefault();
+  }
+
+  function onEnd() {
+    if (!dragging) return;
+    dragging = false;
+    modal.classList.remove('dragging');
+    if (curY > CLOSE_THRESHOLD || velocity > VELOCITY_CLOSE) {
+      // Commit close — slide down off screen
+      modal.style.transition = 'transform 0.22s cubic-bezier(0.4,0,1,1)';
+      modal.style.transform  = `translateY(110%)`;
+      overlay.style.transition = 'background 0.22s';
+      overlay.style.background = 'rgba(0,0,0,0)';
+      setTimeout(() => {
+        modal.style.transition = ''; modal.style.transform = '';
+        overlay.style.transition = ''; overlay.style.background = '';
+        closeModal();
+      }, 220);
+    } else {
+      // Snap back
+      modal.style.setProperty('--sq-drag-y', curY + 'px');
+      modal.style.transform = '';
+      overlay.style.background = '';
+      modal.classList.add('snap-back');
+      modal.addEventListener('animationend', () => modal.classList.remove('snap-back'), { once: true });
+    }
+    curY = 0;
+  }
+
+  modal.addEventListener('touchstart', onStart, { passive: true });
+  modal.addEventListener('touchmove',  onMove,  { passive: false });
+  modal.addEventListener('touchend',   onEnd,   { passive: true });
+}
+
+// Re-init swipe handler whenever a modal opens
+const _origModalOpen = document.getElementById('modal-overlay')?.classList;
+(function patchModalOpen() {
+  const overlay = document.getElementById('modal-overlay');
+  if (!overlay) return;
+  const observer = new MutationObserver(() => {
+    if (overlay.classList.contains('open')) initModalSwipeDown();
+  });
+  observer.observe(overlay, { attributes: true, attributeFilter: ['class'] });
+})();
 
 function updateMonthlyTarget(val) {
   const v = parseFloat(val);
@@ -7314,6 +7423,17 @@ function buildEodText(ptps) {
   return _buildPtpText(ptps, fmt, true);
 }
 
+// Converts +233XXXXXXXXX → 0XXXXXXXXX for local display in reports
+// Works for any +XX / +XXX country prefix as long as number is 9+ digits after prefix
+function localPhone(raw) {
+  const digits = (raw || '').replace(/\s/g, '');
+  // If starts with + followed by country code, strip it and add 0
+  const m = digits.match(/^\+\d{1,3}(\d{9,})$/);
+  if (m) return '0' + m[1];
+  // Already local format or unrecognised — return stripped
+  return digits.replace(/^\+/, '');
+}
+
 function _buildPtpText(ptps, fmt, isEod) {
   const today = new Date().toLocaleDateString('en-GB', {day:'numeric', month:'long'});
   const fullDate = new Date().toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
@@ -7327,7 +7447,7 @@ function _buildPtpText(ptps, fmt, isEod) {
     return { text: o, emoji: outcomeEmoji[o.toLowerCase()] || '' };
   }
   function line(b, num) {
-    const phone = b.phone.replace(/\s/g,'');
+    const phone = localPhone(b.phone);
     const note = b.promiseNote || '';
     const { text: outText, emoji: outEmoji } = getOutcome(b);
     const outSuffix = isEod && outText ? ' \u2192 ' + outText + (outEmoji ? ' ' + outEmoji : '') : '';
@@ -7356,7 +7476,7 @@ function _buildPtpText(ptps, fmt, isEod) {
       groups.forEach(function(g) {
         text += NL + NL + formatTimeLabel(g.time) + NL;
         g.items.forEach(function(b) {
-          var phone = b.phone.replace(/[^0-9+]/g,'');
+          var phone = localPhone(b.phone);
           var amt = isEod ? '' : ' | *' + fmtC(getDueToday(b)) + '*';
           var out = getOutcome(b);
           var outSuffix = isEod && out.text ? ' -> _' + out.text + '_ ' + (out.emoji||'') : '';
@@ -7370,7 +7490,7 @@ function _buildPtpText(ptps, fmt, isEod) {
         var lbl = g.time === 'COD' ? 'Close of Day' : g.time;
         text += NL + '  • ' + lbl + ':' + NL;
         g.items.forEach(function(b) {
-          var phone = b.phone.replace(/[^0-9+]/g,'');
+          var phone = localPhone(b.phone);
           var out = getOutcome(b);
           text += '    ◦ ' + getFirstName(b) + ' (' + phone + ')' + (isEod && out.text ? ' — ' + out.text : '') + NL;
         });
@@ -7921,7 +8041,7 @@ function undo() {
   area.appendChild(el);
   setTimeout(() => el.remove(), 3000);
 }
-// Ctrl+Z and shake to undo
+// Ctrl+Z to undo (desktop)
 document.addEventListener('keydown', function(e) {
   const tag = (e.target.tagName || '').toLowerCase();
   const inInput = tag === 'input' || tag === 'textarea' || tag === 'select';
@@ -7932,28 +8052,6 @@ document.addEventListener('keydown', function(e) {
   if (e.key === 'f') { e.preventDefault(); document.getElementById('loan-search')?.focus(); navigate('loans'); }
   if (e.key === 'n') openAddModal();
 });
-// Shake detection — with haptic confirmation
-(function() {
-  var last = { x:0, y:0, z:0, t:0 };
-  var cooldown = 0;
-  if (!window.DeviceMotionEvent) return;
-  window.addEventListener('devicemotion', function(ev) {
-    var a = ev.accelerationIncludingGravity;
-    if (!a) return;
-    var now = Date.now();
-    if (now - last.t < 80) return;
-    var dx = Math.abs((a.x||0) - last.x);
-    var dy = Math.abs((a.y||0) - last.y);
-    var dz = Math.abs((a.z||0) - last.z);
-    last = { x: a.x||0, y: a.y||0, z: a.z||0, t: now };
-    if (dx + dy + dz > 25 && now > cooldown) {
-      cooldown = now + 1500; // 1.5s cooldown between shakes
-      haptic('heavy');       // confirm the shake was detected
-      setTimeout(function() { undo(); }, 80); // slight delay after haptic
-    }
-  });
-})();
-
 // ── HIT LIST ───────────────────────────────────────────
 function getHitList() { return state.hitList || []; }
 function addToHitList(id) {
@@ -8894,8 +8992,72 @@ function renderHealthPage() {
     </div>`;
 }
 
-// ============================================================
-// UNIFIED PTP HUB (replaces separate ptp/ptp-history/ptp-stats)
+// ── UNDO HISTORY PANEL ─────────────────────────────────
+function renderUndoHistory() {
+  const body = document.getElementById('undo-history-body');
+  if (!body) return;
+  const stack = [..._undoStack].reverse(); // most recent first
+  const shown = stack.slice(0, 7);
+
+  if (!shown.length) {
+    body.innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px;padding:16px 18px">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg viewBox="0 0 20 20" fill="none" stroke="var(--text3)" stroke-width="1.6" style="width:18px;height:18px"><path d="M4 10a6 6 0 116 6"/><polyline points="2,7 4,10 7,8"/></svg>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text2)">No recent actions</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">Payments, edits and deletions will appear here</div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const actionStyles = {
+    'payment':   { icon: '💰', bg: 'rgba(34,197,94,0.12)',   col: 'var(--green)'  },
+    'delete':    { icon: '🗑',  bg: 'rgba(239,68,68,0.12)',   col: 'var(--red)'    },
+    'bulk':      { icon: '✅',  bg: 'rgba(96,165,250,0.12)',  col: 'var(--blue)'   },
+    'quick pay': { icon: '⚡',  bg: 'rgba(34,197,94,0.12)',   col: 'var(--green)'  },
+    'clear':     { icon: '🔄',  bg: 'rgba(249,115,22,0.12)',  col: 'var(--orange)' },
+    'default':   { icon: '↩️',  bg: 'rgba(255,255,255,0.05)', col: 'var(--text2)'  },
+  };
+  function getStyle(label) {
+    const l = label.toLowerCase();
+    for (const [key, val] of Object.entries(actionStyles)) {
+      if (key !== 'default' && l.startsWith(key)) return val;
+    }
+    return actionStyles.default;
+  }
+
+  body.innerHTML = shown.map((entry, i) => {
+    const realIdx = _undoStack.length - 1 - i;
+    const s = getStyle(entry.label);
+    const isFirst = i === 0;
+    return `<div style="display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:${i < shown.length-1 ? '1px solid var(--border)' : 'none'};transition:background 0.12s;cursor:default" onmouseover="this.style.background='rgba(255,255,255,0.025)'" onmouseout="this.style.background='transparent'">
+      <div style="width:36px;height:36px;border-radius:10px;background:${s.bg};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">${s.icon}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:${isFirst?'700':'500'};color:${isFirst?'var(--text)':'var(--text2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(entry.label)}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px;font-family:var(--font-mono)">${isFirst ? '← Most recent' : i + ' action' + (i>1?'s':'') + ' ago'}</div>
+      </div>
+      <button onclick="undoFromHistory(${realIdx})" style="flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid ${isFirst?'rgba(240,160,48,0.5)':'var(--border2)'};background:${isFirst?'rgba(240,160,48,0.08)':'transparent'};color:${isFirst?'var(--gold)':'var(--text3)'};font-size:12px;font-weight:${isFirst?'700':'500'};cursor:pointer;font-family:var(--font-body);transition:all 0.15s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)';this.style.background='rgba(240,160,48,0.08)'" onmouseout="this.style.borderColor='${isFirst?'rgba(240,160,48,0.5)':'var(--border2)'}';this.style.color='${isFirst?'var(--gold)':'var(--text3)'}';this.style.background='${isFirst?'rgba(240,160,48,0.08)':'transparent'}'">↩ Undo</button>
+    </div>`;
+  }).join('') +
+  (stack.length > 7 ? `<div style="padding:10px 18px;font-size:11px;color:var(--text3);text-align:center">Showing 7 of ${stack.length} saved actions</div>` : '');
+}
+
+function undoFromHistory(idx) {
+  if (idx < 0 || idx >= _undoStack.length) { toast('Action no longer available', 'info'); return; }
+  const entry = _undoStack[idx];
+  _undoStack.splice(idx); // remove this and all newer entries
+  state.borrowers = entry.snapshot.borrowers;
+  state.dailyLog  = entry.snapshot.dailyLog;
+  haptic('medium');
+  saveState(); updateBadges(); renderCurrentPage();
+  toast('↩️ Undone: ' + entry.label, 'success');
+  renderUndoHistory();
+}
+
+// ── UNIFIED PTP HUB (replaces separate ptp/ptp-history/ptp-stats) ──
 
 
 // ── DOW (Day-of-week) CHART for Analytics ──────────────
@@ -9475,7 +9637,7 @@ function buildPtpText(type, fmt) {
       const emoji = label === 'Close of Day' ? '🌙' : _timeEmoji(label);
       txt += '\n' + emoji + ' *' + label + '*\n';
       members.forEach(b => {
-        const phone = b.phone.replace(/\s/g,'');
+        const phone = localPhone(b.phone);
         const line = '▪️ ' + b.name.split(' ')[0] + ' (' + phone + ')';
         txt += isEod ? line + ' -> ' + _ocLabel(b.ptpOutcome||'yet to pay') + '\n'
                      : line + '\n';
@@ -9493,7 +9655,7 @@ function buildPtpText(type, fmt) {
     let txt = (isEod ? '🌙 *EOD PTP REPORT*' : '🌅 *MORNING PTP REPORT*') + '\n';
     txt += '*' + todayStr + '*\nAgent: *' + agentName + '*\nSupervisor: ' + sup + '\n\n';
     ptps.forEach((b,i) => {
-      const phone = b.phone.replace(/\s/g,'');
+      const phone = localPhone(b.phone);
       txt += (i+1) + '. ' + b.name.split(' ')[0] + ' (' + phone + ')';
       txt += b.promiseDate ? ' — ' + b.promiseDate.split(' ')[1] : '';
       if (isEod) txt += ' → ' + _ocLabel(b.ptpOutcome||'pending');
@@ -11260,6 +11422,7 @@ async function loadStateForAgent() {
   updateSidebarAgentInfo();
   renderDashboard();
   showSkeletons(false);
+  _updateFab(currentPage);
 }
 
 // ── One-time migration from legacy key ───────────────────────
@@ -11469,6 +11632,7 @@ function renderSettingsPage() {
   if (hapticKnob)   hapticKnob.style.transform = hapticOn ? 'translateX(20px)' : 'translateX(0)';
 
   renderHealthPage();
+  renderUndoHistory();
 }
 
 function openProfileEditModal() {
