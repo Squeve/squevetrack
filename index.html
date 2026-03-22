@@ -1703,7 +1703,7 @@ tr.overdue-critical .heat-ring {
 [data-theme="amoled"] {
   --bg:#000;--surface:#0a0a0a;--surface2:#111;--border:#1a1a1a;
   --border2:#222;--border-hi:rgba(255,255,255,0.05);
-  --text:#f0f0f0;--text2:#888;--text3:#444;
+  --text:#f0f0f0;--text2:#9aa3b8;--text3:#6a7590;
 }
 [data-theme="amoled"] .card,[data-theme="amoled"] .kpi-card {
   background:#0d0d0d!important;border-color:#1e1e1e!important;
@@ -2004,21 +2004,6 @@ tr.overdue-critical .heat-ring {
     <!-- Treadmill Alert -->
     <div id="treadmill-alert" style="display:none;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-left:4px solid var(--red);border-radius:8px;padding:12px 18px;margin-bottom:14px"></div>
 
-    <!-- Aged Out collapsible -->
-    <div id="dash-agedout-card" style="display:none;background:rgba(96,165,250,0.07);border:1px solid rgba(96,165,250,0.2);border-radius:10px;margin-bottom:14px;overflow:hidden">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer" onclick="toggleDashAgedOut()">
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:16px">📤</span>
-          <div>
-            <div style="font-weight:700;font-size:13px">Aged Out Accounts</div>
-            <div id="dash-agedout-sub" style="font-size:11px;color:var(--text3)">0 accounts</div>
-          </div>
-        </div>
-        <span id="dash-agedout-chevron" style="font-size:18px;color:var(--text3);transition:transform 0.2s">›</span>
-      </div>
-      <div id="dash-agedout-body" style="display:none;padding:0 16px 12px;max-height:260px;overflow-y:auto"></div>
-    </div>
-
     <!-- Priority 1: Action lists — most important for daily workflow -->
     <div class="two-col">
       <div class="card">
@@ -2096,11 +2081,13 @@ tr.overdue-critical .heat-ring {
           <option value="LoanBase Pro">Pro</option>
         </select>
         <select class="bl-chip-sel" id="loan-filter-badge" onchange="renderLoansTable()">
-          <option value="">All Badges</option>
-          <option value="paid">Fully Paid</option>
-          <option value="star">Reliable</option>
-          <option value="warn">Broken PTP</option>
-          <option value="fraud">Fraud Flag</option>
+          <option value="">🏷 Filter</option>
+          <option value="paid">✅ Fully Paid</option>
+          <option value="star">⭐ Reliable</option>
+          <option value="ptp_today">🤝 PTP Today</option>
+          <option value="ptp_any">🤝 Any PTP</option>
+          <option value="warn">⚠️ Broken PTP</option>
+          <option value="fraud">🚩 Fraud Flag</option>
         </select>
         <div class="bl-sort-wrap">
           <select class="bl-chip-sel" id="bl-sort-sel" onchange="blSortChange(this.value)" style="min-width:120px">
@@ -2717,14 +2704,20 @@ tr.overdue-critical .heat-ring {
     <!-- Aged Out Accounts -->
     <p class="settings-section-label">Aged Out Accounts</p>
     <div class="settings-group">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--border)">
-        <div>
-          <div style="font-size:13px;font-weight:600;color:var(--text)" id="settings-aged-count">0 accounts</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px">Day 16+ auto-removed from active portfolio</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;cursor:pointer" onclick="toggleSettingsAgedOut()">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(96,165,250,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">📤</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)" id="settings-aged-count">0 accounts</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">Day 16+ auto-removed · tap to expand</div>
+          </div>
         </div>
-        <button class="btn btn-red btn-sm" onclick="settingsClearAgedOut()" id="settings-aged-clear-btn">🗑 Clear All</button>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="btn btn-red btn-xs" id="settings-aged-clear-btn" onclick="event.stopPropagation();settingsClearAgedOut()" style="display:none">🗑 Clear</button>
+          <span id="settings-aged-chevron" style="font-size:18px;color:var(--text3);transition:transform 0.22s">›</span>
+        </div>
       </div>
-      <div id="settings-agedout-list" style="max-height:320px;overflow-y:auto;padding:0 18px"></div>
+      <div id="settings-agedout-list" style="max-height:0;overflow:hidden;transition:max-height 0.3s cubic-bezier(0.4,0,0.2,1);padding:0 18px"></div>
     </div>
 
     <!-- Data -->
@@ -2888,7 +2881,6 @@ tr.overdue-critical .heat-ring {
 <nav id="mobile-drawer">
   <div class="mdrawer-header">
     <div class="mdrawer-logo" id="mdrawer-logo" style="display:flex;align-items:center;gap:9px"><div style="width:30px;height:30px;border-radius:9px;background:var(--gold-grad);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 10px rgba(240,160,48,0.4)"><span style="font-family:var(--font-head);font-size:13px;font-weight:800;color:#000;letter-spacing:-0.5px">ST</span></div><span style="background:var(--gold-grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">SqueveTrack</span></div>
-    <button class="mdrawer-close" onclick="closeDrawer()">✕</button>
   </div>
   <div class="mdrawer-month" id="mdrawer-month">📅 —</div>
   <div class="mdrawer-item active" data-page="dashboard" onclick="navigateDrawer('dashboard')">
@@ -3999,36 +3991,8 @@ function statusBadge(status) {
 }
 
 // ── DASHBOARD ──────────────────────────────────────────
-function renderDashAgedOut() {
-  const card = document.getElementById('dash-agedout-card');
-  const sub  = document.getElementById('dash-agedout-sub');
-  const body = document.getElementById('dash-agedout-body');
-  if (!card) return;
-  const log = state.agedOutLog || [];
-  if (!log.length) { card.style.display = 'none'; return; }
-  card.style.display = 'block';
-  if (sub) sub.textContent = log.length + ' account' + (log.length!==1?'s':'') + ' · ₵' + fmtC(log.reduce((s,a)=>s+(a.loanDue||0),0)).replace('₵','');
-  if (body) {
-    body.innerHTML = log.slice(0,10).map(a =>
-      '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">'
-      +'<div><div style="font-weight:600;font-size:12px">'+a.name+'</div>'
-      +'<div style="font-size:10px;color:var(--text3)">Day '+a.odAge+' · Aged '+a.agedDate+'</div></div>'
-      +'<div style="font-family:var(--font-mono);font-size:12px;color:var(--red)">'+fmtC(a.loanDue)+'</div>'
-      +'</div>'
-    ).join('')
-    + (log.length > 10 ? '<div style="font-size:11px;color:var(--text3);padding:8px 0;text-align:center">+' + (log.length-10) + ' more · <a onclick="navigate(\'agedout\')" style="color:var(--gold);cursor:pointer">View all →</a></div>' : '');
-  }
-}
-
-function toggleDashAgedOut() {
-  const body    = document.getElementById('dash-agedout-body');
-  const chevron = document.getElementById('dash-agedout-chevron');
-  if (!body) return;
-  const open = body.style.display === 'block';
-  body.style.display = open ? 'none' : 'block';
-  if (chevron) chevron.style.transform = open ? '' : 'rotate(90deg)';
-  haptic('light');
-}
+function renderDashAgedOut() { /* aged out moved to Settings */ }
+function toggleDashAgedOut() { /* aged out moved to Settings */ }
 
 function renderDashboard() {
   // Dynamic greeting
@@ -4345,7 +4309,6 @@ function renderDashboard() {
   checkRankingGapAlert();
   checkPtpBreaches();
   updateDailyPill();
-  renderDashAgedOut();
 }
 
 function chartColor(alpha) {
@@ -4437,10 +4400,13 @@ function renderLoansTable() {
   });
   if (fBadge) rows = rows.filter(r => {
     const payRatio = r.loanDue > 0 ? r.amountPaid / r.loanDue : 0;
-    if (fBadge === 'paid')  return r.status === 'Paid';
-    if (fBadge === 'star')  return payRatio >= 0.5 && r.amountPaid > 0 && r.status !== 'Paid';
-    if (fBadge === 'warn')  return r.promisedToPay && r.amountPaid === 0;
-    if (fBadge === 'fraud') return (r.callLog||[]).some(c => c.outcome === 'Fraud');
+    const today = new Date().toISOString().split('T')[0];
+    if (fBadge === 'paid')      return r.status === 'Paid';
+    if (fBadge === 'star')      return payRatio >= 0.5 && r.amountPaid > 0 && r.status !== 'Paid';
+    if (fBadge === 'ptp_today') return r.promisedToPay && r.promiseDate && r.promiseDate.startsWith(today);
+    if (fBadge === 'ptp_any')   return r.promisedToPay;
+    if (fBadge === 'warn')      return r.promisedToPay && r.amountPaid === 0;
+    if (fBadge === 'fraud')     return (r.callLog||[]).some(c => c.outcome === 'Fraud');
     return true;
   });
 
@@ -5045,8 +5011,9 @@ function renderAnalytics() {
 
 // ── WHATSAPP DISPATCH ──────────────────────────────────
 function setDispatchMode(mode) {
+  const prev = dispatchMode;
   dispatchMode = mode;
-  // Update button styles immediately (instant visual feedback)
+  // Update button styles immediately
   document.querySelectorAll('.msg-toggle-btn').forEach(b => {
     const on = b.dataset.mode === mode;
     b.classList.toggle('active', on);
@@ -5055,7 +5022,27 @@ function setDispatchMode(mode) {
     b.style.color       = on ? 'var(--gold)' : 'var(--text2)';
     b.style.fontWeight  = on ? '700' : '600';
   });
-  // Defer the expensive list rebuild until after button paint
+  if (prev === mode) return;
+  // Fast path: patch existing DOM items in-place (no full rebuild)
+  const useGenerous = mode === 'generous';
+  const items = document.querySelectorAll('#dispatch-list .dispatch-item');
+  if (items.length > 0 && window._currentDispatchIds && window._currentDispatchIds.length === items.length) {
+    items.forEach(function(el, i) {
+      const bid = window._currentDispatchIds[i];
+      const b = bid ? state.borrowers.find(function(x){ return x.id === bid; }) : null;
+      if (!b) return;
+      const amt    = useGenerous ? getGenerous(b) : getDueToday(b);
+      const msg    = getSmsMessage(b, useGenerous);
+      const waLink = getWaLink(b, useGenerous);
+      const amtEl = el.querySelector('.dispatch-amount');
+      const msgEl = el.querySelector('.dispatch-msg');
+      const waEl  = el.querySelector('a.btn-green');
+      if (amtEl) amtEl.textContent = fmtC(amt);
+      if (msgEl) msgEl.textContent = msg;
+      if (waEl)  waEl.href = waLink;
+    });
+    return;
+  }
   setTimeout(renderDispatch, 0);
 }
 
@@ -5140,7 +5127,7 @@ function renderDispatch() {
         + ' &nbsp;·&nbsp; <span class="' + odCls + '">Day ' + b.odAge + '</span>'
         + ' &nbsp;·&nbsp; ' + (b.loanType==='LoanBase Pro' ? '<span class="badge badge-pro">Pro</span>' : '<span class="badge badge-loanbase">Base</span>')
         + ' &nbsp;·&nbsp; ' + statusBadge(b.status)
-        + ' &nbsp;·&nbsp; <span style="font-family:var(--font-mono);color:var(--gold)">' + fmtC(amountShown) + '</span></div>'
+        + ' &nbsp;·&nbsp; <span class="dispatch-amount" style="font-family:var(--font-mono);color:var(--gold)">' + fmtC(amountShown) + '</span></div>'
         + '<div class="dispatch-msg" style="font-size:11px;color:var(--text2);background:var(--surface2);padding:6px 10px;border-radius:6px;margin-top:5px;line-height:1.5">' + msg + '</div>'
         + '</div>'
         + '<div class="dispatch-actions">'
@@ -6143,71 +6130,76 @@ function initModalSwipeDown() {
   if (!modal || modal._swipeInited) return;
   modal._swipeInited = true;
 
-  let startY = 0, curY = 0, dragging = false;
-  const CLOSE_THRESHOLD = 120; // px pulled down to trigger close
-  const VELOCITY_CLOSE  = 0.6; // px/ms — fast flick also closes
-
-  let lastT = 0, lastY = 0, velocity = 0;
+  let startY = 0, startX = 0, curY = 0, dragging = false, cancelled = false;
+  let lastT = 0, lastY = 0, velocity = 0, rafId = null;
+  const CLOSE_THRESHOLD = 90;
+  const VELOCITY_CLOSE  = 0.4;
+  const RESISTANCE      = 0.88;
 
   function onStart(e) {
-    // Only initiate drag from drag handle or modal-header
-    const target = e.target;
-    const inHandle = target.closest('.modal-drag-handle') || target.closest('.modal-header');
-    if (!inHandle) return;
-    // Don't drag if scrollable content is scrolled
-    const body = modal.querySelector('.modal-body');
-    if (body && body.scrollTop > 2) return;
-    startY = e.touches ? e.touches[0].clientY : e.clientY;
-    curY   = 0; lastT = Date.now(); lastY = startY; velocity = 0;
-    dragging = true;
-    modal.classList.add('dragging');
+    const t = e.touches[0];
+    startY = t.clientY; startX = t.clientX;
+    curY = 0; velocity = 0; lastY = startY; lastT = Date.now();
+    dragging = false; cancelled = false;
   }
-
   function onMove(e) {
-    if (!dragging) return;
-    const y = e.touches ? e.touches[0].clientY : e.clientY;
+    if (cancelled) return;
+    const t = e.touches[0];
+    const dy = t.clientY - startY;
+    const dx = t.clientX - startX;
+    if (!dragging && Math.abs(dx) > Math.abs(dy) + 6) { cancelled = true; return; }
+    if (dy <= 0) { cancelled = true; return; }
+    const body = modal.querySelector('.modal-body');
+    if (!dragging && body && body.scrollTop > 4) { cancelled = true; return; }
+    if (!dragging) {
+      if (dy < 10) return;
+      dragging = true;
+      modal.classList.add('dragging');
+    }
     const now = Date.now();
-    velocity  = (y - lastY) / Math.max(1, now - lastT);
-    lastY = y; lastT = now;
-    curY = Math.max(0, y - startY); // only allow downward drag
-    modal.style.transform = `translateY(${curY}px)`;
-    // Fade backdrop as it's dragged
-    overlay.style.background = `rgba(0,0,0,${0.7 * (1 - curY / 400)})`;
+    velocity = (t.clientY - lastY) / Math.max(1, now - lastT);
+    lastY = t.clientY; lastT = now;
+    curY = dy * RESISTANCE;
+    cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(function() {
+      modal.style.transform = 'translateY(' + curY + 'px)';
+      overlay.style.background = 'rgba(0,0,0,' + Math.max(0, 0.7 * (1 - curY / 300)).toFixed(3) + ')';
+    });
     if (e.cancelable) e.preventDefault();
   }
-
   function onEnd() {
+    cancelAnimationFrame(rafId);
     if (!dragging) return;
-    dragging = false;
     modal.classList.remove('dragging');
     if (curY > CLOSE_THRESHOLD || velocity > VELOCITY_CLOSE) {
-      // Commit close — slide down off screen
-      modal.style.transition = 'transform 0.22s cubic-bezier(0.4,0,1,1)';
-      modal.style.transform  = `translateY(110%)`;
-      overlay.style.transition = 'background 0.22s';
+      const dur = Math.max(150, Math.min(250, (window.innerHeight - modal.getBoundingClientRect().top) / Math.max(velocity, 0.5)));
+      modal.style.transition = 'transform ' + dur + 'ms cubic-bezier(0.32,0,0.67,0)';
+      overlay.style.transition = 'background ' + dur + 'ms ease';
+      modal.style.transform = 'translateY(110vh)';
       overlay.style.background = 'rgba(0,0,0,0)';
-      setTimeout(() => {
+      setTimeout(function() {
         modal.style.transition = ''; modal.style.transform = '';
         overlay.style.transition = ''; overlay.style.background = '';
         closeModal();
-      }, 220);
+      }, dur + 16);
     } else {
-      // Snap back
-      modal.style.setProperty('--sq-drag-y', curY + 'px');
+      modal.style.transition = 'transform 0.28s cubic-bezier(0.34,1.4,0.64,1)';
+      overlay.style.transition = 'background 0.28s ease';
       modal.style.transform = '';
       overlay.style.background = '';
-      modal.classList.add('snap-back');
-      modal.addEventListener('animationend', () => modal.classList.remove('snap-back'), { once: true });
+      modal.addEventListener('transitionend', function() {
+        modal.style.transition = ''; overlay.style.transition = '';
+      }, { once: true });
     }
     curY = 0;
   }
-
   modal.addEventListener('touchstart', onStart, { passive: true });
   modal.addEventListener('touchmove',  onMove,  { passive: false });
   modal.addEventListener('touchend',   onEnd,   { passive: true });
+  modal.addEventListener('touchcancel',onEnd,   { passive: true });
 }
 
-// Modal swipe-down observer is wired in DOMContentLoaded (see bottom of file)
+// Modal swipe-down observer// Modal swipe-down observer is wired in DOMContentLoaded (see bottom of file)
 
 function updateMonthlyTarget(val) {
   const v = parseFloat(val);
@@ -6354,31 +6346,55 @@ function settingsClearAgedOut() {
   toast('Aged-out log cleared', 'info');
 }
 
-function renderSettingsAgedOut() {
-  const list = state.agedOutLog || [];
-  const countEl = document.getElementById('settings-aged-count');
+let _agedOutExpanded = false;
+function toggleSettingsAgedOut() {
+  _agedOutExpanded = !_agedOutExpanded;
   const listEl  = document.getElementById('settings-agedout-list');
+  const chevron = document.getElementById('settings-aged-chevron');
+  if (!listEl) return;
+  if (_agedOutExpanded) {
+    listEl.style.maxHeight = listEl.scrollHeight + 60 + 'px';
+    setTimeout(function() {
+      if (_agedOutExpanded) { listEl.style.maxHeight = '360px'; listEl.style.overflowY = 'auto'; }
+    }, 320);
+  } else {
+    listEl.style.overflowY = 'hidden';
+    listEl.style.maxHeight = listEl.scrollHeight + 'px';
+    requestAnimationFrame(function() { listEl.style.maxHeight = '0'; });
+  }
+  if (chevron) chevron.style.transform = _agedOutExpanded ? 'rotate(90deg)' : '';
+  haptic('light');
+}
+
+function renderSettingsAgedOut() {
+  const list     = state.agedOutLog || [];
+  const countEl  = document.getElementById('settings-aged-count');
+  const listEl   = document.getElementById('settings-agedout-list');
   const clearBtn = document.getElementById('settings-aged-clear-btn');
   if (!listEl) return;
-  if (countEl) countEl.textContent = list.length + ' account' + (list.length !== 1 ? 's' : '');
+  if (countEl)  countEl.textContent = list.length + ' account' + (list.length !== 1 ? 's' : '');
   if (clearBtn) clearBtn.style.display = list.length ? '' : 'none';
   if (!list.length) {
-    listEl.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--text3);font-size:12px">No aged-out accounts yet.<br><span style="font-size:11px">Accounts reaching Day 16 appear here.</span></div>';
-    return;
+    listEl.innerHTML = '<div style="padding:16px 0 18px;text-align:center;color:var(--text3);font-size:12px">No aged-out accounts yet.<br><span style="font-size:11px">Accounts reaching Day 16 will appear here.</span></div>';
+  } else {
+    listEl.innerHTML = '<div style="padding-top:4px;padding-bottom:12px">' +
+      list.map(function(a) {
+        const remaining = Math.max(0, (a.loanDue||0) - (a.amountPaid||0));
+        return '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">'
+          + '<div style="flex:1;min-width:0">'
+          + '<div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escapeHtml(a.name) + '</div>'
+          + '<div style="font-size:10px;color:var(--text3);margin-top:2px">' + escapeHtml(a.phone) + ' · ' + a.loanType + ' · ' + a.agedDate + '</div>'
+          + '</div>'
+          + '<div style="font-family:var(--font-mono);font-size:12px;font-weight:700;flex-shrink:0;color:' + (remaining > 0 ? 'var(--red)' : 'var(--green)') + '">' + (remaining > 0 ? fmtC(remaining) + ' unpaid' : '✅ Cleared') + '</div>'
+          + '</div>';
+      }).join('') + '</div>';
   }
-  listEl.innerHTML = list.map(a => {
-    const remaining = Math.max(0, (a.loanDue||0) - (a.amountPaid||0));
-    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(a.name)}</div>
-        <div style="font-size:10px;color:var(--text3);margin-top:2px">${escapeHtml(a.phone)} · ${a.loanType} · Aged: ${a.agedDate}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0">
-        <div style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:${remaining>0?'var(--red)':'var(--green)'}">${remaining>0?fmtC(remaining)+' unpaid':'✅ Cleared'}</div>
-      </div>
-    </div>`;
-  }).join('');
+  // Sync expanded height if open
+  if (_agedOutExpanded && listEl.style.maxHeight !== '0px') {
+    listEl.style.maxHeight = listEl.scrollHeight + 'px';
+  }
 }
+
 
 
 // ── SMS BLAST ──────────────────────────────────────────
@@ -7001,6 +7017,46 @@ function navigateDrawer(page) {
   closeDrawer();
   navigate(page);
 }
+
+// ── Edge-swipe to open/close drawer ────────────────────────────────
+// Right-swipe from left 28px edge opens drawer ONLY when no modal/popup is active
+// Left-swipe on an open drawer closes it
+(function() {
+  var MIN_X = 50, MAX_Y = 55;
+  function getEdge() { return Math.round(window.innerWidth * 0.62); }
+  var sx = 0, sy = 0, tracking = false, wasOpen = false;
+  function isModalActive() {
+    var ov = document.getElementById('modal-overlay');
+    var cmd = document.getElementById('cmd-overlay');
+    var focus = document.getElementById('focus-overlay');
+    return (ov && ov.classList.contains('open')) ||
+           (cmd && cmd.style.display !== 'none' && cmd.style.display !== '') ||
+           (focus && focus.classList.contains('open'));
+  }
+  document.addEventListener('touchstart', function(e) {
+    var t = e.touches[0];
+    var drawer = document.getElementById('mobile-drawer');
+    var open = drawer && drawer.classList.contains('open');
+    // Block open-swipe if any modal/popup is active
+    if (!open && isModalActive()) return;
+    if (t.clientX <= getEdge() || open) {
+      sx = t.clientX; sy = t.clientY; tracking = true; wasOpen = open;
+    }
+  }, { passive: true });
+  document.addEventListener('touchmove', function(e) {
+    if (!tracking) return;
+    if (Math.abs(e.touches[0].clientY - sy) > MAX_Y) tracking = false;
+  }, { passive: true });
+  document.addEventListener('touchend', function(e) {
+    if (!tracking) { tracking = false; return; }
+    tracking = false;
+    var dx = e.changedTouches[0].clientX - sx;
+    var dy = Math.abs(e.changedTouches[0].clientY - sy);
+    if (dy > MAX_Y) return;
+    if (!wasOpen && dx >= MIN_X) { openDrawer(); haptic('light'); }
+    else if (wasOpen && dx <= -MIN_X) { closeDrawer(); haptic('light'); }
+  }, { passive: true });
+})();
 
 
 function haptic(type) {
