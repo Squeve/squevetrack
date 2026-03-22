@@ -7586,41 +7586,10 @@ function navigateDrawer(page) {
 })();
 
 
-// ── Haptic feedback — Android (vibrate) + iOS (AudioContext) ─────
-let _audioCtx = null;
-function _iosHaptic(type) {
-  // iOS Safari: brief silent audio burst triggers Taptic Engine on some devices
-  try {
-    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (_audioCtx.state === 'suspended') _audioCtx.resume();
-    const patterns = {
-      light:   [[0.02, 0.01]],
-      medium:  [[0.05, 0.02]],
-      success: [[0.03, 0.01], [0.03, 0.01], [0.06, 0]],
-      error:   [[0.08, 0.03], [0.08, 0.03], [0.08, 0]],
-      pay:     [[0.04, 0.01], [0.04, 0.01], [0.10, 0]],
-      ptp:     [[0.03, 0.02], [0.03, 0]],
-      aged:    [[0.10, 0.04], [0.10, 0]],
-      warn:    [[0.06, 0.02], [0.06, 0]],
-      unlock:  [[0.02, 0.01], [0.02, 0.01], [0.07, 0]],
-    };
-    const bursts = patterns[type] || patterns.light;
-    let t = _audioCtx.currentTime;
-    bursts.forEach(([dur, gap]) => {
-      const osc = _audioCtx.createOscillator();
-      const gain = _audioCtx.createGain();
-      osc.connect(gain); gain.connect(_audioCtx.destination);
-      gain.gain.setValueAtTime(0.001, t); // nearly silent
-      osc.frequency.setValueAtTime(1, t);
-      osc.start(t); osc.stop(t + dur);
-      t += dur + gap;
-    });
-  } catch(e) { /* AudioContext not available */ }
-}
-
+// ── Haptic feedback — Android (vibrate API) + visual flash ──────
 function haptic(type) {
   if (localStorage.getItem('sq_haptic') === 'off') return;
-  // Android — Web Vibration API
+  // Android: Web Vibration API
   if (navigator.vibrate) {
     const patterns = {
       light:   [12],
@@ -7634,11 +7603,16 @@ function haptic(type) {
       unlock:  [15,10,15,10,50],
     };
     navigator.vibrate(patterns[type] || patterns.light);
-    return;
   }
-  // iOS — AudioContext Taptic attempt
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  if (isIOS) _iosHaptic(type);
+  // Universal: brief opacity flash on focused element (iOS + any device)
+  try {
+    const el = document.activeElement;
+    if (el && el !== document.body && el.style) {
+      el.style.transition = 'opacity 0.05s';
+      el.style.opacity = '0.65';
+      setTimeout(function() { el.style.opacity = ''; }, 90);
+    }
+  } catch(e) {}
 }
 
 
@@ -8875,7 +8849,6 @@ async function adminShowDashboard(db) {
   document.getElementById('modal-footer').innerHTML =
     '<button class="btn btn-ghost" onclick="closeModal()">Close</button>' +
     '<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="adminChangePw()">Change Password</button>';
-
   try {
     const { data: rows } = await db.from('app_state').select('id, data, updated_at')
       .like('id','agent_%').order('updated_at', {ascending: false});
@@ -8883,58 +8856,61 @@ async function adminShowDashboard(db) {
       dash.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)">No agents found</div>';
       return;
     }
-
-    const agents = rows.map(r => ({
-      slug:       r.id.replace('agent_',''),
-      lbCode:     r.data?.agentProfile?.lbCode || r.id.replace('agent_',''),
-      name:       r.data?.agentProfile?.name || '—',
-      stage:      r.data?.agentProfile?.stage || '—',
-      borrowers:  (r.data?.borrowers||[]).length,
-      paid:       (r.data?.borrowers||[]).filter(b=>b.isPaid).length,
-      lastSync:   r.updated_at ? new Date(r.updated_at).toLocaleDateString('en-GB') : '—',
-      hasPin:     !!(r.data?._pinHash),
-      row:        r
-    }));
-
     const stageColors = {M0:'#3b82f6',M1:'#22c55e',M2:'#e8a020',M3:'#f97316',M4:'#ef4444',M5:'#7c3aed'};
-
-    dash.innerHTML =
-      '<div style="font-size:11px;color:var(--text3);margin-bottom:12px">' + agents.length + ' agent' + (agents.length!==1?'s':'') + ' registered</div>' +
-      agents.map(a => `
-        <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:12px 14px;margin-bottom:8px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <div style="min-width:0;flex:1">
-              <div style="font-weight:700;font-size:13px">${escapeHtml(a.name)}</div>
-              <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-top:1px">${escapeHtml(a.lbCode)}</div>
-            </div>
-            <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:${stageColors[a.stage]||'#888'}22;color:${stageColors[a.stage]||'var(--text3)'};">${a.stage}</span>
-          </div>
-          <div style="display:flex;gap:8px;font-size:11px;color:var(--text3);margin-bottom:10px;flex-wrap:wrap">
-            <span>👥 ${a.borrowers} borrowers (${a.paid} paid)</span>
-            <span>🔐 ${a.hasPin?'PIN set':'No PIN'}</span>
-            <span>🕐 ${a.lastSync}</span>
-          </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button onclick="adminInspectAgent('${a.slug}')"
-              style="flex:1;min-width:70px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.3);border-radius:6px;padding:5px 8px;cursor:pointer;font-size:11px;color:var(--blue);font-family:var(--font-body)">
-              🔍 Inspect
-            </button>
-            <button onclick="adminResetPin('${a.slug}','${escapeHtml(a.name)}')"
-              style="flex:1;min-width:70px;background:rgba(240,160,48,0.1);border:1px solid rgba(240,160,48,0.3);border-radius:6px;padding:5px 8px;cursor:pointer;font-size:11px;color:var(--gold);font-family:var(--font-body)">
-              🔑 Reset PIN
-            </button>
-            <button onclick="adminRemoveAgent('${a.slug}','${escapeHtml(a.name)}')"
-              style="flex:1;min-width:70px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:6px;padding:5px 8px;cursor:pointer;font-size:11px;color:var(--red);font-family:var(--font-body)">
-              🗑 Remove
-            </button>
-          </div>
-        </div>`).join('');
+    dash.innerHTML = '';
+    const countEl = document.createElement('div');
+    countEl.style.cssText = 'font-size:11px;color:var(--text3);margin-bottom:12px';
+    countEl.textContent = rows.length + ' agent' + (rows.length!==1?'s':'') + ' registered';
+    dash.appendChild(countEl);
+    rows.forEach(function(r) {
+      const a = {
+        slug:      r.id.replace('agent_',''),
+        lbCode:    r.data && r.data.agentProfile && r.data.agentProfile.lbCode || r.id.replace('agent_',''),
+        name:      r.data && r.data.agentProfile && r.data.agentProfile.name || '—',
+        stage:     r.data && r.data.agentProfile && r.data.agentProfile.stage || '—',
+        borrowers: (r.data && r.data.borrowers || []).length,
+        paid:      (r.data && r.data.borrowers || []).filter(function(b){return b.isPaid;}).length,
+        lastSync:  r.updated_at ? new Date(r.updated_at).toLocaleDateString('en-GB') : '—',
+        hasPin:    !!(r.data && r.data._pinHash),
+      };
+      const card = document.createElement('div');
+      card.style.cssText = 'background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:12px 14px;margin-bottom:8px';
+      const sc = stageColors[a.stage]||'#888';
+      card.innerHTML =
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">' +
+          '<div style="min-width:0;flex:1">' +
+            '<div style="font-weight:700;font-size:13px" class="adm-name"></div>' +
+            '<div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-top:1px" class="adm-code"></div>' +
+          '</div>' +
+          '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:'+sc+'22;color:'+sc+';flex-shrink:0;margin-left:8px">'+a.stage+'</span>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;font-size:11px;color:var(--text3);margin-bottom:10px;flex-wrap:wrap">' +
+          '<span>👥 '+a.borrowers+' borrowers ('+a.paid+' paid)</span>' +
+          '<span>🔐 '+(a.hasPin?'PIN set':'No PIN')+'</span>' +
+          '<span>🕐 '+a.lastSync+'</span>' +
+        '</div>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap" class="adm-btns"></div>';
+      card.querySelector('.adm-name').textContent = a.name;
+      card.querySelector('.adm-code').textContent = a.lbCode;
+      const btnsEl = card.querySelector('.adm-btns');
+      function mkBtn(label, bg, border, color, fn) {
+        const b = document.createElement('button');
+        b.style.cssText = 'flex:1;min-width:70px;background:'+bg+';border:1px solid '+border+';border-radius:6px;padding:5px 8px;cursor:pointer;font-size:11px;color:'+color+';font-family:var(--font-body)';
+        b.textContent = label;
+        b.addEventListener('click', fn);
+        return b;
+      }
+      btnsEl.appendChild(mkBtn('🔍 Inspect',  'rgba(96,165,250,0.1)', 'rgba(96,165,250,0.3)',  'var(--blue)', function(){ adminInspectAgent(a.slug, db); }));
+      btnsEl.appendChild(mkBtn('🔑 Reset PIN','rgba(240,160,48,0.1)',  'rgba(240,160,48,0.3)',  'var(--gold)', function(){ adminResetPin(a.slug, a.name, db); }));
+      btnsEl.appendChild(mkBtn('🗑 Remove',   'rgba(239,68,68,0.1)',   'rgba(239,68,68,0.3)',   'var(--red)',  function(){ adminRemoveAgent(a.slug, a.name, db); }));
+      dash.appendChild(card);
+    });
   } catch(e) {
-    dash.innerHTML = '<div style="color:var(--red);padding:12px">Error loading agents: ' + e.message + '</div>';
+    dash.innerHTML = '<div style="color:var(--red);padding:12px">Error: ' + e.message + '</div>';
   }
 }
 
-async function adminRemoveAgent(slug, name) {
+async function adminRemoveAgent(slug, name, db) {
   confirmAction({
     title: 'Remove Agent',
     message: 'Remove <strong>' + escapeHtml(name) + '</strong> (' + escapeHtml(slug) + ') and all their data from Supabase? This cannot be undone.',
@@ -8954,8 +8930,8 @@ async function adminRemoveAgent(slug, name) {
   });
 }
 
-async function adminInspectAgent(slug) {
-  const db = initSupabase();
+async function adminInspectAgent(slug, db) {
+  if (!db) db = initSupabase();
   if (!db) { toast('No connection', 'error'); return; }
   try {
     const { data: row } = await db.from('app_state').select('data, updated_at')
@@ -9006,7 +8982,7 @@ async function adminInspectAgent(slug) {
   }
 }
 
-async function adminResetPin(slug, name) {
+async function adminResetPin(slug, name, db) {
   confirmAction({
     title: 'Reset Agent PIN',
     message: 'Clear the PIN for <strong>'+escapeHtml(name)+'</strong>? They will be prompted to set a new PIN on their next login. Their data is NOT deleted.',
