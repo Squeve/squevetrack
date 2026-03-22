@@ -12883,122 +12883,527 @@ document.addEventListener('DOMContentLoaded', async () => {
 </style>
 <!-- LOCK SCREEN -->
 <div id="lock-screen" style="display:none;position:fixed;inset:0;z-index:9999;overflow-y:auto">
-  <!-- Background with subtle grid pattern -->
-  <div style="position:fixed;inset:0;background:var(--bg);z-index:0">
-    <div style="position:absolute;inset:0;background-image:radial-gradient(circle at 30% 20%, rgba(240,160,48,0.06) 0%, transparent 60%), radial-gradient(circle at 70% 80%, rgba(96,165,250,0.04) 0%, transparent 60%);pointer-events:none"></div>
-    <div style="position:absolute;inset:0;opacity:0.03;background-image:linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);background-size:32px 32px;pointer-events:none"></div>
+
+  <!-- Layered cinematic background -->
+  <div class="ls-bg">
+    <div class="ls-bg-mesh"></div>
+    <div class="ls-bg-grid"></div>
+    <div class="ls-bg-vignette"></div>
   </div>
-  <div style="position:relative;z-index:1;max-width:400px;margin:0 auto;padding:52px 24px 80px;min-height:100vh;display:flex;flex-direction:column;align-items:center">
 
-    <!-- Logo mark -->
-    <div style="margin-bottom:32px;text-align:center">
-      <div style="width:60px;height:60px;border-radius:18px;background:var(--gold-grad);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 8px 28px rgba(240,160,48,0.4)">
-        <span style="font-family:var(--font-head);font-size:24px;font-weight:800;color:#000;letter-spacing:-1px">ST</span>
+  <div class="ls-wrap">
+
+    <!-- Logo -->
+    <div class="ls-logo-block ls-anim-1">
+      <div class="ls-logo-icon">
+        <div class="ls-logo-ring"></div>
+        <span class="ls-logo-letters">ST</span>
       </div>
-      <div style="font-family:var(--font-head);font-size:24px;font-weight:800;background:var(--gold-grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-0.5px;margin-bottom:4px">SqueveTrack</div>
-      <div style="font-size:12px;color:var(--text3);letter-spacing:1px;text-transform:uppercase">LoanBase Recovery Suite</div>
+      <div class="ls-logo-name">SqueveTrack</div>
+      <div class="ls-logo-sub">LoanBase Recovery Suite</div>
     </div>
 
-    <!-- Tab switcher -->
-    <div style="display:flex;background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:3px;width:100%;margin-bottom:24px;gap:2px">
-      <button id="tab-signin" onclick="authShowTab('signin')" style="flex:1;padding:10px;border:none;cursor:pointer;border-radius:10px;font-size:13px;font-weight:700;background:var(--gold-grad);color:#000;transition:all 0.15s;font-family:var(--font-body);box-shadow:0 2px 8px rgba(240,160,48,0.3)">Sign In</button>
-      <button id="tab-signup" onclick="authShowTab('signup')" style="flex:1;padding:10px;border:none;cursor:pointer;border-radius:10px;font-size:13px;font-weight:600;background:transparent;color:var(--text3);transition:all 0.15s;font-family:var(--font-body)">New Agent</button>
+    <!-- Tab bar -->
+    <div class="ls-tabs ls-anim-2">
+      <button id="tab-signin"  class="ls-tab ls-tab-active"  onclick="authShowTab('signin')">Sign In</button>
+      <button id="tab-signup"  class="ls-tab"                onclick="authShowTab('signup')">New Agent</button>
     </div>
 
-    <!-- Sign In Panel -->
+    <!-- ── Sign In Panel ────────────────────────────────── -->
     <div id="auth-signin-panel" style="width:100%">
+
       <!-- Cached agent cards -->
-      <div id="lock-agent-list" style="width:100%;margin-bottom:16px"></div>
+      <div id="lock-agent-list" class="ls-anim-3" style="width:100%;margin-bottom:16px"></div>
 
       <!-- Divider -->
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;width:100%">
-        <div style="flex:1;height:1px;background:var(--border)"></div>
-        <span style="font-size:11px;color:var(--text3);white-space:nowrap">or enter Agent Code</span>
-        <div style="flex:1;height:1px;background:var(--border)"></div>
+      <div class="ls-divider ls-anim-3">
+        <div class="ls-divider-line"></div>
+        <span class="ls-divider-text">or enter Agent Code</span>
+        <div class="ls-divider-line"></div>
       </div>
 
-      <!-- Code input -->
-      <div style="background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.05)">
-        <input type="text" id="auth-code-input" class="form-input" placeholder="e.g. Shadrack Agyei OCT25" style="text-align:center;font-size:14px;font-weight:600;border-radius:10px;margin-bottom:10px" onkeydown="if(event.key==='Enter')authSignInWithCode()">
-        <button class="btn btn-gold" style="width:100%;padding:11px;font-size:13px;border-radius:10px" onclick="authSignInWithCode()">
+      <!-- Code input card -->
+      <div class="ls-card ls-anim-4">
+        <input type="text" id="auth-code-input" class="ls-input" placeholder="e.g. Shadrack Agyei OCT25"
+          onkeydown="if(event.key==='Enter')authSignInWithCode()">
+        <button class="ls-btn-primary" onclick="authSignInWithCode()">
           Find My Account
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:middle;margin-left:4px"><line x1="4" y1="10" x2="16" y2="10"/><polyline points="11,5 16,10 11,15"/></svg>
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><line x1="4" y1="10" x2="16" y2="10"/><polyline points="11,5 16,10 11,15"/></svg>
         </button>
       </div>
 
-      <div id="auth-status" style="font-size:12px;color:var(--text2);text-align:center;min-height:18px;margin-bottom:8px"></div>
+      <div id="auth-status" class="ls-status"></div>
 
       <!-- PIN pad -->
       <div id="lock-pin-section" style="display:none;width:100%">
-        <div style="background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:20px 16px;text-align:center;box-shadow:inset 0 1px 0 rgba(255,255,255,0.05)">
-          <div id="lock-pin-name" style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:16px"></div>
-          <div style="display:flex;justify-content:center;gap:14px;margin-bottom:24px">
-            <div class="pin-dot" id="pindot-0"></div><div class="pin-dot" id="pindot-1"></div>
-            <div class="pin-dot" id="pindot-2"></div><div class="pin-dot" id="pindot-3"></div>
+        <div class="ls-pin-card ls-anim-in">
+
+          <!-- Agent name + stage -->
+          <div id="lock-pin-name" class="ls-pin-name"></div>
+          <div id="lock-pin-stage" class="ls-pin-stage"></div>
+
+          <!-- Dot indicators -->
+          <div class="ls-pin-dots">
+            <div class="ls-pin-dot" id="pindot-0"></div>
+            <div class="ls-pin-dot" id="pindot-1"></div>
+            <div class="ls-pin-dot" id="pindot-2"></div>
+            <div class="ls-pin-dot" id="pindot-3"></div>
           </div>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:256px;margin:0 auto 14px">
-            <button class="pin-key" onclick="pinPress('1')">1</button><button class="pin-key" onclick="pinPress('2')">2</button><button class="pin-key" onclick="pinPress('3')">3</button>
-            <button class="pin-key" onclick="pinPress('4')">4</button><button class="pin-key" onclick="pinPress('5')">5</button><button class="pin-key" onclick="pinPress('6')">6</button>
-            <button class="pin-key" onclick="pinPress('7')">7</button><button class="pin-key" onclick="pinPress('8')">8</button><button class="pin-key" onclick="pinPress('9')">9</button>
-            <button class="pin-key pin-key-ghost" onclick="authClearCode()" style="font-size:13px;color:var(--text3)">← Back</button>
-            <button class="pin-key" onclick="pinPress('0')">0</button>
-            <button class="pin-key pin-key-ghost" onclick="pinBackspace()" style="font-size:18px">⌫</button>
+
+          <!-- Error -->
+          <div id="lock-pin-error" class="ls-pin-error"></div>
+
+          <!-- Numpad -->
+          <div class="ls-numpad">
+            <button class="ls-num" onclick="pinPress('1')"><span class="ls-num-main">1</span></button>
+            <button class="ls-num" onclick="pinPress('2')"><span class="ls-num-main">2</span><span class="ls-num-sub">ABC</span></button>
+            <button class="ls-num" onclick="pinPress('3')"><span class="ls-num-main">3</span><span class="ls-num-sub">DEF</span></button>
+            <button class="ls-num" onclick="pinPress('4')"><span class="ls-num-main">4</span><span class="ls-num-sub">GHI</span></button>
+            <button class="ls-num" onclick="pinPress('5')"><span class="ls-num-main">5</span><span class="ls-num-sub">JKL</span></button>
+            <button class="ls-num" onclick="pinPress('6')"><span class="ls-num-main">6</span><span class="ls-num-sub">MNO</span></button>
+            <button class="ls-num" onclick="pinPress('7')"><span class="ls-num-main">7</span><span class="ls-num-sub">PQRS</span></button>
+            <button class="ls-num" onclick="pinPress('8')"><span class="ls-num-main">8</span><span class="ls-num-sub">TUV</span></button>
+            <button class="ls-num" onclick="pinPress('9')"><span class="ls-num-main">9</span><span class="ls-num-sub">WXYZ</span></button>
+            <button class="ls-num ls-num-ghost" onclick="authClearCode()" style="font-size:12px;color:var(--ls-muted)">← Back</button>
+            <button class="ls-num" onclick="pinPress('0')"><span class="ls-num-main">0</span></button>
+            <button class="ls-num ls-num-ghost" onclick="pinBackspace()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:20px;height:20px"><path d="M21 12H7M7 12l5-5M7 12l5 5"/></svg>
+            </button>
           </div>
-          <div id="lock-pin-error" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:10px"></div>
-          <button onclick="showDevOverride()" style="background:none;border:none;font-size:11px;color:var(--text3);cursor:pointer;font-family:var(--font-body);text-decoration:underline;text-underline-offset:2px">Locked out?</button>
+
+          <button class="ls-locked-out" onclick="showDevOverride()">Locked out?</button>
         </div>
       </div>
     </div>
 
-    <!-- New Agent Panel -->
+    <!-- ── New Agent Panel ───────────────────────────────── -->
     <div id="auth-signup-panel" style="display:none;width:100%">
-      <div style="background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:24px;text-align:center;box-shadow:inset 0 1px 0 rgba(255,255,255,0.05)">
-        <div style="width:48px;height:48px;border-radius:14px;background:rgba(96,165,250,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
-          <svg viewBox="0 0 20 20" fill="none" stroke="var(--blue)" stroke-width="1.6" style="width:22px;height:22px"><circle cx="10" cy="7" r="3"/><path d="M4 17c0-3.31 2.69-6 6-6s6 2.69 6 6"/><line x1="16" y1="4" x2="16" y2="8"/><line x1="14" y1="6" x2="18" y2="6"/></svg>
+      <div class="ls-card ls-anim-3" style="text-align:center;padding:32px 24px">
+        <div class="ls-signup-icon">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" style="width:24px;height:24px;color:var(--ls-gold)"><circle cx="10" cy="7" r="3"/><path d="M4 17c0-3.31 2.69-6 6-6s6 2.69 6 6"/><line x1="16" y1="4" x2="16" y2="8"/><line x1="14" y1="6" x2="18" y2="6"/></svg>
         </div>
-        <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px">Create your account</div>
-        <div style="font-size:13px;color:var(--text3);margin-bottom:20px;line-height:1.7">Your portfolio stays private and PIN-protected on this device.</div>
-        <button class="btn btn-gold" style="width:100%;padding:13px;font-size:14px;border-radius:12px" onclick="authShowTab('signin');lockAddNewAgent()">
+        <div class="ls-signup-title">Create your account</div>
+        <div class="ls-signup-sub">Your portfolio stays private and PIN-protected on this device.</div>
+        <button class="ls-btn-primary" onclick="authShowTab('signin');lockAddNewAgent()">
           Get Started
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:middle;margin-left:6px"><line x1="4" y1="10" x2="16" y2="10"/><polyline points="11,5 16,10 11,15"/></svg>
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><line x1="4" y1="10" x2="16" y2="10"/><polyline points="11,5 16,10 11,15"/></svg>
         </button>
       </div>
     </div>
 
     <!-- Dev override -->
     <div id="lock-dev-override" style="display:none;width:100%;margin-top:16px">
-      <div style="background:var(--surface);border:1px solid rgba(239,68,68,0.3);border-radius:14px;padding:16px;text-align:center">
-        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;font-weight:600">Developer Override</div>
-        <input type="text" class="form-input" id="dev-override-input" placeholder="SQV-XXX-XXXX" style="text-align:center;font-family:var(--font-mono);letter-spacing:2px;font-size:14px;margin-bottom:10px;border-radius:10px" onkeydown="if(event.key==='Enter')checkDevOverride()">
+      <div class="ls-card" style="border-color:rgba(239,68,68,0.3)">
+        <div style="font-size:12px;color:var(--ls-muted);margin-bottom:10px;font-weight:600;text-align:center;text-transform:uppercase;letter-spacing:1px">Developer Override</div>
+        <input type="text" class="ls-input" id="dev-override-input" placeholder="SQV-XXX-XXXX"
+          style="text-align:center;font-family:var(--font-mono);letter-spacing:3px;font-size:14px;margin-bottom:10px"
+          onkeydown="if(event.key==='Enter')checkDevOverride()">
         <div style="display:flex;gap:8px">
-          <button class="btn btn-ghost" style="flex:1" onclick="document.getElementById('lock-dev-override').style.display='none'">Cancel</button>
-          <button class="btn btn-red" style="flex:1" onclick="checkDevOverride()">Unlock</button>
+          <button class="ls-btn-ghost" style="flex:1" onclick="document.getElementById('lock-dev-override').style.display='none'">Cancel</button>
+          <button class="ls-btn-danger" style="flex:1" onclick="checkDevOverride()">Unlock</button>
         </div>
-        <div id="dev-override-error" style="font-size:11px;color:var(--red);margin-top:8px;min-height:16px"></div>
+        <div id="dev-override-error" style="font-size:11px;color:var(--red);margin-top:8px;min-height:16px;text-align:center"></div>
       </div>
     </div>
 
-    <div style="margin-top:auto;padding-top:28px;text-align:center">
-      <div style="font-size:10px;color:var(--text3);letter-spacing:0.5px">Developed by Shadrack Agyei Arthur</div>
-    </div>
+    <div class="ls-footer">Developed by Shadrack Agyei Arthur</div>
   </div>
 </div>
 <style>
-.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border2);background:transparent;transition:background 0.1s,border-color 0.1s}
-.pin-dot.filled{background:var(--gold);border-color:var(--gold)}
-.pin-dot.shake{animation:pinShake 0.4s ease}
-@keyframes pinShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
-.pin-key{background:var(--surface2);border:1px solid var(--border);border-radius:12px;font-size:20px;font-weight:600;padding:16px;cursor:pointer;color:var(--text);transition:all 0.1s;font-family:var(--font-head)}
-.pin-key:active{background:var(--gold);color:#000;transform:scale(0.94)}
-.pin-key-ghost{background:transparent;border-color:transparent;font-size:16px}
-.lock-agent-card{display:flex;align-items:center;gap:12px;background:var(--surface2);border:2px solid var(--border2);border-radius:12px;padding:12px 14px;cursor:pointer;transition:all 0.15s;text-align:left;width:100%}
-.lock-agent-card:hover{border-color:var(--gold)}
-.lock-agent-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0;font-family:var(--font-head)}
-.settings-row{display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px 20px;background:none;border:none;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;color:var(--text2);text-align:left;transition:background 0.1s;font-family:var(--font-body)}
-.settings-row:last-child{border-bottom:none}
-.settings-row:hover{background:var(--surface2)}
-.settings-chevron{color:var(--text3);font-size:18px;font-weight:300}
+/* ── Lock screen design system ────────────────────────────── */
+:root {
+  --ls-gold:    #f0a030;
+  --ls-gold2:   #fcc044;
+  --ls-gold-g:  linear-gradient(135deg, #f0a030, #fcc044);
+  --ls-bg:      #050608;
+  --ls-surface: rgba(14,16,22,0.85);
+  --ls-border:  rgba(255,255,255,0.08);
+  --ls-border2: rgba(255,255,255,0.12);
+  --ls-text:    #edf0f7;
+  --ls-muted:   #6b7a96;
+  --ls-input-bg:rgba(255,255,255,0.04);
+  --ls-gold-glow: rgba(240,160,48,0.2);
+}
+
+/* Background layers */
+.ls-bg {
+  position: fixed; inset: 0; z-index: 0;
+  background: var(--ls-bg);
+}
+.ls-bg-mesh {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(240,160,48,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 85%, rgba(96,165,250,0.05) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(167,139,250,0.03) 0%, transparent 60%);
+}
+.ls-bg-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 100% 100% at 50% 0%, black 30%, transparent 80%);
+}
+.ls-bg-vignette {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 120% 100% at 50% 50%, transparent 40%, rgba(0,0,0,0.7) 100%);
+}
+
+/* Main content wrapper */
+.ls-wrap {
+  position: relative; z-index: 1;
+  max-width: 380px; margin: 0 auto;
+  padding: 56px 22px 80px;
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center;
+}
+
+/* Entrance animations */
+@keyframes lsFadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes lsScaleIn {
+  from { opacity: 0; transform: scale(0.88); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.ls-anim-1 { animation: lsFadeUp 0.5s cubic-bezier(0.22,1,0.36,1) 0.05s both; }
+.ls-anim-2 { animation: lsFadeUp 0.5s cubic-bezier(0.22,1,0.36,1) 0.15s both; }
+.ls-anim-3 { animation: lsFadeUp 0.5s cubic-bezier(0.22,1,0.36,1) 0.22s both; }
+.ls-anim-4 { animation: lsFadeUp 0.5s cubic-bezier(0.22,1,0.36,1) 0.28s both; }
+.ls-anim-in { animation: lsScaleIn 0.32s cubic-bezier(0.34,1.4,0.64,1) both; }
+
+/* Logo */
+.ls-logo-block { text-align: center; margin-bottom: 36px; }
+.ls-logo-icon {
+  position: relative;
+  width: 72px; height: 72px;
+  margin: 0 auto 16px;
+}
+.ls-logo-ring {
+  position: absolute; inset: -4px;
+  border-radius: 24px;
+  background: conic-gradient(from 0deg, rgba(240,160,48,0.6), rgba(252,192,68,0.3), rgba(240,160,48,0), rgba(240,160,48,0.6));
+  animation: lsRingSpin 4s linear infinite;
+  filter: blur(1px);
+}
+@keyframes lsRingSpin { to { transform: rotate(360deg); } }
+.ls-logo-icon::before {
+  content: '';
+  position: absolute; inset: 2px;
+  border-radius: 21px;
+  background: var(--ls-gold-g);
+  box-shadow: 0 0 40px rgba(240,160,48,0.35), inset 0 1px 0 rgba(255,255,255,0.3);
+  z-index: 1;
+}
+.ls-logo-letters {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-head); font-size: 26px; font-weight: 800;
+  color: #000; letter-spacing: -1px;
+}
+.ls-logo-name {
+  font-family: var(--font-head);
+  font-size: 26px; font-weight: 800; letter-spacing: -0.5px;
+  background: var(--ls-gold-g);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 5px;
+}
+.ls-logo-sub {
+  font-size: 10px; font-weight: 600;
+  color: var(--ls-muted);
+  letter-spacing: 2.5px; text-transform: uppercase;
+}
+
+/* Tabs */
+.ls-tabs {
+  display: flex;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--ls-border);
+  border-radius: 14px;
+  padding: 4px;
+  width: 100%; margin-bottom: 24px;
+  gap: 3px;
+}
+.ls-tab {
+  flex: 1; padding: 10px 16px;
+  border: none; cursor: pointer; border-radius: 11px;
+  font-size: 13px; font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--ls-muted);
+  background: transparent;
+  transition: all 0.2s ease;
+}
+.ls-tab-active {
+  background: var(--ls-gold-g) !important;
+  color: #000 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 12px rgba(240,160,48,0.35);
+}
+
+/* Glass card */
+.ls-card {
+  width: 100%;
+  background: var(--ls-surface);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--ls-border2);
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07);
+  margin-bottom: 12px;
+}
+
+/* Input */
+.ls-input {
+  width: 100%;
+  background: var(--ls-input-bg);
+  border: 1px solid var(--ls-border);
+  border-radius: 12px;
+  color: var(--ls-text);
+  padding: 13px 16px;
+  font-size: 14px; font-weight: 500;
+  font-family: var(--font-body);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+}
+.ls-input:focus {
+  border-color: rgba(240,160,48,0.5);
+  box-shadow: 0 0 0 3px rgba(240,160,48,0.1);
+  background: rgba(255,255,255,0.06);
+}
+.ls-input::placeholder { color: var(--ls-muted); }
+
+/* Primary button */
+.ls-btn-primary {
+  width: 100%; padding: 14px;
+  border: none; border-radius: 12px; cursor: pointer;
+  background: var(--ls-gold-g);
+  color: #000; font-size: 14px; font-weight: 700;
+  font-family: var(--font-body);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-shadow: 0 4px 20px rgba(240,160,48,0.35);
+  transition: all 0.15s ease;
+}
+.ls-btn-primary:active { transform: scale(0.97); box-shadow: 0 2px 10px rgba(240,160,48,0.25); }
+
+/* Ghost + Danger buttons */
+.ls-btn-ghost {
+  padding: 11px 16px; border-radius: 10px; cursor: pointer;
+  background: transparent; border: 1px solid var(--ls-border2);
+  color: var(--ls-muted); font-size: 13px; font-weight: 600;
+  font-family: var(--font-body); transition: all 0.15s;
+}
+.ls-btn-ghost:hover { border-color: var(--ls-muted); color: var(--ls-text); }
+.ls-btn-danger {
+  padding: 11px 16px; border-radius: 10px; cursor: pointer;
+  background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3);
+  color: #ef4444; font-size: 13px; font-weight: 700;
+  font-family: var(--font-body); transition: all 0.15s;
+}
+
+/* Divider */
+.ls-divider {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; margin-bottom: 14px;
+}
+.ls-divider-line { flex: 1; height: 1px; background: var(--ls-border); }
+.ls-divider-text { font-size: 11px; color: var(--ls-muted); white-space: nowrap; letter-spacing: 0.3px; }
+
+/* Status */
+.ls-status {
+  font-size: 12px; color: var(--ls-muted);
+  text-align: center; min-height: 18px;
+  margin-bottom: 8px;
+}
+
+/* ── PIN card ─────────────────────────────────────────── */
+.ls-pin-card {
+  width: 100%;
+  background: var(--ls-surface);
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--ls-border2);
+  border-radius: 24px;
+  padding: 28px 20px 24px;
+  box-shadow: 0 16px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
+  text-align: center;
+}
+.ls-pin-name {
+  font-family: var(--font-head);
+  font-size: 18px; font-weight: 700; color: var(--ls-text);
+  margin-bottom: 4px; letter-spacing: -0.3px;
+}
+.ls-pin-stage {
+  font-size: 11px; color: var(--ls-muted);
+  text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 28px;
+}
+.ls-pin-dots {
+  display: flex; justify-content: center; gap: 16px;
+  margin-bottom: 8px;
+}
+/* Override existing pin-dot to new style */
+#lock-pin-section .pin-dot,
+.ls-pin-dot {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.15);
+  background: transparent;
+  transition: all 0.15s cubic-bezier(0.34,1.56,0.64,1);
+}
+#lock-pin-section .pin-dot.filled,
+.ls-pin-dot.filled {
+  background: var(--ls-gold);
+  border-color: var(--ls-gold);
+  box-shadow: 0 0 12px rgba(240,160,48,0.6);
+  transform: scale(1.15);
+}
+.ls-pin-error {
+  font-size: 12px; color: #ef4444;
+  min-height: 20px; margin: 10px 0 18px;
+  font-weight: 500;
+}
+
+/* Numpad */
+.ls-numpad {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 10px; max-width: 272px; margin: 0 auto 16px;
+}
+.ls-num {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 16px 12px 14px;
+  cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px;
+  transition: all 0.1s ease;
+  min-height: 64px;
+}
+.ls-num:active {
+  background: var(--ls-gold-g);
+  border-color: transparent;
+  transform: scale(0.93);
+  box-shadow: 0 4px 16px rgba(240,160,48,0.4);
+}
+.ls-num:active .ls-num-main,
+.ls-num:active .ls-num-sub { color: #000 !important; }
+.ls-num-main {
+  font-family: var(--font-head);
+  font-size: 24px; font-weight: 600;
+  color: var(--ls-text); line-height: 1;
+}
+.ls-num-sub {
+  font-size: 8px; font-weight: 700;
+  color: var(--ls-muted); letter-spacing: 1.5px;
+}
+.ls-num-ghost {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+.ls-num-ghost:active { background: rgba(255,255,255,0.06) !important; box-shadow: none !important; }
+
+.ls-locked-out {
+  background: none; border: none;
+  font-size: 12px; color: var(--ls-muted);
+  cursor: pointer; font-family: var(--font-body);
+  text-decoration: underline; text-underline-offset: 3px;
+  padding: 4px; transition: color 0.15s;
+}
+.ls-locked-out:hover { color: var(--ls-text); }
+
+/* ── Agent cards (in sign-in) ─────────────────────────── */
+.lock-agent-card {
+  display: flex; align-items: center; gap: 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--ls-border);
+  border-radius: 14px;
+  padding: 13px 16px;
+  cursor: pointer; width: 100%;
+  transition: all 0.18s ease;
+  text-align: left; margin-bottom: 8px;
+}
+.lock-agent-card:hover {
+  border-color: rgba(240,160,48,0.4);
+  background: rgba(240,160,48,0.05);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+.lock-agent-card.selected {
+  border-color: var(--ls-gold);
+  background: rgba(240,160,48,0.08);
+}
+.lock-agent-avatar {
+  width: 42px; height: 42px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 15px; flex-shrink: 0;
+  font-family: var(--font-head);
+}
+
+/* ── New agent panel ──────────────────────────────────── */
+.ls-signup-icon {
+  width: 56px; height: 56px; border-radius: 16px;
+  background: rgba(240,160,48,0.1);
+  border: 1px solid rgba(240,160,48,0.2);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+}
+.ls-signup-title {
+  font-family: var(--font-head);
+  font-size: 18px; font-weight: 700; color: var(--ls-text);
+  margin-bottom: 8px;
+}
+.ls-signup-sub {
+  font-size: 13px; color: var(--ls-muted);
+  line-height: 1.7; margin-bottom: 24px;
+}
+
+/* Footer */
+.ls-footer {
+  margin-top: auto; padding-top: 32px;
+  font-size: 10px; color: var(--ls-muted);
+  letter-spacing: 0.5px; text-align: center;
+}
+
+/* Light theme overrides for lock screen */
+[data-theme="light"] .ls-bg { background: #f0f2f8; }
+[data-theme="light"] .ls-bg-grid {
+  background-image: linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
+}
+[data-theme="light"] .ls-card,
+[data-theme="light"] .ls-pin-card {
+  background: rgba(255,255,255,0.85);
+  border-color: rgba(0,0,0,0.08);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.9);
+}
+[data-theme="light"] .ls-input { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.1); color: #0f1623; }
+[data-theme="light"] .ls-input::placeholder { color: #8b95a8; }
+[data-theme="light"] .ls-num { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.07); }
+[data-theme="light"] .ls-num-main { color: #0f1623; }
+[data-theme="light"] .ls-logo-sub,
+[data-theme="light"] .ls-muted,
+[data-theme="light"] .ls-pin-stage,
+[data-theme="light"] .ls-divider-text { color: #8b95a8; }
+[data-theme="light"] .ls-pin-name { color: #0f1623; }
+[data-theme="light"] #lock-pin-section .pin-dot { border-color: rgba(0,0,0,0.15); }
+
+/* AMOLED overrides */
+[data-theme="amoled"] .ls-bg { background: #000; }
+[data-theme="amoled"] .ls-card,
+[data-theme="amoled"] .ls-pin-card { background: rgba(8,8,8,0.95); border-color: rgba(255,255,255,0.06); }
+[data-theme="amoled"] .ls-num { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.06); }
+
+/* Shake animation — used by pin dots */
+@keyframes pinShake {
+  0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)}
+  40%{transform:translateX(6px)} 60%{transform:translateX(-4px)}
+  80%{transform:translateX(4px)}
+}
+.pin-dot.shake,
+.ls-pin-dot.shake { animation: pinShake 0.4s ease; }
 </style>
+
 <!-- AVATAR CROP OVERLAY -->
 <div id="crop-overlay" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.92);flex-direction:column;align-items:center;justify-content:center">
   <div style="font-size:13px;color:#fff;margin-bottom:12px;font-weight:600">Drag to reposition · Pinch to zoom</div>
