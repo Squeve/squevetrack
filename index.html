@@ -7586,21 +7586,59 @@ function navigateDrawer(page) {
 })();
 
 
+// ── Haptic feedback — Android (vibrate) + iOS (AudioContext) ─────
+let _audioCtx = null;
+function _iosHaptic(type) {
+  // iOS Safari: brief silent audio burst triggers Taptic Engine on some devices
+  try {
+    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (_audioCtx.state === 'suspended') _audioCtx.resume();
+    const patterns = {
+      light:   [[0.02, 0.01]],
+      medium:  [[0.05, 0.02]],
+      success: [[0.03, 0.01], [0.03, 0.01], [0.06, 0]],
+      error:   [[0.08, 0.03], [0.08, 0.03], [0.08, 0]],
+      pay:     [[0.04, 0.01], [0.04, 0.01], [0.10, 0]],
+      ptp:     [[0.03, 0.02], [0.03, 0]],
+      aged:    [[0.10, 0.04], [0.10, 0]],
+      warn:    [[0.06, 0.02], [0.06, 0]],
+      unlock:  [[0.02, 0.01], [0.02, 0.01], [0.07, 0]],
+    };
+    const bursts = patterns[type] || patterns.light;
+    let t = _audioCtx.currentTime;
+    bursts.forEach(([dur, gap]) => {
+      const osc = _audioCtx.createOscillator();
+      const gain = _audioCtx.createGain();
+      osc.connect(gain); gain.connect(_audioCtx.destination);
+      gain.gain.setValueAtTime(0.001, t); // nearly silent
+      osc.frequency.setValueAtTime(1, t);
+      osc.start(t); osc.stop(t + dur);
+      t += dur + gap;
+    });
+  } catch(e) { /* AudioContext not available */ }
+}
+
 function haptic(type) {
   if (localStorage.getItem('sq_haptic') === 'off') return;
-  if (!navigator.vibrate) return;
-  const patterns = {
-    light:   [12],
-    medium:  [25],
-    success: [20,15,40,10,60],   // triple tap — payment saved
-    error:   [50,30,50,30,50],   // urgent buzz — error
-    pay:     [30,10,30,10,80],   // payment confirmed
-    ptp:     [20,20,20],         // promise set
-    aged:    [80,40,80],         // aged-out warning — heavy
-    warn:    [40,20,40],         // moderate warning
-    unlock:  [15,10,15,10,50],   // unlock app
-  };
-  navigator.vibrate(patterns[type] || patterns.light);
+  // Android — Web Vibration API
+  if (navigator.vibrate) {
+    const patterns = {
+      light:   [12],
+      medium:  [25],
+      success: [20,15,40,10,60],
+      error:   [50,30,50,30,50],
+      pay:     [30,10,30,10,80],
+      ptp:     [20,20,20],
+      aged:    [80,40,80],
+      warn:    [40,20,40],
+      unlock:  [15,10,15,10,50],
+    };
+    navigator.vibrate(patterns[type] || patterns.light);
+    return;
+  }
+  // iOS — AudioContext Taptic attempt
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (isIOS) _iosHaptic(type);
 }
 
 
@@ -8864,23 +8902,31 @@ async function adminShowDashboard(db) {
       '<div style="font-size:11px;color:var(--text3);margin-bottom:12px">' + agents.length + ' agent' + (agents.length!==1?'s':'') + ' registered</div>' +
       agents.map(a => `
         <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:12px 14px;margin-bottom:8px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-            <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="min-width:0;flex:1">
               <div style="font-weight:700;font-size:13px">${escapeHtml(a.name)}</div>
-              <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">${escapeHtml(a.lbCode)}</div>
+              <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-top:1px">${escapeHtml(a.lbCode)}</div>
             </div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:${stageColors[a.stage]||'#888'}22;color:${stageColors[a.stage]||'var(--text3)'}">${a.stage}</span>
-              <button onclick="adminRemoveAgent('${a.slug}','${escapeHtml(a.name)}')"
-                style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--red);font-family:var(--font-body)">
-                Remove
-              </button>
-            </div>
+            <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:${stageColors[a.stage]||'#888'}22;color:${stageColors[a.stage]||'var(--text3)'};">${a.stage}</span>
           </div>
-          <div style="display:flex;gap:12px;font-size:11px;color:var(--text3)">
+          <div style="display:flex;gap:8px;font-size:11px;color:var(--text3);margin-bottom:10px;flex-wrap:wrap">
             <span>👥 ${a.borrowers} borrowers (${a.paid} paid)</span>
-            <span>🔐 PIN: ${a.hasPin?'✅ set':'⚠️ not set'}</span>
+            <span>🔐 ${a.hasPin?'PIN set':'No PIN'}</span>
             <span>🕐 ${a.lastSync}</span>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button onclick="adminInspectAgent('${a.slug}')"
+              style="flex:1;min-width:70px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.3);border-radius:6px;padding:5px 8px;cursor:pointer;font-size:11px;color:var(--blue);font-family:var(--font-body)">
+              🔍 Inspect
+            </button>
+            <button onclick="adminResetPin('${a.slug}','${escapeHtml(a.name)}')"
+              style="flex:1;min-width:70px;background:rgba(240,160,48,0.1);border:1px solid rgba(240,160,48,0.3);border-radius:6px;padding:5px 8px;cursor:pointer;font-size:11px;color:var(--gold);font-family:var(--font-body)">
+              🔑 Reset PIN
+            </button>
+            <button onclick="adminRemoveAgent('${a.slug}','${escapeHtml(a.name)}')"
+              style="flex:1;min-width:70px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:6px;padding:5px 8px;cursor:pointer;font-size:11px;color:var(--red);font-family:var(--font-body)">
+              🗑 Remove
+            </button>
           </div>
         </div>`).join('');
   } catch(e) {
@@ -8904,6 +8950,90 @@ async function adminRemoveAgent(slug, name) {
       } catch(e) {
         toast('Error: ' + e.message, 'error');
       }
+    }
+  });
+}
+
+async function adminInspectAgent(slug) {
+  const db = initSupabase();
+  if (!db) { toast('No connection', 'error'); return; }
+  try {
+    const { data: row } = await db.from('app_state').select('data, updated_at')
+      .eq('id','agent_'+slug).single();
+    if (!row) { toast('Agent not found', 'error'); return; }
+    const d     = row.data || {};
+    const prof  = d.agentProfile || {};
+    const borrs = d.borrowers || [];
+    const paid  = borrs.filter(b => b.isPaid).length;
+    const unpaid= borrs.filter(b => !b.isPaid && (b.amountPaid||0)===0).length;
+    const part  = borrs.filter(b => !b.isPaid && (b.amountPaid||0)>0).length;
+    const totalOwed = borrs.filter(b=>!b.isPaid).reduce((s,b)=>s+(b.loanDue-(b.amountPaid||0)),0);
+    const totalPaid = borrs.reduce((s,b)=>s+(b.amountPaid||0),0);
+    const stage = prof.stage || '—';
+    const cfg   = STAGE_CONFIG[stage] || {};
+
+    document.getElementById('modal-title').textContent = '🔍 ' + escapeHtml(prof.name||slug);
+    document.getElementById('modal-body').innerHTML = `
+      <div style="font-size:13px">
+        <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:14px">
+          <div style="font-weight:700;font-size:15px;margin-bottom:4px">${escapeHtml(prof.name||'—')}</div>
+          <div style="font-family:var(--font-mono);font-size:11px;color:var(--text3)">${escapeHtml(prof.lbCode||slug)}</div>
+          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+            <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${cfg.colorHex||'#888'}22;color:${cfg.colorHex||'var(--text3)'};font-weight:700">${stage} — ${cfg.name||''}</span>
+            <span style="font-size:11px;color:var(--text3)">Supervisor: ${escapeHtml(prof.supervisor||'—')}</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+          ${[
+            ['Total Borrowers', borrs.length],
+            ['Fully Paid',      paid],
+            ['Partial',         part],
+            ['Unpaid',          unpaid],
+            ['Total Outstanding', '₵'+fmt(totalOwed)],
+            ['Total Collected',   '₵'+fmt(totalPaid)],
+          ].map(([l,v])=>`<div style="background:var(--surface2);border-radius:8px;padding:10px 12px">
+            <div style="font-size:10px;color:var(--text3);margin-bottom:2px">${l}</div>
+            <div style="font-weight:700;font-family:var(--font-mono);font-size:14px">${v}</div>
+          </div>`).join('')}
+        </div>
+        <div style="font-size:11px;color:var(--text3);text-align:right">Last sync: ${new Date(row.updated_at).toLocaleString('en-GB')}</div>
+      </div>`;
+    document.getElementById('modal-footer').innerHTML =
+      '<button class="btn btn-ghost" onclick="adminShowDashboard(initSupabase())">← Back</button>' +
+      '<button class="btn btn-ghost btn-sm" style="color:var(--gold)" onclick="adminResetPin(\'' + slug + '\',\'' + escapeHtml(prof.name||slug).replace(/'/g,'') + '\')">🔑 Reset PIN</button>';
+  } catch(e) {
+    toast('Error: '+e.message, 'error');
+  }
+}
+
+async function adminResetPin(slug, name) {
+  confirmAction({
+    title: 'Reset Agent PIN',
+    message: 'Clear the PIN for <strong>'+escapeHtml(name)+'</strong>? They will be prompted to set a new PIN on their next login. Their data is NOT deleted.',
+    confirmLabel: 'Reset PIN',
+    danger: true,
+    onConfirm: async function() {
+      const db = initSupabase();
+      if (!db) { toast('No connection','error'); return; }
+      try {
+        // 1. Get current row
+        const { data: row } = await db.from('app_state').select('data')
+          .eq('id','agent_'+slug).single();
+        if (!row) { toast('Agent not found','error'); return; }
+        // 2. Clear _pinHash from data
+        const updated = { ...row.data, _pinHash: null };
+        await db.from('app_state').upsert({
+          id: 'agent_'+slug,
+          data: updated,
+          updated_at: new Date().toISOString()
+        });
+        // 3. Also clear from local agent list if on this device
+        const agents = getAgentList();
+        const local = agents.find(a => a.id === slug);
+        if (local) { local.pinHash = null; saveAgentList(agents); }
+        toast('PIN cleared for '+escapeHtml(name)+' ✅ — they will set a new one on next login', 'success');
+        haptic('success');
+      } catch(e) { toast('Error: '+e.message,'error'); }
     }
   });
 }
@@ -14085,6 +14215,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 }
 .mdrawer-month {
   flex-shrink: 0;
+}
+
+/* ── Button press micro-animation (universal haptic feel) ── */
+.btn, .bl-action-btn, .mdrawer-item, .nav-item, .settings-row,
+.lock-agent-card, .ob-stage-card, [data-action] {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.btn:active, .bl-action-btn:active, [data-action]:active {
+  transform: scale(0.95);
+  transition: transform 0.08s ease;
+}
+.btn-gold:active { filter: brightness(1.1); }
+.settings-row:active { background: rgba(240,160,48,0.06) !important; }
+.mdrawer-item:active, .nav-item:active {
+  background: rgba(240,160,48,0.08) !important;
 }
 </style>
 <!-- LOCK SCREEN -->
