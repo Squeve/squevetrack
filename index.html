@@ -2081,13 +2081,13 @@ tr.overdue-critical .heat-ring {
           <option value="LoanBase Pro">Pro</option>
         </select>
         <select class="bl-chip-sel" id="loan-filter-badge" onchange="renderLoansTable()">
-          <option value="">🏷 Filter</option>
-          <option value="paid">✅ Fully Paid</option>
-          <option value="star">⭐ Reliable</option>
-          <option value="ptp_today">🤝 PTP Today</option>
-          <option value="ptp_any">🤝 Any PTP</option>
-          <option value="warn">⚠️ Broken PTP</option>
-          <option value="fraud">🚩 Fraud Flag</option>
+          <option value="">All Badges</option>
+          <option value="paid">Fully Paid</option>
+          <option value="star">Reliable</option>
+          <option value="ptp_today">PTP Today</option>
+          <option value="ptp_any">Any PTP</option>
+          <option value="warn">Broken PTP</option>
+          <option value="fraud">Fraud Flag</option>
         </select>
         <div class="bl-sort-wrap">
           <select class="bl-chip-sel" id="bl-sort-sel" onchange="blSortChange(this.value)" style="min-width:120px">
@@ -3601,6 +3601,48 @@ const DEV_OVERRIDE    = 'SQV-DEV-2025';    // developer recovery code
 let _activeAgent = null;   // currently unlocked agent object
 let _sessionUnlocked = false;
 
+// ── localStorage encryption helpers (AES-GCM) ───────────────────────────
+// Key is derived from the agent ID — data is unreadable without it.
+// Falls back to plaintext gracefully so existing data migrates on next save.
+const _encCache = {};
+async function _deriveStorageKey(agentId) {
+  if (_encCache[agentId]) return _encCache[agentId];
+  const enc    = new TextEncoder();
+  const keyMat = await crypto.subtle.importKey(
+    'raw', enc.encode(agentId || 'default'), { name: 'PBKDF2' }, false, ['deriveKey']
+  );
+  const key = await crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: enc.encode('sq-store-v1:' + (agentId || 'default')), iterations: 10000, hash: 'SHA-256' },
+    keyMat, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
+  );
+  _encCache[agentId] = key;
+  return key;
+}
+async function _encryptForStorage(plaintext, agentId) {
+  try {
+    const key = await _deriveStorageKey(agentId);
+    const iv  = crypto.getRandomValues(new Uint8Array(12));
+    const enc = new TextEncoder();
+    const ct  = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(plaintext));
+    // Store as "enc:" + base64(iv) + "." + base64(ciphertext)
+    const toB64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+    return 'enc:' + toB64(iv) + '.' + toB64(ct);
+  } catch { return plaintext; } // fallback: store plain
+}
+async function _decryptFromStorage(stored, agentId) {
+  if (!stored || !stored.startsWith('enc:')) return stored; // unencrypted / legacy
+  try {
+    const key     = await _deriveStorageKey(agentId);
+    const payload = stored.slice(4);
+    const [ivB64, ctB64] = payload.split('.');
+    const fromB64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+    const iv      = fromB64(ivB64);
+    const ct      = fromB64(ctB64);
+    const pt      = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+    return new TextDecoder().decode(pt);
+  } catch { return null; } // decryption failed — treat as missing
+}
+
 function getStateKey() {
   return _activeAgent ? 'squevetrack_' + _activeAgent.id : LEGACY_STATE_KEY;
 }
@@ -3769,15 +3811,18 @@ async function loadState() {
     setSyncStatus('offline');
   }
 
-  // 2. Fall back to localStorage
+  // 2. Fall back to localStorage (decrypt if encrypted)
   const raw = localStorage.getItem(getStateKey());
   if (raw) {
     try {
-      state = migrateState(JSON.parse(raw));
-      purgeAgedOut();
-      // Push local state up to Supabase if available
-      if (_db) _pushToSupabase();
-      return;
+      const agentId = _activeAgent?.id || null;
+      const json    = await _decryptFromStorage(raw, agentId);
+      if (json) {
+        state = migrateState(JSON.parse(json));
+        purgeAgedOut();
+        if (_db) _pushToSupabase();
+        return;
+      }
     } catch(e) {}
   }
 
@@ -3807,9 +3852,17 @@ function _trackBorrowerScores() {
 }
 
 function saveState() {
-  // Always write to localStorage instantly (instant UI feedback)
-  localStorage.setItem(getStateKey(), JSON.stringify(state));
-  // Debounce cloud save (300ms) so rapid taps don't flood API
+  // Encrypt state before writing to localStorage
+  const key     = getStateKey();
+  const agentId = _activeAgent?.id || null;
+  const json    = JSON.stringify(state);
+  if (agentId && crypto?.subtle) {
+    _encryptForStorage(json, agentId).then(function(encrypted) {
+      localStorage.setItem(key, encrypted);
+    });
+  } else {
+    localStorage.setItem(key, json); // fallback for no-agent or no-crypto
+  }
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(_pushToSupabase, 300);
 }
@@ -5658,11 +5711,10 @@ function doExportPDF(mode) {
 }
 
 function deleteLogEntry(date) {
-  if (!confirm('Delete this log entry?')) return;
-  state.dailyLog = state.dailyLog.filter(e => e.date !== date);
-  saveState();
-  renderLog();
-  toast('Entry deleted', 'info');
+  confirmAction({ title: 'Delete Log Entry', message: 'Remove this daily log entry?', confirmLabel: 'Delete', onConfirm: function() {
+    state.dailyLog = state.dailyLog.filter(e => e.date !== date);
+    saveState(); renderLog(); toast('Entry deleted', 'info');
+  }});
 }
 
 // ── MODALS ─────────────────────────────────────────────
@@ -5914,7 +5966,7 @@ function openBorrowerDetail(id) {
     if (elTL) elTL.onclick = function(){ haptic('light'); closeModal(); openBorrowerTimeline(id); };
     if (elHL)  elHL.onclick  = function(){ haptic('medium'); addToHitList(id); elHL.textContent = '📌 In Hit List'; };
     if (elD)   elD.onclick   = function(){
-      if (confirm('Delete ' + b.name + '?')){ closeModal(); deleteBorrower(id); }
+      confirmAction({ title: 'Delete Borrower', message: 'Remove <strong>' + escapeHtml(b.name) + '</strong> from your portfolio?', confirmLabel: 'Delete', onConfirm: function() { deleteBorrower(id); } });
     };
   }, 0);
 }
@@ -6102,16 +6154,21 @@ function saveBorrower(id) {
 function deleteBorrower(id) {
   const b = state.borrowers.find(b => b.id === id);
   if (!b) return;
-  if (!confirm(`Remove ${b.name}?`)) return;
-  pushUndo('Delete ' + b.name.split(' ')[0], { borrowers: state.borrowers, dailyLog: state.dailyLog });
-  state.borrowers = state.borrowers.filter(b => b.id !== id);
-  // Remove from hit list too
-  state.hitList = (state.hitList||[]).filter(x => x !== id);
-  haptic('medium');
-  saveState();
-  updateBadges();
-  renderCurrentPage();
-  toast(`${b.name.split(' ')[0]} removed (Ctrl+Z to undo)`, 'info');
+  confirmAction({
+    title: 'Remove Borrower',
+    message: 'Remove <strong>' + escapeHtml(b.name) + '</strong>? You can undo this from Settings.',
+    confirmLabel: 'Remove',
+    onConfirm: function() {
+      pushUndo('Delete ' + b.name.split(' ')[0], { borrowers: state.borrowers, dailyLog: state.dailyLog });
+      state.borrowers = state.borrowers.filter(x => x.id !== id);
+      state.hitList   = (state.hitList||[]).filter(x => x !== id);
+      haptic('medium');
+      saveState();
+      updateBadges();
+      renderCurrentPage();
+      toast(b.name.split(' ')[0] + ' removed (Ctrl+Z to undo)', 'info');
+    }
+  });
 }
 
 function closeModal() {
@@ -6120,6 +6177,29 @@ function closeModal() {
   if (modal) { modal.style.transform = ''; modal.classList.remove('dragging','snap-back'); }
   overlay?.classList.remove('open');
   currentModal = null;
+}
+
+// ── In-app confirmation dialog (replaces native confirm()) ───────────────
+// confirmAction({ title, message, danger, onConfirm, confirmLabel })
+function confirmAction(opts) {
+  const isDanger  = opts.danger !== false;
+  const btnClass  = isDanger ? 'btn btn-red' : 'btn btn-gold';
+  const confirmLbl = opts.confirmLabel || (isDanger ? 'Delete' : 'Confirm');
+  document.getElementById('modal-title').textContent = opts.title || 'Are you sure?';
+  document.getElementById('modal-body').innerHTML =
+    '<div style="padding:8px 0 4px">'
+    + '<div style="font-size:14px;color:var(--text);line-height:1.6">' + (opts.message || '') + '</div>'
+    + (isDanger ? '<div style="margin-top:12px;font-size:12px;color:var(--red);display:flex;align-items:center;gap:6px"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:14px;height:14px;flex-shrink:0"><path d="M10 3l8 14H2L10 3z"/><line x1="10" y1="9" x2="10" y2="13"/><circle cx="10" cy="15.5" r="0.5" fill="currentColor"/></svg>This action cannot be undone.</div>' : '')
+    + '</div>';
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
+    + '<button class="' + btnClass + '" id="confirm-action-btn">' + confirmLbl + '</button>';
+  document.getElementById('modal-overlay').classList.add('open');
+  // Wire confirm button after modal opens
+  setTimeout(function() {
+    const btn = document.getElementById('confirm-action-btn');
+    if (btn) btn.onclick = function() { closeModal(); opts.onConfirm(); };
+  }, 0);
 }
 
 // ── Swipe-down-to-close modals ─────────────────────────
@@ -6329,21 +6409,15 @@ function renderAgedOut() {
 }
 
 function clearAgedOut() {
-  if (!confirm('Clear the aged-out log? This cannot be undone.')) return;
-  state.agedOutLog = [];
-  saveState();
-  renderSettingsAgedOut();
-  updateBadges();
-  toast('Aged-out log cleared', 'info');
+  confirmAction({ title: 'Clear Aged-Out Log', message: 'Remove all aged-out account records?', confirmLabel: 'Clear All', onConfirm: function() {
+    state.agedOutLog = []; saveState(); renderSettingsAgedOut(); updateBadges(); toast('Aged-out log cleared', 'info');
+  }});
 }
 
 function settingsClearAgedOut() {
-  if (!confirm('Clear all aged-out records? This cannot be undone.')) return;
-  state.agedOutLog = [];
-  saveState();
-  renderSettingsAgedOut();
-  updateBadges();
-  toast('Aged-out log cleared', 'info');
+  confirmAction({ title: 'Clear Aged-Out Records', message: 'Permanently remove all aged-out account records?', confirmLabel: 'Clear All', onConfirm: function() {
+    state.agedOutLog = []; saveState(); renderSettingsAgedOut(); updateBadges(); toast('Aged-out log cleared', 'info');
+  }});
 }
 
 let _agedOutExpanded = false;
@@ -7213,9 +7287,12 @@ function bulkAction(action) {
   if (!ids.length) return toast('No accounts selected', 'error');
   haptic('medium');
   if (action === 'delete') {
-    if (!confirm('Delete ' + ids.length + ' account(s)? This cannot be undone.')) return;
-    state.borrowers = state.borrowers.filter(b => !ids.includes(b.id));
-    toast(ids.length + ' accounts deleted', 'info');
+    confirmAction({ title: 'Delete ' + ids.length + ' Account' + (ids.length > 1 ? 's' : ''), message: 'Permanently remove <strong>' + ids.length + '</strong> selected account' + (ids.length > 1 ? 's' : '') + ' from your portfolio?', confirmLabel: 'Delete All', onConfirm: function() {
+      state.borrowers = state.borrowers.filter(b => !ids.includes(b.id));
+      toast(ids.length + ' accounts deleted', 'info');
+      purgeAgedOut(); saveState(); clearBulkSelect(); updateBadges(); renderCurrentPage();
+    }});
+    return;
   } else if (action === 'paid') {
     pushUndo('Bulk mark paid (' + ids.length + ')', { borrowers: state.borrowers, dailyLog: state.dailyLog });
     const todayStr = new Date().toISOString().split('T')[0];
@@ -11314,11 +11391,21 @@ let _pinMode = 'unlock'; // 'unlock' | 'set' | 'confirm'
 let _pinSetBuffer = '';
 
 // ── Crypto helpers ────────────────────────────────────────────
-async function hashPin(pin, _ignored) {
-  // Fixed salt ensures PIN works identically on every device
-  const data = new TextEncoder().encode(pin + ':' + PIN_SALT);
-  const buf  = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+async function hashPin(pin, agentId) {
+  // PBKDF2 with 100,000 iterations — brute-force resistant
+  // Salt = agent-specific so same PIN produces different hashes per agent
+  const enc      = new TextEncoder();
+  const keyMat   = await crypto.subtle.importKey(
+    'raw', enc.encode(pin), { name: 'PBKDF2' }, false, ['deriveBits']
+  );
+  // Combine static app salt + agent-specific id for uniqueness
+  const saltStr  = PIN_SALT + ':' + (agentId || 'default');
+  const saltBuf  = enc.encode(saltStr);
+  const bits     = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt: saltBuf, iterations: 100000, hash: 'SHA-256' },
+    keyMat, 256
+  );
+  return Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
 function genAgentId() {
