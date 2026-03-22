@@ -1764,17 +1764,6 @@ tr.overdue-critical .heat-ring {
 #offline-banner.show{display:block;animation:fadeIn 0.2s ease both}
 
 /* Call timer bar */
-#call-timer-bar {
-  position:fixed;bottom:0;left:0;right:0;z-index:8000;
-  background:rgba(10,12,20,0.95);border-top:1px solid var(--border2);
-  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
-  padding:12px 20px;display:none;
-  align-items:center;justify-content:space-between;gap:12px;
-  box-shadow:0 -4px 20px rgba(0,0,0,0.3);
-}
-#call-timer-bar.active{display:flex;animation:fadeUp 0.2s ease both}
-#call-timer-dot{width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0;animation:pulseGold 1s ease infinite}
-#call-timer-display{font-family:var(--font-mono);font-size:20px;font-weight:800;color:#fff;letter-spacing:2px}
 
 /* WA quick button */
 .bl-action-btn.wa{border-color:rgba(37,211,102,0.3);color:#25d366;background:rgba(37,211,102,0.06)}
@@ -2667,6 +2656,16 @@ tr.overdue-critical .heat-ring {
     <!-- Security -->
     <p class="settings-section-label">Security</p>
     <div class="settings-group">
+      <button class="settings-row" id="bio-settings-row" onclick="settingsToggleBiometric()">
+        <div class="settings-row-icon" style="background:rgba(240,160,48,0.12);color:var(--gold)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><path d="M12 2C9.24 2 7 4.24 7 7v2H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2v-9a2 2 0 00-2-2h-2V7c0-2.76-2.24-5-5-5z"/><circle cx="12" cy="16" r="1.5" fill="currentColor"/></svg>
+        </div>
+        <div class="settings-row-label">
+          <div class="settings-row-label-main">Biometric Unlock</div>
+          <div class="settings-row-label-sub" id="bio-settings-sub">Face ID / Fingerprint — tap to enable</div>
+        </div>
+        <span class="settings-chevron" id="bio-settings-status">›</span>
+      </button>
       <button class="settings-row" onclick="settingsChangePin()">
         <div class="settings-row-icon" style="background:rgba(240,160,48,0.12);color:var(--gold)">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><rect x="4" y="9" width="12" height="9" rx="2"/><path d="M7 9V6a3 3 0 016 0v3"/></svg>
@@ -4967,7 +4966,7 @@ function renderAnalytics() {
           + '<span style="font-family:var(--font-mono);font-size:10px;color:var(--text3);min-width:14px">'+(i+1)+'</span>'
           + '<div>'
           + '<div style="font-size:12px;font-weight:600">'+b.name+'</div>'
-          + '<a href="tel:'+b.phone+'" style="font-size:10px;color:var(--blue);text-decoration:none" onclick="event.stopPropagation()">📞 '+b.phone+'</a>'
+          + '<button onclick="event.stopPropagation();haptic(\'light\');window.location.href=\'tel:\'+b.phone" style="font-size:10px;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;font-family:var(--font-body)">📞 '+b.phone+'</button>'
           + '</div></div>'
           + '<div style="text-align:right"><div style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:'+concRisk+'">'+fmtC(getDueToday(b))+'</div>'
           + '<div style="font-size:10px;color:var(--text3)">'+pct2+'% of total</div></div></div>';
@@ -4995,7 +4994,7 @@ function renderAnalytics() {
           + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px">'
           + '<div>'
           + '<div style="font-size:12px;font-weight:600">'+b.name.split(' ')[0]+'</div>'
-          + '<a href="tel:'+b.phone+'" style="font-size:10px;color:var(--blue);text-decoration:none" onclick="event.stopPropagation()">📞 '+b.phone+'</a>'
+          + '<button onclick="event.stopPropagation();haptic(\'light\');window.location.href=\'tel:\'+b.phone" style="font-size:10px;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;font-family:var(--font-body)">📞 '+b.phone+'</button>'
           + '</div>'
           + '<span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:'+col+'">'+b.score+'</span></div>'
                     + '<div style="background:var(--border);border-radius:4px;height:5px;overflow:hidden">'
@@ -5105,6 +5104,10 @@ function renderAnalytics() {
   // ── Smart Clusters ──────────────────────────────────────
   const clustersEl = document.getElementById('analytics-clusters');
   if (clustersEl) clustersEl.innerHTML = renderSmartClusters();
+
+  // ── Portfolio Segments (merged) ──────────────────────────
+  const segsEl = document.getElementById('analytics-segments');
+  if (segsEl) renderSegments();
 }
 
 // ── WHATSAPP DISPATCH ──────────────────────────────────
@@ -5190,6 +5193,7 @@ function renderDispatch() {
     + ' &nbsp;·&nbsp; 🤝 Promised: <b>' + promisedN + '</b>'
     + ' &nbsp;·&nbsp; Showing: <b>' + list.length + '</b>'
     + ' &nbsp;<button class="btn btn-ghost btn-xs" style="margin-left:4px;color:#25d366;border-color:#25d366" onclick="launchDispatchQueue()" title="Queue contacts for personalised WhatsApp">💬 Queue All (' + list.length + ')</button>'
+    + ' &nbsp;<button class="btn btn-ghost btn-xs" style="margin-left:4px" onclick="openWaBroadcastExport()">📋 Broadcast List</button>'
     + ' &nbsp;<button class="btn btn-ghost btn-xs" style="margin-left:4px" onclick="openWaBroadcastExport()" title="Export broadcast list">📋 Broadcast List</button>';
 
   if (!list.length) {
@@ -6004,7 +6008,7 @@ function openBorrowerDetail(id) {
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">'
     + '<button class="btn btn-green" id="bd-pay">💰 Pay</button>'
     + '<button class="btn btn-ghost" id="bd-promise">' + (b.promisedToPay?'Update Promise':'🤝 Promise') + '</button>'
-    + '<a href="tel:' + b.phone + '" class="btn btn-ghost" onclick="haptic(\'light\')">📞 Call</a>'
+    + '<button class="btn btn-ghost" onclick="haptic(\'light\');window.location.href=\'tel:\'+b.phone">📞 Call</button>'
     + '<a href="https://wa.me/' + b.phone.replace(/[^0-9+]/g,'') + '" target="_blank" class="btn btn-ghost" onclick="haptic(\'light\')">💬 WhatsApp</a>'
     + '<button class="btn btn-ghost" id="bd-calllog">📞 Call Log (' + callCount + ')</button>'
     + '<button class="btn btn-ghost" id="bd-hitlist">' + ((state.hitList||[]).includes(id) ? '📌 In Hit List' : '📌 Add to Hit List') + '</button>'
@@ -8008,7 +8012,7 @@ function renderPtp() {
                 + '<div style="display:flex;gap:6px;flex-wrap:wrap">'
                 + '<button class="btn btn-green btn-xs" data-payid="' + b.id + '">Pay</button>'
                 + '<button class="btn btn-ghost btn-xs" data-detailbtn="' + b.id + '">Details</button>'
-                + '<a href="tel:' + b.phone + '" class="btn btn-ghost btn-xs">Call</a>'
+                + '<button class="btn btn-ghost btn-xs" onclick="window.location.href=\'tel:\'+\'' + b.phone + '\'">📞 Call</button>'
                 + '<a href="https://wa.me/' + b.phone.replace(/[^0-9]/g,'') + '" target="_blank" class="btn btn-ghost btn-xs">WA</a>'
                 + '</div></div>';
             }).join('')
@@ -8508,7 +8512,7 @@ function renderHitList() {
         <div style="font-size:10px;color:var(--text3)">Day ${getOdAge(b.startDate)} · ${fmtC(getDueToday(b))}</div>
       </div>
       <div style="display:flex;gap:6px">
-        <a href="tel:${b.phone}" class="btn btn-ghost btn-xs" onclick="haptic('light')">📞</a>
+        <button class="btn btn-ghost btn-xs" onclick="haptic('light');window.location.href='tel:'+b.phone">📞 Call</button>
         <button class="btn btn-green btn-xs" onclick="openPayModal('${b.id}')">💰</button>
         <a href="https://wa.me/${phone}?text=${encodeURIComponent(getWaLink(b, true))}" target="_blank" class="btn btn-ghost btn-xs" style="color:#25d366">💬</a>
         <button class="btn btn-ghost btn-xs" onclick="removeFromHitList('${b.id}')">✕</button>
@@ -8824,49 +8828,9 @@ function openCallLogModal(id) {
         }).join('')}
     </div>`;
   document.getElementById('modal-footer').innerHTML = `
-    <button class="btn btn-ghost" onclick="closeModal()">Close</button>
-    <button class="btn btn-gold btn-sm" onclick="startCallTimer('${b.id}','${b.name.split(' ')[0]}');closeModal();haptic('light')">
-      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:13px;height:13px;vertical-align:middle;margin-right:4px"><circle cx="10" cy="10" r="8"/><polyline points="10,6 10,10 13,13"/></svg>Start Timer
-    </button>`;
+    <button class="btn btn-ghost" onclick="closeModal()">Close</button>`;
   document.getElementById('modal-overlay').classList.add('open');
   haptic('light');
-}
-
-let _callTimerInterval = null;
-let _callTimerStart = null;
-let _callTimerBid = null;
-
-function startCallTimer(id, name) {
-  _callTimerBid = id;
-  _callTimerStart = Date.now();
-  const bar = document.getElementById('call-timer-bar');
-  const nameEl = document.getElementById('call-timer-name');
-  if (nameEl) nameEl.textContent = name;
-  if (bar) bar.classList.add('active');
-  clearInterval(_callTimerInterval);
-  _callTimerInterval = setInterval(function() {
-    const secs = Math.floor((Date.now() - _callTimerStart) / 1000);
-    const m = Math.floor(secs / 60), s = secs % 60;
-    const el = document.getElementById('call-timer-display');
-    if (el) el.textContent = m + ':' + String(s).padStart(2,'0');
-  }, 1000);
-}
-
-function endCallTimer() {
-  clearInterval(_callTimerInterval);
-  const bar = document.getElementById('call-timer-bar');
-  if (bar) bar.classList.remove('active');
-  const duration = _callTimerStart ? Math.round((Date.now() - _callTimerStart)/1000) : 0;
-  _callTimerStart = null;
-  // Re-open call log modal to record outcome
-  if (_callTimerBid) {
-    openCallLogModal(_callTimerBid);
-    // Pre-fill duration note
-    setTimeout(() => {
-      const b = state.borrowers.find(x => x.id === _callTimerBid);
-      if (b) toast('Call ended (' + Math.floor(duration/60) + 'm ' + (duration%60) + 's) — log outcome', 'info');
-    }, 100);
-  }
 }
 
 function logCallOutcome(id, outcome, btn) {
@@ -13811,19 +13775,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 <!-- OFFLINE BANNER -->
 <div id="offline-banner">No internet — changes saved locally and will sync when back online</div>
-
-<!-- CALL TIMER BAR -->
-<div id="call-timer-bar">
-  <div style="display:flex;align-items:center;gap:10px">
-    <div id="call-timer-dot"></div>
-    <div>
-      <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px">Calling</div>
-      <div id="call-timer-name" style="font-size:13px;font-weight:700;color:#fff"></div>
-    </div>
-  </div>
-  <div id="call-timer-display">0:00</div>
-  <button onclick="endCallTimer()" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:8px 16px;color:var(--red);font-family:var(--font-body);font-size:12px;font-weight:700;cursor:pointer">End Call</button>
-</div>
 
 <!-- PERFORMANCE SHARE CARD -->
 <div id="perf-overlay" onclick="if(event.target===this)document.getElementById('perf-overlay').classList.remove('open')">
