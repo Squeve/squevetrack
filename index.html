@@ -1920,11 +1920,7 @@ tr.overdue-critical .heat-ring {
   </div>
   <div class="nav-item" data-page="log">
     <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="2" width="14" height="16" rx="1.5"/><line x1="7" y1="7" x2="13" y2="7"/><line x1="7" y1="10" x2="13" y2="10"/><line x1="7" y1="13" x2="10" y2="13"/></svg></span> Daily Log
-  </div>
-  <div class="nav-item" data-page="segments">
-    <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="8"/><path d="M10 2v8l5.66 5.66"/></svg></span> Segments
-  </div>
-  <div class="nav-item" data-page="ranking">
+  </div>  <div class="nav-item" data-page="ranking">
     <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="10" width="4" height="8"/><rect x="8" y="6" width="4" height="12"/><rect x="14" y="3" width="4" height="15"/></svg></span> Ranking
   </div>
   <div class="nav-item" data-page="ptp">
@@ -2925,9 +2921,6 @@ tr.overdue-critical .heat-ring {
   </div>
   <div class="mdrawer-item" data-page="log" onclick="navigateDrawer('log')">
     <span class="mdrawer-icon" style="display:flex;align-items:center;justify-content:center"><svg style="width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="2" width="14" height="16" rx="1.5"/><line x1="7" y1="7" x2="13" y2="7"/><line x1="7" y1="10" x2="13" y2="10"/><line x1="7" y1="13" x2="10" y2="13"/></svg></span> Daily Log
-  </div>
-  <div class="mdrawer-item" data-page="segments" onclick="navigateDrawer('segments')">
-    <span class="mdrawer-icon" style="display:flex;align-items:center;justify-content:center"><svg style="width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="8"/><path d="M10 2v8l5.66 5.66"/></svg></span> Segments
   </div>
   <div class="mdrawer-item" data-page="ranking" onclick="navigateDrawer('ranking')">
     <span class="mdrawer-icon" style="display:flex;align-items:center;justify-content:center"><svg style="width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="10" width="4" height="8"/><rect x="8" y="6" width="4" height="12"/><rect x="14" y="3" width="4" height="15"/></svg></span> Ranking
@@ -4966,7 +4959,7 @@ function renderAnalytics() {
           + '<span style="font-family:var(--font-mono);font-size:10px;color:var(--text3);min-width:14px">'+(i+1)+'</span>'
           + '<div>'
           + '<div style="font-size:12px;font-weight:600">'+b.name+'</div>'
-          + '<button onclick="event.stopPropagation();haptic(\'light\');window.location.href=\'tel:\'+b.phone" style="font-size:10px;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;font-family:var(--font-body)">📞 '+b.phone+'</button>'
+          + '<a href="tel:'+b.phone+'" style="font-size:10px;color:var(--blue);text-decoration:none" onclick="event.stopPropagation();haptic(\'light\')">📞 '+b.phone+'</a>'
           + '</div></div>'
           + '<div style="text-align:right"><div style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:'+concRisk+'">'+fmtC(getDueToday(b))+'</div>'
           + '<div style="font-size:10px;color:var(--text3)">'+pct2+'% of total</div></div></div>';
@@ -4994,7 +4987,7 @@ function renderAnalytics() {
           + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px">'
           + '<div>'
           + '<div style="font-size:12px;font-weight:600">'+b.name.split(' ')[0]+'</div>'
-          + '<button onclick="event.stopPropagation();haptic(\'light\');window.location.href=\'tel:\'+b.phone" style="font-size:10px;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;font-family:var(--font-body)">📞 '+b.phone+'</button>'
+          + '<a href="tel:'+b.phone+'" style="font-size:10px;color:var(--blue);text-decoration:none" onclick="event.stopPropagation();haptic(\'light\')">📞 '+b.phone+'</a>'
           + '</div>'
           + '<span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:'+col+'">'+b.score+'</span></div>'
                     + '<div style="background:var(--border);border-radius:4px;height:5px;overflow:hidden">'
@@ -6008,7 +6001,7 @@ function openBorrowerDetail(id) {
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">'
     + '<button class="btn btn-green" id="bd-pay">💰 Pay</button>'
     + '<button class="btn btn-ghost" id="bd-promise">' + (b.promisedToPay?'Update Promise':'🤝 Promise') + '</button>'
-    + '<button class="btn btn-ghost" onclick="haptic(\'light\');window.location.href=\'tel:\'+b.phone">📞 Call</button>'
+    + '<a href="tel:' + b.phone + '" class="btn btn-ghost" onclick="haptic(\'light\')">📞 Call</a>'
     + '<a href="https://wa.me/' + b.phone.replace(/[^0-9+]/g,'') + '" target="_blank" class="btn btn-ghost" onclick="haptic(\'light\')">💬 WhatsApp</a>'
     + '<button class="btn btn-ghost" id="bd-calllog">📞 Call Log (' + callCount + ')</button>'
     + '<button class="btn btn-ghost" id="bd-hitlist">' + ((state.hitList||[]).includes(id) ? '📌 In Hit List' : '📌 Add to Hit List') + '</button>'
@@ -6366,15 +6359,21 @@ function initModalSwipeDown() {
 
   let startY = 0, startX = 0, curY = 0, dragging = false, cancelled = false;
   let lastT = 0, lastY = 0, velocity = 0, rafId = null;
+  let startScrollTop = 0;  // capture body scroll position at touch start
   const CLOSE_THRESHOLD = 90;
   const VELOCITY_CLOSE  = 0.4;
   const RESISTANCE      = 0.88;
+
+  function getBody() { return modal.querySelector('.modal-body'); }
 
   function onStart(e) {
     const t = e.touches[0];
     startY = t.clientY; startX = t.clientX;
     curY = 0; velocity = 0; lastY = startY; lastT = Date.now();
     dragging = false; cancelled = false;
+    // Capture scroll position at gesture start
+    const body = getBody();
+    startScrollTop = body ? body.scrollTop : 0;
   }
   function onMove(e) {
     if (cancelled) return;
@@ -6382,9 +6381,12 @@ function initModalSwipeDown() {
     const dy = t.clientY - startY;
     const dx = t.clientX - startX;
     if (!dragging && Math.abs(dx) > Math.abs(dy) + 6) { cancelled = true; return; }
+    const body = getBody();
+    // Cancel if body has been scrolled at all since touch started (user is scrolling content)
+    if (body && body.scrollTop > 4) { cancelled = true; return; }
+    // Cancel if downward pull but body still has scrollable content above
+    if (body && startScrollTop > 0) { cancelled = true; return; }
     if (dy <= 0) { cancelled = true; return; }
-    const body = modal.querySelector('.modal-body');
-    if (!dragging && body && body.scrollTop > 4) { cancelled = true; return; }
     if (!dragging) {
       if (dy < 10) return;
       dragging = true;
@@ -8261,62 +8263,64 @@ function renderForecast() {
 
 // ── PORTFOLIO SEGMENTS ─────────────────────────────────
 function renderSegments() {
-  // Render into both segments page (if exists) and analytics panel
-  var el = document.getElementById('segments-body') || document.getElementById('analytics-segments');
-  // Also render into analytics-segments if separate
-  var analyticsEl = document.getElementById('analytics-segments');
-  if (analyticsEl && analyticsEl !== el) { _renderSegmentsInto(analyticsEl); }
-  if (!el) return; _renderSegmentsInto(el); }
-function _renderSegmentsInto(el) {
+  // Target: analytics-segments panel (primary) or legacy segments-body page
+  var el = document.getElementById('analytics-segments') || document.getElementById('segments-body');
   if (!el) return;
+
   var active = getActiveBorrowers();
 
-  // Score each borrower A/B/C
   function getSegment(b) {
     var score = 0;
-    var ratio = b.loanDue > 0 ? (b.amountPaid||0) / b.loanDue : 0;
+    var ratio = b.loanDue > 0 ? (b.amountPaid||0)/b.loanDue : 0;
     var od = getOdAge(b.startDate);
-    if (ratio >= 0.5) score += 3;
-    else if (ratio > 0) score += 1;
+    if (ratio >= 0.5) score += 3; else if (ratio > 0) score += 1;
     if (b.promisedToPay) score += 2;
-    if (od <= 9) score += 2;
-    else if (od <= 12) score += 1;
+    if (od <= 9) score += 2; else if (od <= 12) score += 1;
     if (b.amountPaid > 0) score += 1;
     if (score >= 6) return 'A';
     if (score >= 3) return 'B';
     return 'C';
   }
 
-  var segs = { A: [], B: [], C: [] };
-  active.forEach(function(b) { segs[getSegment(b)].push(b); });
+  var segs = { A:[], B:[], C:[] };
+  active.forEach(function(b){ segs[getSegment(b)].push(b); });
 
   var segDefs = {
-    A: { label: 'Tier A — High Likelihood', color: 'var(--green)', desc: 'Partial payers, promised, early OD days. Likely to pay with a gentle push.' },
-    B: { label: 'Tier B — Moderate', color: 'var(--gold)', desc: 'Some engagement or mid-range OD. May need multiple contacts.' },
-    C: { label: 'Tier C — High Risk', color: 'var(--red)', desc: 'No payment, no promise, late OD days. Escalation recommended.' }
+    A:{ label:'Tier A — High Likelihood', color:'var(--green)', bg:'rgba(34,197,94,0.07)',
+        desc:'Partial payers, promised, early OD. Most likely to pay with gentle contact.' },
+    B:{ label:'Tier B — Moderate',        color:'var(--gold)',  bg:'rgba(240,160,48,0.06)',
+        desc:'Some engagement or mid-range OD. May need multiple follow-ups.' },
+    C:{ label:'Tier C — High Risk',       color:'var(--red)',   bg:'rgba(239,68,68,0.07)',
+        desc:'No payment, no promise, late OD. Escalation recommended.' }
   };
 
   el.innerHTML = Object.keys(segDefs).map(function(tier) {
     var list = segs[tier];
-    var d = segDefs[tier];
-    var total = list.reduce(function(s,b){ return s+getDueToday(b); }, 0);
-    return '<div style="margin-bottom:12px">'
-      + '<div class="card-header"><span class="card-title" style="color:'+d.color+'">'+d.label+'</span>'
-      + '<span style="font-size:11px;color:var(--text3)">'+list.length+' accounts &middot; '+fmtC(total)+'</span></div>'
-      + '<div class="card-body">'
-      + '<div style="font-size:11px;color:var(--text3);margin-bottom:10px">'+d.desc+'</div>'
-      + (list.length === 0 ? '<div style="font-size:12px;color:var(--text3);font-style:italic">No accounts in this tier</div>' :
-        list.map(function(b) {
-          var ratio = b.loanDue > 0 ? Math.round((b.amountPaid||0)/b.loanDue*100) : 0;
-          return '<div class="summary-row" style="cursor:pointer" onclick="openBorrowerDetail(\''+b.id+'\')">'
-            + '<div><div style="font-weight:600;font-size:12px">'+b.name+'</div>'
-            + '<div style="font-size:10px;color:var(--text3)">Day '+getOdAge(b.startDate)+' &middot; Paid '+ratio+'%'+(b.promisedToPay?' &middot; Promised':'')+'</div></div>'
-            + '<div style="text-align:right"><div style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:'+d.color+'">'+fmtC(getDueToday(b))+'</div></div>'
-            + '</div>';
-        }).join(''))
-      + '</div></div>';
+    var d    = segDefs[tier];
+    var total = list.reduce(function(s,b){ return s+getDueToday(b); },0);
+    var rows  = list.length === 0
+      ? '<div style="font-size:11px;color:var(--text3);font-style:italic;padding:8px 0">No accounts in this tier</div>'
+      : list.map(function(b){
+          var ratio = b.loanDue>0 ? Math.round((b.amountPaid||0)/b.loanDue*100) : 0;
+          return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick=\"openBorrowerDetail(\\\''+b.id+'\\\')\">'
+            +'<div style="min-width:0">'
+            +'<div style="font-size:12px;font-weight:600;color:var(--text)">'+escapeHtml(b.name)+'</div>'
+            +'<div style="font-size:10px;color:var(--text3)">Day '+getOdAge(b.startDate)+' &middot; Paid '+ratio+'%'+(b.promisedToPay?' &middot; 🤝':'')+'</div>'
+            +'</div>'
+            +'<div style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:'+d.color+';flex-shrink:0;margin-left:8px">'+fmtC(getDueToday(b))+'</div>'
+            +'</div>';
+        }).join('');
+    return '<div style="margin-bottom:14px;background:'+d.bg+';border:1px solid '+d.color.replace('var(','').replace(')','')+'22;border-radius:10px;overflow:hidden">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border)">'
+      +'<span style="font-size:12px;font-weight:700;color:'+d.color+'">'+d.label+'</span>'
+      +'<span style="font-size:11px;color:var(--text3)">'+list.length+' &middot; '+fmtC(total)+'</span>'
+      +'</div>'
+      +'<div style="font-size:11px;color:var(--text3);padding:6px 14px 4px">'+d.desc+'</div>'
+      +'<div style="padding:0 14px 8px">'+rows+'</div>'
+      +'</div>';
   }).join('');
 }
+
 
 // ── FILTER + NAVIGATE HELPER ───────────────────────────}
 
@@ -8512,7 +8516,7 @@ function renderHitList() {
         <div style="font-size:10px;color:var(--text3)">Day ${getOdAge(b.startDate)} · ${fmtC(getDueToday(b))}</div>
       </div>
       <div style="display:flex;gap:6px">
-        <button class="btn btn-ghost btn-xs" onclick="haptic('light');window.location.href='tel:'+b.phone">📞 Call</button>
+        <a href="tel:${b.phone}" class="btn btn-ghost btn-xs" onclick="haptic('light')">📞</a>
         <button class="btn btn-green btn-xs" onclick="openPayModal('${b.id}')">💰</button>
         <a href="https://wa.me/${phone}?text=${encodeURIComponent(getWaLink(b, true))}" target="_blank" class="btn btn-ghost btn-xs" style="color:#25d366">💬</a>
         <button class="btn btn-ghost btn-xs" onclick="removeFromHitList('${b.id}')">✕</button>
