@@ -2257,6 +2257,19 @@ tr.overdue-critical .heat-ring {
       </div>
     </div>
 
+    <!-- Custom message override panel -->
+    <div id="dispatch-custom-wrap" style="display:none;padding:8px 14px">
+      <div style="background:rgba(37,211,102,0.07);border:1px solid rgba(37,211,102,0.25);border-radius:8px;padding:10px 12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <span style="font-size:12px;font-weight:700;color:var(--green)">✏️ Custom Message (all contacts)</span>
+          <button onclick="dispatchClearCustomMsg()" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--text3);padding:2px 6px">✕ Clear</button>
+        </div>
+        <textarea id="dispatch-custom-msg" rows="3"
+          style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:8px;font-size:12px;color:var(--text2);font-family:var(--font-body);resize:vertical;box-sizing:border-box"
+          placeholder="Custom message for all... Use {name}, {amount}, {days}"></textarea>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">{name} = first name · {amount} = amount due · {days} = OD days</div>
+      </div>
+    </div>
     <!-- Contact list -->
     <div id="dispatch-list"></div>
   </section>
@@ -3718,6 +3731,7 @@ function getSupabaseId() {
 }
 let state = null;
 let currentModal = null;
+let _modalStack  = [];  // stack of {title, body, footer} for nested modals
 let loanSortCol = localStorage.getItem('sort_col') || 'odAge';
 let loanSortDir = parseInt(localStorage.getItem('sort_dir') || '1') || 1;
 let charts = {};
@@ -4829,7 +4843,7 @@ function renderLoansTable() {
       else if (a === 'hitlist') addToHitList(r.id);
       else if (a === 'edit')    openEditModal(r.id);
       else if (a === 'delete')  deleteBorrower(r.id);
-      else if (a === 'wa') { const ph = r.phone.replace(/\D/g,''); const msg = encodeURIComponent(getSmsMessage(r, dispatchMode==='generous')); window.open('https://wa.me/'+ph+'?text='+msg,'_blank'); }
+      else if (a === 'wa') { const ph = r.phone.replace(/\D/g,''); const _customMsg = getDispatchCustomMsg(r); const msg = encodeURIComponent(_customMsg || getSmsMessage(r, dispatchMode==='generous')); window.open('https://wa.me/'+ph+'?text='+msg,'_blank'); }
       haptic('light');
     });
 
@@ -5339,6 +5353,30 @@ function renderAnalytics() {
 }
 
 // ── WHATSAPP DISPATCH ──────────────────────────────────
+// ── Custom dispatch message ────────────────────────────────────
+function toggleDispatchCustomMsg() {
+  const wrap = document.getElementById('dispatch-custom-wrap');
+  const btn  = document.getElementById('dispatch-custom-toggle');
+  if (!wrap) return;
+  const isOpen = wrap.style.display !== 'none';
+  wrap.style.display = isOpen ? 'none' : 'block';
+  if (btn) { btn.style.color = isOpen ? '' : 'var(--green)'; btn.style.borderColor = isOpen ? '' : 'var(--green)'; }
+  if (!isOpen) setTimeout(function(){ document.getElementById('dispatch-custom-msg')?.focus(); },100);
+}
+function dispatchClearCustomMsg() {
+  const ta = document.getElementById('dispatch-custom-msg');
+  if (ta) ta.value = '';
+  toggleDispatchCustomMsg();
+}
+function getDispatchCustomMsg(b) {
+  const ta = document.getElementById('dispatch-custom-msg');
+  if (!ta || !ta.value.trim()) return null;
+  return ta.value.trim()
+    .replace(/\{name\}/gi, b.name.split(' ')[0])
+    .replace(/\{amount\}/gi, fmtC(getDueToday(b)))
+    .replace(/\{days\}/gi, String(getOdAge(b.startDate)));
+}
+
 function setDispatchMode(mode) {
   const prev = dispatchMode;
   dispatchMode = mode;
@@ -5421,7 +5459,8 @@ function renderDispatch() {
     + ' &nbsp;·&nbsp; 🤝 Promised: <b>' + promisedN + '</b>'
     + ' &nbsp;·&nbsp; Showing: <b>' + list.length + '</b>'
     + ' &nbsp;<button class="btn btn-ghost btn-xs" style="margin-left:4px;color:#25d366;border-color:#25d366" onclick="launchDispatchQueue()" title="Queue contacts for personalised WhatsApp">💬 Queue All (' + list.length + ')</button>'
-    + ' &nbsp;<button class="btn btn-ghost btn-xs" style="margin-left:4px" onclick="openWaBroadcastExport()">📋 Broadcast List</button>';
+    + ' &nbsp;<button class="btn btn-ghost btn-xs" style="margin-left:4px" onclick="openWaBroadcastExport()">📋 Broadcast List</button>'
+    + ' &nbsp;<button class="btn btn-ghost btn-xs" style="margin-left:4px" onclick="toggleDispatchCustomMsg()" id="dispatch-custom-toggle">✏️ Custom Msg</button>'    + ' &nbsp;<button class="btn btn-xs" style="margin-left:4px;background:linear-gradient(135deg,#7c3aed,#dc2626);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.3px" onclick="openEscalationPanel()" title="Legal escalation notices">⚖️ Escalate</button>';
 
   if (!list.length) {
     document.getElementById('dispatch-list').innerHTML = '<div class="empty-state" style="padding:30px 0"><div class="icon">✅</div><div>All accounts cleared!</div></div>';
@@ -6501,6 +6540,38 @@ function deleteBorrower(id) {
 }
 
 function closeModal() {
+  // If there's a modal to go back to, restore it instead of closing
+  if (_modalStack.length > 0) {
+    const prev = _modalStack.pop();
+    document.getElementById('modal-title').textContent = prev.title;
+    document.getElementById('modal-body').innerHTML    = prev.body;
+    document.getElementById('modal-footer').innerHTML  = prev.footer;
+    // Re-run any wiring needed
+    if (typeof initModalSwipeDown === 'function') setTimeout(function(){
+      const overlay=document.getElementById('modal-overlay');
+      const modal=overlay&&overlay.querySelector('.modal');
+      if(modal){modal._swipeInited=false;initModalSwipeDown();}
+    },50);
+    return;
+  }
+  const overlay = document.getElementById('modal-overlay');
+  const modal   = overlay?.querySelector('.modal');
+  if (modal) { modal.style.transform = ''; modal.classList.remove('dragging','snap-back'); }
+  overlay?.classList.remove('open');
+  currentModal = null;
+}
+
+// Push current modal state onto the stack before opening a new one
+function _pushModal() {
+  const title  = document.getElementById('modal-title')?.textContent || '';
+  const body   = document.getElementById('modal-body')?.innerHTML || '';
+  const footer = document.getElementById('modal-footer')?.innerHTML || '';
+  if (title || body) _modalStack.push({ title, body, footer });
+}
+
+// Close all modals including any stack
+function closeAllModals() {
+  _modalStack = [];
   const overlay = document.getElementById('modal-overlay');
   const modal   = overlay?.querySelector('.modal');
   if (modal) { modal.style.transform = ''; modal.classList.remove('dragging','snap-back'); }
@@ -7413,6 +7484,7 @@ let currentPage = 'dashboard';
 
 function navigate(page) {
   currentPage = page;
+  _modalStack = [];  // clear modal stack on navigation
   // Clear all active states immediately (cheap DOM ops)
   document.querySelectorAll('.page').forEach(p => {
     p.classList.remove('active');
@@ -8841,8 +8913,20 @@ async function adminLogin() {
 }
 
 async function adminShowDashboard(db) {
-  document.getElementById('admin-login').style.display = 'none';
-  const dash = document.getElementById('admin-dashboard');
+  if (!db) db = initSupabase();
+  if (!db) { toast('No connection','error'); return; }
+  // Rebuild modal body in case we navigated away (e.g. from Inspect)
+  document.getElementById('modal-title').textContent = '🔐 Admin — All Agents';
+  let adminContent = document.getElementById('admin-content');
+  if (!adminContent) {
+    document.getElementById('modal-body').innerHTML =
+      '<div id="admin-content"><div id="admin-login" style="display:none"></div>' +
+      '<div id="admin-dashboard"></div></div>';
+    adminContent = document.getElementById('admin-content');
+  }
+  const loginEl = document.getElementById('admin-login');
+  if (loginEl) loginEl.style.display = 'none';
+  const dash = document.getElementById('admin-dashboard') || adminContent;
   dash.style.display = 'block';
   dash.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">⏳ Loading agents...</div>';
   document.getElementById('modal-title').textContent = '🔐 Admin — All Agents';
@@ -8948,6 +9032,7 @@ async function adminInspectAgent(slug, db) {
     const stage = prof.stage || '—';
     const cfg   = STAGE_CONFIG[stage] || {};
 
+    _pushModal(); // push admin dashboard so ← Back returns to it
     document.getElementById('modal-title').textContent = '🔍 ' + escapeHtml(prof.name||slug);
     document.getElementById('modal-body').innerHTML = `
       <div style="font-size:13px">
@@ -9028,6 +9113,310 @@ async function adminChangePw() {
     });
     toast('Admin password updated ✅', 'success');
   } catch(e) { toast('Error: ' + e.message, 'error'); }
+}
+
+
+// ══ ESCALATION NOTICE SYSTEM ══════════════════════════════════════════
+// Three escalation levels — each progressively more serious
+// All messages personalised per borrower, formatted for WhatsApp
+
+function _escalCaseRef(b) {
+  // Generate unique case reference: LB/ENF/YYMM-XXXX
+  const now = new Date();
+  const yymm = String(now.getFullYear()).slice(2) + String(now.getMonth()+1).padStart(2,'0');
+  // Short hash from borrower id
+  let hash = 0;
+  for (let i = 0; i < b.id.length; i++) hash = ((hash << 5) - hash + b.id.charCodeAt(i)) | 0;
+  const shortCode = Math.abs(hash % 9000 + 1000);
+  return 'LB/ENF/' + yymm + '-' + shortCode;
+}
+
+function _escalDate() {
+  const d = new Date();
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const day = d.getDate();
+  const suffix = day===1||day===21||day===31?'st':day===2||day===22?'nd':day===3||day===23?'rd':'th';
+  return days[d.getDay()] + ' ' + day + suffix + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+}
+
+function _escalSalutation(b) {
+  // Use last name with Mr./Ms. — no gender detection, agent sets manually if needed
+  const parts = b.name.trim().split(/\s+/);
+  const lastName = parts.length > 1 ? parts[parts.length-1] : parts[0];
+  return 'Mr./Ms. ' + lastName;
+}
+
+function _escalDeadline() {
+  // Read configurable deadline time from settings, default 5:00 PM
+  return localStorage.getItem('sq_escalation_deadline') || '5:00 PM';
+}
+
+function _escalPhone() {
+  // Read configurable payment number from settings
+  return localStorage.getItem('sq_escalation_pay_number') || '714*674#';
+}
+
+function buildEscalationMsg(b, level) {
+  const caseRef   = _escalCaseRef(b);
+  const dateStr   = _escalDate();
+  const salute    = _escalSalutation(b);
+  const fullName  = b.name.toUpperCase();
+  const balance   = fmtC(getDueToday(b));
+  const deadline  = _escalDeadline();
+  const payNum    = _escalPhone();
+  const odDays    = getOdAge(b.startDate);
+
+  if (level === 1) {
+    // ── LEVEL 1: Formal Warning Notice ──────────────────────────
+    return `⚠️ *FORMAL RECOVERY WARNING NOTICE* ⚠️
+
+DATE: ${dateStr}
+CASE REF: ${caseRef}
+DEBTOR: *${fullName}*
+OUTSTANDING BALANCE: *${balance}*
+
+*${salute},*
+
+This is a formal notice from LoanBase Recovery Management regarding your overdue ${b.loanType} account, now ${odDays} days in default.
+
+Your account has been escalated to our *Enforcement Division*. Failure to respond within *24 hours* will trigger the following actions:
+
+🚫 *Credit Bureau Reporting* — Your Ghana Card ID will be submitted to the National Credit Bureau, resulting in restrictions across all financial platforms.
+
+📋 *Account Documentation* — Your default is now on record and will be reported to relevant financial institutions.
+
+💡 *TO PREVENT ESCALATION:*
+Make your payment of *${balance}* today before *${deadline}*.
+
+📌 Dial *${payNum}* or use the LoanBase App to settle immediately.
+
+Your prompt action is required.
+
+*LoanBase Recovery Management*`;
+  }
+
+  if (level === 2) {
+    // ── LEVEL 2: Final Pre-Litigation Notice (like the sample) ──
+    return `⚠️ *FINAL PRE-LITIGATION & FIELD ENFORCEMENT NOTICE* ⚠️
+
+DATE: ${dateStr}
+CASE REF: ${caseRef}
+DEBTOR: *${fullName}*
+OUTSTANDING BALANCE: *${balance}*
+
+*${salute},*
+
+This is a formal and final notice regarding your persistent default. We have noted your repetitive refusal to answer official recovery calls. These actions have now been officially documented as *"Willful Financial Evasion."*
+
+Since you have failed to utilize the grace period provided, LoanBase Management has authorized the following *MANDATORY ENFORCEMENT ACTIONS* beginning today:
+
+📍 *1. FIELD RECOVERY DISPATCH:* A recovery team has been assigned to your registered residential address. Since you are "too busy" for phone calls, our agents will conduct a face-to-face recovery.
+
+🚫 *2. CREDIT BUREAU BLACKLISTING:* Your Ghana Card (ID) is being uploaded to the National Credit Bureau. This will result in a permanent ban from all financial services, bank loans, and MoMo credit platforms across Ghana.
+
+📢 *3. THIRD-PARTY DISCLOSURE:* We are legally authorized to contact your listed references, family members, and guarantors to verify your location. Your debt will no longer be a private matter.
+
+⚖️ *4. JUDICIAL ATTACHMENT:* Under the Borrowers and Lenders Act 2008 (Act 773), we will proceed with the attachment of assets and a mandatory lien on all linked bank and MoMo accounts to recover the *full ${balance} plus accumulated recovery fees.*
+
+---
+💡 *REQUIRED IMMEDIATE ACTION:*
+To halt this process, you must make an *IMMEDIATE PAYMENT TODAY by ${deadline}.*
+
+📌 *PAYMENT METHOD:*
+Dial *${payNum}* or use the LoanBase App to confirm payment.
+---
+
+This is your final opportunity to protect your reputation and avoid a public scene. The clock is running.
+
+Sincerely,
+*LoanBase Recovery Management*`;
+  }
+
+  if (level === 3) {
+    // ── LEVEL 3: Litigation Commenced Notice ────────────────────
+    return `🔴 *NOTICE OF LITIGATION COMMENCEMENT* 🔴
+
+DATE: ${dateStr}
+CASE REF: ${caseRef}
+COURT FILE: PENDING — *${fullName}*
+JUDGMENT AMOUNT: *${balance} + LEGAL FEES*
+
+*${salute},*
+
+BE ADVISED: LoanBase has formally instructed our legal counsel to commence civil litigation proceedings against you for the recovery of *${balance}* arising from your ${b.loanType} account, ${odDays} days in default.
+
+The following actions are NOW IN PROGRESS:
+
+⚖️ *COURT FILING:* A civil suit has been filed at the District Court. You will receive a formal court summons at your registered address within 5-7 working days.
+
+🏦 *ACCOUNT FREEZING:* We have formally notified your financial institutions of this proceeding. Applicable account restrictions are being applied under Act 773.
+
+📋 *CREDIT BUREAU:* Your default has been permanently registered with the Ghana Credit Bureau. This record will remain for *5 years* and will affect all future credit applications, employment background checks, and MoMo services.
+
+👥 *GUARANTOR NOTIFICATION:* Your guarantors and listed references are being formally notified of this litigation as required by law.
+
+🚗 *ASSET INVENTORY:* A court-authorized agent will conduct an inventory of attachable assets at your registered address.
+
+---
+⚠️ *THIS IS YOUR ABSOLUTE FINAL OPPORTUNITY:*
+
+Full payment of *${balance}* must be received by *${deadline} TODAY* to halt all proceedings.
+
+After this deadline, additional legal fees, court costs, and enforcement charges will be added to the judgment amount. Settlement will *not* be possible below the full judgment amount.
+
+📌 Dial *${payNum}* or contact us immediately.
+
+*LoanBase Legal Recovery Division*
+*Ref: ${caseRef}*`;
+  }
+
+  return '';
+}
+
+function openEscalationPanel() {
+  // Show escalation level selector
+  document.getElementById('modal-title').textContent = '⚖️ Escalation Notices';
+  document.getElementById('modal-body').innerHTML = `
+    <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+      Select an escalation level to send to the <strong>${_currentDispatchIds ? _currentDispatchIds.length : 0} contacts</strong>
+      currently showing in dispatch. Each message is auto-personalised with the borrower's name, balance, case ref, and today's date.
+    </div>
+
+    <div style="display:grid;gap:10px;margin-bottom:16px">
+      ${[
+        {level:1, label:'Level 1 — Formal Warning',    color:'#f97316', desc:'First escalation. Credit bureau threat, 24hr deadline. Firm but not final.'},
+        {level:2, label:'Level 2 — Pre-Litigation',    color:'#dc2626', desc:'Final notice. Field dispatch, third-party disclosure, judicial attachment. Your sample format.'},
+        {level:3, label:'Level 3 — Litigation Notice', color:'#7c3aed', desc:'Nuclear option. Court filing confirmed, account freeze, guarantor notification, asset inventory.'},
+      ].map(e => `
+        <div style="background:var(--surface2);border:2px solid ${e.color}22;border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color 0.15s"
+          onclick="previewEscalation(${e.level})"
+          onmouseover="this.style.borderColor='${e.color}88'"
+          onmouseout="this.style.borderColor='${e.color}22'">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <span style="font-weight:800;font-size:13px;color:${e.color}">${e.label}</span>
+            <span style="font-size:11px;color:var(--text3);background:var(--surface);padding:2px 8px;border-radius:10px">Preview →</span>
+          </div>
+          <div style="font-size:11px;color:var(--text3)">${e.desc}</div>
+        </div>`).join('')}
+    </div>
+
+    <div style="background:rgba(240,160,48,0.08);border:1px solid rgba(240,160,48,0.2);border-radius:8px;padding:10px 12px">
+      <div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:8px">⚙️ Escalation Settings</div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+        <label style="font-size:11px;color:var(--text3);flex-shrink:0">Deadline time:</label>
+        <input id="escal-deadline" type="text" value="${_escalDeadline()}"
+          style="flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:12px;color:var(--text);font-family:var(--font-body)"
+          placeholder="5:00 PM">
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <label style="font-size:11px;color:var(--text3);flex-shrink:0">Payment dial:</label>
+        <input id="escal-paynum" type="text" value="${_escalPhone()}"
+          style="flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:12px;color:var(--text);font-family:var(--font-body)"
+          placeholder="714*674#">
+      </div>
+    </div>`;
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost" onclick="closeModal()">Close</button>' +
+    '<button class="btn btn-ghost btn-sm" onclick="saveEscalSettings()">Save Settings</button>';
+  document.getElementById('modal-overlay').classList.add('open');
+  haptic('light');
+}
+
+function saveEscalSettings() {
+  const dl = document.getElementById('escal-deadline')?.value.trim();
+  const pn = document.getElementById('escal-paynum')?.value.trim();
+  if (dl) localStorage.setItem('sq_escalation_deadline', dl);
+  if (pn) localStorage.setItem('sq_escalation_pay_number', pn);
+  toast('Settings saved ✅', 'success');
+  haptic('success');
+}
+
+function previewEscalation(level) {
+  // Save settings first
+  saveEscalSettings();
+
+  // Get sample borrower (first in current dispatch list) for preview
+  const sampleId = _currentDispatchIds && _currentDispatchIds[0];
+  const sampleB  = sampleId && state.borrowers.find(b => b.id === sampleId);
+  const previewMsg = sampleB ? buildEscalationMsg(sampleB, level) : '(No contacts in current filter)';
+  const levelColors = {1:'#f97316', 2:'#dc2626', 3:'#7c3aed'};
+  const levelLabels = {1:'Level 1 — Formal Warning', 2:'Level 2 — Pre-Litigation', 3:'Level 3 — Litigation Notice'};
+
+  _pushModal();
+  document.getElementById('modal-title').textContent = '⚖️ ' + levelLabels[level];
+  document.getElementById('modal-body').innerHTML =
+    '<div style="font-size:11px;color:var(--text3);margin-bottom:10px">' +
+      'Preview for <strong>' + (sampleB ? escapeHtml(sampleB.name) : 'sample') + '</strong>. ' +
+      'Sent to <strong>' + (_currentDispatchIds ? _currentDispatchIds.length : 0) + ' contacts</strong> when you tap Send All.' +
+    '</div>' +
+    '<div style="background:rgba(37,211,102,0.07);border:1px solid rgba(37,211,102,0.2);border-radius:8px;padding:12px;font-size:11px;color:var(--text2);line-height:1.8;white-space:pre-wrap;max-height:320px;overflow-y:auto;font-family:var(--font-body)">' +
+      escapeHtml(previewMsg) +
+    '</div>';
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost" onclick="closeModal()">← Back</button>' +
+    '<button class="btn btn-ghost btn-sm" style="color:#25d366;border-color:#25d366" onclick="launchEscalationQueue(' + level + ')">💬 Send All (' + (_currentDispatchIds ? _currentDispatchIds.length : 0) + ')</button>';
+}
+
+function launchEscalationQueue(level) {
+  closeAllModals();
+  if (!_currentDispatchIds || !_currentDispatchIds.length) {
+    toast('No contacts in current filter', 'error'); return;
+  }
+  const borrowers = _currentDispatchIds
+    .map(id => state.borrowers.find(b => b.id === id))
+    .filter(Boolean);
+  window._escalLevel    = level;
+  window._escalBorrowers = borrowers;
+  window._escalIdx      = 0;
+  document.getElementById('modal-overlay').classList.add('open');
+  haptic('light');
+  escalRenderModal();
+}
+
+function escalRenderModal() {
+  const b   = window._escalBorrowers[window._escalIdx];
+  const tot = window._escalBorrowers.length;
+  const idx = window._escalIdx;
+  if (!b) { closeModal(); toast('✅ Escalation queue complete!', 'success'); haptic('pay'); return; }
+  const level   = window._escalLevel;
+  const msg     = buildEscalationMsg(b, level);
+  const levelColors = {1:'#f97316', 2:'#dc2626', 3:'#7c3aed'};
+  const levelLabels = {1:'Warning', 2:'Pre-Litigation', 3:'Litigation'};
+  const col = levelColors[level] || '#dc2626';
+
+  document.getElementById('modal-title').textContent = '⚖️ Escalation — ' + (idx+1) + ' of ' + tot;
+  document.getElementById('modal-body').innerHTML =
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
+      '<div style="padding:3px 10px;border-radius:10px;background:' + col + '22;color:' + col + ';font-size:11px;font-weight:700">Level ' + level + ' — ' + levelLabels[level] + '</div>' +
+      '<div style="font-size:11px;color:var(--text3)">' + (idx+1) + ' of ' + tot + '</div>' +
+    '</div>' +
+    '<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:10px">' +
+      '<div style="font-weight:700;font-size:13px">' + escapeHtml(b.name) + '</div>' +
+      '<div style="font-size:11px;color:var(--text3)">' + b.phone + ' · Day ' + getOdAge(b.startDate) + ' · ' + fmtC(getDueToday(b)) + '</div>' +
+    '</div>' +
+    '<div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">Message (editable):</div>' +
+    '<textarea id="escal-msg-edit" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px;font-size:11px;color:var(--text2);line-height:1.6;min-height:160px;max-height:260px;resize:vertical;font-family:var(--font-body);box-sizing:border-box">' + msg + '</textarea>';
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost btn-sm" onclick="closeModal()">Stop</button>' +
+    '<button class="btn btn-xs" style="background:linear-gradient(135deg,' + col + ',' + col + 'cc);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:12px;font-weight:700;cursor:pointer" onclick="escalSendAndNext()">⚖️ Send & Next ▶</button>';
+}
+
+function escalSendAndNext() {
+  const b = window._escalBorrowers[window._escalIdx];
+  if (!b) return;
+  const editedMsg = document.getElementById('escal-msg-edit')?.value || buildEscalationMsg(b, window._escalLevel);
+  const ph = b.phone.replace(/\D/g,'');
+  window.open('https://wa.me/' + ph + '?text=' + encodeURIComponent(editedMsg), '_blank');
+  haptic('light');
+  window._escalIdx++;
+  if (window._escalIdx < window._escalBorrowers.length) {
+    setTimeout(escalRenderModal, 300);
+  } else {
+    closeModal();
+    toast('✅ Escalation queue complete — ' + window._escalBorrowers.length + ' notices sent', 'success');
+    haptic('pay');
+  }
 }
 
 
@@ -11726,7 +12115,11 @@ function waqSendAndNext() {
   const phone = b.phone.replace(/\s/g,'').replace('+','');
   const firstName = b.name.split(' ')[0];
   const useGenerous = window._waqGenerous === true;
-  const msg = getSmsMessage(b, useGenerous).replace(b.name, firstName);
+  // Use edited textarea message if available, otherwise auto-generate
+  const _edited = document.getElementById('waq-msg-edit');
+  const msg = (_edited && _edited.value.trim())
+    ? _edited.value.trim()
+    : (getDispatchCustomMsg && getDispatchCustomMsg(b)) || getSmsMessage(b, useGenerous).replace(b.name, firstName);
   window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(msg), '_blank');
   haptic('light');
   window._waqIdx++;
@@ -11776,8 +12169,9 @@ function waqRenderModal() {
     +'<div style="background:rgba(37,211,102,0.08);border:1px solid rgba(37,211,102,0.25);border-radius:8px;padding:10px 12px;margin-bottom:10px">'
     +'<div style="font-weight:700;font-size:13px">'+b.name+'</div>'
     +'<div style="font-size:11px;color:var(--text3)">'+b.phone+' · Day '+getOdAge(b.startDate)+' · Due: '+fmtC(getDueToday(b))+(ug?' · Offer: '+fmtC(getGenerous(b)):'')+' </div></div>'
-    +'<div style="background:var(--surface2);border-radius:8px;padding:10px;font-size:12px;color:var(--text2);line-height:1.7;max-height:150px;overflow-y:auto">'+msg.replace(/\n/g,'<br>')+'</div>'
-    +'<div style="font-size:10px;color:var(--text3);margin-top:6px;text-align:center">'+(idx+1)+' of '+tot+' · '+(ug?'Generous offer':'Full balance')+'</div>';
+    +'<div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">Message (editable):</div>'
+    +'<textarea id="waq-msg-edit" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px;font-size:12px;color:var(--text2);line-height:1.6;min-height:110px;max-height:180px;resize:vertical;font-family:var(--font-body);box-sizing:border-box">'+msg+'</textarea>'
+    +'<div style="font-size:10px;color:var(--text3);margin-top:4px;text-align:right">'+(idx+1)+' of '+tot+' · '+(ug?'Generous offer':'Full balance')+'</div>';
   document.getElementById('modal-footer').innerHTML=
     '<button class="btn btn-ghost" onclick="closeModal()">Stop</button>'
     +'<button class="eod-btn" style="font-size:12px;padding:7px 16px" onclick="waqSendAndNext()">Open WA & Next ▶</button>';
@@ -13989,15 +14383,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Push initial state
     history.replaceState({ page: 'dashboard' }, '', '');
     window.addEventListener('popstate', function(e) {
+      // If a modal is open — close it (or pop modal stack) first
+      const overlay = document.getElementById('modal-overlay');
+      if (overlay && overlay.classList.contains('open')) {
+        history.pushState({page: currentPage||'dashboard'}, '', '');
+        closeModal();
+        haptic('light');
+        return;
+      }
+      // If drawer is open — close it
+      if (document.getElementById('mobile-drawer')?.classList.contains('open')) {
+        history.pushState({page: currentPage||'dashboard'}, '', '');
+        closeDrawer();
+        haptic('light');
+        return;
+      }
       if (pageHistory.length > 1) {
         pageHistory.pop();
         var prev = pageHistory[pageHistory.length - 1];
         haptic('light');
-        _navOverride(prev); // use original navigate, not override
+        _navOverride(prev);
       } else {
-        // Double-back to close — push state so next back will trigger confirm
+        // Double-back to exit — show toast on first back, exit on second
         if (window._backPressTime && Date.now() - window._backPressTime < 2000) {
-          // Second back within 2s — let it close
+          // Second back within 2s — allow exit (don't push state)
         } else {
           window._backPressTime = Date.now();
           history.pushState({ page: 'dashboard' }, '', '');
