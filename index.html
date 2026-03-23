@@ -481,6 +481,8 @@ html[data-theme="light"], html[data-theme="light"] body { color-scheme: light; }
 [data-theme="light"] .bl-filter-bar {
   background: #fff !important;
   border-color: var(--border) !important;
+  overflow-x: hidden;
+  min-width: 0;
 }
 
 /* Lock screen */
@@ -645,7 +647,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
   height: 100vh;
   -webkit-overflow-scrolling: touch;
 }
-.page { display: none; padding: 28px 32px 60px; }
+.page { display: none; padding: 28px 32px 60px; overflow-x: hidden; max-width: 100%; }
 .page.active { display: block; }
 .page-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -2213,7 +2215,7 @@ tr.overdue-critical .heat-ring {
     <div class="page-header">
       <div>
         <div class="page-title" style="font-size:22px">WhatsApp</div>
-        <div class="page-sub" id="dispatch-stats">Grouped by OD day</div>
+        <div id="dispatch-stats" style="font-size:11px;color:var(--text2);margin-top:4px;min-width:0;overflow:hidden">Grouped by OD day</div>
       </div>
     </div>
 
@@ -2249,11 +2251,11 @@ tr.overdue-critical .heat-ring {
         <input type="number" class="bl-chip-sel" id="dispatch-max-amount" placeholder="₵ Max" oninput="renderDispatch()" style="width:72px" min="0">
       </div>
       <!-- Discount -->
-      <div style="display:flex;align-items:center;gap:10px;padding-top:6px;border-top:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:8px;padding-top:6px;border-top:1px solid var(--border);flex-wrap:wrap;min-width:0">
         <span style="font-size:12px;color:var(--text3);flex-shrink:0">OD Discount</span>
         <input type="range" class="discount-slider" id="discount-slider" min="0" max="100" value="30" oninput="updateDiscount(this.value)" style="flex:1">
         <span style="font-family:var(--font-mono);color:var(--gold);font-size:13px;font-weight:700;min-width:36px;text-align:right" id="discount-label">30%</span>
-        <span style="font-size:11px;color:var(--text3);min-width:120px" id="discount-desc">customer pays 30% of OD fee</span>
+        <span style="font-size:11px;color:var(--text3);flex-shrink:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="discount-desc">customer pays 30% of OD fee</span>
       </div>
     </div>
 
@@ -5455,12 +5457,21 @@ function renderDispatch() {
   const promisedN = state.borrowers.filter(b => b.promisedToPay).length;
   _currentDispatchIds = list.map(b => b.id);
   document.getElementById('dispatch-stats').innerHTML =
-    'Unpaid: <b>' + unpaidN + '</b> &nbsp;·&nbsp; Partial: <b>' + partialN + '</b>'
-    + ' &nbsp;·&nbsp; 🤝 Promised: <b>' + promisedN + '</b>'
-    + ' &nbsp;·&nbsp; Showing: <b>' + list.length + '</b>'
-    + ' &nbsp;<button class="btn btn-ghost btn-xs" style="margin-left:4px;color:#25d366;border-color:#25d366" onclick="launchDispatchQueue()" title="Queue contacts for personalised WhatsApp">💬 Queue All (' + list.length + ')</button>'
-    + ' &nbsp;<button class="btn btn-ghost btn-xs" style="margin-left:4px" onclick="openWaBroadcastExport()">📋 Broadcast List</button>'
-    + ' &nbsp;<button class="btn btn-ghost btn-xs" style="margin-left:4px" onclick="toggleDispatchCustomMsg()" id="dispatch-custom-toggle">✏️ Custom Msg</button>'    + ' &nbsp;<button class="btn btn-xs" style="margin-left:4px;background:linear-gradient(135deg,#7c3aed,#dc2626);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.3px" onclick="openEscalationPanel()" title="Legal escalation notices">⚖️ Escalate</button>';
+    '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;min-width:0;overflow:hidden">'
+    + '<span style="font-size:11px;color:var(--text2)">Unpaid: <b>' + unpaidN + '</b></span>'
+    + '<span style="font-size:11px;color:var(--text3)">·</span>'
+    + '<span style="font-size:11px;color:var(--text2)">Partial: <b>' + partialN + '</b></span>'
+    + '<span style="font-size:11px;color:var(--text3)">·</span>'
+    + '<span style="font-size:11px;color:var(--text2)">🤝 <b>' + promisedN + '</b></span>'
+    + '<span style="font-size:11px;color:var(--text3)">·</span>'
+    + '<span style="font-size:11px;color:var(--text2)">Showing: <b>' + list.length + '</b></span>'
+    + '</div>'
+    + '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px">'
+    + '<button class="btn btn-ghost btn-xs" style="color:#25d366;border-color:#25d366" onclick="launchDispatchQueue()">💬 Queue All (' + list.length + ')</button>'
+    + '<button class="btn btn-ghost btn-xs" onclick="openWaBroadcastExport()">📋 Broadcast</button>'
+    + '<button class="btn btn-ghost btn-xs" onclick="toggleDispatchCustomMsg()" id="dispatch-custom-toggle">✏️ Custom</button>'
+    + '<button class="btn btn-xs" style="background:linear-gradient(135deg,#7c3aed,#dc2626);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer" onclick="openEscalationPanel()">⚖️ Escalate</button>'
+    + '</div>'
 
   if (!list.length) {
     document.getElementById('dispatch-list').innerHTML = '<div class="empty-state" style="padding:30px 0"><div class="icon">✅</div><div>All accounts cleared!</div></div>';
@@ -9350,7 +9361,7 @@ function previewEscalation(level) {
       'Preview for <strong>' + (sampleB ? escapeHtml(sampleB.name) : 'sample') + '</strong>. ' +
       'Sent to <strong>' + (_currentDispatchIds ? _currentDispatchIds.length : 0) + ' contacts</strong> when you tap Send All.' +
     '</div>' +
-    '<div style="background:rgba(37,211,102,0.07);border:1px solid rgba(37,211,102,0.2);border-radius:8px;padding:12px;font-size:11px;color:var(--text2);line-height:1.8;white-space:pre-wrap;max-height:320px;overflow-y:auto;font-family:var(--font-body)">' +
+    '<div style="background:rgba(37,211,102,0.07);border:1px solid rgba(37,211,102,0.2);border-radius:8px;padding:12px;font-size:11px;color:var(--text2);line-height:1.8;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word;max-height:320px;overflow-y:auto;overflow-x:hidden;font-family:var(--font-body)">' +
       escapeHtml(previewMsg) +
     '</div>';
   document.getElementById('modal-footer').innerHTML =
@@ -9375,49 +9386,50 @@ function launchEscalationQueue(level) {
 }
 
 function escalRenderModal() {
-  const b   = window._escalBorrowers[window._escalIdx];
   const tot = window._escalBorrowers.length;
   const idx = window._escalIdx;
-  if (!b) { closeModal(); toast('✅ Escalation queue complete!', 'success'); haptic('pay'); return; }
-  const level   = window._escalLevel;
-  const msg     = buildEscalationMsg(b, level);
+  if (idx >= tot) {
+    closeModal();
+    toast('✅ Escalation complete — ' + tot + ' notices sent', 'success');
+    haptic('pay');
+    return;
+  }
+  const b     = window._escalBorrowers[idx];
+  const level = window._escalLevel;
+  const msg   = buildEscalationMsg(b, level);
+  const ph    = b.phone.replace(/\D/g,'');
+  const waLink = 'https://wa.me/' + ph + '?text=' + encodeURIComponent(msg);
+  const pct   = Math.round((idx / tot) * 100);
   const levelColors = {1:'#f97316', 2:'#dc2626', 3:'#7c3aed'};
   const levelLabels = {1:'Warning', 2:'Pre-Litigation', 3:'Litigation'};
   const col = levelColors[level] || '#dc2626';
 
   document.getElementById('modal-title').textContent = '⚖️ Escalation — ' + (idx+1) + ' of ' + tot;
   document.getElementById('modal-body').innerHTML =
-    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
-      '<div style="padding:3px 10px;border-radius:10px;background:' + col + '22;color:' + col + ';font-size:11px;font-weight:700">Level ' + level + ' — ' + levelLabels[level] + '</div>' +
-      '<div style="font-size:11px;color:var(--text3)">' + (idx+1) + ' of ' + tot + '</div>' +
-    '</div>' +
-    '<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:10px">' +
-      '<div style="font-weight:700;font-size:13px">' + escapeHtml(b.name) + '</div>' +
-      '<div style="font-size:11px;color:var(--text3)">' + b.phone + ' · Day ' + getOdAge(b.startDate) + ' · ' + fmtC(getDueToday(b)) + '</div>' +
-    '</div>' +
-    '<div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">Message (editable):</div>' +
-    '<textarea id="escal-msg-edit" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px;font-size:11px;color:var(--text2);line-height:1.6;min-height:160px;max-height:260px;resize:vertical;font-family:var(--font-body);box-sizing:border-box">' + msg + '</textarea>';
+    // Level + progress header
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+    + '<div style="padding:3px 10px;border-radius:10px;background:' + col + '22;color:' + col + ';font-size:11px;font-weight:700">Level ' + level + ' — ' + levelLabels[level] + '</div>'
+    + '<div style="font-size:11px;color:var(--text3)">' + (idx+1) + ' / ' + tot + '</div>'
+    + '</div>'
+    // Contact card
+    + '<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:10px;border-left:3px solid ' + col + '">'
+    + '<div style="font-weight:700;font-size:14px">' + escapeHtml(b.name) + '</div>'
+    + '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + b.phone + ' · Day ' + getOdAge(b.startDate) + ' · ' + fmtC(getDueToday(b)) + '</div>'
+    + '</div>'
+    // Editable message
+    + '<textarea id="escal-msg-edit" style="width:100%;max-width:100%;background:var(--surface2);border:1px solid ' + col + '44;border-radius:8px;padding:10px;font-size:11px;color:var(--text2);line-height:1.6;min-height:140px;max-height:220px;resize:vertical;font-family:var(--font-body);box-sizing:border-box;overflow-wrap:break-word">' + msg + '</textarea>'
+    // Progress bar
+    + '<div style="margin-top:10px;background:var(--surface2);border-radius:4px;height:4px;overflow:hidden">'
+    + '<div style="height:100%;background:' + col + ';width:' + pct + '%;transition:width 0.3s"></div>'
+    + '</div>'
+    + '<div style="font-size:10px;color:var(--text3);margin-top:4px;text-align:center">' + idx + ' of ' + tot + ' sent</div>';
+
   document.getElementById('modal-footer').innerHTML =
-    '<button class="btn btn-ghost btn-sm" onclick="closeModal()">Stop</button>' +
-    '<button class="btn btn-xs" style="background:linear-gradient(135deg,' + col + ',' + col + 'cc);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:12px;font-weight:700;cursor:pointer" onclick="escalSendAndNext()">⚖️ Send & Next ▶</button>';
+    '<button class="btn btn-ghost" onclick="closeModal()">Stop</button>'
+    + '<button class="btn btn-ghost btn-sm" onclick="window._escalIdx++;escalRenderModal()">Skip →</button>'
+    + '<a href="' + waLink + '" target="_blank" class="btn btn-sm" style="background:linear-gradient(135deg,' + col + ',' + col + 'bb);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:6px" onclick="setTimeout(function(){window._escalIdx++;escalRenderModal();},400)">⚖️ Send & Next ▶</a>';
 }
 
-function escalSendAndNext() {
-  const b = window._escalBorrowers[window._escalIdx];
-  if (!b) return;
-  const editedMsg = document.getElementById('escal-msg-edit')?.value || buildEscalationMsg(b, window._escalLevel);
-  const ph = b.phone.replace(/\D/g,'');
-  window.open('https://wa.me/' + ph + '?text=' + encodeURIComponent(editedMsg), '_blank');
-  haptic('light');
-  window._escalIdx++;
-  if (window._escalIdx < window._escalBorrowers.length) {
-    setTimeout(escalRenderModal, 300);
-  } else {
-    closeModal();
-    toast('✅ Escalation queue complete — ' + window._escalBorrowers.length + ' notices sent', 'success');
-    haptic('pay');
-  }
-}
 
 
 function openChangelog() {
@@ -11939,7 +11951,62 @@ function generatePdfExport() {
     td { padding: 5px 8px; border-bottom: 1px solid #eee; font-size: 11px; }
     tr:nth-child(even) { background: #fafafa; }
     .footer { margin-top: 20px; font-size: 10px; color: #999; border-top: 1px solid #eee; padding-top: 8px; }
-  </style></head><body>
+  
+/* ── Global overflow prevention ─────────────────────────────── */
+/* All pages clip horizontal content */
+.page { overflow-x: hidden !important; max-width: 100%; }
+
+/* Modals never exceed viewport width */
+.modal { max-width: min(560px, calc(100vw - 32px)); box-sizing: border-box; }
+.modal-body { overflow-x: hidden; word-break: break-word; }
+
+/* Dispatch stats bar */
+#dispatch-stats { min-width: 0; overflow: hidden; }
+
+/* Dispatch filter bar doesn't overflow */
+.bl-filter-bar { overflow-x: hidden; min-width: 0; box-sizing: border-box; }
+
+/* Discount row wraps cleanly */
+.discount-wrap { flex-wrap: wrap; min-width: 0; }
+#discount-desc { min-width: 0 !important; flex-shrink: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#discount-slider { min-width: 60px; flex: 1; }
+
+/* Textareas always contained */
+textarea { max-width: 100%; box-sizing: border-box; overflow-wrap: break-word; }
+
+/* Borrower cards */
+.bl-card { overflow: hidden; min-width: 0; }
+.bl-card-inner { min-width: 0; overflow: hidden; }
+.bl-meta-row { min-width: 0; overflow: hidden; }
+.bl-phone { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
+
+/* Dispatch groups */
+.dispatch-group-hdr { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dispatch-contact-card { overflow: hidden; min-width: 0; }
+.dispatch-contact-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Modal footers wrap on small screens */
+.modal-footer { flex-wrap: wrap; }
+
+/* Navigation text truncation */
+.nav-item, .mdrawer-item { overflow: hidden; }
+
+/* Settings rows */
+.settings-row-label-main { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.settings-row-value { flex-shrink: 0; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Sidebar logo */
+.logo-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
+
+/* Page header */
+.page-header { min-width: 0; overflow: hidden; }
+.page-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.page-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+
+/* Prevent body horizontal scroll globally */
+html, body { overflow-x: hidden; max-width: 100vw; }
+
+</style></head><body>
   <h1>📊 SqueveTrack Portfolio Summary</h1>
   <div class="sub">Generated: ${today} · Agent: ${_activeAgent?.name||state.agentProfile?.name||"Agent"} · ${_activeAgent?.stage||"M2"} Collection</div>
   <div class="kpis">
@@ -12109,44 +12176,6 @@ function filterBorrowersByDow(dowIdx) {
 // Batch WhatsApp with name personalisation
 let _currentDispatchIds = [];
 
-function waqSendAndNext() {
-  const b = window._waqBorrowers && window._waqBorrowers[window._waqIdx];
-  if (!b) return;
-  const phone = b.phone.replace(/\s/g,'').replace('+','');
-  const firstName = b.name.split(' ')[0];
-  const useGenerous = window._waqGenerous === true;
-  // Use edited textarea message if available, otherwise auto-generate
-  const _edited = document.getElementById('waq-msg-edit');
-  const msg = (_edited && _edited.value.trim())
-    ? _edited.value.trim()
-    : (getDispatchCustomMsg && getDispatchCustomMsg(b)) || getSmsMessage(b, useGenerous).replace(b.name, firstName);
-  window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(msg), '_blank');
-  haptic('light');
-  window._waqIdx++;
-  if (window._waqIdx < window._waqBorrowers.length) {
-    setTimeout(function() {
-      const b2 = window._waqBorrowers[window._waqIdx];
-      if (!b2) { closeModal(); toast('✅ Queue complete!', 'success'); haptic('pay'); return; }
-      const phone2 = b2.phone.replace(/\s/g,'').replace('+','');
-      const firstName2 = b2.name.split(' ')[0];
-      const msg2 = getSmsMessage(b2, false).replace(b2.name, firstName2);
-      document.getElementById('modal-title').textContent = '💬 WhatsApp Queue — ' + (window._waqIdx+1) + ' of ' + window._waqBorrowers.length;
-      document.getElementById('modal-body').innerHTML =
-        '<div style="background:rgba(37,211,102,0.08);border:1px solid rgba(37,211,102,0.25);border-radius:8px;padding:10px 12px;margin-bottom:10px">'
-        + '<div style="font-weight:700;font-size:13px">' + b2.name + '</div>'
-        + '<div style="font-size:11px;color:var(--text3)">' + b2.phone + ' · Day ' + getOdAge(b2.startDate) + ' · ' + fmtC(getDueToday(b2)) + '</div></div>'
-        + '<div style="background:var(--surface2);border-radius:8px;padding:10px;font-size:12px;color:var(--text2);line-height:1.7;max-height:150px;overflow-y:auto">' + msg2.replace(/\n/g,'<br>') + '</div>'
-        + '<div style="font-size:10px;color:var(--text3);margin-top:6px;text-align:center">' + (window._waqIdx+1) + ' of ' + window._waqBorrowers.length + ' — personalised for ' + firstName2 + '</div>';
-      document.getElementById('modal-footer').innerHTML =
-        '<button class="btn btn-ghost" onclick="closeModal()">Stop Queue</button>'
-        + '<button class="eod-btn" style="font-size:12px;padding:7px 16px" onclick="waqSendAndNext()">Open WA & Next ▶</button>';
-    }, 200);
-  } else {
-    closeModal();
-    toast('✅ All ' + window._waqBorrowers.length + ' sent!', 'success');
-    haptic('pay');
-  }
-}
 
 function launchDispatchQueue() {
   if (!_currentDispatchIds.length) { toast('No contacts to queue', 'error'); return; }
@@ -12154,29 +12183,56 @@ function launchDispatchQueue() {
 }
 
 function waqRenderModal() {
-  const b=window._waqBorrowers[window._waqIdx];
-  if(!b){closeModal();toast('✅ Queue complete!','success');haptic('pay');return;}
-  const ug=window._waqGenerous===true;
-  const fn=b.name.split(' ')[0];
-  const msg=getSmsMessage(b,ug).replace(b.name,fn);
-  const tot=window._waqBorrowers.length, idx=window._waqIdx;
-  document.getElementById('modal-title').textContent='💬 WhatsApp Queue — '+(idx+1)+' of '+tot;
-  document.getElementById('modal-body').innerHTML=
+  const tot = window._waqBorrowers.length;
+  const idx = window._waqIdx;
+  if (idx >= tot) {
+    closeModal();
+    toast('✅ All ' + tot + ' messages sent!', 'success');
+    haptic('pay');
+    return;
+  }
+  const b  = window._waqBorrowers[idx];
+  const ug = window._waqGenerous === true;
+  const fn = b.name.split(' ')[0];
+  const msg = (getDispatchCustomMsg && getDispatchCustomMsg(b)) || getSmsMessage(b, ug).replace(b.name, fn);
+  const ph  = b.phone.replace(/\D/g,'');
+  const waLink = 'https://wa.me/' + ph + '?text=' + encodeURIComponent(msg);
+  const pct  = Math.round((idx / tot) * 100);
+
+  document.getElementById('modal-title').textContent = '💬 WA Queue — ' + (idx+1) + ' of ' + tot;
+  document.getElementById('modal-body').innerHTML =
+    // Toggle row
     '<div style="display:flex;gap:6px;margin-bottom:10px">'
-    +'<button onclick="window._waqGenerous=false;waqRenderModal()" style="flex:1;padding:7px;border-radius:8px;border:1.5px solid '+(ug?'var(--border)':'var(--gold)')+';background:'+(ug?'transparent':'rgba(232,160,32,0.1)')+';color:'+(ug?'var(--text3)':'var(--gold)')+';font-size:12px;font-weight:700;cursor:pointer">Full Balance</button>'
-    +'<button onclick="window._waqGenerous=true;waqRenderModal()" style="flex:1;padding:7px;border-radius:8px;border:1.5px solid '+(ug?'var(--green)':'var(--border)')+';background:'+(ug?'rgba(34,197,94,0.1)':'transparent')+';color:'+(ug?'var(--green)':'var(--text3)')+';font-size:12px;font-weight:700;cursor:pointer">Generous Offer</button>'
-    +'</div>'
-    +'<div style="background:rgba(37,211,102,0.08);border:1px solid rgba(37,211,102,0.25);border-radius:8px;padding:10px 12px;margin-bottom:10px">'
-    +'<div style="font-weight:700;font-size:13px">'+b.name+'</div>'
-    +'<div style="font-size:11px;color:var(--text3)">'+b.phone+' · Day '+getOdAge(b.startDate)+' · Due: '+fmtC(getDueToday(b))+(ug?' · Offer: '+fmtC(getGenerous(b)):'')+' </div></div>'
-    +'<div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">Message (editable):</div>'
-    +'<textarea id="waq-msg-edit" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px;font-size:12px;color:var(--text2);line-height:1.6;min-height:110px;max-height:180px;resize:vertical;font-family:var(--font-body);box-sizing:border-box">'+msg+'</textarea>'
-    +'<div style="font-size:10px;color:var(--text3);margin-top:4px;text-align:right">'+(idx+1)+' of '+tot+' · '+(ug?'Generous offer':'Full balance')+'</div>';
-  document.getElementById('modal-footer').innerHTML=
+    + '<button onclick="window._waqGenerous=false;waqRenderModal()" style="flex:1;padding:7px;border-radius:8px;border:1.5px solid '+(ug?'var(--border)':'var(--gold)')+';background:'+(ug?'transparent':'rgba(232,160,32,0.1)')+';color:'+(ug?'var(--text3)':'var(--gold)')+';font-size:12px;font-weight:700;cursor:pointer">Full Balance</button>'
+    + '<button onclick="window._waqGenerous=true;waqRenderModal()" style="flex:1;padding:7px;border-radius:8px;border:1.5px solid '+(ug?'var(--green)':'var(--border)')+';background:'+(ug?'rgba(34,197,94,0.1)':'transparent')+';color:'+(ug?'var(--green)':'var(--text3)')+';font-size:12px;font-weight:700;cursor:pointer">Generous Offer</button>'
+    + '</div>'
+    // Contact card
+    + '<div style="background:rgba(37,211,102,0.08);border:1px solid rgba(37,211,102,0.25);border-radius:8px;padding:10px 12px;margin-bottom:10px">'
+    + '<div style="font-weight:700;font-size:14px">' + escapeHtml(b.name) + '</div>'
+    + '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + b.phone + ' · Day ' + getOdAge(b.startDate) + ' · Due: ' + fmtC(getDueToday(b)) + (ug?' · Offer: '+fmtC(getGenerous(b)):'') + '</div>'
+    + '</div>'
+    // Editable message
+    + '<textarea id="waq-msg-edit" style="width:100%;max-width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px;font-size:12px;color:var(--text2);line-height:1.6;min-height:100px;max-height:160px;resize:vertical;font-family:var(--font-body);box-sizing:border-box;overflow-wrap:break-word">' + msg + '</textarea>'
+    // Progress bar
+    + '<div style="margin-top:10px;background:var(--surface2);border-radius:4px;height:4px;overflow:hidden">'
+    + '<div style="height:100%;background:#25d366;width:' + pct + '%;transition:width 0.3s"></div>'
+    + '</div>'
+    + '<div style="font-size:10px;color:var(--text3);margin-top:4px;text-align:center">' + idx + ' of ' + tot + ' sent · ' + (ug?'Generous offer':'Full balance') + '</div>';
+
+  document.getElementById('modal-footer').innerHTML =
     '<button class="btn btn-ghost" onclick="closeModal()">Stop</button>'
-    +'<button class="eod-btn" style="font-size:12px;padding:7px 16px" onclick="waqSendAndNext()">Open WA & Next ▶</button>';
+    + '<button class="btn btn-ghost btn-sm" onclick="window._waqIdx++;waqRenderModal()">Skip →</button>'
+    + '<a href="' + waLink + '" target="_blank" class="btn btn-sm" style="background:#25d366;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:6px" onclick="setTimeout(function(){window._waqIdx++;waqRenderModal();},400)">💬 Open WA & Next ▶</a>';
 }
 
+function startWaQueuePersonalised(ids) {
+  if(!ids||!ids.length){toast('No contacts to queue','error');return;}
+  const borrowers=ids.map(id=>state.borrowers.find(b=>b.id===id)).filter(Boolean);
+  window._waqBorrowers=borrowers; window._waqIdx=0; window._waqGenerous=false;
+  document.getElementById('modal-overlay').classList.add('open');
+  haptic('light');
+  waqRenderModal();
+}
 function startWaQueuePersonalised(ids) {
   if(!ids||!ids.length){toast('No contacts to queue','error');return;}
   const borrowers=ids.map(id=>state.borrowers.find(b=>b.id===id)).filter(Boolean);
