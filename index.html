@@ -2659,33 +2659,58 @@ tr.overdue-critical .heat-ring {
           <div class="settings-row-label-main">Appearance</div>
           <div class="settings-row-label-sub" id="theme-sub-lbl">Dark, light, or AMOLED</div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-top:2px">
-          <!-- Row 1: Original themes -->
-          <button id="theme-btn-dark" onclick="settingsSetTheme('dark')"
-            style="padding:8px 4px;border:1.5px solid var(--border2);border-radius:8px;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font-body);transition:all 0.15s;background:var(--surface2);color:var(--text2);display:flex;flex-direction:column;align-items:center;gap:3px">
-            <span style="font-size:15px">🌑</span>Dark
+        <!-- Theme Dropdown -->
+        <div id="theme-dropdown-wrap" style="position:relative;flex-shrink:0">
+          <button id="theme-dropdown-btn" onclick="themeDropdownToggle()"
+            style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1.5px solid var(--border2);border-radius:10px;background:var(--surface2);color:var(--text);font-size:12px;font-weight:600;font-family:var(--font-body);cursor:pointer;transition:all 0.18s;min-width:130px;justify-content:space-between">
+            <span id="theme-dropdown-label" style="display:flex;align-items:center;gap:7px">
+              <span id="theme-dropdown-swatch" style="width:14px;height:14px;border-radius:50%;display:inline-block;flex-shrink:0"></span>
+              <span id="theme-dropdown-name">Dark</span>
+            </span>
+            <svg id="theme-dropdown-chevron" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;transition:transform 0.2s;flex-shrink:0"><polyline points="5,7 10,13 15,7"/></svg>
           </button>
-          <button id="theme-btn-light" onclick="settingsSetTheme('light')"
-            style="padding:8px 4px;border:1.5px solid var(--border2);border-radius:8px;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font-body);transition:all 0.15s;background:var(--surface2);color:var(--text2);display:flex;flex-direction:column;align-items:center;gap:3px">
-            <span style="font-size:15px">☀️</span>Light
-          </button>
-          <button id="theme-btn-amoled" onclick="settingsSetTheme('amoled')"
-            style="padding:8px 4px;border:1.5px solid var(--border2);border-radius:8px;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font-body);transition:all 0.15s;background:var(--surface2);color:var(--text2);display:flex;flex-direction:column;align-items:center;gap:3px">
-            <span style="font-size:15px">⚫</span>AMOLED
-          </button>
-          <!-- Row 2: New premium themes -->
-          <button id="theme-btn-navy" onclick="settingsSetTheme('navy')"
-            style="padding:8px 4px;border:1.5px solid #2a4268;border-radius:8px;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font-body);transition:all 0.15s;background:linear-gradient(135deg,#1a2d47,#0d1b2e);color:#f59e0b;display:flex;flex-direction:column;align-items:center;gap:3px">
-            <span style="font-size:15px">🌊</span>Navy
-          </button>
-          <button id="theme-btn-indigo" onclick="settingsSetTheme('indigo')"
-            style="padding:8px 4px;border:1.5px solid #4a3aa0;border-radius:8px;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font-body);transition:all 0.15s;background:linear-gradient(135deg,#2d2272,#1a1440);color:#f5c842;display:flex;flex-direction:column;align-items:center;gap:3px">
-            <span style="font-size:15px">💜</span>Indigo
-          </button>
-          <button id="theme-btn-glacier" onclick="settingsSetTheme('glacier')"
-            style="padding:8px 4px;border:1.5px solid rgba(56,189,248,0.3);border-radius:8px;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font-body);transition:all 0.15s;background:linear-gradient(135deg,rgba(56,189,248,0.15),rgba(14,32,64,0.9));color:#38bdf8;display:flex;flex-direction:column;align-items:center;gap:3px">
-            <span style="font-size:15px">🧊</span>Glacier
-          </button>
+          <div id="theme-dropdown-menu" style="display:none;position:absolute;right:0;top:calc(100% + 6px);min-width:200px;background:var(--surface);border:1.5px solid var(--border2);border-radius:12px;overflow:hidden;z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,0.45);padding:5px">
+            <!-- Standard -->
+            <div style="padding:4px 10px 3px;font-size:9px;font-weight:700;letter-spacing:0.08em;color:var(--text3);text-transform:uppercase">Standard</div>
+            <button class="theme-opt-btn" id="theme-btn-dark" onclick="settingsSetTheme('dark');themeDropdownToggle()"
+              style="width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:none;background:transparent;cursor:pointer;border-radius:8px;font-family:var(--font-body);transition:background 0.12s">
+              <span style="width:22px;height:22px;border-radius:6px;background:#1a1a2e;border:1.5px solid #333;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px">🌑</span>
+              <span style="flex:1;text-align:left"><span style="display:block;font-size:12px;font-weight:600;color:var(--text)">Dark</span><span style="display:block;font-size:10px;color:var(--text3)">Default dark mode</span></span>
+              <svg id="theme-check-dark" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px;color:var(--gold);flex-shrink:0;display:none"><polyline points="2,9 6,13 14,3"/></svg>
+            </button>
+            <button class="theme-opt-btn" id="theme-btn-light" onclick="settingsSetTheme('light');themeDropdownToggle()"
+              style="width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:none;background:transparent;cursor:pointer;border-radius:8px;font-family:var(--font-body);transition:background 0.12s">
+              <span style="width:22px;height:22px;border-radius:6px;background:#f5f5f0;border:1.5px solid #ddd;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px">☀️</span>
+              <span style="flex:1;text-align:left"><span style="display:block;font-size:12px;font-weight:600;color:var(--text)">Light</span><span style="display:block;font-size:10px;color:var(--text3)">Clean light mode</span></span>
+              <svg id="theme-check-light" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px;color:var(--gold);flex-shrink:0;display:none"><polyline points="2,9 6,13 14,3"/></svg>
+            </button>
+            <button class="theme-opt-btn" id="theme-btn-amoled" onclick="settingsSetTheme('amoled');themeDropdownToggle()"
+              style="width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:none;background:transparent;cursor:pointer;border-radius:8px;font-family:var(--font-body);transition:background 0.12s">
+              <span style="width:22px;height:22px;border-radius:6px;background:#000;border:1.5px solid #222;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px">⚫</span>
+              <span style="flex:1;text-align:left"><span style="display:block;font-size:12px;font-weight:600;color:var(--text)">AMOLED</span><span style="display:block;font-size:10px;color:var(--text3)">Pure black for OLED screens</span></span>
+              <svg id="theme-check-amoled" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px;color:var(--gold);flex-shrink:0;display:none"><polyline points="2,9 6,13 14,3"/></svg>
+            </button>
+            <!-- Premium -->
+            <div style="padding:8px 10px 3px;font-size:9px;font-weight:700;letter-spacing:0.08em;color:var(--text3);text-transform:uppercase;margin-top:2px;border-top:1px solid var(--border)">Premium</div>
+            <button class="theme-opt-btn" id="theme-btn-navy" onclick="settingsSetTheme('navy');themeDropdownToggle()"
+              style="width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:none;background:transparent;cursor:pointer;border-radius:8px;font-family:var(--font-body);transition:background 0.12s">
+              <span style="width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#1a2d47,#0d1b2e);border:1.5px solid #2a4268;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px">🌊</span>
+              <span style="flex:1;text-align:left"><span style="display:block;font-size:12px;font-weight:600;color:var(--text)">Navy</span><span style="display:block;font-size:10px;color:var(--text3)">Deep blue + amber accents</span></span>
+              <svg id="theme-check-navy" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px;color:var(--gold);flex-shrink:0;display:none"><polyline points="2,9 6,13 14,3"/></svg>
+            </button>
+            <button class="theme-opt-btn" id="theme-btn-indigo" onclick="settingsSetTheme('indigo');themeDropdownToggle()"
+              style="width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:none;background:transparent;cursor:pointer;border-radius:8px;font-family:var(--font-body);transition:background 0.12s">
+              <span style="width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#2d2272,#1a1440);border:1.5px solid #4a3aa0;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px">💜</span>
+              <span style="flex:1;text-align:left"><span style="display:block;font-size:12px;font-weight:600;color:var(--text)">Indigo</span><span style="display:block;font-size:10px;color:var(--text3)">Rich purple + gold accents</span></span>
+              <svg id="theme-check-indigo" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px;color:var(--gold);flex-shrink:0;display:none"><polyline points="2,9 6,13 14,3"/></svg>
+            </button>
+            <button class="theme-opt-btn" id="theme-btn-glacier" onclick="settingsSetTheme('glacier');themeDropdownToggle()"
+              style="width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:none;background:transparent;cursor:pointer;border-radius:8px;font-family:var(--font-body);transition:background 0.12s">
+              <span style="width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,rgba(56,189,248,0.25),rgba(14,32,64,0.95));border:1.5px solid rgba(56,189,248,0.4);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px">🧊</span>
+              <span style="flex:1;text-align:left"><span style="display:block;font-size:12px;font-weight:600;color:var(--text)">Glacier</span><span style="display:block;font-size:10px;color:var(--text3)">Frosted glass blue</span></span>
+              <svg id="theme-check-glacier" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px;color:var(--gold);flex-shrink:0;display:none"><polyline points="2,9 6,13 14,3"/></svg>
+            </button>
+          </div>
         </div>
       </div>
       <!-- Haptic -->
@@ -9638,15 +9663,8 @@ function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   document.body.setAttribute('data-theme', theme);
   localStorage.setItem('m2_theme', theme);
-  // Update settings sub-label
-  const themeSub = document.querySelector('[id="theme-btn-dark"]')?.closest('.settings-row')?.querySelector('.settings-row-label-sub');
-  const themeLabels = {
-    dark:'Dark mode', light:'Light mode', amoled:'AMOLED black — best for OLED screens',
-    navy:'Navy — deep blue + amber', indigo:'Indigo — rich purple + gold', glacier:'Glacier — frosted glass blue'
-  };
-  if (themeSub) themeSub.textContent = themeLabels[theme] || 'Custom theme';
-  const isDark = (theme === 'dark' || theme === 'amoled');
-
+  // Update dropdown UI for all 6 themes
+  if (typeof _updateThemeDropdownUI === 'function') _updateThemeDropdownUI(theme);
   // Redraw current page so charts and dynamic elements pick up new colors
   if (state) {
     setTimeout(function() { renderCurrentPage(); }, 50);
@@ -13980,16 +13998,9 @@ function renderSettingsPage() {
   const ptpCountEl = document.getElementById('settings-ptp-hist-count');
   if (ptpCountEl) ptpCountEl.textContent = (state.ptpHistory?.length || 0) + ' days recorded';
 
-  // Theme buttons
+  // Theme dropdown — sync active state for all themes
   const savedThemeNow = localStorage.getItem('m2_theme') || 'dark';
-  const darkBtn   = document.getElementById('theme-btn-dark');
-  const lightBtn  = document.getElementById('theme-btn-light');
-  const amoledBtn = document.getElementById('theme-btn-amoled');
-  const on  = 'var(--gold)'; const onC  = '#000';
-  const off = 'transparent'; const offC = 'var(--text3)';
-  if (darkBtn)   { darkBtn.style.background   = savedThemeNow==='dark'   ? on : off; darkBtn.style.color   = savedThemeNow==='dark'   ? onC : offC; }
-  if (lightBtn)  { lightBtn.style.background  = savedThemeNow==='light'  ? on : off; lightBtn.style.color  = savedThemeNow==='light'  ? onC : offC; }
-  if (amoledBtn) { amoledBtn.style.background = savedThemeNow==='amoled' ? on : off; amoledBtn.style.color = savedThemeNow==='amoled' ? onC : offC; }
+  if (typeof _updateThemeDropdownUI === 'function') _updateThemeDropdownUI(savedThemeNow);
 
   // Haptic toggle
   const hapticCheck  = document.getElementById('haptic-toggle');
@@ -14315,15 +14326,68 @@ function settingsClearPtpHistory() {
   document.getElementById('modal-overlay').classList.add('open');
 }
 
+// Theme meta: swatch color and display name for the dropdown trigger button
+const _THEME_META = {
+  dark:    { name:'Dark',    swatch:'#1a1a2e' },
+  light:   { name:'Light',   swatch:'#f0ede6' },
+  amoled:  { name:'AMOLED',  swatch:'#000000' },
+  navy:    { name:'Navy',    swatch:'#1a2d47' },
+  indigo:  { name:'Indigo',  swatch:'#2d2272' },
+  glacier: { name:'Glacier', swatch:'#1a3a5e' }
+};
+
+function themeDropdownToggle() {
+  const menu = document.getElementById('theme-dropdown-menu');
+  const chevron = document.getElementById('theme-dropdown-chevron');
+  if (!menu) return;
+  const isOpen = menu.style.display !== 'none';
+  menu.style.display = isOpen ? 'none' : 'block';
+  if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+  if (!isOpen) {
+    setTimeout(() => {
+      function outsideClick(e) {
+        const wrap = document.getElementById('theme-dropdown-wrap');
+        if (wrap && !wrap.contains(e.target)) {
+          menu.style.display = 'none';
+          if (chevron) chevron.style.transform = '';
+          document.removeEventListener('click', outsideClick);
+        }
+      }
+      document.addEventListener('click', outsideClick);
+    }, 10);
+  }
+}
+
+function _updateThemeDropdownUI(theme) {
+  const meta = _THEME_META[theme] || { name: theme, swatch: '#888' };
+  const nameEl   = document.getElementById('theme-dropdown-name');
+  const swatchEl = document.getElementById('theme-dropdown-swatch');
+  const subLbl   = document.getElementById('theme-sub-lbl');
+  if (nameEl)   nameEl.textContent = meta.name;
+  if (swatchEl) { swatchEl.style.background = meta.swatch; swatchEl.style.border = '1.5px solid rgba(255,255,255,0.2)'; swatchEl.style.borderRadius = '50%'; }
+  const themeLabels = {
+    dark:'Dark mode', light:'Light mode', amoled:'AMOLED black — best for OLED screens',
+    navy:'Navy — deep blue + amber', indigo:'Indigo — rich purple + gold', glacier:'Glacier — frosted glass blue'
+  };
+  if (subLbl) subLbl.textContent = themeLabels[theme] || 'Custom theme';
+  ['dark','light','amoled','navy','indigo','glacier'].forEach(t => {
+    const chk = document.getElementById('theme-check-' + t);
+    const btn = document.getElementById('theme-btn-' + t);
+    if (chk) chk.style.display = (t === theme) ? 'block' : 'none';
+    if (btn) btn.style.background = (t === theme) ? 'rgba(255,255,255,0.06)' : 'transparent';
+  });
+  if (!document._themeOptHover) {
+    document._themeOptHover = true;
+    const s = document.createElement('style');
+    s.textContent = '.theme-opt-btn:hover { background: var(--surface2) !important; }';
+    document.head.appendChild(s);
+  }
+}
+
 function settingsSetTheme(theme) {
   applyTheme(theme);
   localStorage.setItem('m2_theme', theme);
-  const activeStyle   = 'background:var(--gold);color:#000;';
-  const inactiveStyle = 'background:transparent;color:var(--text3);';
-  ['dark','light','amoled','navy','indigo','glacier'].forEach(t => {
-    const b = document.getElementById('theme-btn-' + t);
-    if (b) b.style.cssText += (t === theme) ? activeStyle : inactiveStyle;
-  });
+  _updateThemeDropdownUI(theme);
   haptic('light');
 }
 
