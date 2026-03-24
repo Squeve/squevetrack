@@ -2649,7 +2649,7 @@ tr.overdue-critical .heat-ring {
 
     <!-- Preferences -->
     <p class="settings-section-label">Preferences</p>
-    <div class="settings-group">
+    <div class="settings-group" style="overflow:visible">
       <!-- Theme -->
       <div class="settings-row" style="cursor:default">
         <div class="settings-row-icon" style="background:rgba(160,120,240,0.15);color:#a78bfa">
@@ -2669,7 +2669,7 @@ tr.overdue-critical .heat-ring {
             </span>
             <svg id="theme-dropdown-chevron" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;transition:transform 0.2s;flex-shrink:0"><polyline points="5,7 10,13 15,7"/></svg>
           </button>
-          <div id="theme-dropdown-menu" style="display:none;position:absolute;right:0;top:calc(100% + 6px);min-width:200px;background:var(--surface);border:1.5px solid var(--border2);border-radius:12px;overflow:hidden;z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,0.45);padding:5px">
+          <div id="theme-dropdown-menu" style="display:none;position:absolute;right:0;top:calc(100% + 6px);min-width:200px;background:var(--surface);border:1.5px solid var(--border2);border-radius:12px;overflow-y:auto;max-height:320px;z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,0.45);padding:5px">
             <!-- Standard -->
             <div style="padding:4px 10px 3px;font-size:9px;font-weight:700;letter-spacing:0.08em;color:var(--text3);text-transform:uppercase">Standard</div>
             <button class="theme-opt-btn" id="theme-btn-dark" onclick="settingsSetTheme('dark');themeDropdownToggle()"
