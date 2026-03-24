@@ -60,14 +60,21 @@
   position: absolute; right: 0; top: 0; bottom: 0;
   display: flex; align-items: stretch;
   transform: translateX(100%);
-  transition: transform 0.18s cubic-bezier(0.25,0.46,0.45,0.94);
-  z-index: 5;
+  transition: transform 0.2s cubic-bezier(0.4,0,0.2,1);
+  z-index: 10;
+  border-radius: 0 10px 10px 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.swipe-actions-overlay.revealed {
+  pointer-events: all;
 }
 .swipe-actions-overlay.revealed { transform: translateX(0); }
 .swipe-actions-overlay .sa-btn {
-  display:flex; align-items:center; justify-content:center;
-  padding: 0 14px; font-size: 12px; font-weight: 700;
-  border: none; cursor: pointer; color: #fff; min-width: 50px;
+  display:flex; align-items:center; justify-content:center; flex-direction:column;
+  padding: 0 12px; font-size: 16px;
+  border: none; cursor: pointer; color: #fff; min-width: 54px; gap: 2px;
+  font-family: var(--font-body);
 }
 tr.row-swiped td:first-child div, tr.row-swiped td { transition: background 0.15s; }
 
@@ -458,6 +465,7 @@ html[data-theme="light"], html[data-theme="light"] body { color-scheme: light; }
   background: #fff !important;
   box-shadow: 0 1px 4px rgba(0,0,0,0.07) !important;
   border-color: var(--border) !important;
+  overflow: hidden;
 }
 [data-theme="light"] .bl-card:hover {
   box-shadow: 0 4px 16px rgba(0,0,0,0.1) !important;
@@ -2962,12 +2970,7 @@ tr.overdue-critical .heat-ring {
   </div>
   <div id="mdrawer-nav-list" style="display:flex;flex-direction:column;flex:1;min-height:0">
   <div class="mdrawer-month" id="mdrawer-month">📅 —</div>
-  <div style="padding:6px 14px 8px">
-    <div style="position:relative">
-      <input class="search-input" id="drawer-search-input" placeholder="🔍 Search borrowers..." oninput="debouncedGlobalSearch('drawer')" style="width:100%;font-size:12px;box-sizing:border-box">
-      <button onclick="clearSearch('drawer-search-input',renderGlobalSearch)" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:0">✕</button>
-    </div>
-  </div>
+
   <div class="mdrawer-item active" data-page="dashboard" onclick="navigateDrawer('dashboard')">
     <span class="mdrawer-icon" style="display:flex;align-items:center;justify-content:center"><svg style="width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="7" height="7" rx="1.5"/><rect x="11" y="2" width="7" height="7" rx="1.5"/><rect x="2" y="11" width="7" height="7" rx="1.5"/><rect x="11" y="11" width="7" height="7" rx="1.5"/></svg></span> Dashboard
   </div>
@@ -8467,7 +8470,7 @@ function renderPtp() {
 
 // ── GLOBAL SEARCH ──────────────────────────────────────
 function renderGlobalSearch() {
-  var q = ((document.getElementById('global-search-input')?.value || document.getElementById('drawer-search-input')?.value || '')).toLowerCase().trim();
+  var q = (document.getElementById('global-search-input')?.value || '').toLowerCase().trim();
   var res = document.getElementById('global-search-results');
   if (!res) return;
   if (!q) { res.style.display = 'none'; return; }
@@ -9594,17 +9597,7 @@ function debouncedRenderLoans() {
 }
 
 var _globalSearchTimer = null;
-function debouncedGlobalSearch(source) {
-  // Sync drawer and sidebar search inputs
-  if (source === 'drawer') {
-    var dv = document.getElementById('drawer-search-input')?.value || '';
-    var si = document.getElementById('global-search-input');
-    if (si && si.value !== dv) si.value = dv;
-  } else {
-    var sv = document.getElementById('global-search-input')?.value || '';
-    var di = document.getElementById('drawer-search-input');
-    if (di && di.value !== sv) di.value = sv;
-  }
+function debouncedGlobalSearch() {
   clearTimeout(_globalSearchTimer);
   _globalSearchTimer = setTimeout(renderGlobalSearch, 120);
 }
@@ -10862,12 +10855,38 @@ function renderPtpHub() {
   else if (_ptpTab === 'eod')     container.innerHTML = buildPtpEodHtml();
   else if (_ptpTab === 'history') container.innerHTML = buildPtpHistoryHtml2();
   else if (_ptpTab === 'stats')   container.innerHTML = buildPtpStatsHtml2();
-  // Wire EOD outcome buttons via delegation
+  // Wire all interactive buttons via event delegation on container
   container.onclick = function(e) {
-    const btn = e.target.closest('.ptp-oc-btn');
-    if (!btn) return;
-    const bid = btn.dataset.bid, outcome = btn.dataset.outcome;
-    if (bid && outcome) { haptic('medium'); setPtpOutcome2(bid, outcome); }
+    // EOD outcome buttons
+    const ocBtn = e.target.closest('.ptp-oc-btn');
+    if (ocBtn) {
+      const bid = ocBtn.dataset.bid, outcome = ocBtn.dataset.outcome;
+      if (bid && outcome) { haptic('medium'); setPtpOutcome2(bid, outcome); }
+      return;
+    }
+    // Pay buttons (data-payid)
+    const payBtn = e.target.closest('[data-payid]');
+    if (payBtn) {
+      e.stopPropagation();
+      haptic('medium');
+      openPayModal(payBtn.dataset.payid);
+      return;
+    }
+    // Detail buttons (data-detailbtn)
+    const detBtn = e.target.closest('[data-detailbtn]');
+    if (detBtn) {
+      e.stopPropagation();
+      haptic('light');
+      openBorrowerDetail(detBtn.dataset.detailbtn);
+      return;
+    }
+    // Row click (data-detailid)
+    const detRow = e.target.closest('[data-detailid]');
+    if (detRow && !e.target.closest('button') && !e.target.closest('a')) {
+      haptic('light');
+      openBorrowerDetail(detRow.dataset.detailid);
+      return;
+    }
   };
   setTimeout(() => {
     container.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
@@ -12037,75 +12056,87 @@ html, body { overflow-x: hidden; max-width: 100vw; }
 // ── Row Swipe Actions ────────────────────────────────────────
 function initRowSwipe() {
   const tbody = document.getElementById('loans-tbody');
-  if (!tbody) return;
-  let touchStartX = 0, touchStartY = 0, activeSwipeRow = null;
+  if (!tbody || tbody._swipeInited) return;
+  tbody._swipeInited = true;
+  let touchStartX = 0, touchStartY = 0, touchStartScrollY = 0, activeSwipeCard = null;
+
   tbody.addEventListener('touchstart', function(e) {
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
+    touchStartScrollY = window.scrollY;
   }, { passive: true });
+
   tbody.addEventListener('touchmove', function(e) {
     const dx = e.touches[0].clientX - touchStartX;
     const dy = Math.abs(e.touches[0].clientY - touchStartY);
-    if (Math.abs(dx) < 10 || dy > Math.abs(dx)) return;
-    const tr = e.target.closest('tr');
-    if (!tr || !tr.dataset.bid) return;
-    if (activeSwipeRow && activeSwipeRow !== tr) hideRowSwipe(activeSwipeRow);
+    // Ignore vertical scrolls and tiny movements
+    if (Math.abs(dx) < 12 || dy > Math.abs(dx) * 0.8) return;
+    // Find the closest bl-card with a data-bid
+    const card = e.target.closest('.bl-card[data-bid]');
+    if (!card) return;
+    // Hide previously swiped card if different
+    if (activeSwipeCard && activeSwipeCard !== card) {
+      hideRowSwipe(activeSwipeCard);
+    }
     if (dx < -40) {
-      showRowSwipe(tr);
-      activeSwipeRow = tr;
+      showRowSwipe(card);
+      activeSwipeCard = card;
     } else if (dx > 20) {
-      hideRowSwipe(tr);
+      hideRowSwipe(card);
+      if (activeSwipeCard === card) activeSwipeCard = null;
     }
   }, { passive: true });
+
   tbody.addEventListener('touchend', function() {}, { passive: true });
+
   // Handle swipe button clicks via delegation
   tbody.addEventListener('click', function(e) {
     const btn = e.target.closest('[data-swipe-action]');
     if (!btn) return;
     e.stopPropagation();
     const action = btn.dataset.swipeAction;
-    const bid = btn.dataset.bid;
-    const b = bid ? state.borrowers.find(x => x.id === bid) : null;
+    const bid    = btn.dataset.bid;
+    const b      = bid ? state.borrowers.find(x => x.id === bid) : null;
     if (!b) return;
-    const phone = b.phone.replace(/\s/g,'').replace('+','');
-    if (action === 'wa') { haptic('light'); window.open('https://wa.me/' + phone, '_blank'); }
-    else if (action === 'call') { haptic('light'); window.location.href = 'tel:' + b.phone; }
-    else if (action === 'pay') { haptic('medium'); toggleQuickPayBar(bid); }
-    else if (action === 'ptp') { haptic('medium'); togglePromise(bid); }
+    const phone = b.phone.replace(/\D/g,'');
+    if      (action === 'wa')   { haptic('light');  window.open('https://wa.me/' + phone, '_blank'); }
+    else if (action === 'call') { haptic('light');  window.location.href = 'tel:' + b.phone; }
+    else if (action === 'pay')  { haptic('medium'); toggleQuickPayBar(bid); }
+    else if (action === 'ptp')  { haptic('medium'); togglePromise(bid); }
     // Close swipe after action
-    const tr = btn.closest('tr');
-    if (tr) hideRowSwipe(tr);
+    const card = btn.closest('.bl-card');
+    if (card) { hideRowSwipe(card); activeSwipeCard = null; }
   });
-  // Tap outside closes any open swipe
+
+  // Tap anywhere outside loans-tbody closes open swipe
   document.addEventListener('touchstart', function(e) {
-    if (activeSwipeRow && !e.target.closest('#loans-tbody')) {
-      hideRowSwipe(activeSwipeRow);
-      activeSwipeRow = null;
+    if (activeSwipeCard && !e.target.closest('#loans-tbody')) {
+      hideRowSwipe(activeSwipeCard);
+      activeSwipeCard = null;
     }
   }, { passive: true });
 }
 
 function showRowSwipe(tr) {
+  // Works with div.bl-card elements (not table rows)
   const id = tr.dataset.bid;
   if (!id) return;
   const b = state.borrowers.find(x => x.id === id);
   if (!b) return;
   let overlay = tr.querySelector('.swipe-actions-overlay');
   if (!overlay) {
-    const lastTd = tr.querySelector('td:last-child');
-    if (!lastTd) return;
-    lastTd.style.position = 'relative';
+    // Ensure the card has position:relative for the overlay to anchor to
+    if (getComputedStyle(tr).position === 'static') tr.style.position = 'relative';
     overlay = document.createElement('div');
     overlay.className = 'swipe-actions-overlay';
-    const phone = b.phone.replace(/\s/g,'').replace('+','');
     overlay.innerHTML =
-      '<button class="sa-btn" style="background:#25d366" data-swipe-action="wa" data-bid="'+id+'">💬</button>'
-      +'<button class="sa-btn" style="background:var(--blue)" data-swipe-action="call" data-bid="'+id+'">📞</button>'
-      +'<button class="sa-btn" style="background:var(--green)" data-swipe-action="pay" data-bid="'+id+'">💰</button>'
-      +'<button class="sa-btn" style="background:var(--purple)" data-swipe-action="ptp" data-bid="'+id+'">🤝</button>';
-    lastTd.appendChild(overlay);
+      '<button class="sa-btn" style="background:#25d366" data-swipe-action="wa" data-bid="'+id+'">💬 WA</button>'
+      +'<button class="sa-btn" style="background:var(--blue)" data-swipe-action="call" data-bid="'+id+'">📞 Call</button>'
+      +'<button class="sa-btn" style="background:var(--green)" data-swipe-action="pay" data-bid="'+id+'">💰 Pay</button>'
+      +'<button class="sa-btn" style="background:var(--purple)" data-swipe-action="ptp" data-bid="'+id+'">🤝 PTP</button>';
+    tr.appendChild(overlay);
   }
-  setTimeout(() => overlay.classList.add('revealed'), 10);
+  setTimeout(function() { overlay.classList.add('revealed'); }, 10);
   haptic('light');
 }
 function hideRowSwipe(tr) {
