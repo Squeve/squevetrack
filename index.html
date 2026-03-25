@@ -11857,6 +11857,262 @@ function renderPtpHub() {
   }, 10);
 }
 
+
+// ══════════════════════════════════════════════════════════════
+// PTP REMINDER SYSTEM
+// ══════════════════════════════════════════════════════════════
+
+function _ptpFormatDate(dateStr) {
+  // dateStr = "YYYY-MM-DD" or "YYYY-MM-DD HH:MM"
+  if (!dateStr) return 'today';
+  var parts = dateStr.split(' ');
+  var datePart = parts[0];
+  var timePart = parts[1] || '';
+  try {
+    var d = new Date(datePart + 'T00:00:00');
+    var dateFormatted = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    if (timePart) {
+      var hm = timePart.split(':');
+      var h = parseInt(hm[0]);
+      var m = hm[1] || '00';
+      var ampm = h >= 12 ? 'PM' : 'AM';
+      var h12 = h % 12 || 12;
+      return dateFormatted + ' at ' + h12 + ':' + m + ' ' + ampm;
+    }
+    return dateFormatted;
+  } catch(e) { return dateStr; }
+}
+
+function _ptpBuildMessage(b, tone) {
+  var name = b.name.split(' ')[0];
+  var fullName = b.name;
+  var amount = fmtC(getDueToday(b));
+  var dateTimeStr = _ptpFormatDate(b.promiseDate);
+  var agentName = getAgentProfileName();
+  var note = b.promiseNote ? '\n\nNote: ' + b.promiseNote : '';
+
+  if (tone === 'friendly') {
+    return 'Hello ' + name + ' \uD83D\uDC4B\n\n'
+      + 'This is a friendly reminder that you made a promise to pay *' + amount + '* on *' + dateTimeStr + '*.' + note + '\n\n'
+      + 'We look forward to your payment. Please reach out if you need to make any arrangements.\n\n'
+      + 'Thank you\n' + agentName;
+  }
+  if (tone === 'dayon') {
+    return 'Good morning ' + name + ' \u2600\uFE0F\n\n'
+      + 'Today is the day! You promised to pay *' + amount + '* today (' + dateTimeStr + ').' + note + '\n\n'
+      + 'Please ensure payment is made today to keep your account in good standing.\n\n'
+      + 'Thank you\n' + agentName;
+  }
+  if (tone === 'missed') {
+    return 'Hello ' + name + ',\n\n'
+      + 'We notice that the promised payment of *' + amount + '* due on *' + dateTimeStr + '* has not yet been received.' + note + '\n\n'
+      + 'Please make your payment as soon as possible or contact us to reschedule.\n\n'
+      + 'Thank you\n' + agentName;
+  }
+  if (tone === 'sms') {
+    return name + ', reminder: You promised to pay ' + amount + ' on ' + dateTimeStr + '. Please ensure payment is made. - ' + agentName;
+  }
+  return '';
+}
+
+function ptpShowRemindMenu(borrowerId) {
+  var b = state.borrowers.find(function(x) { return x.id === borrowerId; });
+  if (!b) return;
+
+  var name = b.name.split(' ')[0];
+  var amount = fmtC(getDueToday(b));
+  var dateTimeStr = _ptpFormatDate(b.promiseDate);
+  var phone = (b.phone || '').replace(/\s/g, '').replace('+', '');
+  var phone254 = phone.startsWith('0') ? '254' + phone.slice(1) : phone;
+
+  var today = new Date().toISOString().split('T')[0];
+  var promDate = (b.promiseDate || '').split(' ')[0];
+  var defaultTone = promDate < today ? 'missed' : promDate === today ? 'dayon' : 'friendly';
+
+  document.getElementById('modal-title').textContent = '\uD83D\uDCE9 Send PTP Reminder';
+  document.getElementById('modal-body').innerHTML =
+    '<div style="background:var(--surface2);border-radius:10px;padding:12px 14px;margin-bottom:16px">'
+    + '<div style="font-weight:700;font-size:14px;margin-bottom:3px">' + b.name + '</div>'
+    + '<div style="font-size:11px;color:var(--text3)">' + amount + ' due · ' + dateTimeStr + '</div>'
+    + '</div>'
+
+    + '<div style="margin-bottom:14px">'
+    + '<label style="font-size:11px;font-weight:700;color:var(--text2);display:block;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">Message Tone</label>'
+    + '<div style="display:flex;flex-direction:column;gap:6px">'
+    + _ptpToneBtn('friendly', '\uD83D\uDE0A Friendly Reminder', 'Day before — warm and encouraging', defaultTone)
+    + _ptpToneBtn('dayon',    '\u2600\uFE0F Day-Of Confirmation',   'Morning of PTP date — direct and clear', defaultTone)
+    + _ptpToneBtn('missed',   '\u26A0\uFE0F Missed Promise',       'Payment not received — firm but polite', defaultTone)
+    + '</div>'
+    + '</div>'
+
+    + '<div style="margin-bottom:14px">'
+    + '<label style="font-size:11px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">Message Preview</label>'
+    + '<div id="ptp-msg-preview" style="background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--text);line-height:1.6;white-space:pre-wrap;min-height:80px;max-height:180px;overflow-y:auto">'
+    + _ptpBuildMessage(b, defaultTone).replace(/\n/g, '<br>')
+    + '</div>'
+    + '</div>';
+
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
+    + '<div style="display:flex;gap:8px">'
+    + '<button class="btn btn-ghost" style="color:#25d366;border-color:rgba(37,211,102,0.4)" onclick="_ptpSendViaWA(\'' + borrowerId + '\');haptic(\'medium\')">'
+    + '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:14px;height:14px;vertical-align:middle;margin-right:4px"><path d="M17.5 2.5L9.2 10.8M17.5 2.5L12 17.5l-2.8-6.7-6.7-2.8L17.5 2.5z"/></svg>'
+    + 'WhatsApp</button>'
+    + '<button class="btn btn-gold" onclick="_ptpSendViaSMS(\'' + borrowerId + '\');haptic(\'medium\')">'
+    + '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:14px;height:14px;vertical-align:middle;margin-right:4px"><path d="M3 5h14a1 1 0 011 1v8a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1z"/><polyline points="2,5 10,11 18,5"/></svg>'
+    + 'SMS</button>'
+    + '</div>';
+
+  document.getElementById('modal-overlay').classList.add('open');
+
+  // Wire tone buttons
+  setTimeout(function() {
+    document.querySelectorAll('.ptp-tone-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.ptp-tone-btn').forEach(function(b2) {
+          b2.style.background = 'transparent';
+          b2.style.borderColor = 'var(--border2)';
+        });
+        btn.style.background = 'rgba(37,211,102,0.08)';
+        btn.style.borderColor = 'rgba(37,211,102,0.4)';
+        var tone = btn.dataset.tone;
+        var preview = document.getElementById('ptp-msg-preview');
+        if (preview) preview.innerHTML = _ptpBuildMessage(b, tone).replace(/\n/g, '<br>');
+        btn.dataset.active = 'true';
+        document.querySelectorAll('.ptp-tone-btn').forEach(function(b3) {
+          if (b3 !== btn) b3.dataset.active = 'false';
+        });
+      });
+    });
+  }, 50);
+}
+
+function _ptpToneBtn(tone, label, sub, defaultTone) {
+  var isActive = tone === defaultTone;
+  var bg = isActive ? 'rgba(37,211,102,0.08)' : 'transparent';
+  var bc = isActive ? 'rgba(37,211,102,0.4)' : 'var(--border2)';
+  return '<button class="ptp-tone-btn" data-tone="' + tone + '" data-active="' + isActive + '" '
+    + 'style="width:100%;display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;border:1px solid ' + bc + ';background:' + bg + ';cursor:pointer;text-align:left;font-family:var(--font-body);transition:all 0.15s">'
+    + '<div style="flex:1">'
+    + '<div style="font-size:12px;font-weight:600;color:var(--text)">' + label + '</div>'
+    + '<div style="font-size:10px;color:var(--text3);margin-top:1px">' + sub + '</div>'
+    + '</div>'
+    + (isActive ? '<svg viewBox="0 0 16 16" fill="none" stroke="#25d366" stroke-width="2.5" style="width:13px;height:13px;flex-shrink:0"><polyline points="2,9 6,13 14,3"/></svg>' : '')
+    + '</button>';
+}
+
+function _ptpGetActiveTone() {
+  var active = document.querySelector('.ptp-tone-btn[data-active="true"]');
+  return active ? active.dataset.tone : 'friendly';
+}
+
+function _ptpSendViaWA(borrowerId) {
+  var b = state.borrowers.find(function(x) { return x.id === borrowerId; });
+  if (!b) return;
+  var tone = _ptpGetActiveTone();
+  var msg = _ptpBuildMessage(b, tone);
+  var phone = (b.phone || '').replace(/\s/g, '').replace('+', '');
+  if (phone.startsWith('0')) phone = '233' + phone.slice(1);
+  var url = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(msg);
+  _ptpLogSend(borrowerId, tone, 'whatsapp');
+  closeModal();
+  window.open(url, '_blank');
+}
+
+function _ptpSendViaSMS(borrowerId) {
+  var b = state.borrowers.find(function(x) { return x.id === borrowerId; });
+  if (!b) return;
+  var tone = _ptpGetActiveTone();
+  var msg = _ptpBuildMessage(b, 'sms'); // SMS is always short format
+  var phone = (b.phone || '').replace(/\s/g, '');
+  var url = 'sms:' + phone + '?body=' + encodeURIComponent(msg);
+  _ptpLogSend(borrowerId, tone, 'sms');
+  closeModal();
+  window.location.href = url;
+}
+
+function _ptpLogSend(borrowerId, tone, channel) {
+  var b = state.borrowers.find(function(x) { return x.id === borrowerId; });
+  if (!b) return;
+  if (!b.ptpReminderLog) b.ptpReminderLog = [];
+  b.ptpReminderLog.push({
+    ts: new Date().toISOString(),
+    tone: tone,
+    channel: channel
+  });
+  b.ptpLastReminder = new Date().toISOString();
+  saveState();
+}
+
+function ptpSendAllReminders() {
+  var today = new Date().toISOString().split('T')[0];
+  var ptps = state.borrowers.filter(function(b) {
+    return b.promisedToPay && b.promiseDate && b.promiseDate.startsWith(today);
+  });
+  if (!ptps.length) { toast('No PTPs for today', 'info'); return; }
+
+  // Queue them up - open WhatsApp one by one sequentially
+  var pending = ptps.filter(function(b) {
+    return b.amountPaid <= 0 && b.ptpOutcome !== 'paid';
+  });
+
+  if (!pending.length) { toast('All PTPs already honoured \u2705', 'success'); return; }
+
+  // Show confirmation modal first
+  document.getElementById('modal-title').textContent = '\uD83D\uDCE8 Remind All PTPs';
+  document.getElementById('modal-body').innerHTML =
+    '<div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:16px;text-align:center">'
+    + '<div style="font-size:28px;margin-bottom:8px">\uD83D\uDCE9</div>'
+    + '<div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:4px">' + pending.length + ' reminder' + (pending.length !== 1 ? 's' : '') + ' queued</div>'
+    + '<div style="font-size:12px;color:var(--text3)">Will open WhatsApp for each pending PTP one by one</div>'
+    + '</div>'
+    + '<div style="background:var(--surface2);border-radius:10px;overflow:hidden;max-height:200px;overflow-y:auto">'
+    + pending.map(function(b) {
+        return '<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border)">'
+          + '<div style="width:7px;height:7px;border-radius:50%;background:var(--orange);flex-shrink:0"></div>'
+          + '<div style="flex:1;font-size:12px;font-weight:600">' + b.name.split(' ')[0] + '</div>'
+          + '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono)">' + fmtC(getDueToday(b)) + '</div>'
+          + '</div>';
+      }).join('')
+    + '</div>'
+    + '<div style="margin-top:12px;padding:10px;background:rgba(37,211,102,0.07);border-radius:8px;border:1px solid rgba(37,211,102,0.2)">'
+    + '<div style="font-size:11px;color:var(--text2)">Each message uses the <b>Day-Of Confirmation</b> template and is pre-filled in WhatsApp — just tap Send.</div>'
+    + '</div>';
+
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
+    + '<button class="btn btn-gold" id="bulk-remind-start-btn">Start Sending \u25B6</button>';
+
+  document.getElementById('modal-overlay').classList.add('open');
+
+  setTimeout(function() {
+    var startBtn = document.getElementById('bulk-remind-start-btn');
+    if (startBtn) {
+      startBtn.addEventListener('click', function() {
+        closeModal();
+        _ptpBulkSendSequential(pending, 0);
+      });
+    }
+  }, 50);
+}
+
+function _ptpBulkSendSequential(list, index) {
+  if (index >= list.length) {
+    toast('All ' + list.length + ' reminders sent \u2705', 'success');
+    haptic('pay');
+    return;
+  }
+  var b = list[index];
+  var msg = _ptpBuildMessage(b, 'dayon');
+  var phone = (b.phone || '').replace(/\s/g, '').replace('+', '');
+  if (phone.startsWith('0')) phone = '233' + phone.slice(1);
+  var url = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(msg);
+  _ptpLogSend(b.id, 'dayon', 'whatsapp');
+  window.open(url, '_blank');
+  toast((index + 1) + '/' + list.length + ' — ' + b.name.split(' ')[0] + ' \u2705', 'success');
+  setTimeout(function() { _ptpBulkSendSequential(list, index + 1); }, 1800);
+}
+
 function switchPtpHub(tab) {
   _ptpTab = tab;
   haptic('light');
@@ -11966,6 +12222,13 @@ function buildPtpMorningHtml() {
     html += `<div style="background:var(--surface2);border-radius:10px;padding:24px;text-align:center;color:var(--text3);font-size:12px">
       No promises set for today.<br><span style="font-size:11px">Go to Borrowers → tap 🤝 to set a promise.</span></div>`;
   } else {
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:700;color:var(--text)">📋 Today's Promises <span style="font-size:11px;font-weight:400;color:var(--text3)">${ptps.length} borrower${ptps.length!==1?'s':''}</span></div>
+      <button onclick="ptpSendAllReminders();haptic('medium')" style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;border:1px solid rgba(37,211,102,0.35);background:rgba(37,211,102,0.08);color:#25d366;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font-body)">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:12px;height:12px"><path d="M3 10l14-7-7 14V10H3z"/></svg>
+        Remind All
+      </button>
+    </div>`;
     html += `<div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;overflow:hidden;margin-bottom:14px">`;
     ptps.forEach(b => {
       const ok = b.amountPaid > 0 || b.ptpOutcome === 'paid';
@@ -11981,7 +12244,7 @@ function buildPtpMorningHtml() {
           <div style="font-size:10px;color:${ok?'var(--green)':'var(--text3)'}">${ok?'✅ Honoured':'⏳ Pending'}</div>
         </div>
         <button class="btn btn-green btn-xs" onclick="openPayModal('${b.id}');haptic('light')">💰</button>
-        <a href="https://wa.me/${phone}" target="_blank" class="btn btn-ghost btn-xs" style="color:#25d366" onclick="haptic('light')">💬</a>
+        <button class="btn btn-ghost btn-xs" style="color:#25d366;font-size:11px;font-weight:700;padding:4px 8px" onclick="ptpShowRemindMenu('${b.id}');haptic('light')" title="Send PTP reminder">📩 Remind</button>
       </div>`;
     });
     html += `</div>`;
