@@ -136,9 +136,9 @@ tr.row-swiped td:first-child div, tr.row-swiped td { transition: background 0.15
 
 /* Glassmorphism card base */
 .card {
-  background: rgba(14,17,24,0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(14,17,24,0.82);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   border: 1px solid var(--border2);
   /* Micro top-edge highlight for depth */
   box-shadow: inset 0 1px 0 var(--border-hi), 0 4px 24px rgba(0,0,0,0.35);
@@ -149,9 +149,9 @@ tr.row-swiped td:first-child div, tr.row-swiped td { transition: background 0.15
 
 /* KPI cards — slightly more glass */
 .kpi-card {
-  background: rgba(14,17,24,0.8);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(14,17,24,0.85);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   box-shadow: inset 0 1px 0 var(--border-hi), 0 4px 20px rgba(0,0,0,0.4);
 }
 
@@ -654,8 +654,9 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
   overflow-x: hidden;
   height: 100vh;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
 }
-.page { display: none; padding: 28px 32px 60px; overflow-x: hidden; max-width: 100%; }
+.page { display: none; padding: 28px 32px 60px; overflow-x: hidden; max-width: 100%; contain: layout style; }
 .page.active { display: block; }
 .page-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -693,7 +694,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .btn-xs { padding: 3px 8px; font-size: 11px; }
 
 /* KPI CARDS */
-.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; contain: layout; }
 .kpi-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -703,10 +704,10 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
   overflow: hidden;
   animation: fadeUp 0.3s ease both;
 }
-.kpi-grid .kpi-card:nth-child(1) { animation-delay: 0.02s; }
-.kpi-grid .kpi-card:nth-child(2) { animation-delay: 0.04s; }
-.kpi-grid .kpi-card:nth-child(3) { animation-delay: 0.06s; }
-.kpi-grid .kpi-card:nth-child(4) { animation-delay: 0.08s; }
+.kpi-grid .kpi-card:nth-child(1) { animation-delay: 0.01s; }
+.kpi-grid .kpi-card:nth-child(2) { animation-delay: 0.02s; }
+.kpi-grid .kpi-card:nth-child(3) { animation-delay: 0.03s; }
+.kpi-grid .kpi-card:nth-child(4) { animation-delay: 0.04s; }
 .kpi-card::before {
   content: '';
   position: absolute; top: 0; left: 0; right: 0;
@@ -741,6 +742,8 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
   border-radius: var(--radius);
   overflow: hidden;
   margin-bottom: 20px;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 .card-header {
   padding: 14px 20px;
@@ -1948,6 +1951,7 @@ tr.overdue-critical .heat-ring {
   background: linear-gradient(180deg, #04090f 0%, #070f1d 100%) !important;
   border-right: 1px solid rgba(30,64,128,0.4) !important;
   box-shadow: 4px 0 40px rgba(0,0,0,0.6) !important;
+  will-change: auto;
 }
 [data-theme="navy"] .nav-item.active {
   background: linear-gradient(90deg, rgba(245,158,11,0.18) 0%, rgba(245,158,11,0.04) 100%) !important;
@@ -2358,8 +2362,8 @@ tr.overdue-critical .heat-ring {
 [data-theme="glacier"] .card,
 [data-theme="glacier"] .kpi-card {
   background: rgba(255,255,255,0.07) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
   border: 1px solid rgba(255,255,255,0.11) !important;
   border-top-color: rgba(56,189,248,0.22) !important;
   box-shadow: 0 8px 32px rgba(0,0,0,0.4),
@@ -2391,8 +2395,8 @@ tr.overdue-critical .heat-ring {
 /* Borrower cards */
 [data-theme="glacier"] .bl-card {
   background: rgba(255,255,255,0.065) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
   border: 1px solid rgba(255,255,255,0.1) !important;
   border-top-color: rgba(56,189,248,0.18) !important;
   box-shadow: 0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1) !important;
@@ -2625,8 +2629,8 @@ tr.overdue-critical .heat-ring {
 /* ════ GLASSMORPHIC ════ */
 [data-card-style="glassmorphic"] .kpi-card {
   background: rgba(255,255,255,0.07) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
   border-radius: 18px !important;
   position: relative !important;
   overflow: hidden !important;
@@ -2666,8 +2670,8 @@ tr.overdue-critical .heat-ring {
 [data-card-style="glassmorphic"] .kpi-card.blue  .kpi-value { color: #7dd3fc !important; }
 [data-card-style="glassmorphic"] .card {
   background: rgba(255,255,255,0.06) !important;
-  backdrop-filter: blur(14px) !important;
-  -webkit-backdrop-filter: blur(14px) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
   border-radius: 18px !important;
   border: 1px solid rgba(255,255,255,0.1) !important;
   border-top: 2px solid rgba(255,255,255,0.18) !important;
@@ -4995,7 +4999,7 @@ function getRemaining(b) {
 //   M0 (od=0):  No OD fee — customer has not defaulted yet
 //   Day 1:      4% × (principal − amountPaid)  one-time
 //   Day 2+:     +2% × (principal − amountPaid) per day accumulated
-//   70% rule:   OD stops accumulating once amountPaid >= 70% of principal
+//   100% rule:  OD stops accumulating once amountPaid >= 100% of principal
 //   Cap:        Total OD never exceeds 1× original principal
 //
 // The day-by-day formula requires knowing the remaining principal
@@ -5029,7 +5033,7 @@ function getOdFee(b) {
   if (principal <= 0) return 0;
 
   const amountPaid = b.amountPaid || 0;
-  const threshold70 = principal * 0.70;
+  const threshold70 = principal * 1.00;
 
   // ── Build daily payment timeline from payLog ──────────────────
   // payLog entries: { date, delta, amount } — date is YYYY-MM-DD
@@ -5064,7 +5068,7 @@ function getOdFee(b) {
     // Paid amount known at start of this day
     const paidAtStart = paidBeforeDay(day);
 
-    // 70% rule — if already paid 70%+ by start of this day, OD stops
+    // 100% rule — if already paid 100% by start of this day, OD stops
     if (paidAtStart >= threshold70) break;
 
     // Remaining principal at start of this day
@@ -5096,7 +5100,7 @@ function getOdLog(b) {
   if (principal <= 0) return [];
 
   const amountPaid  = b.amountPaid || 0;
-  const threshold70 = principal * 0.70;
+  const threshold70 = principal * 1.00;
   const cap         = principal;
   const payLog      = (b.payLog || []).filter(p => p.date && p.delta > 0);
   const sortedPays  = payLog.slice().sort((a, z) => a.date.localeCompare(z.date));
@@ -5120,7 +5124,7 @@ function getOdLog(b) {
   for (let day = 1; day <= od; day++) {
     const paidAtStart = paidBeforeDay(day);
     if (paidAtStart >= threshold70) {
-      log.push({ day, rate: '—', base: 0, fee: 0, cumulative: cumOD, stopped: '70% paid' });
+      log.push({ day, rate: '—', base: 0, fee: 0, cumulative: cumOD, stopped: '100% paid' });
       break;
     }
     const remaining = Math.max(0, principal - paidAtStart);
@@ -9680,7 +9684,7 @@ function openUserManual() {
       <div class="um-sub">OD Fee Rules</div>
       <div class="um-row"><div class="um-dot"></div><div><strong>Day 1:</strong> 4% of remaining principal</div></div>
       <div class="um-row"><div class="um-dot"></div><div><strong>Day 2+:</strong> +2% of remaining principal per day</div></div>
-      <div class="um-row"><div class="um-dot"></div><div><strong>70% rule:</strong> OD stops once 70% of principal is paid</div></div>
+      <div class="um-row"><div class="um-dot"></div><div><strong>70% rule:</strong> OD stops once 100% of principal is paid</div></div>
       <div class="um-row"><div class="um-dot"></div><div><strong>Cap:</strong> OD never exceeds 1× original principal</div></div>
     </div>
 
@@ -10412,7 +10416,7 @@ function openChangelog() {
           <li>Slug-based agent identity — LoanBase code IS your account</li>
           <li>Sign-up requires internet + Supabase uniqueness check</li>
           <li>Full M0–M5 stage awareness across all features</li>
-          <li>Corrected OD fee: 4% Day 1, 2% daily, 70% stop, 1× cap</li>
+          <li>Corrected OD fee: 4% Day 1, 2% daily, 100% stop, 1× cap</li>
           <li>GMT-consistent date handling for OD calculations</li>
           <li>Desktop ↔ Mobile nav parity (10 items, search, lock)</li>
           <li>Biometric unlock (WebAuthn Face ID / Fingerprint)</li>
@@ -11895,22 +11899,22 @@ function _ptpBuildMessage(b, tone) {
     return 'Hello ' + name + ' \uD83D\uDC4B\n\n'
       + 'This is a friendly reminder that you made a promise to pay *' + amount + '* on *' + dateTimeStr + '*.' + note + '\n\n'
       + 'We look forward to your payment. Please reach out if you need to make any arrangements.\n\n'
-      + 'Thank you\n' + agentName;
+      + 'Thank you\nLoanBase';
   }
   if (tone === 'dayon') {
     return 'Good morning ' + name + ' \u2600\uFE0F\n\n'
       + 'Today is the day! You promised to pay *' + amount + '* today (' + dateTimeStr + ').' + note + '\n\n'
       + 'Please ensure payment is made today to keep your account in good standing.\n\n'
-      + 'Thank you\n' + agentName;
+      + 'Thank you\nLoanBase';
   }
   if (tone === 'missed') {
     return 'Hello ' + name + ',\n\n'
       + 'We notice that the promised payment of *' + amount + '* due on *' + dateTimeStr + '* has not yet been received.' + note + '\n\n'
       + 'Please make your payment as soon as possible or contact us to reschedule.\n\n'
-      + 'Thank you\n' + agentName;
+      + 'Thank you\nLoanBase';
   }
   if (tone === 'sms') {
-    return name + ', reminder: You promised to pay ' + amount + ' on ' + dateTimeStr + '. Please ensure payment is made. - ' + agentName;
+    return name + ', reminder: You promised to pay ' + amount + ' on ' + dateTimeStr + '. Please ensure payment is made. - LoanBase';
   }
   return '';
 }
@@ -12050,23 +12054,10 @@ function ptpSendAllReminders() {
     return b.promisedToPay && b.promiseDate && b.promiseDate.startsWith(today);
   });
   if (!ptps.length) { toast('No PTPs for today', 'info'); return; }
+  var pending = ptps.filter(function(b) { return b.amountPaid <= 0 && b.ptpOutcome !== 'paid'; });
+  if (!pending.length) { toast('All PTPs already honoured ✅', 'success'); return; }
 
-  // Queue them up - open WhatsApp one by one sequentially
-  var pending = ptps.filter(function(b) {
-    return b.amountPaid <= 0 && b.ptpOutcome !== 'paid';
-  });
-
-  if (!pending.length) { toast('All PTPs already honoured \u2705', 'success'); return; }
-
-  // Show confirmation modal first
-  document.getElementById('modal-title').textContent = '\uD83D\uDCE8 Remind All PTPs';
-  document.getElementById('modal-body').innerHTML =
-    '<div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:16px;text-align:center">'
-    + '<div style="font-size:28px;margin-bottom:8px">\uD83D\uDCE9</div>'
-    + '<div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:4px">' + pending.length + ' reminder' + (pending.length !== 1 ? 's' : '') + ' queued</div>'
-    + '<div style="font-size:12px;color:var(--text3)">Will open WhatsApp for each pending PTP one by one</div>'
-    + '</div>'
-    + '<div style="background:var(--surface2);border-radius:10px;overflow:hidden;max-height:200px;overflow-y:auto">'
+  var listHtml = '<div style="background:var(--surface2);border-radius:10px;overflow:hidden;max-height:180px;overflow-y:auto;margin-bottom:12px">'
     + pending.map(function(b) {
         return '<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border)">'
           + '<div style="width:7px;height:7px;border-radius:50%;background:var(--orange);flex-shrink:0"></div>'
@@ -12074,43 +12065,74 @@ function ptpSendAllReminders() {
           + '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono)">' + fmtC(getDueToday(b)) + '</div>'
           + '</div>';
       }).join('')
-    + '</div>'
-    + '<div style="margin-top:12px;padding:10px;background:rgba(37,211,102,0.07);border-radius:8px;border:1px solid rgba(37,211,102,0.2)">'
-    + '<div style="font-size:11px;color:var(--text2)">Each message uses the <b>Day-Of Confirmation</b> template and is pre-filled in WhatsApp — just tap Send.</div>'
     + '</div>';
+
+  document.getElementById('modal-title').textContent = '📨 Blast Reminders';
+  document.getElementById('modal-body').innerHTML =
+    '<div style="text-align:center;padding:8px 0 16px">'
+    + '<div style="font-size:32px;margin-bottom:8px">📩</div>'
+    + '<div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:4px">' + pending.length + ' pending PTP' + (pending.length!==1?'s':'') + '</div>'
+    + '<div style="font-size:12px;color:var(--text3)">Each chat opens pre-filled — just tap Send</div>'
+    + '</div>' + listHtml
+    + '<div style="font-size:11px;color:var(--text2);padding:10px 12px;background:rgba(255,255,255,0.04);border-radius:8px">Uses <b>Day-Of Confirmation</b> template for each borrower</div>';
 
   document.getElementById('modal-footer').innerHTML =
     '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
-    + '<button class="btn btn-gold" id="bulk-remind-start-btn">Start Sending \u25B6</button>';
+    + '<div style="display:flex;gap:8px">'
+    + '<button class="btn btn-ghost" id="bulk-remind-sms-btn" style="color:var(--blue);border-color:rgba(96,165,250,0.35)">'
+    + '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:13px;height:13px;vertical-align:middle;margin-right:4px"><path d="M3 5h14a1 1 0 011 1v8a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1z"/><polyline points="2,5 10,11 18,5"/></svg>'
+    + 'Blast SMS</button>'
+    + '<button class="btn btn-gold" id="bulk-remind-wa-btn">'
+    + '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:13px;height:13px;vertical-align:middle;margin-right:4px"><path d="M17.5 2.5L9.2 10.8M17.5 2.5L12 17.5l-2.8-6.7-6.7-2.8L17.5 2.5z"/></svg>'
+    + 'Blast WhatsApp</button>'
+    + '</div>';
 
   document.getElementById('modal-overlay').classList.add('open');
-
   setTimeout(function() {
-    var startBtn = document.getElementById('bulk-remind-start-btn');
-    if (startBtn) {
-      startBtn.addEventListener('click', function() {
-        closeModal();
-        _ptpBulkSendSequential(pending, 0);
-      });
-    }
+    var waBtn  = document.getElementById('bulk-remind-wa-btn');
+    var smsBtn = document.getElementById('bulk-remind-sms-btn');
+    if (waBtn)  waBtn.addEventListener('click',  function() { closeModal(); _ptpBulkSend(pending, 0, 'wa'); });
+    if (smsBtn) smsBtn.addEventListener('click', function() { closeModal(); _ptpBulkSend(pending, 0, 'sms'); });
   }, 50);
 }
 
-function _ptpBulkSendSequential(list, index) {
-  if (index >= list.length) {
-    toast('All ' + list.length + ' reminders sent \u2705', 'success');
-    haptic('pay');
-    return;
-  }
+function _ptpBulkSend(list, index, channel) {
+  if (index >= list.length) { toast('All ' + list.length + ' reminders sent ✅', 'success'); haptic('pay'); return; }
   var b = list[index];
-  var msg = _ptpBuildMessage(b, 'dayon');
   var phone = (b.phone || '').replace(/\s/g, '').replace('+', '');
   if (phone.startsWith('0')) phone = '233' + phone.slice(1);
-  var url = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(msg);
-  _ptpLogSend(b.id, 'dayon', 'whatsapp');
-  window.open(url, '_blank');
-  toast((index + 1) + '/' + list.length + ' — ' + b.name.split(' ')[0] + ' \u2705', 'success');
-  setTimeout(function() { _ptpBulkSendSequential(list, index + 1); }, 1800);
+  if (channel === 'wa') {
+    window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(_ptpBuildMessage(b, 'dayon')), '_blank');
+  } else {
+    window.location.href = 'sms:' + (b.phone||'').replace(/\s/g,'') + '?body=' + encodeURIComponent(_ptpBuildMessage(b, 'sms'));
+  }
+  _ptpLogSend(b.id, 'dayon', channel);
+  toast((index+1) + '/' + list.length + ' — ' + b.name.split(' ')[0] + ' ✅', 'success');
+  setTimeout(function() { _ptpBulkSend(list, index+1, channel); }, 1800);
+}
+
+
+
+
+function ptpToggleHonour(bid) {
+  var b = state.borrowers.find(function(x) { return x.id === bid; });
+  if (!b) return;
+  var isHonoured = b.amountPaid > 0 || b.ptpOutcome === 'paid';
+  if (isHonoured) {
+    // Undo — clear ptpOutcome (but don't touch real payment)
+    if (b.amountPaid > 0) {
+      toast('Payment recorded — use the borrower detail to adjust', 'info');
+      return;
+    }
+    b.ptpOutcome = '';
+    toast(b.name.split(' ')[0] + ' marked as pending', 'info');
+  } else {
+    b.ptpOutcome = 'paid';
+    toast(b.name.split(' ')[0] + ' marked as honoured ✅', 'success');
+  }
+  saveState();
+  savePtpSnapshot2();
+  renderPtpHub();
 }
 
 function switchPtpHub(tab) {
@@ -12243,8 +12265,9 @@ function buildPtpMorningHtml() {
           <div style="font-family:var(--font-mono);font-size:12px;font-weight:700">${fmtC(getDueToday(b))}</div>
           <div style="font-size:10px;color:${ok?'var(--green)':'var(--text3)'}">${ok?'✅ Honoured':'⏳ Pending'}</div>
         </div>
-        <button class="btn btn-green btn-xs" onclick="openPayModal('${b.id}');haptic('light')">💰</button>
-        <button class="btn btn-ghost btn-xs" style="color:#25d366;font-size:11px;font-weight:700;padding:4px 8px" onclick="ptpShowRemindMenu('${b.id}');haptic('light')" title="Send PTP reminder">📩 Remind</button>
+        <button class="btn btn-green btn-xs" onclick="openPayModal('${b.id}');haptic('light')" title="Record payment">💰</button>
+        <button class="btn btn-xs" style="background:${ok?'rgba(239,68,68,0.12)':'rgba(34,197,94,0.1)'};color:${ok?'var(--red)':'var(--green)'};border:1px solid ${ok?'rgba(239,68,68,0.3)':'rgba(34,197,94,0.3)'};font-size:10px;font-weight:700;padding:4px 8px;border-radius:6px;cursor:pointer" onclick="ptpToggleHonour('${b.id}');haptic('medium')" title="${ok?'Mark as broken':'Mark as honoured'}">${ok?'↩ Undo':'✅ Honour'}</button>
+        <button class="btn btn-ghost btn-xs" style="color:#25d366;font-size:11px;font-weight:700;padding:4px 8px" onclick="ptpShowRemindMenu('${b.id}');haptic('light')" title="Send PTP reminder">📩</button>
       </div>`;
     });
     html += `</div>`;
@@ -13958,13 +13981,13 @@ function openOdFeeModal(id) {
   const remaining = Math.max(0,(b.principal||0)-(b.amountPaid||0));
   const discounted = Math.round(rawFee * (state.discountRate||0.30));
   const odLog      = getOdLog(b);
-  const threshold70 = Math.round((b.principal||0) * 0.70);
-  const stopped70   = odLog.length > 0 && odLog[odLog.length-1].stopped === '70% paid';
+  const threshold70 = Math.round((b.principal||0) * 1.00);
+  const stopped70   = odLog.length > 0 && odLog[odLog.length-1].stopped === '100% paid';
   const rows = [
     ['Original Principal',       fmtC(b.principal||0)],
     ['Amount Paid',               fmtC(b.amountPaid||0)],
     ['Remaining Principal',       fmtC(remaining)],
-    ['70% Threshold',             fmtC(threshold70) + (stopped70 ? ' ✅ Reached — OD frozen' : '')],
+    ['100% Threshold',             fmtC(threshold70) + (stopped70 ? ' ✅ Reached — OD frozen' : '')],
     ['Days in Default',           od <= 0 ? 'M0 — No default yet' : 'Day ' + od],
     ['Day 1 Rate',                '4% of remaining principal'],
     ['Day 2+ Rate',               '2% per day of remaining principal'],
@@ -13983,7 +14006,7 @@ function openOdFeeModal(id) {
         + '</div>'
       ).join('')
     + '</div>'
-    + '<div style="font-size:11px;color:var(--text3);line-height:1.8">Fee accrues from Day 1. Day 1 = 4%, every subsequent day = 2% of remaining principal. OD stops at 70% paid or when it equals the principal.</div>';
+    + '<div style="font-size:11px;color:var(--text3);line-height:1.8">Fee accrues from Day 1. Day 1 = 4%, every subsequent day = 2% of remaining principal. OD stops when principal is fully paid or OD equals principal.</div>';
   document.getElementById('modal-footer').innerHTML =
     '<button class="btn btn-ghost" onclick="closeModal()">Close</button>'
     + '<button class="btn btn-green" onclick="closeModal();openPayModal(\'' + id + '\')" >💰 Record Payment</button>';
@@ -14671,6 +14694,12 @@ function showLockScreen() {
   ls.style.display = 'block';
   document.body.style.overflow = 'hidden';
   _pinBuffer = ''; _pinTarget = null;
+  // Reset focus mode — show all elements
+  ['ls-logo-block','ls-tabs-wrap'].forEach(function(eid) {
+    var el = document.getElementById(eid); if (el) el.style.display = '';
+  });
+  var sp = document.getElementById('auth-signin-panel'); if (sp) sp.style.display = '';
+  document.getElementById('lock-pin-section').style.display = 'none';
   authShowTab('signin');
   renderLockAgentList();
   const ci=document.getElementById('auth-code-input'); if(ci) ci.value='';
@@ -14718,18 +14747,31 @@ function renderLockAgentList() {
 
 function lockSelectAgent(id) {
   if (!id) {
+    // Back — show everything, hide PIN
     document.getElementById('lock-pin-section').style.display = 'none';
-    _pinTarget = null;
-    _pinBuffer = '';
-    updatePinDots();
+    var hideEls = ['ls-logo-block','ls-tabs','lock-agent-list','auth-signin-panel-top'];
+    hideEls.forEach(function(eid) {
+      var el = document.getElementById(eid); if (el) el.style.display = '';
+    });
+    var signinPanel = document.getElementById('auth-signin-panel');
+    if (signinPanel) signinPanel.style.display = '';
+    _pinTarget = null; _pinBuffer = ''; updatePinDots();
     return;
   }
   const agents = getAgentList();
   _pinTarget = agents.find(a => a.id === id)
     || (window._pendingAgent?.id === id ? window._pendingAgent : null);
   if (!_pinTarget) return;
-  _pinBuffer = '';
-  _pinMode = 'unlock';
+  _pinBuffer = ''; _pinMode = 'unlock';
+
+  // Focus mode — hide everything except PIN card
+  var signinPanel = document.getElementById('auth-signin-panel');
+  if (signinPanel) signinPanel.style.display = 'none';
+  var logoBlock = document.getElementById('ls-logo-block');
+  if (logoBlock) logoBlock.style.display = 'none';
+  var tabsBlock = document.getElementById('ls-tabs-wrap');
+  if (tabsBlock) tabsBlock.style.display = 'none';
+
   document.getElementById('lock-pin-section').style.display = 'block';
   document.getElementById('lock-pin-name').textContent = _pinTarget.name;
   const col = { M0:'#3b82f6',M1:'#22c55e',M2:'#e8a020',M3:'#f97316',M4:'#ef4444',M5:'#7c3aed' }[_pinTarget.stage] || '#e8a020';
@@ -16345,7 +16387,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   <div class="ls-wrap">
 
     <!-- Logo -->
-    <div class="ls-logo-block ls-anim-1">
+    <div class="ls-logo-block ls-anim-1" id="ls-logo-block">
       <div class="ls-logo-icon">
         <div class="ls-logo-ring"></div>
         <span class="ls-logo-letters">ST</span>
@@ -16355,10 +16397,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     </div>
 
     <!-- Tab bar -->
-    <div class="ls-tabs ls-anim-2">
+    <div id="ls-tabs-wrap"><div class="ls-tabs ls-anim-2">
       <button id="tab-signin"  class="ls-tab ls-tab-active"  onclick="authShowTab('signin')">Sign In</button>
       <button id="tab-signup"  class="ls-tab"                onclick="authShowTab('signup')">New Agent</button>
-    </div>
+    </div></div>
 
     <!-- ── Sign In Panel ────────────────────────────────── -->
     <div id="auth-signin-panel" style="width:100%">
@@ -16415,7 +16457,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <button class="ls-num" onclick="pinPress('7')"><span class="ls-num-main">7</span><span class="ls-num-sub">PQRS</span></button>
             <button class="ls-num" onclick="pinPress('8')"><span class="ls-num-main">8</span><span class="ls-num-sub">TUV</span></button>
             <button class="ls-num" onclick="pinPress('9')"><span class="ls-num-main">9</span><span class="ls-num-sub">WXYZ</span></button>
-            <button class="ls-num ls-num-ghost" onclick="authClearCode()" style="font-size:12px;color:var(--ls-muted)">← Back</button>
+            <button class="ls-num ls-num-ghost" onclick="lockSelectAgent(null);authClearCode()" style="font-size:12px;color:var(--ls-muted)">← Back</button>
             <button class="ls-num" onclick="pinPress('0')"><span class="ls-num-main">0</span></button>
             <button class="ls-num ls-num-ghost" onclick="pinBackspace()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:20px;height:20px"><path d="M21 12H7M7 12l5-5M7 12l5 5"/></svg>
@@ -16516,9 +16558,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 .ls-wrap {
   position: relative; z-index: 1;
   max-width: 380px; margin: 0 auto;
-  padding: 48px 22px 80px;
+  padding: 40px 20px 60px;
   min-height: 100vh;
   display: flex; flex-direction: column; align-items: center;
+  justify-content: center;
+  gap: 0;
 }
 
 /* ── Entrance animations ── */
