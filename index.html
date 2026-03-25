@@ -2492,6 +2492,270 @@ tr.overdue-critical .heat-ring {
 [data-theme="glacier"] .ls-num:hover { background: rgba(56,189,248,0.16); border-color: rgba(56,189,248,0.4); }
 
 
+
+/* ══════════════════════════════════════════════════════════
+   CARD STYLES — data-card-style attribute on <html>
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Shared card-style-opt-btn hover ── */
+.card-style-opt-btn:hover { background: var(--surface2) !important; }
+
+/* ════ OBSIDIAN VAULT ════ */
+[data-card-style="obsidian"] .kpi-card {
+  border-radius: 16px !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+[data-card-style="obsidian"] .kpi-card::before {
+  height: 2px !important;
+  background: none !important;
+}
+[data-card-style="obsidian"] .kpi-card.gold {
+  background: linear-gradient(145deg, rgba(245,158,11,0.14) 0%, rgba(245,158,11,0.04) 100%) !important;
+  border: 1px solid rgba(245,158,11,0.22) !important;
+  box-shadow: 0 8px 32px rgba(245,158,11,0.1), inset 0 1px 0 rgba(245,158,11,0.2) !important;
+}
+[data-card-style="obsidian"] .kpi-card.gold::before {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24, transparent 80%) !important;
+}
+[data-card-style="obsidian"] .kpi-card.red {
+  background: linear-gradient(145deg, rgba(239,68,68,0.14) 0%, rgba(239,68,68,0.04) 100%) !important;
+  border: 1px solid rgba(239,68,68,0.22) !important;
+  box-shadow: 0 8px 32px rgba(239,68,68,0.1), inset 0 1px 0 rgba(239,68,68,0.2) !important;
+}
+[data-card-style="obsidian"] .kpi-card.red::before {
+  background: linear-gradient(90deg, #ef4444, #f87171, transparent 80%) !important;
+}
+[data-card-style="obsidian"] .kpi-card.green {
+  background: linear-gradient(145deg, rgba(16,185,129,0.14) 0%, rgba(16,185,129,0.04) 100%) !important;
+  border: 1px solid rgba(16,185,129,0.22) !important;
+  box-shadow: 0 8px 32px rgba(16,185,129,0.1), inset 0 1px 0 rgba(16,185,129,0.2) !important;
+}
+[data-card-style="obsidian"] .kpi-card.green::before {
+  background: linear-gradient(90deg, #10b981, #34d399, transparent 80%) !important;
+}
+[data-card-style="obsidian"] .kpi-card.blue {
+  background: linear-gradient(145deg, rgba(96,165,250,0.14) 0%, rgba(96,165,250,0.04) 100%) !important;
+  border: 1px solid rgba(96,165,250,0.22) !important;
+  box-shadow: 0 8px 32px rgba(96,165,250,0.1), inset 0 1px 0 rgba(96,165,250,0.2) !important;
+}
+[data-card-style="obsidian"] .kpi-card.blue::before {
+  background: linear-gradient(90deg, #60a5fa, #93c5fd, transparent 80%) !important;
+}
+[data-card-style="obsidian"] .kpi-label {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+}
+[data-card-style="obsidian"] .kpi-card.gold .kpi-label { color: #f59e0b !important; }
+[data-card-style="obsidian"] .kpi-card.red  .kpi-label { color: #ef4444 !important; }
+[data-card-style="obsidian"] .kpi-card.green .kpi-label { color: #10b981 !important; }
+[data-card-style="obsidian"] .kpi-card.blue  .kpi-label { color: #60a5fa !important; }
+[data-card-style="obsidian"] .kpi-value {
+  font-size: 28px !important;
+  font-weight: 700 !important;
+  color: var(--text) !important;
+}
+[data-card-style="obsidian"] .card {
+  background: rgba(255,255,255,0.05) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.07) !important;
+  border-radius: 16px !important;
+}
+[data-card-style="obsidian"] .card-header {
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+}
+
+/* ════ NEON EDITORIAL ════ */
+[data-card-style="editorial"] .kpi-grid {
+  gap: 0 !important;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  overflow: hidden;
+}
+[data-card-style="editorial"] .kpi-card {
+  border-radius: 0 !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+  border-right: 1px solid rgba(255,255,255,0.06) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  position: relative !important;
+  padding-left: 20px !important;
+  overflow: visible !important;
+}
+[data-card-style="editorial"] .kpi-card::before {
+  left: 0 !important; top: 0 !important; bottom: 0 !important; right: auto !important;
+  width: 3px !important; height: 100% !important;
+  border-radius: 0 !important;
+}
+[data-card-style="editorial"] .kpi-card.gold::before { background: #f5c842 !important; box-shadow: 2px 0 10px rgba(245,200,66,0.5) !important; }
+[data-card-style="editorial"] .kpi-card.red::before  { background: #ef4444 !important; box-shadow: 2px 0 10px rgba(239,68,68,0.5) !important; }
+[data-card-style="editorial"] .kpi-card.green::before{ background: #10b981 !important; box-shadow: 2px 0 10px rgba(16,185,129,0.5) !important; }
+[data-card-style="editorial"] .kpi-card.blue::before { background: #60a5fa !important; box-shadow: 2px 0 10px rgba(96,165,250,0.5) !important; }
+[data-card-style="editorial"] .kpi-label {
+  font-size: 9px !important; font-weight: 800 !important;
+  letter-spacing: 0.18em !important; color: rgba(255,255,255,0.3) !important;
+}
+[data-card-style="editorial"] .kpi-value {
+  font-size: 30px !important; font-weight: 700 !important;
+}
+[data-card-style="editorial"] .kpi-card.gold .kpi-value { color: #f5c842 !important; }
+[data-card-style="editorial"] .kpi-card.red  .kpi-value { color: #ef4444 !important; }
+[data-card-style="editorial"] .kpi-card.green .kpi-value{ color: #10b981 !important; }
+[data-card-style="editorial"] .kpi-card.blue  .kpi-value{ color: #60a5fa !important; }
+[data-card-style="editorial"] .card {
+  background: rgba(255,255,255,0.03) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-top: 2px solid rgba(245,200,66,0.3) !important;
+  border-radius: 14px !important;
+  box-shadow: none !important;
+}
+[data-card-style="editorial"] .card-header {
+  border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+}
+[data-card-style="editorial"] .card-title {
+  font-size: 13px !important; font-weight: 800 !important;
+}
+
+/* ════ GLASSMORPHIC ════ */
+[data-card-style="glassmorphic"] .kpi-card {
+  background: rgba(255,255,255,0.07) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-radius: 18px !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+[data-card-style="glassmorphic"] .kpi-card::before { height: 2px !important; }
+[data-card-style="glassmorphic"] .kpi-card.gold {
+  border: 1px solid rgba(245,158,11,0.25) !important;
+  border-top: 2px solid rgba(245,158,11,0.5) !important;
+  box-shadow: 0 8px 32px rgba(245,158,11,0.12), inset 0 1px 0 rgba(255,255,255,0.12) !important;
+}
+[data-card-style="glassmorphic"] .kpi-card.gold::before { background: none !important; }
+[data-card-style="glassmorphic"] .kpi-card.red {
+  border: 1px solid rgba(239,68,68,0.22) !important;
+  border-top: 2px solid rgba(239,68,68,0.45) !important;
+  box-shadow: 0 8px 32px rgba(239,68,68,0.1), inset 0 1px 0 rgba(255,255,255,0.1) !important;
+}
+[data-card-style="glassmorphic"] .kpi-card.red::before { background: none !important; }
+[data-card-style="glassmorphic"] .kpi-card.green {
+  border: 1px solid rgba(16,185,129,0.22) !important;
+  border-top: 2px solid rgba(16,185,129,0.45) !important;
+  box-shadow: 0 8px 32px rgba(16,185,129,0.1), inset 0 1px 0 rgba(255,255,255,0.1) !important;
+}
+[data-card-style="glassmorphic"] .kpi-card.green::before { background: none !important; }
+[data-card-style="glassmorphic"] .kpi-card.blue {
+  border: 1px solid rgba(56,189,248,0.22) !important;
+  border-top: 2px solid rgba(56,189,248,0.45) !important;
+  box-shadow: 0 8px 32px rgba(56,189,248,0.1), inset 0 1px 0 rgba(255,255,255,0.1) !important;
+}
+[data-card-style="glassmorphic"] .kpi-card.blue::before { background: none !important; }
+[data-card-style="glassmorphic"] .kpi-label {
+  font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.08em !important;
+  color: rgba(255,255,255,0.4) !important;
+}
+[data-card-style="glassmorphic"] .kpi-card.gold .kpi-value { color: #fbbf24 !important; }
+[data-card-style="glassmorphic"] .kpi-card.green .kpi-value { color: #34d399 !important; }
+[data-card-style="glassmorphic"] .kpi-card.red   .kpi-value { color: #f87171 !important; }
+[data-card-style="glassmorphic"] .kpi-card.blue  .kpi-value { color: #7dd3fc !important; }
+[data-card-style="glassmorphic"] .card {
+  background: rgba(255,255,255,0.06) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  border-top: 2px solid rgba(255,255,255,0.18) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12) !important;
+}
+[data-card-style="glassmorphic"] .card-header {
+  background: rgba(255,255,255,0.03) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.07) !important;
+}
+
+/* ════ CINEMATIC DARK ════ */
+[data-card-style="cinematic"] .kpi-card {
+  border-radius: 18px !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+[data-card-style="cinematic"] .kpi-card::after {
+  content: '' !important;
+  position: absolute !important; top: 0 !important; right: 0 !important;
+  width: 70% !important; height: 100% !important;
+  clip-path: polygon(30% 0%, 100% 0%, 100% 100%, 0% 100%) !important;
+  pointer-events: none !important;
+  opacity: 0.07 !important;
+  z-index: 0 !important;
+}
+[data-card-style="cinematic"] .kpi-card > * { position: relative; z-index: 1; }
+[data-card-style="cinematic"] .kpi-card::before { height: 0 !important; background: none !important; }
+[data-card-style="cinematic"] .kpi-card.gold {
+  background: linear-gradient(145deg, #1a1400 0%, #0c0900 100%) !important;
+  border: 1px solid rgba(245,200,66,0.18) !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(245,200,66,0.15) !important;
+}
+[data-card-style="cinematic"] .kpi-card.gold::after {
+  background: linear-gradient(135deg, #f5c842, transparent) !important;
+}
+[data-card-style="cinematic"] .kpi-card.red {
+  background: linear-gradient(145deg, #150505 0%, #0c0404 100%) !important;
+  border: 1px solid rgba(239,68,68,0.18) !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(239,68,68,0.12) !important;
+}
+[data-card-style="cinematic"] .kpi-card.red::after {
+  background: linear-gradient(135deg, #ef4444, transparent) !important;
+}
+[data-card-style="cinematic"] .kpi-card.green {
+  background: linear-gradient(145deg, #041210 0%, #030c0b 100%) !important;
+  border: 1px solid rgba(16,185,129,0.18) !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(16,185,129,0.12) !important;
+}
+[data-card-style="cinematic"] .kpi-card.green::after {
+  background: linear-gradient(135deg, #10b981, transparent) !important;
+}
+[data-card-style="cinematic"] .kpi-card.blue {
+  background: linear-gradient(145deg, #040d18 0%, #030a14 100%) !important;
+  border: 1px solid rgba(96,165,250,0.18) !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(96,165,250,0.12) !important;
+}
+[data-card-style="cinematic"] .kpi-card.blue::after {
+  background: linear-gradient(135deg, #60a5fa, transparent) !important;
+}
+[data-card-style="cinematic"] .kpi-label {
+  font-size: 9px !important; font-weight: 800 !important;
+  letter-spacing: 0.18em !important; color: rgba(255,255,255,0.3) !important;
+}
+[data-card-style="cinematic"] .kpi-card.gold .kpi-value { color: #fbbf24 !important; text-shadow: 0 0 20px rgba(245,200,66,0.4) !important; }
+[data-card-style="cinematic"] .kpi-card.red   .kpi-value { color: #f87171 !important; text-shadow: 0 0 20px rgba(239,68,68,0.4) !important; }
+[data-card-style="cinematic"] .kpi-card.green .kpi-value { color: #34d399 !important; text-shadow: 0 0 20px rgba(16,185,129,0.4) !important; }
+[data-card-style="cinematic"] .kpi-card.blue  .kpi-value { color: #93c5fd !important; text-shadow: 0 0 20px rgba(96,165,250,0.4) !important; }
+[data-card-style="cinematic"] .kpi-value { font-size: 30px !important; font-weight: 700 !important; }
+[data-card-style="cinematic"] .card {
+  background: rgba(10,10,14,0.92) !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.7) !important;
+}
+[data-card-style="cinematic"] .card-header {
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+  position: relative !important;
+}
+[data-card-style="cinematic"] .card-header::before {
+  content: '' !important;
+  position: absolute !important; left: 0 !important; top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 3px !important; height: 60% !important;
+  background: linear-gradient(180deg, #f5c842, #e8a020) !important;
+  box-shadow: 0 0 8px rgba(245,200,66,0.5) !important;
+  border-radius: 0 2px 2px 0 !important;
+}
+[data-card-style="cinematic"] .card-title { padding-left: 8px !important; font-weight: 800 !important; }
 </style>
 </head>
 <body>
@@ -3310,6 +3574,58 @@ tr.overdue-critical .heat-ring {
               <span style="width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,rgba(56,189,248,0.25),rgba(14,32,64,0.95));border:1.5px solid rgba(56,189,248,0.4);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px">🧊</span>
               <span style="flex:1;text-align:left"><span style="display:block;font-size:12px;font-weight:600;color:var(--text)">Glacier</span><span style="display:block;font-size:10px;color:var(--text3)">Frosted glass blue</span></span>
               <svg id="theme-check-glacier" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px;color:var(--gold);flex-shrink:0;display:none"><polyline points="2,9 6,13 14,3"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- Card Style -->
+      <div class="settings-row" style="cursor:default">
+        <div class="settings-row-icon" style="background:rgba(56,189,248,0.12);color:#38bdf8">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><rect x="2" y="4" width="7" height="7" rx="1.5"/><rect x="11" y="4" width="7" height="7" rx="1.5"/><rect x="2" y="13" width="7" height="5" rx="1.5"/><rect x="11" y="13" width="7" height="5" rx="1.5"/></svg>
+        </div>
+        <div class="settings-row-label">
+          <div class="settings-row-label-main">Card Style</div>
+          <div class="settings-row-label-sub" id="card-style-sub-lbl">Dashboard &amp; analytics cards</div>
+        </div>
+        <div id="card-style-dropdown-wrap" style="position:relative;flex-shrink:0">
+          <button id="card-style-dropdown-btn" onclick="cardStyleDropdownToggle()"
+            style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1.5px solid var(--border2);border-radius:10px;background:var(--surface2);color:var(--text);font-size:12px;font-weight:600;font-family:var(--font-body);cursor:pointer;transition:all 0.18s;min-width:140px;justify-content:space-between">
+            <span id="card-style-dropdown-label" style="display:flex;align-items:center;gap:7px">
+              <span id="card-style-dropdown-swatch" style="width:14px;height:14px;border-radius:4px;display:inline-block;flex-shrink:0;background:linear-gradient(135deg,rgba(245,158,11,0.3),rgba(245,158,11,0.1));border:1px solid rgba(245,158,11,0.3)"></span>
+              <span id="card-style-dropdown-name">Default</span>
+            </span>
+            <svg id="card-style-dropdown-chevron" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;transition:transform 0.2s;flex-shrink:0"><polyline points="5,7 10,13 15,7"/></svg>
+          </button>
+          <div id="card-style-dropdown-menu" style="display:none;position:absolute;right:0;top:calc(100% + 6px);min-width:210px;background:var(--surface);border:1.5px solid var(--border2);border-radius:12px;overflow-y:auto;max-height:320px;z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,0.45);padding:5px">
+            <button class="card-style-opt-btn" id="card-style-btn-default" onclick="settingsSetCardStyle('default');cardStyleDropdownToggle()"
+              style="width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:none;background:transparent;cursor:pointer;border-radius:8px;font-family:var(--font-body);transition:background 0.12s">
+              <span style="width:22px;height:22px;border-radius:6px;background:rgba(14,17,24,0.9);border:1.5px solid rgba(255,255,255,0.1);flex-shrink:0"></span>
+              <span style="flex:1;text-align:left"><span style="display:block;font-size:12px;font-weight:600;color:var(--text)">Default</span><span style="display:block;font-size:10px;color:var(--text3)">Current glass style</span></span>
+              <svg id="card-style-check-default" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px;color:var(--gold);flex-shrink:0;display:none"><polyline points="2,9 6,13 14,3"/></svg>
+            </button>
+            <button class="card-style-opt-btn" id="card-style-btn-obsidian" onclick="settingsSetCardStyle('obsidian');cardStyleDropdownToggle()"
+              style="width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:none;background:transparent;cursor:pointer;border-radius:8px;font-family:var(--font-body);transition:background 0.12s">
+              <span style="width:22px;height:22px;border-radius:6px;background:linear-gradient(145deg,rgba(245,158,11,0.2),rgba(245,158,11,0.05));border:1.5px solid rgba(245,158,11,0.3);flex-shrink:0"></span>
+              <span style="flex:1;text-align:left"><span style="display:block;font-size:12px;font-weight:600;color:var(--text)">Obsidian Vault</span><span style="display:block;font-size:10px;color:var(--text3)">Colored gradient fills + seam</span></span>
+              <svg id="card-style-check-obsidian" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px;color:var(--gold);flex-shrink:0;display:none"><polyline points="2,9 6,13 14,3"/></svg>
+            </button>
+            <button class="card-style-opt-btn" id="card-style-btn-editorial" onclick="settingsSetCardStyle('editorial');cardStyleDropdownToggle()"
+              style="width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:none;background:transparent;cursor:pointer;border-radius:8px;font-family:var(--font-body);transition:background 0.12s">
+              <span style="width:22px;height:22px;border-radius:6px;background:#07060d;border-left:3px solid #f5c842;flex-shrink:0"></span>
+              <span style="flex:1;text-align:left"><span style="display:block;font-size:12px;font-weight:600;color:var(--text)">Neon Editorial</span><span style="display:block;font-size:10px;color:var(--text3)">Left-border accent, no fills</span></span>
+              <svg id="card-style-check-editorial" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px;color:var(--gold);flex-shrink:0;display:none"><polyline points="2,9 6,13 14,3"/></svg>
+            </button>
+            <button class="card-style-opt-btn" id="card-style-btn-glassmorphic" onclick="settingsSetCardStyle('glassmorphic');cardStyleDropdownToggle()"
+              style="width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:none;background:transparent;cursor:pointer;border-radius:8px;font-family:var(--font-body);transition:background 0.12s">
+              <span style="width:22px;height:22px;border-radius:6px;background:rgba(255,255,255,0.07);backdrop-filter:blur(8px);border:1.5px solid rgba(255,255,255,0.15);border-top-color:rgba(56,189,248,0.4);flex-shrink:0"></span>
+              <span style="flex:1;text-align:left"><span style="display:block;font-size:12px;font-weight:600;color:var(--text)">Glassmorphic</span><span style="display:block;font-size:10px;color:var(--text3)">Frosted glass + glow halos</span></span>
+              <svg id="card-style-check-glassmorphic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px;color:var(--gold);flex-shrink:0;display:none"><polyline points="2,9 6,13 14,3"/></svg>
+            </button>
+            <button class="card-style-opt-btn" id="card-style-btn-cinematic" onclick="settingsSetCardStyle('cinematic');cardStyleDropdownToggle()"
+              style="width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:none;background:transparent;cursor:pointer;border-radius:8px;font-family:var(--font-body);transition:background 0.12s">
+              <span style="width:22px;height:22px;border-radius:6px;overflow:hidden;position:relative;background:#060509;border:1.5px solid rgba(245,200,66,0.2);flex-shrink:0"><span style="position:absolute;top:0;right:0;width:60%;height:100%;background:linear-gradient(135deg,rgba(245,200,66,0.25),transparent);clip-path:polygon(30% 0%,100% 0%,100% 100%,0% 100%)"></span></span>
+              <span style="flex:1;text-align:left"><span style="display:block;font-size:12px;font-weight:600;color:var(--text)">Cinematic Dark</span><span style="display:block;font-size:10px;color:var(--text3)">Diagonal slash + glow numbers</span></span>
+              <svg id="card-style-check-cinematic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px;color:var(--gold);flex-shrink:0;display:none"><polyline points="2,9 6,13 14,3"/></svg>
             </button>
           </div>
         </div>
@@ -14542,6 +14858,83 @@ function _updateBioSettingsRow() {
 }
 
 
+
+// ══════════════════════════════════════════════════════════════
+// CARD STYLE SYSTEM
+// ══════════════════════════════════════════════════════════════
+var _CARD_STYLE_META = {
+  'default':      { name: 'Default',      desc: 'Current glass style' },
+  'obsidian':     { name: 'Obsidian Vault', desc: 'Gradient fills + seam glow' },
+  'editorial':    { name: 'Neon Editorial', desc: 'Left-border accent, no fills' },
+  'glassmorphic': { name: 'Glassmorphic',   desc: 'Frosted glass + halos' },
+  'cinematic':    { name: 'Cinematic Dark', desc: 'Diagonal slash + glow numbers' }
+};
+
+function applyCardStyle(style) {
+  var validStyles = ['default','obsidian','editorial','glassmorphic','cinematic'];
+  var s = validStyles.indexOf(style) >= 0 ? style : 'default';
+  if (s === 'default') {
+    document.documentElement.removeAttribute('data-card-style');
+    document.body.removeAttribute('data-card-style');
+  } else {
+    document.documentElement.setAttribute('data-card-style', s);
+    document.body.setAttribute('data-card-style', s);
+  }
+  localStorage.setItem('sq_card_style', s);
+  if (typeof _updateCardStyleDropdownUI === 'function') _updateCardStyleDropdownUI(s);
+  if (typeof renderCurrentPage === 'function') {
+    setTimeout(function() { renderCurrentPage(); }, 30);
+  }
+}
+
+function _updateCardStyleDropdownUI(style) {
+  var meta = _CARD_STYLE_META[style] || _CARD_STYLE_META['default'];
+  var nameEl = document.getElementById('card-style-dropdown-name');
+  var subEl  = document.getElementById('card-style-sub-lbl');
+  if (nameEl) nameEl.textContent = meta.name;
+  if (subEl)  subEl.textContent  = meta.desc;
+  var allStyles = ['default','obsidian','editorial','glassmorphic','cinematic'];
+  allStyles.forEach(function(t) {
+    var chk = document.getElementById('card-style-check-' + t);
+    var btn = document.getElementById('card-style-btn-' + t);
+    if (chk) chk.style.display = (t === style) ? 'block' : 'none';
+    if (btn) btn.style.background = (t === style) ? 'rgba(255,255,255,0.06)' : 'transparent';
+  });
+  if (!document._cardStyleHover) {
+    document._cardStyleHover = true;
+    var s = document.createElement('style');
+    s.textContent = '.card-style-opt-btn:hover { background: var(--surface2) !important; }';
+    document.head.appendChild(s);
+  }
+}
+
+function cardStyleDropdownToggle() {
+  var menu    = document.getElementById('card-style-dropdown-menu');
+  var chevron = document.getElementById('card-style-dropdown-chevron');
+  if (!menu) return;
+  var isOpen = menu.style.display !== 'none';
+  menu.style.display = isOpen ? 'none' : 'block';
+  if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+  if (!isOpen) {
+    setTimeout(function() {
+      function outsideClick(e) {
+        var wrap = document.getElementById('card-style-dropdown-wrap');
+        if (wrap && !wrap.contains(e.target)) {
+          menu.style.display = 'none';
+          if (chevron) chevron.style.transform = '';
+          document.removeEventListener('click', outsideClick);
+        }
+      }
+      document.addEventListener('click', outsideClick);
+    }, 10);
+  }
+}
+
+function settingsSetCardStyle(style) {
+  applyCardStyle(style);
+  haptic('light');
+}
+
 function _openAvatarPicker() { var el = document.getElementById('avatar-file-input'); if (el) el.click(); }
 function renderSettingsPage() {
   const el = document.getElementById('settings-agent-card');
@@ -14630,6 +15023,10 @@ function renderSettingsPage() {
   // Theme dropdown — sync active state for all themes
   const savedThemeNow = localStorage.getItem('m2_theme') || 'dark';
   if (typeof _updateThemeDropdownUI === 'function') _updateThemeDropdownUI(savedThemeNow);
+
+  // Card style dropdown — sync active state
+  const savedCardStyleNow = localStorage.getItem('sq_card_style') || 'default';
+  if (typeof _updateCardStyleDropdownUI === 'function') _updateCardStyleDropdownUI(savedCardStyleNow);
 
   // Haptic toggle
   const hapticCheck  = document.getElementById('haptic-toggle');
@@ -15248,6 +15645,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const savedTheme = localStorage.getItem('m2_theme') || 'dark';
   const validThemes = ['dark','light','amoled','navy','indigo','glacier'];
   applyTheme(validThemes.includes(savedTheme) ? savedTheme : 'dark');
+
+  // Apply saved card style
+  const savedCardStyle = localStorage.getItem('sq_card_style') || 'default';
+  applyCardStyle(savedCardStyle);
 
   // Set month label dynamically from state
   const today = new Date();
