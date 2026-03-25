@@ -14695,10 +14695,10 @@ function showLockScreen() {
   document.body.style.overflow = 'hidden';
   _pinBuffer = ''; _pinTarget = null;
   // Reset focus mode — show all elements
-  ['ls-logo-block','ls-tabs-wrap'].forEach(function(eid) {
+  ['ls-logo-block','ls-tabs-wrap','ls-signin-top','lock-agent-list'].forEach(function(eid) {
     var el = document.getElementById(eid); if (el) el.style.display = '';
   });
-  var sp = document.getElementById('auth-signin-panel'); if (sp) sp.style.display = '';
+  document.getElementById('lock-pin-section').style.display = 'none';
   document.getElementById('lock-pin-section').style.display = 'none';
   authShowTab('signin');
   renderLockAgentList();
@@ -14747,14 +14747,19 @@ function renderLockAgentList() {
 
 function lockSelectAgent(id) {
   if (!id) {
-    // Back — show everything, hide PIN
+    // Back — restore all hidden elements, hide PIN pad
     document.getElementById('lock-pin-section').style.display = 'none';
-    var hideEls = ['ls-logo-block','ls-tabs','lock-agent-list','auth-signin-panel-top'];
-    hideEls.forEach(function(eid) {
+    // Restore logo + tabs
+    ['ls-logo-block','ls-tabs-wrap'].forEach(function(eid) {
       var el = document.getElementById(eid); if (el) el.style.display = '';
     });
-    var signinPanel = document.getElementById('auth-signin-panel');
-    if (signinPanel) signinPanel.style.display = '';
+    // Restore sign-in panel children
+    ['lock-agent-list','ls-signin-top'].forEach(function(eid) {
+      var el = document.getElementById(eid); if (el) el.style.display = '';
+    });
+    // Restore divider + code card + status by showing the top section wrapper
+    var topWrap = document.getElementById('ls-signin-top');
+    if (topWrap) topWrap.style.display = '';
     _pinTarget = null; _pinBuffer = ''; updatePinDots();
     return;
   }
@@ -14764,13 +14769,16 @@ function lockSelectAgent(id) {
   if (!_pinTarget) return;
   _pinBuffer = ''; _pinMode = 'unlock';
 
-  // Focus mode — hide everything except PIN card
-  var signinPanel = document.getElementById('auth-signin-panel');
-  if (signinPanel) signinPanel.style.display = 'none';
+  // Focus mode: hide logo, tabs, agent list, code input — but NOT auth-signin-panel itself
+  // (PIN pad lives inside auth-signin-panel so we must keep the parent visible)
   var logoBlock = document.getElementById('ls-logo-block');
   if (logoBlock) logoBlock.style.display = 'none';
   var tabsBlock = document.getElementById('ls-tabs-wrap');
   if (tabsBlock) tabsBlock.style.display = 'none';
+  var topWrap = document.getElementById('ls-signin-top');
+  if (topWrap) topWrap.style.display = 'none';
+  var agentList = document.getElementById('lock-agent-list');
+  if (agentList) agentList.style.display = 'none';
 
   document.getElementById('lock-pin-section').style.display = 'block';
   document.getElementById('lock-pin-name').textContent = _pinTarget.name;
@@ -16408,6 +16416,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       <!-- Cached agent cards -->
       <div id="lock-agent-list" class="ls-anim-3" style="width:100%;margin-bottom:16px"></div>
 
+      <div id="ls-signin-top" style="width:100%">
       <!-- Divider -->
       <div class="ls-divider ls-anim-3">
         <div class="ls-divider-line"></div>
@@ -16426,6 +16435,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       </div>
 
       <div id="auth-status" class="ls-status"></div>
+      </div>
 
       <!-- PIN pad -->
       <div id="lock-pin-section" style="display:none;width:100%">
