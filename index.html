@@ -14541,6 +14541,8 @@ function _updateBioSettingsRow() {
   if (status) { status.textContent = enabled ? '✅' : '›'; status.style.color = enabled ? 'var(--green)' : ''; }
 }
 
+
+function _openAvatarPicker() { var el = document.getElementById('avatar-file-input'); if (el) el.click(); }
 function renderSettingsPage() {
   const el = document.getElementById('settings-agent-card');
   if (el && _activeAgent) {
@@ -14553,27 +14555,53 @@ function renderSettingsPage() {
       ? '<img src="'+avatar+'" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid '+s.colorHex+';box-shadow:0 0 0 4px '+s.colorHex+'22">'
       : '<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,'+s.colorHex+','+s.colorHex+'99);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:28px;font-family:var(--font-head);color:#fff;box-shadow:0 4px 16px '+s.colorHex+'44;letter-spacing:-1px">'+initials+'</div>';
 
-    el.innerHTML =
-      '<div style="background:linear-gradient(135deg,var(--surface) 0%,var(--surface2) 100%);border-radius:16px;overflow:hidden;border:1px solid var(--border2)">'
-      // Banner
-      +'<div style="height:70px;background:linear-gradient(135deg,'+s.colorHex+'33,'+s.colorHex+'11);position:relative">'
-      +'<div style="position:absolute;inset:0;opacity:0.08;background:repeating-linear-gradient(45deg,'+s.colorHex+' 0,'+s.colorHex+' 1px,transparent 0,transparent 50%);background-size:12px 12px"></div>'
-      +'</div>'
-      // Avatar overlapping banner
-      +'<div style="padding:0 20px 20px;margin-top:-40px;position:relative">'
-      +'<div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px">'
-      +avatarEl
-      +'<button onclick="openProfileEditModal()" style="background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:7px 16px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;font-family:var(--font-body);display:flex;align-items:center;gap:6px">✏️ Edit</button>'
-      +'</div>'
-      // Name + meta
-      +'<div style="font-family:var(--font-head);font-size:20px;font-weight:800;color:var(--text);letter-spacing:-0.3px;margin-bottom:3px">'+displayName+'</div>'
-      +'<div style="font-size:12px;color:var(--text3);margin-bottom:10px;font-family:var(--font-mono)">'+(_activeAgent.lbCode||_activeAgent.id)+'</div>'
-      +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
-      +'<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:'+s.colorHex+'22;color:'+s.colorHex+'">'+s.label+' — '+s.name+'</span>'
-      +'<span style="font-size:11px;padding:3px 10px;border-radius:20px;background:var(--surface);color:var(--text3);border:1px solid var(--border)">LoanBase Ghana</span>'
-      +'</div>'
-      +'</div>'
-      +'</div>';
+    el.innerHTML = (function() {
+      var avatarHtml = avatar
+        ? '<img src="' + avatar + '" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid ' + s.colorHex + ';box-shadow:0 0 0 3px ' + s.colorHex + '22;cursor:pointer">'
+        : '<div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,' + s.colorHex + ',' + s.colorHex + '99);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;font-family:var(--font-head);color:#fff;box-shadow:0 4px 16px ' + s.colorHex + '44;border:2px solid ' + s.colorHex + '55;cursor:pointer">' + initials + '</div>';
+
+      var camIcon = '<svg viewBox="0 0 16 16" fill="none" style="width:10px;height:10px"><path d="M8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" fill="#000"/><path d="M13 4h-1.17l-.86-1H5.03L4.17 4H3a1 1 0 00-1 1v7a1 1 0 001 1h10a1 1 0 001-1V5a1 1 0 00-1-1z" stroke="#000" stroke-width="1.2"/></svg>';
+
+      var infoRows =
+        '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:9px;border-left:2px solid ' + s.colorHex + '88;margin-bottom:7px">'
+        + '<div style="width:26px;height:26px;border-radius:7px;background:' + s.colorHex + '22;display:flex;align-items:center;justify-content:center;flex-shrink:0">'
+        + '<svg viewBox="0 0 16 16" fill="none" stroke="' + s.colorHex + '" stroke-width="1.5" style="width:13px;height:13px"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.31 2.69-6 6-6s6 2.69 6 6"/></svg>'
+        + '</div>'
+        + '<div style="font-size:11px;color:var(--text3);flex:1">Agent Code</div>'
+        + '<div style="font-size:11px;font-weight:700;color:var(--text);font-family:var(--font-mono)">' + (_activeAgent.lbCode || _activeAgent.id) + '</div>'
+        + '</div>'
+        + '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:9px;border-left:2px solid ' + s.colorHex + '88">'
+        + '<div style="width:26px;height:26px;border-radius:7px;background:' + s.colorHex + '22;display:flex;align-items:center;justify-content:center;flex-shrink:0">'
+        + '<svg viewBox="0 0 16 16" fill="none" stroke="' + s.colorHex + '" stroke-width="1.5" style="width:13px;height:13px"><rect x="1" y="3" width="14" height="11" rx="2"/><path d="M1 7h14"/><path d="M5 3V1M11 3V1"/></svg>'
+        + '</div>'
+        + '<div style="font-size:11px;color:var(--text3);flex:1">Stage</div>'
+        + '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:' + s.colorHex + '22;color:' + s.colorHex + '">' + s.label + ' — ' + s.name + '</span>'
+        + '</div>';
+
+      return '<div style="position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--border2);background:linear-gradient(145deg,var(--surface) 0%,var(--bg) 100%)">'
+        + '<div style="height:3px;background:linear-gradient(90deg,' + s.colorHex + ',' + s.colorHex + '88,transparent 80%)"></div>'
+        + '<div style="position:absolute;top:-10px;right:-8px;font-family:var(--font-head);font-size:100px;font-weight:800;color:' + s.colorHex + ';opacity:0.055;line-height:1;user-select:none;pointer-events:none;z-index:0">' + initials + '</div>'
+        + '<div style="position:relative;z-index:1;padding:20px">'
+
+        + '<div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;padding:12px 14px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid ' + s.colorHex + '22">'
+          + '<div style="position:relative;flex-shrink:0" onclick="_openAvatarPicker()" title="Tap to change photo">'
+            + avatarHtml
+            + '<div style="position:absolute;bottom:-2px;right:-2px;width:20px;height:20px;border-radius:50%;background:' + s.colorHex + ';display:flex;align-items:center;justify-content:center;border:2px solid var(--bg);cursor:pointer">' + camIcon + '</div>'
+          + '</div>'
+          + '<div style="flex:1;min-width:0">'
+            + '<div style="font-family:var(--font-head);font-size:14px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + displayName + '</div>'
+            + '<div style="font-size:10px;color:var(--text3);margin-top:2px">Tap photo to change</div>'
+          + '</div>'
+          + '<button onclick="openProfileEditModal()" style="font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px;background:' + s.colorHex + '18;border:1px solid ' + s.colorHex + '44;color:' + s.colorHex + ';cursor:pointer;font-family:var(--font-body);flex-shrink:0">Edit ✏️</button>'
+        + '</div>'
+
+        + '<div style="font-size:9px;font-weight:800;letter-spacing:0.16em;color:' + s.colorHex + ';text-transform:uppercase;margin-bottom:6px">Agent Profile</div>'
+        + '<div style="font-family:var(--font-head);font-size:26px;font-weight:800;color:var(--text);letter-spacing:-0.5px;line-height:1.15;margin-bottom:12px">' + displayName + '</div>'
+        + '<div style="width:28px;height:3px;background:' + s.colorHex + ';border-radius:2px;margin-bottom:14px"></div>'
+        + infoRows
+        + '</div>'
+        + '</div>';
+    })()
   }
 
   // Target
@@ -15773,56 +15801,63 @@ document.addEventListener('DOMContentLoaded', async () => {
   </div>
 </div>
 <style>
-/* ── Lock screen design system ────────────────────────────── */
+/* ══════════════════════════════════════════════════════════
+   LOCK SCREEN — Card Spotlight + Neon Glow PIN (Option 3+4)
+   ══════════════════════════════════════════════════════════ */
 :root {
-  --ls-gold:    #f0a030;
-  --ls-gold2:   #fcc044;
-  --ls-gold-g:  linear-gradient(135deg, #f0a030, #fcc044);
-  --ls-bg:      #050608;
-  --ls-surface: rgba(14,16,22,0.85);
-  --ls-border:  rgba(255,255,255,0.08);
-  --ls-border2: rgba(255,255,255,0.12);
-  --ls-text:    #edf0f7;
-  --ls-muted:   #6b7a96;
-  --ls-input-bg:rgba(255,255,255,0.04);
-  --ls-gold-glow: rgba(240,160,48,0.2);
+  --ls-gold:      #f0a030;
+  --ls-gold2:     #fcc044;
+  --ls-gold-g:    linear-gradient(135deg, #f0a030, #fcc044);
+  --ls-bg:        #06080f;
+  --ls-surface:   rgba(255,255,255,0.07);
+  --ls-border:    rgba(255,255,255,0.09);
+  --ls-border2:   rgba(255,255,255,0.13);
+  --ls-text:      #edf0f7;
+  --ls-muted:     #5a6a88;
+  --ls-input-bg:  rgba(255,255,255,0.05);
+  --ls-gold-glow: rgba(240,160,48,0.25);
+  --ls-neon:      #38bdf8;
+  --ls-neon-glow: rgba(56,189,248,0.5);
 }
 
-/* Background layers */
+/* ── Background ── */
 .ls-bg {
   position: fixed; inset: 0; z-index: 0;
-  background: var(--ls-bg);
+  background:
+    radial-gradient(ellipse at 50% 28%, rgba(14,165,233,0.14) 0%, transparent 55%),
+    radial-gradient(ellipse at 20% 80%, rgba(240,160,48,0.07) 0%, transparent 50%),
+    linear-gradient(160deg, #06080f 0%, #080c18 100%);
 }
 .ls-bg-mesh {
   position: absolute; inset: 0;
   background:
-    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(240,160,48,0.07) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 80% 85%, rgba(96,165,250,0.05) 0%, transparent 55%),
-    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(167,139,250,0.03) 0%, transparent 60%);
+    radial-gradient(ellipse 80% 60% at 50% 25%, rgba(240,160,48,0.09) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(56,189,248,0.06) 0%, transparent 50%);
 }
 .ls-bg-grid {
-  position: absolute; inset: 0;
+  position: absolute; inset: 0; opacity: 0.025;
   background-image:
-    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
-  background-size: 40px 40px;
-  mask-image: radial-gradient(ellipse 100% 100% at 50% 0%, black 30%, transparent 80%);
+    linear-gradient(rgba(56,189,248,0.6) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56,189,248,0.6) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: radial-gradient(ellipse 90% 80% at 50% 0%, black 20%, transparent 75%);
 }
+/* CRT scanline overlay for neon feel */
 .ls-bg-vignette {
   position: absolute; inset: 0;
-  background: radial-gradient(ellipse 120% 100% at 50% 50%, transparent 40%, rgba(0,0,0,0.7) 100%);
+  background: radial-gradient(ellipse 120% 100% at 50% 50%, transparent 40%, rgba(0,0,0,0.65) 100%);
 }
 
-/* Main content wrapper */
+/* ── Wrapper ── */
 .ls-wrap {
   position: relative; z-index: 1;
   max-width: 380px; margin: 0 auto;
-  padding: 56px 22px 80px;
+  padding: 48px 22px 80px;
   min-height: 100vh;
   display: flex; flex-direction: column; align-items: center;
 }
 
-/* Entrance animations */
+/* ── Entrance animations ── */
 @keyframes lsFadeUp {
   from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -15837,27 +15872,38 @@ document.addEventListener('DOMContentLoaded', async () => {
 .ls-anim-4 { animation: lsFadeUp 0.5s cubic-bezier(0.22,1,0.36,1) 0.28s both; }
 .ls-anim-in { animation: lsScaleIn 0.32s cubic-bezier(0.34,1.4,0.64,1) both; }
 
-/* Logo */
-.ls-logo-block { text-align: center; margin-bottom: 36px; }
+/* ── Logo block ── Card Spotlight style ── */
+.ls-logo-block { text-align: center; margin-bottom: 32px; }
 .ls-logo-icon {
   position: relative;
   width: 72px; height: 72px;
   margin: 0 auto 16px;
 }
+/* Halo glow behind logo */
+.ls-logo-icon::after {
+  content: '';
+  position: absolute; inset: -16px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(240,160,48,0.2) 0%, transparent 70%);
+  z-index: 0;
+  pointer-events: none;
+}
+/* Spinning conic ring */
 .ls-logo-ring {
   position: absolute; inset: -4px;
-  border-radius: 24px;
-  background: conic-gradient(from 0deg, rgba(240,160,48,0.6), rgba(252,192,68,0.3), rgba(240,160,48,0), rgba(240,160,48,0.6));
-  animation: lsRingSpin 4s linear infinite;
-  filter: blur(1px);
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba(240,160,48,0.85), rgba(252,192,68,0.4), rgba(240,160,48,0.05), rgba(240,160,48,0.85));
+  animation: lsRingSpin 3.5s linear infinite;
+  filter: blur(0.5px);
 }
 @keyframes lsRingSpin { to { transform: rotate(360deg); } }
+/* Inner icon face */
 .ls-logo-icon::before {
   content: '';
   position: absolute; inset: 2px;
-  border-radius: 21px;
+  border-radius: 50%;
   background: var(--ls-gold-g);
-  box-shadow: 0 0 40px rgba(240,160,48,0.35), inset 0 1px 0 rgba(255,255,255,0.3);
+  box-shadow: 0 0 32px rgba(240,160,48,0.4), inset 0 1px 0 rgba(255,255,255,0.35);
   z-index: 1;
 }
 .ls-logo-letters {
@@ -15875,92 +15921,81 @@ document.addEventListener('DOMContentLoaded', async () => {
   margin-bottom: 5px;
 }
 .ls-logo-sub {
-  font-size: 10px; font-weight: 600;
-  color: var(--ls-muted);
+  font-size: 10px; font-weight: 600; color: var(--ls-muted);
   letter-spacing: 2.5px; text-transform: uppercase;
 }
 
-/* Tabs */
+/* ── Tabs ── */
 .ls-tabs {
   display: flex;
   background: rgba(255,255,255,0.04);
   border: 1px solid var(--ls-border);
-  border-radius: 14px;
-  padding: 4px;
-  width: 100%; margin-bottom: 24px;
-  gap: 3px;
+  border-radius: 14px; padding: 4px;
+  width: 100%; margin-bottom: 24px; gap: 3px;
 }
 .ls-tab {
-  flex: 1; padding: 10px 16px;
-  border: none; cursor: pointer; border-radius: 11px;
-  font-size: 13px; font-weight: 600;
-  font-family: var(--font-body);
-  color: var(--ls-muted);
-  background: transparent;
-  transition: all 0.2s ease;
+  flex: 1; padding: 10px 16px; border: none; cursor: pointer;
+  border-radius: 11px; font-size: 13px; font-weight: 600;
+  font-family: var(--font-body); color: var(--ls-muted);
+  background: transparent; transition: all 0.2s ease;
 }
 .ls-tab-active {
-  background: var(--ls-gold-g) !important;
-  color: #000 !important;
+  background: var(--ls-gold-g) !important; color: #000 !important;
   font-weight: 700 !important;
-  box-shadow: 0 2px 12px rgba(240,160,48,0.35);
+  box-shadow: 0 2px 12px rgba(240,160,48,0.4);
 }
 
-/* Glass card */
+/* ── Glass card (sign-in) ── */
 .ls-card {
   width: 100%;
-  background: var(--ls-surface);
+  background: rgba(255,255,255,0.07);
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--ls-border2);
-  border-radius: 18px;
-  padding: 20px;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07);
+  border-top-color: rgba(240,160,48,0.25);
+  border-radius: 20px; padding: 20px;
+  box-shadow: 0 16px 56px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.1);
   margin-bottom: 12px;
 }
 
-/* Input */
+/* ── Input ── */
 .ls-input {
   width: 100%;
-  background: var(--ls-input-bg);
-  border: 1px solid var(--ls-border);
-  border-radius: 12px;
-  color: var(--ls-text);
-  padding: 13px 16px;
-  font-size: 14px; font-weight: 500;
-  font-family: var(--font-body);
-  outline: none;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px; color: var(--ls-text);
+  padding: 13px 16px; font-size: 14px; font-weight: 500;
+  font-family: var(--font-body); outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
-  margin-bottom: 12px;
-  box-sizing: border-box;
+  margin-bottom: 12px; box-sizing: border-box;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
 }
 .ls-input:focus {
-  border-color: rgba(240,160,48,0.5);
-  box-shadow: 0 0 0 3px rgba(240,160,48,0.1);
-  background: rgba(255,255,255,0.06);
+  border-color: rgba(240,160,48,0.55);
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.2), 0 0 0 3px rgba(240,160,48,0.12);
+  background: rgba(255,255,255,0.07);
 }
 .ls-input::placeholder { color: var(--ls-muted); }
 
-/* Primary button */
+/* ── Primary button ── */
 .ls-btn-primary {
-  width: 100%; padding: 14px;
-  border: none; border-radius: 12px; cursor: pointer;
-  background: var(--ls-gold-g);
-  color: #000; font-size: 14px; font-weight: 700;
+  width: 100%; padding: 14px; border: none; border-radius: 12px; cursor: pointer;
+  background: var(--ls-gold-g); color: #000; font-size: 14px; font-weight: 700;
   font-family: var(--font-body);
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  box-shadow: 0 4px 20px rgba(240,160,48,0.35);
+  box-shadow: 0 4px 24px rgba(240,160,48,0.45);
   transition: all 0.15s ease;
 }
-.ls-btn-primary:active { transform: scale(0.97); box-shadow: 0 2px 10px rgba(240,160,48,0.25); }
+.ls-btn-primary:hover { box-shadow: 0 6px 32px rgba(240,160,48,0.6); }
+.ls-btn-primary:active { transform: scale(0.97); box-shadow: 0 2px 12px rgba(240,160,48,0.3); }
 
-/* Ghost + Danger buttons */
+/* ── Ghost + Danger ── */
 .ls-btn-ghost {
   padding: 11px 16px; border-radius: 10px; cursor: pointer;
   background: transparent; border: 1px solid var(--ls-border2);
   color: var(--ls-muted); font-size: 13px; font-weight: 600;
   font-family: var(--font-body); transition: all 0.15s;
 }
-.ls-btn-ghost:hover { border-color: var(--ls-muted); color: var(--ls-text); }
+.ls-btn-ghost:hover { border-color: rgba(240,160,48,0.4); color: var(--ls-text); }
 .ls-btn-danger {
   padding: 11px 16px; border-radius: 10px; cursor: pointer;
   background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3);
@@ -15968,7 +16003,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   font-family: var(--font-body); transition: all 0.15s;
 }
 
-/* Divider */
+/* ── Divider ── */
 .ls-divider {
   display: flex; align-items: center; gap: 12px;
   width: 100%; margin-bottom: 14px;
@@ -15976,23 +16011,36 @@ document.addEventListener('DOMContentLoaded', async () => {
 .ls-divider-line { flex: 1; height: 1px; background: var(--ls-border); }
 .ls-divider-text { font-size: 11px; color: var(--ls-muted); white-space: nowrap; letter-spacing: 0.3px; }
 
-/* Status */
+/* ── Status ── */
 .ls-status {
   font-size: 12px; color: var(--ls-muted);
-  text-align: center; min-height: 18px;
-  margin-bottom: 8px;
+  text-align: center; min-height: 18px; margin-bottom: 8px;
 }
 
-/* ── PIN card ─────────────────────────────────────────── */
+/* ════════════════════════════════════════════════
+   PIN CARD — Neon Glow (Option 4)
+   ════════════════════════════════════════════════ */
 .ls-pin-card {
   width: 100%;
-  background: var(--ls-surface);
+  background: rgba(255,255,255,0.05);
   backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-  border: 1px solid var(--ls-border2);
+  border: 1px solid rgba(56,189,248,0.15);
+  border-top-color: rgba(56,189,248,0.3);
   border-radius: 24px;
   padding: 28px 20px 24px;
-  box-shadow: 0 16px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
+  box-shadow: 0 16px 60px rgba(0,0,0,0.65),
+              0 0 40px rgba(56,189,248,0.06),
+              inset 0 1px 0 rgba(255,255,255,0.1);
   text-align: center;
+}
+
+/* Secure label */
+.ls-pin-name::before {
+  content: 'SECURE PIN ENTRY';
+  display: block;
+  font-size: 8px; font-weight: 800; letter-spacing: 0.2em;
+  color: rgba(56,189,248,0.7); text-transform: uppercase;
+  margin-bottom: 8px;
 }
 .ls-pin-name {
   font-family: var(--font-head);
@@ -16002,72 +16050,97 @@ document.addEventListener('DOMContentLoaded', async () => {
 .ls-pin-stage {
   font-size: 11px; color: var(--ls-muted);
   text-transform: uppercase; letter-spacing: 1px;
-  margin-bottom: 28px;
+  margin-bottom: 20px;
 }
+
+/* Segment display (replaces dots) */
 .ls-pin-dots {
-  display: flex; justify-content: center; gap: 16px;
+  display: flex; justify-content: center; align-items: center; gap: 12px;
   margin-bottom: 8px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(56,189,248,0.14);
+  border-radius: 10px; padding: 12px 20px;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.5), 0 0 20px rgba(56,189,248,0.04);
 }
-/* Override existing pin-dot to new style */
-#lock-pin-section .pin-dot,
 .ls-pin-dot {
-  width: 16px; height: 16px; border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.15);
-  background: transparent;
-  transition: all 0.15s cubic-bezier(0.34,1.56,0.64,1);
+  width: 32px; height: 4px; border-radius: 2px;
+  background: rgba(255,255,255,0.08);
+  transition: all 0.18s ease;
 }
-#lock-pin-section .pin-dot.filled,
 .ls-pin-dot.filled {
-  background: var(--ls-gold);
-  border-color: var(--ls-gold);
-  box-shadow: 0 0 12px rgba(240,160,48,0.6);
-  transform: scale(1.15);
+  background: #38bdf8;
+  box-shadow: 0 0 10px rgba(56,189,248,0.9), 0 0 20px rgba(56,189,248,0.5);
+  transform: none;
 }
+
+/* Error */
 .ls-pin-error {
   font-size: 12px; color: #ef4444;
-  min-height: 20px; margin: 10px 0 18px;
+  min-height: 20px; margin: 10px 0 16px;
   font-weight: 500;
 }
 
-/* Numpad */
+/* Numpad — Neon Glow keys */
 .ls-numpad {
   display: grid; grid-template-columns: repeat(3, 1fr);
-  gap: 10px; max-width: 272px; margin: 0 auto 16px;
+  gap: 9px; max-width: 280px; margin: 0 auto 16px;
 }
 .ls-num {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
   padding: 16px 12px 14px;
   cursor: pointer;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 2px;
-  transition: all 0.1s ease;
-  min-height: 64px;
+  gap: 3px;
+  transition: all 0.12s ease;
+  min-height: 62px;
+  position: relative; overflow: hidden;
+}
+.ls-num::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(56,189,248,0.14), rgba(56,189,248,0.04));
+  opacity: 0; transition: opacity 0.15s;
+  border-radius: 12px;
+}
+.ls-num:hover::before { opacity: 1; }
+.ls-num:hover {
+  border-color: rgba(56,189,248,0.35);
+  box-shadow: 0 0 14px rgba(56,189,248,0.18);
 }
 .ls-num:active {
-  background: var(--ls-gold-g);
-  border-color: transparent;
+  background: rgba(56,189,248,0.15);
+  border-color: rgba(56,189,248,0.5);
   transform: scale(0.93);
-  box-shadow: 0 4px 16px rgba(240,160,48,0.4);
+  box-shadow: 0 0 20px rgba(56,189,248,0.35);
 }
-.ls-num:active .ls-num-main,
-.ls-num:active .ls-num-sub { color: #000 !important; }
+.ls-num:active .ls-num-main { color: #38bdf8 !important; }
 .ls-num-main {
   font-family: var(--font-head);
   font-size: 24px; font-weight: 600;
   color: var(--ls-text); line-height: 1;
+  position: relative; z-index: 1;
 }
 .ls-num-sub {
   font-size: 8px; font-weight: 700;
-  color: var(--ls-muted); letter-spacing: 1.5px;
+  color: rgba(56,189,248,0.45); letter-spacing: 1.5px;
+  position: relative; z-index: 1;
 }
 .ls-num-ghost {
   background: transparent !important;
   border-color: transparent !important;
+  box-shadow: none !important;
 }
-.ls-num-ghost:active { background: rgba(255,255,255,0.06) !important; box-shadow: none !important; }
+.ls-num-ghost::before { display: none !important; }
+.ls-num-ghost:hover { border-color: transparent !important; box-shadow: none !important; }
+.ls-num-ghost:active {
+  background: rgba(255,255,255,0.05) !important;
+  box-shadow: none !important; border-color: transparent !important;
+}
+.ls-num-ghost:active .ls-num-main { color: var(--ls-text) !important; }
 
+/* Locked out link */
 .ls-locked-out {
   background: none; border: none;
   font-size: 12px; color: var(--ls-muted);
@@ -16077,94 +16150,63 @@ document.addEventListener('DOMContentLoaded', async () => {
 }
 .ls-locked-out:hover { color: var(--ls-text); }
 
-/* ── Agent cards (in sign-in) ─────────────────────────── */
+/* ── Agent cards ── */
 .lock-agent-card {
   display: flex; align-items: center; gap: 14px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--ls-border);
-  border-radius: 14px;
-  padding: 13px 16px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 14px; padding: 13px 16px;
   cursor: pointer; width: 100%;
-  transition: all 0.18s ease;
-  text-align: left; margin-bottom: 8px;
+  transition: all 0.18s ease; text-align: left; margin-bottom: 8px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.2);
 }
 .lock-agent-card:hover {
   border-color: rgba(240,160,48,0.4);
-  background: rgba(240,160,48,0.05);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  background: rgba(240,160,48,0.06);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.25), 0 0 0 1px rgba(240,160,48,0.15);
+  transform: translateY(-1px);
 }
 .lock-agent-card.selected {
   border-color: var(--ls-gold);
   background: rgba(240,160,48,0.08);
+  box-shadow: 0 6px 24px rgba(240,160,48,0.15);
 }
 .lock-agent-avatar {
-  width: 42px; height: 42px; border-radius: 12px;
+  width: 44px; height: 44px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-weight: 800; font-size: 15px; flex-shrink: 0;
-  font-family: var(--font-head);
+  font-family: var(--font-head); font-size: 16px; font-weight: 800;
+  flex-shrink: 0; border: 2px solid transparent;
+}
+.lock-agent-name {
+  font-family: var(--font-head); font-size: 14px; font-weight: 700;
+  color: var(--ls-text); letter-spacing: -0.2px;
+}
+.lock-agent-meta {
+  font-size: 11px; color: var(--ls-muted); margin-top: 2px; letter-spacing: 0.2px;
+}
+.lock-agent-arrow {
+  margin-left: auto; color: var(--ls-gold); font-size: 18px; flex-shrink: 0;
 }
 
-/* ── New agent panel ──────────────────────────────────── */
+/* Signup panel */
 .ls-signup-icon {
-  width: 56px; height: 56px; border-radius: 16px;
-  background: rgba(240,160,48,0.1);
-  border: 1px solid rgba(240,160,48,0.2);
+  width: 56px; height: 56px; border-radius: 16px; margin: 0 auto 16px;
+  background: rgba(240,160,48,0.1); border: 1px solid rgba(240,160,48,0.25);
   display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 16px;
 }
 .ls-signup-title {
-  font-family: var(--font-head);
-  font-size: 18px; font-weight: 700; color: var(--ls-text);
-  margin-bottom: 8px;
+  font-family: var(--font-head); font-size: 20px; font-weight: 800;
+  color: var(--ls-text); margin-bottom: 8px; letter-spacing: -0.3px;
 }
 .ls-signup-sub {
-  font-size: 13px; color: var(--ls-muted);
-  line-height: 1.7; margin-bottom: 24px;
+  font-size: 13px; color: var(--ls-muted); line-height: 1.6; margin-bottom: 24px;
 }
 
 /* Footer */
 .ls-footer {
-  margin-top: auto; padding-top: 32px;
-  font-size: 10px; color: var(--ls-muted);
+  margin-top: 32px; font-size: 10px; color: rgba(255,255,255,0.12);
   letter-spacing: 0.5px; text-align: center;
 }
-
-/* Light theme overrides for lock screen */
-[data-theme="light"] .ls-bg { background: #f0f2f8; }
-[data-theme="light"] .ls-bg-grid {
-  background-image: linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
-}
-[data-theme="light"] .ls-card,
-[data-theme="light"] .ls-pin-card {
-  background: rgba(255,255,255,0.85);
-  border-color: rgba(0,0,0,0.08);
-  box-shadow: 0 8px 40px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.9);
-}
-[data-theme="light"] .ls-input { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.1); color: #0f1623; }
-[data-theme="light"] .ls-input::placeholder { color: #8b95a8; }
-[data-theme="light"] .ls-num { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.07); }
-[data-theme="light"] .ls-num-main { color: #0f1623; }
-[data-theme="light"] .ls-logo-sub,
-[data-theme="light"] .ls-muted,
-[data-theme="light"] .ls-pin-stage,
-[data-theme="light"] .ls-divider-text { color: #8b95a8; }
-[data-theme="light"] .ls-pin-name { color: #0f1623; }
-[data-theme="light"] #lock-pin-section .pin-dot { border-color: rgba(0,0,0,0.15); }
-
-/* AMOLED overrides */
-[data-theme="amoled"] .ls-bg { background: #000; }
-[data-theme="amoled"] .ls-card,
-[data-theme="amoled"] .ls-pin-card { background: rgba(8,8,8,0.95); border-color: rgba(255,255,255,0.06); }
-[data-theme="amoled"] .ls-num { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.06); }
-
-/* Shake animation — used by pin dots */
-@keyframes pinShake {
-  0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)}
-  40%{transform:translateX(6px)} 60%{transform:translateX(-4px)}
-  80%{transform:translateX(4px)}
-}
-.pin-dot.shake,
-.ls-pin-dot.shake { animation: pinShake 0.4s ease; }
 </style>
 
 <!-- AVATAR CROP OVERLAY -->
