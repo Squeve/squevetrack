@@ -5026,83 +5026,134 @@ function _invalidateOdCache(borrowerId) {
 }
 
 function getOdFee(b) {
-  const od = getOdAge(b.startDate);
-  if (od <= 0) return 0;  // M0 — no default yet
-
   const principal = b.principal || 0;
   if (principal <= 0) return 0;
 
+  // ── Snapshot path ────────────────────────────────────────────
+  // If a snapshot was set, calculate from snapshot date forward
+  // instead of from the original startDate.
+  if (b.odFeeSnapshot !== undefined && b.odFeeSnapshot !== null && b.odFeeSnapshotDate) {
+    const today      = new Date().toISOString().split('T')[0];
+    const snapDate   = b.odFeeSnapshotDate;
+    if (today < snapDate) return b.odFeeSnapshot; // snapshot in future — return as-is
+
+    // Days elapsed since snapshot date (excluding snapshot day itself)
+    const snap  = new Date(snapDate + 'T00:00:00Z');
+    const now   = new Date(today    + 'T00:00:00Z');
+    const daysElapsed = Math.max(0, Math.round((now - snap) / 86400000));
+
+    const amountPaid = b.amountPaid || 0;
+    const threshold  = principal * 1.00;
+    const cap        = principal;
+
+    // Use payLog entries AFTER snapshot date for payment timeline
+    const payLog     = (b.payLog || []).filter(p => p.date && p.delta > 0 && p.date > snapDate);
+    const sortedPays = payLog.slice().sort((a, z) => a.date.localeCompare(z.date));
+
+    function paidAfterSnap(dayN) {
+      if (sortedPays.length === 0) return amountPaid;
+      const d = new Date(snapDate + 'T00:00:00Z');
+      d.setUTCDate(d.getUTCDate() + dayN);
+      const dayStr = d.toISOString().split('T')[0];
+      let cum = 0;
+      for (const p of sortedPays) { if (p.date < dayStr) cum += (p.delta || 0); }
+      return cum;
+    }
+
+    let newOD = b.odFeeSnapshot;
+    for (let day = 1; day <= daysElapsed; day++) {
+      const paid      = paidAfterSnap(day);
+      if (paid >= threshold) break;
+      const remaining = Math.max(0, principal - paid);
+      if (remaining <= 0) break;
+      const dayOD = Math.round(remaining * 0.02); // 2% per day post-snapshot
+      newOD += dayOD;
+      if (newOD >= cap * 2) { newOD = cap * 2; break; } // safety cap
+    }
+    return newOD;
+  }
+
+  // ── Standard path (no snapshot) ──────────────────────────────
+  const od = getOdAge(b.startDate);
+  if (od <= 0) return 0;
+
   const amountPaid = b.amountPaid || 0;
   const threshold70 = principal * 1.00;
-
-  // ── Build daily payment timeline from payLog ──────────────────
-  // payLog entries: { date, delta, amount } — date is YYYY-MM-DD
   const payLog = (b.payLog || []).filter(p => p.date && p.delta > 0);
-
-  // Sort payments by date ascending
   const sortedPays = payLog.slice().sort((a, z) => a.date.localeCompare(z.date));
-
-  // Get start date (GMT)
   const startDateStr = b.startDate;
 
-  // Calculate cumulative paid BEFORE each OD day starts (midnight GMT)
-  // Day N starts at midnight GMT of startDate + N days
   function paidBeforeDay(dayN) {
-    if (sortedPays.length === 0) return amountPaid; // no log — use current
+    if (sortedPays.length === 0) return amountPaid;
     const dayStartDate = new Date(startDateStr + 'T00:00:00Z');
     dayStartDate.setUTCDate(dayStartDate.getUTCDate() + dayN);
     const dayStr = dayStartDate.toISOString().split('T')[0];
-    // Sum payments with date BEFORE this day (strictly before = paid on previous days)
     let cumPaid = 0;
-    for (const p of sortedPays) {
-      if (p.date < dayStr) cumPaid += (p.delta || 0);
-    }
+    for (const p of sortedPays) { if (p.date < dayStr) cumPaid += (p.delta || 0); }
     return cumPaid;
   }
 
-  // ── Accumulate OD day by day ──────────────────────────────────
   let totalOD = 0;
   const cap = principal;
-
   for (let day = 1; day <= od; day++) {
-    // Paid amount known at start of this day
     const paidAtStart = paidBeforeDay(day);
-
-    // 100% rule — if already paid 100% by start of this day, OD stops
     if (paidAtStart >= threshold70) break;
-
-    // Remaining principal at start of this day
     const remaining = Math.max(0, principal - paidAtStart);
     if (remaining <= 0) break;
-
-    // Rate: 4% on Day 1, 2% every other day
-    const rate = day === 1 ? 0.04 : 0.02;
+    const rate  = day === 1 ? 0.04 : 0.02;
     const dayOD = Math.round(remaining * rate);
-
     totalOD += dayOD;
-
-    // Cap check
-    if (totalOD >= cap) {
-      totalOD = cap;
-      break;
-    }
+    if (totalOD >= cap) { totalOD = cap; break; }
   }
-
-  // Add any manually-set OD base (for imported borrowers with pre-existing OD)
-  if (b.odFeeBase && b.odFeeBase > 0) {
-    totalOD = Math.min(totalOD + b.odFeeBase, cap * 2);
-  }
-
   return totalOD;
 }
 
 // Detailed daily OD log for the OD fee breakdown modal
 function getOdLog(b) {
+  const principal = b.principal || 0;
+  if (principal <= 0) return [];
+
+  // ── Snapshot path ─────────────────────────────────────────────
+  if (b.odFeeSnapshot !== undefined && b.odFeeSnapshot !== null && b.odFeeSnapshotDate) {
+    const today       = new Date().toISOString().split('T')[0];
+    const snapDate    = b.odFeeSnapshotDate;
+    const snap        = new Date(snapDate + 'T00:00:00Z');
+    const now         = new Date(today    + 'T00:00:00Z');
+    const daysElapsed = Math.max(0, Math.round((now - snap) / 86400000));
+    const amountPaid  = b.amountPaid || 0;
+    const threshold   = principal * 1.00;
+    const cap         = principal * 2;
+    const payLog      = (b.payLog || []).filter(p => p.date && p.delta > 0 && p.date > snapDate);
+    const sortedPays  = payLog.slice().sort((a, z) => a.date.localeCompare(z.date));
+
+    function paidAfterSnap(dayN) {
+      if (sortedPays.length === 0) return amountPaid;
+      const d = new Date(snapDate + 'T00:00:00Z');
+      d.setUTCDate(d.getUTCDate() + dayN);
+      const ds = d.toISOString().split('T')[0];
+      let cum = 0;
+      for (const p of sortedPays) { if (p.date < ds) cum += (p.delta || 0); }
+      return cum;
+    }
+
+    const log = [{ day: 'Snapshot', date: snapDate, rate: '—', base: principal, fee: b.odFeeSnapshot, cumulative: b.odFeeSnapshot, stopped: null, note: b.odFeeSnapshotNote || 'Manual OD correction' }];
+    let cumOD = b.odFeeSnapshot;
+    for (let day = 1; day <= daysElapsed; day++) {
+      const paid = paidAfterSnap(day);
+      if (paid >= threshold) { log.push({ day, rate: '—', base: 0, fee: 0, cumulative: cumOD, stopped: '100% paid' }); break; }
+      const remaining = Math.max(0, principal - paid);
+      if (remaining <= 0) break;
+      const dayOD = Math.round(remaining * 0.02);
+      cumOD += dayOD;
+      if (cumOD >= cap) { cumOD = cap; log.push({ day, rate: '2%', base: remaining, fee: dayOD, cumulative: cumOD, stopped: 'cap' }); break; }
+      log.push({ day, rate: '2%', base: remaining, fee: dayOD, cumulative: cumOD, stopped: null });
+    }
+    return log;
+  }
+
+  // ── Standard path ─────────────────────────────────────────────
   const od = getOdAge(b.startDate);
   if (od <= 0) return [];
-
-  const principal   = b.principal || 0;
-  if (principal <= 0) return [];
 
   const amountPaid  = b.amountPaid || 0;
   const threshold70 = principal * 1.00;
@@ -5139,20 +5190,6 @@ function getOdLog(b) {
     cumOD += dayOD;
     if (cumOD >= cap) { cumOD = cap; log.push({ day, rate: (rate*100)+'%', base: remaining, fee: dayOD, cumulative: cumOD, stopped: 'cap' }); break; }
     log.push({ day, rate: (rate*100)+'%', base: remaining, fee: dayOD, cumulative: cumOD, stopped: null });
-  }
-  // Append OD base row if set — shows as a separate line in the breakdown modal
-  if (b.odFeeBase && b.odFeeBase > 0) {
-    log.push({
-      day: 'Base',
-      date: b.startDate,
-      paidBefore: 0,
-      remaining: b.principal,
-      rate: 0,
-      fee: b.odFeeBase,
-      cumulative: (log.length > 0 ? log[log.length-1].cumulative : 0) + b.odFeeBase,
-      stopped: '',
-      note: b.odFeeBaseNote || 'Manual OD base adjustment'
-    });
   }
   return log;
 }
@@ -7233,88 +7270,84 @@ function openAdjustOdModal(id) {
   var b = state.borrowers.find(function(x) { return x.id === id; });
   if (!b) return;
 
-  var currentBase  = b.odFeeBase || 0;
-  var currentNote  = b.odFeeBaseNote || '';
-  var calcOd       = getOdFee(b);
-  var calcOdNoBase = (function() {
-    // Calculate what getOdFee returns WITHOUT the base to show the split clearly
-    var tempBase = b.odFeeBase;
-    b.odFeeBase = 0;
-    _odFeeCache.clear();
-    var raw = getOdFee(b);
-    b.odFeeBase = tempBase;
-    _odFeeCache.clear();
-    return raw;
-  })();
+  var currentOd      = getOdFee(b);
+  var snapshotExists = (b.odFeeSnapshot !== undefined && b.odFeeSnapshot !== null && b.odFeeSnapshotDate);
+  var snapshotVal    = snapshotExists ? b.odFeeSnapshot : currentOd;
+  var snapshotNote   = b.odFeeSnapshotNote || '';
+  var today          = new Date().toISOString().split('T')[0];
 
-  document.getElementById('modal-title').textContent = '⚙️ Adjust OD Fee';
+  document.getElementById('modal-title').textContent = '⚙️ Correct OD Fee';
   document.getElementById('modal-body').innerHTML =
-    '<div style="background:var(--surface2);border-radius:10px;padding:12px 14px;margin-bottom:16px">'
-    + '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">' + b.name + '</div>'
-    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px;text-align:center">'
-    + '<div><div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--text)">' + fmtC(b.principal) + '</div><div style="font-size:10px;color:var(--text3)">Principal</div></div>'
-    + '<div><div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--orange)">' + fmtC(calcOdNoBase) + '</div><div style="font-size:10px;color:var(--text3)">Accrued OD</div></div>'
-    + '<div><div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--gold)">' + fmtC(currentBase) + '</div><div style="font-size:10px;color:var(--text3)">Current Base</div></div>'
+    '<div style="background:var(--surface2);border-radius:10px;padding:12px 14px;margin-bottom:14px">'
+    + '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">' + b.name + '</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center">'
+    + '<div><div style="font-family:var(--font-mono);font-size:14px;font-weight:700;color:var(--orange)">' + fmtC(currentOd) + '</div><div style="font-size:10px;color:var(--text3)">Current OD Fee</div></div>'
+    + '<div><div style="font-family:var(--font-mono);font-size:14px;font-weight:700;color:var(--text)">' + fmtC(b.principal) + '</div><div style="font-size:10px;color:var(--text3)">Principal</div></div>'
     + '</div>'
     + '</div>'
 
-    + '<div style="background:rgba(249,115,22,0.07);border:1px solid rgba(249,115,22,0.25);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--text2);line-height:1.6">'
-    + '<div style="font-weight:700;color:var(--orange);margin-bottom:4px">ℹ️ How this works</div>'
-    + 'The <b>OD Base</b> is added on top of what the system calculates daily. Use it when a borrower already had OD fees before you added them. '
-    + 'The system keeps accruing from their start date, and the base is stacked on top — so the total stays accurate as days pass.'
+    + '<div style="background:rgba(249,115,22,0.07);border:1px solid rgba(249,115,22,0.22);border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:12px;color:var(--text2);line-height:1.6">'
+    + '<b style="color:var(--orange)">ℹ️ How this works</b><br>'
+    + 'Enter the <b>actual OD fee right now</b>. The system saves today as the correction point and keeps accruing 2% per day on top from here — so the total stays accurate going forward.'
     + '</div>'
 
     + '<div class="form-group">'
-    + '<label>OD Base Amount (₵) <span style="font-size:11px;color:var(--text3)">— OD already owed before import</span></label>'
-    + '<input type="number" class="form-input" id="adj-od-amount" placeholder="0" min="0" step="1" value="' + currentBase + '">'
+    + '<label>Actual OD Fee Today (₵) <span style="font-size:11px;color:var(--text3)">— what it should really be</span></label>'
+    + '<input type="number" class="form-input" id="adj-od-amount" placeholder="0" min="0" step="1" value="' + snapshotVal + '">'
     + '</div>'
 
     + '<div class="form-group">'
-    + '<label>Reason / Note <span style="font-size:11px;color:var(--text3)">(optional but recommended)</span></label>'
-    + '<input type="text" class="form-input" id="adj-od-note" placeholder="e.g. Had 8 days OD before system import" value="' + currentNote + '">'
+    + '<label>Reason <span style="font-size:11px;color:var(--text3)">(optional but recommended)</span></label>'
+    + '<input type="text" class="form-input" id="adj-od-note" placeholder="e.g. Had partial OD before import" value="' + snapshotNote + '">'
     + '</div>'
 
-    + '<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text3)">'
-    + 'Total OD after save: <span id="adj-od-preview" style="font-family:var(--font-mono);font-weight:700;color:var(--orange)">' + fmtC(calcOd) + '</span>'
-    + ' <span style="font-size:10px">(base + ' + fmtC(calcOdNoBase) + ' accrued)</span>'
-    + '</div>';
+    + (snapshotExists
+        ? '<div style="background:rgba(34,197,94,0.07);border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:9px 12px;font-size:11px;color:var(--text2);margin-bottom:4px">'
+          + '✅ Correction active since <b>' + b.odFeeSnapshotDate + '</b>. System has been accruing on top since then.'
+          + ' <button onclick="clearOdSnapshot(this.dataset.id)" data-id="' + id + '" style="background:none;border:none;color:var(--red);font-size:11px;cursor:pointer;text-decoration:underline;font-family:var(--font-body);padding:0;margin-left:6px">Remove correction</button>'
+          + '</div>'
+        : '');
 
   document.getElementById('modal-footer').innerHTML =
     '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
-    + '<button class="btn btn-gold" id="adj-od-save-btn">Save Adjustment</button>';
+    + '<button class="btn btn-gold" id="adj-od-save-btn">Set Correction ✓</button>';
 
   document.getElementById('modal-overlay').classList.add('open');
-
-  // Live preview update
-  var amtInput = document.getElementById('adj-od-amount');
-  var preview  = document.getElementById('adj-od-preview');
-  if (amtInput && preview) {
-    amtInput.addEventListener('input', function() {
-      var newBase = parseFloat(amtInput.value) || 0;
-      preview.textContent = fmtC(calcOdNoBase + newBase);
-    });
-  }
-
   setTimeout(function() {
     var saveBtn = document.getElementById('adj-od-save-btn');
-    if (saveBtn) {
-      saveBtn.addEventListener('click', function() {
-        var newBase = parseFloat(document.getElementById('adj-od-amount').value) || 0;
-        var newNote = (document.getElementById('adj-od-note').value || '').trim();
-
-        b.odFeeBase     = newBase;
-        b.odFeeBaseNote = newNote;
-        _odFeeCache.clear();
-        saveState();
-        haptic('pay');
-
-        var totalNow = getOdFee(b);
-        toast(b.name.split(' ')[0] + ' OD base set to ' + fmtC(newBase) + ' — total OD now ' + fmtC(totalNow), 'success');
-        closeModal();
-        renderCurrentPage();
-      });
-    }
+    if (!saveBtn) return;
+    saveBtn.addEventListener('click', function() {
+      var newVal  = parseFloat(document.getElementById('adj-od-amount').value);
+      var newNote = (document.getElementById('adj-od-note').value || '').trim();
+      if (isNaN(newVal) || newVal < 0) { toast('Enter a valid amount', 'error'); return; }
+      b.odFeeSnapshot     = newVal;
+      b.odFeeSnapshotDate = today;
+      b.odFeeSnapshotNote = newNote;
+      // Clear old additive base if it existed
+      delete b.odFeeBase;
+      delete b.odFeeBaseNote;
+      _odFeeCache.clear();
+      saveState();
+      haptic('pay');
+      var newTotal = getOdFee(b);
+      toast(b.name.split(' ')[0] + ' OD corrected to ' + fmtC(newVal) + ' — accruing from today', 'success');
+      closeModal();
+      renderCurrentPage();
+    });
   }, 50);
+}
+
+function clearOdSnapshot(id) {
+  var b = state.borrowers.find(function(x) { return x.id === id; });
+  if (!b) return;
+  delete b.odFeeSnapshot;
+  delete b.odFeeSnapshotDate;
+  delete b.odFeeSnapshotNote;
+  _odFeeCache.clear();
+  saveState();
+  closeModal();
+  renderCurrentPage();
+  toast('OD correction removed — back to auto-calculation', 'info');
 }
 
 function openBorrowerDetail(id) {
@@ -7383,7 +7416,7 @@ function openBorrowerDetail(id) {
     + '<button class="btn btn-ghost" id="bd-hitlist">' + ((state.hitList||[]).includes(id) ? '📌 In Hit List' : '📌 Add to Hit List') + '</button>'
     + '<button class="btn btn-ghost" id="bd-note">' + (b.notes?'📝 Edit Note':'📝 Add Note') + '</button>'
     + '<button class="btn btn-ghost" id="bd-history">📋 History (' + log.length + ')</button>'
-    + '<button class="btn btn-ghost" id="bd-adjod" style="color:var(--orange);border-color:rgba(249,115,22,0.3)">⚙️ Adjust OD' + (b.odFeeBase ? ' (' + fmtC(b.odFeeBase) + ')' : '') + '</button>'
+    + '<button class="btn btn-ghost" id="bd-adjod" style="color:var(--orange);border-color:rgba(249,115,22,0.3)">⚙️ Correct OD' + (b.odFeeSnapshot !== undefined && b.odFeeSnapshot !== null ? ' ✓' : '') + '</button>'
     + '<button class="btn btn-ghost" id="bd-timeline" style="grid-column:1/-1">📜 Timeline</button>'
     + '</div>'
     + (log.length ? '<div style="margin-bottom:6px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Recent Payments</div>'
