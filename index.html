@@ -5088,6 +5088,11 @@ function getOdFee(b) {
     }
   }
 
+  // Add any manually-set OD base (for imported borrowers with pre-existing OD)
+  if (b.odFeeBase && b.odFeeBase > 0) {
+    totalOD = Math.min(totalOD + b.odFeeBase, cap * 2);
+  }
+
   return totalOD;
 }
 
@@ -5134,6 +5139,20 @@ function getOdLog(b) {
     cumOD += dayOD;
     if (cumOD >= cap) { cumOD = cap; log.push({ day, rate: (rate*100)+'%', base: remaining, fee: dayOD, cumulative: cumOD, stopped: 'cap' }); break; }
     log.push({ day, rate: (rate*100)+'%', base: remaining, fee: dayOD, cumulative: cumOD, stopped: null });
+  }
+  // Append OD base row if set — shows as a separate line in the breakdown modal
+  if (b.odFeeBase && b.odFeeBase > 0) {
+    log.push({
+      day: 'Base',
+      date: b.startDate,
+      paidBefore: 0,
+      remaining: b.principal,
+      rate: 0,
+      fee: b.odFeeBase,
+      cumulative: (log.length > 0 ? log[log.length-1].cumulative : 0) + b.odFeeBase,
+      stopped: '',
+      note: b.odFeeBaseNote || 'Manual OD base adjustment'
+    });
   }
   return log;
 }
@@ -7204,6 +7223,100 @@ function renderInstalmentBadge(b) {
     + '</div>';
 }
 
+
+// ══════════════════════════════════════════════════════════════
+// OD FEE ADJUSTMENT MODAL
+// Lets agents set a known OD base for imported borrowers.
+// The system adds daily-accrued OD ON TOP of this base.
+// ══════════════════════════════════════════════════════════════
+function openAdjustOdModal(id) {
+  var b = state.borrowers.find(function(x) { return x.id === id; });
+  if (!b) return;
+
+  var currentBase  = b.odFeeBase || 0;
+  var currentNote  = b.odFeeBaseNote || '';
+  var calcOd       = getOdFee(b);
+  var calcOdNoBase = (function() {
+    // Calculate what getOdFee returns WITHOUT the base to show the split clearly
+    var tempBase = b.odFeeBase;
+    b.odFeeBase = 0;
+    _odFeeCache.clear();
+    var raw = getOdFee(b);
+    b.odFeeBase = tempBase;
+    _odFeeCache.clear();
+    return raw;
+  })();
+
+  document.getElementById('modal-title').textContent = '⚙️ Adjust OD Fee';
+  document.getElementById('modal-body').innerHTML =
+    '<div style="background:var(--surface2);border-radius:10px;padding:12px 14px;margin-bottom:16px">'
+    + '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">' + b.name + '</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px;text-align:center">'
+    + '<div><div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--text)">' + fmtC(b.principal) + '</div><div style="font-size:10px;color:var(--text3)">Principal</div></div>'
+    + '<div><div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--orange)">' + fmtC(calcOdNoBase) + '</div><div style="font-size:10px;color:var(--text3)">Accrued OD</div></div>'
+    + '<div><div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--gold)">' + fmtC(currentBase) + '</div><div style="font-size:10px;color:var(--text3)">Current Base</div></div>'
+    + '</div>'
+    + '</div>'
+
+    + '<div style="background:rgba(249,115,22,0.07);border:1px solid rgba(249,115,22,0.25);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--text2);line-height:1.6">'
+    + '<div style="font-weight:700;color:var(--orange);margin-bottom:4px">ℹ️ How this works</div>'
+    + 'The <b>OD Base</b> is added on top of what the system calculates daily. Use it when a borrower already had OD fees before you added them. '
+    + 'The system keeps accruing from their start date, and the base is stacked on top — so the total stays accurate as days pass.'
+    + '</div>'
+
+    + '<div class="form-group">'
+    + '<label>OD Base Amount (₵) <span style="font-size:11px;color:var(--text3)">— OD already owed before import</span></label>'
+    + '<input type="number" class="form-input" id="adj-od-amount" placeholder="0" min="0" step="1" value="' + currentBase + '">'
+    + '</div>'
+
+    + '<div class="form-group">'
+    + '<label>Reason / Note <span style="font-size:11px;color:var(--text3)">(optional but recommended)</span></label>'
+    + '<input type="text" class="form-input" id="adj-od-note" placeholder="e.g. Had 8 days OD before system import" value="' + currentNote + '">'
+    + '</div>'
+
+    + '<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text3)">'
+    + 'Total OD after save: <span id="adj-od-preview" style="font-family:var(--font-mono);font-weight:700;color:var(--orange)">' + fmtC(calcOd) + '</span>'
+    + ' <span style="font-size:10px">(base + ' + fmtC(calcOdNoBase) + ' accrued)</span>'
+    + '</div>';
+
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
+    + '<button class="btn btn-gold" id="adj-od-save-btn">Save Adjustment</button>';
+
+  document.getElementById('modal-overlay').classList.add('open');
+
+  // Live preview update
+  var amtInput = document.getElementById('adj-od-amount');
+  var preview  = document.getElementById('adj-od-preview');
+  if (amtInput && preview) {
+    amtInput.addEventListener('input', function() {
+      var newBase = parseFloat(amtInput.value) || 0;
+      preview.textContent = fmtC(calcOdNoBase + newBase);
+    });
+  }
+
+  setTimeout(function() {
+    var saveBtn = document.getElementById('adj-od-save-btn');
+    if (saveBtn) {
+      saveBtn.addEventListener('click', function() {
+        var newBase = parseFloat(document.getElementById('adj-od-amount').value) || 0;
+        var newNote = (document.getElementById('adj-od-note').value || '').trim();
+
+        b.odFeeBase     = newBase;
+        b.odFeeBaseNote = newNote;
+        _odFeeCache.clear();
+        saveState();
+        haptic('pay');
+
+        var totalNow = getOdFee(b);
+        toast(b.name.split(' ')[0] + ' OD base set to ' + fmtC(newBase) + ' — total OD now ' + fmtC(totalNow), 'success');
+        closeModal();
+        renderCurrentPage();
+      });
+    }
+  }, 50);
+}
+
 function openBorrowerDetail(id) {
   var b = state.borrowers.find(function(x){ return x.id === id; });
   if (!b) return;
@@ -7270,6 +7383,7 @@ function openBorrowerDetail(id) {
     + '<button class="btn btn-ghost" id="bd-hitlist">' + ((state.hitList||[]).includes(id) ? '📌 In Hit List' : '📌 Add to Hit List') + '</button>'
     + '<button class="btn btn-ghost" id="bd-note">' + (b.notes?'📝 Edit Note':'📝 Add Note') + '</button>'
     + '<button class="btn btn-ghost" id="bd-history">📋 History (' + log.length + ')</button>'
+    + '<button class="btn btn-ghost" id="bd-adjod" style="color:var(--orange);border-color:rgba(249,115,22,0.3)">⚙️ Adjust OD' + (b.odFeeBase ? ' (' + fmtC(b.odFeeBase) + ')' : '') + '</button>'
     + '<button class="btn btn-ghost" id="bd-timeline" style="grid-column:1/-1">📜 Timeline</button>'
     + '</div>'
     + (log.length ? '<div style="margin-bottom:6px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Recent Payments</div>'
@@ -7300,11 +7414,13 @@ function openBorrowerDetail(id) {
     var elD   = document.getElementById('bd-delete');
     var elCL  = document.getElementById('bd-calllog');
     var elHL  = document.getElementById('bd-hitlist');
+    var elAO  = document.getElementById('bd-adjod');
     if (elPay) elPay.onclick = function(){ haptic('light'); closeModal(); openPayModal(id); };
     if (elPr)  elPr.onclick  = function(){ haptic('light'); closeModal(); togglePromise(id); };
     if (elN)   elN.onclick   = function(){ haptic('light'); closeModal(); openQuickNote(id); };
     if (elH)   elH.onclick   = function(){ haptic('light'); closeModal(); openHistoryModal(id); };
     if (elE)   elE.onclick   = function(){ haptic('light'); closeModal(); openEditModal(id); };
+    if (elAO)  elAO.onclick  = function(){ haptic('light'); openAdjustOdModal(id); };
     if (elCL)  elCL.onclick  = function(){ haptic('light'); closeModal(); openCallLogModal(id); };
     var elTL = document.getElementById('bd-timeline');
     if (elTL) elTL.onclick = function(){ haptic('light'); closeModal(); openBorrowerTimeline(id); };
@@ -7496,6 +7612,7 @@ function saveBorrower(id) {
     state.borrowers.push({ id: (crypto && crypto.randomUUID ? crypto.randomUUID() : 'b' + Date.now()), name, phone, principal, loanDue, overdueFeee: 0, amountPaid, startDate, loanType, notes, targetPayment, instalment, promisedToPay: false, isPaid: false });
     toast('Borrower added', 'success');
   }
+  _odFeeCache.clear();
   saveState();
   closeModal();
   updateBadges();
