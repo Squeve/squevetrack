@@ -5051,8 +5051,7 @@ function getOdFee(b) {
     const sortedPays = payLog.slice().sort((a, z) => a.date.localeCompare(z.date));
 
     function paidAfterSnap(dayN) {
-      if (sortedPays.length === 0) return amountPaid;
-      const d = new Date(snapDate + 'T00:00:00Z');
+      if (sortedPays.length === 0) return 0; // no payLog — assume paid today, no past credite(snapDate + 'T00:00:00Z');
       d.setUTCDate(d.getUTCDate() + dayN);
       const dayStr = d.toISOString().split('T')[0];
       let cum = 0;
@@ -5084,7 +5083,7 @@ function getOdFee(b) {
   const startDateStr = b.startDate;
 
   function paidBeforeDay(dayN) {
-    if (sortedPays.length === 0) return amountPaid;
+    if (sortedPays.length === 0) return 0; // no payLog — no historical payment credit, assume paid today
     const dayStartDate = new Date(startDateStr + 'T00:00:00Z');
     dayStartDate.setUTCDate(dayStartDate.getUTCDate() + dayN);
     const dayStr = dayStartDate.toISOString().split('T')[0];
@@ -5163,7 +5162,7 @@ function getOdLog(b) {
   const startDateStr = b.startDate;
 
   function paidBeforeDay(dayN) {
-    if (sortedPays.length === 0) return amountPaid;
+    if (sortedPays.length === 0) return 0; // no payLog — no historical payment credit
     const dayStartDate = new Date(startDateStr + 'T00:00:00Z');
     dayStartDate.setUTCDate(dayStartDate.getUTCDate() + dayN);
     const dayStr = dayStartDate.toISOString().split('T')[0];
