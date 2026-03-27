@@ -2628,139 +2628,8 @@ tr.overdue-critical .heat-ring {
 }
 
 /* ════ GLASSMORPHIC ════ */
-[data-card-style="glassmorphic"] .kpi-card {
-  background: rgba(255,255,255,0.07) !important;
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
-  border-radius: 18px !important;
-  position: relative !important;
-  overflow: hidden !important;
-}
-[data-card-style="glassmorphic"] .kpi-card::before { height: 2px !important; }
-[data-card-style="glassmorphic"] .kpi-card.gold {
-  border: 1px solid rgba(245,158,11,0.25) !important;
-  border-top: 2px solid rgba(245,158,11,0.5) !important;
-  box-shadow: 0 8px 32px rgba(245,158,11,0.12), inset 0 1px 0 rgba(255,255,255,0.12) !important;
-}
-[data-card-style="glassmorphic"] .kpi-card.gold::before { background: none !important; }
-[data-card-style="glassmorphic"] .kpi-card.red {
-  border: 1px solid rgba(239,68,68,0.22) !important;
-  border-top: 2px solid rgba(239,68,68,0.45) !important;
-  box-shadow: 0 8px 32px rgba(239,68,68,0.1), inset 0 1px 0 rgba(255,255,255,0.1) !important;
-}
-[data-card-style="glassmorphic"] .kpi-card.red::before { background: none !important; }
-[data-card-style="glassmorphic"] .kpi-card.green {
-  border: 1px solid rgba(16,185,129,0.22) !important;
-  border-top: 2px solid rgba(16,185,129,0.45) !important;
-  box-shadow: 0 8px 32px rgba(16,185,129,0.1), inset 0 1px 0 rgba(255,255,255,0.1) !important;
-}
-[data-card-style="glassmorphic"] .kpi-card.green::before { background: none !important; }
-[data-card-style="glassmorphic"] .kpi-card.blue {
-  border: 1px solid rgba(56,189,248,0.22) !important;
-  border-top: 2px solid rgba(56,189,248,0.45) !important;
-  box-shadow: 0 8px 32px rgba(56,189,248,0.1), inset 0 1px 0 rgba(255,255,255,0.1) !important;
-}
-[data-card-style="glassmorphic"] .kpi-card.blue::before { background: none !important; }
-[data-card-style="glassmorphic"] .kpi-label {
-  font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.08em !important;
-  color: rgba(255,255,255,0.4) !important;
-}
-[data-card-style="glassmorphic"] .kpi-card.gold .kpi-value { color: #fbbf24 !important; }
-[data-card-style="glassmorphic"] .kpi-card.green .kpi-value { color: #34d399 !important; }
-[data-card-style="glassmorphic"] .kpi-card.red   .kpi-value { color: #f87171 !important; }
-[data-card-style="glassmorphic"] .kpi-card.blue  .kpi-value { color: #7dd3fc !important; }
-[data-card-style="glassmorphic"] .card {
-  background: rgba(255,255,255,0.06) !important;
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
-  border-radius: 18px !important;
-  border: 1px solid rgba(255,255,255,0.1) !important;
-  border-top: 2px solid rgba(255,255,255,0.18) !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12) !important;
-}
-[data-card-style="glassmorphic"] .card-header {
-  background: rgba(255,255,255,0.03) !important;
-  border-bottom: 1px solid rgba(255,255,255,0.07) !important;
-}
 
 /* ════ CINEMATIC DARK ════ */
-[data-card-style="cinematic"] .kpi-card {
-  border-radius: 18px !important;
-  position: relative !important;
-  overflow: hidden !important;
-}
-[data-card-style="cinematic"] .kpi-card::after {
-  content: '' !important;
-  position: absolute !important; top: 0 !important; right: 0 !important;
-  width: 70% !important; height: 100% !important;
-  clip-path: polygon(30% 0%, 100% 0%, 100% 100%, 0% 100%) !important;
-  pointer-events: none !important;
-  opacity: 0.07 !important;
-  z-index: 0 !important;
-}
-[data-card-style="cinematic"] .kpi-card > * { position: relative; z-index: 1; }
-[data-card-style="cinematic"] .kpi-card::before { height: 0 !important; background: none !important; }
-[data-card-style="cinematic"] .kpi-card.gold {
-  background: linear-gradient(145deg, #1a1400 0%, #0c0900 100%) !important;
-  border: 1px solid rgba(245,200,66,0.18) !important;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(245,200,66,0.15) !important;
-}
-[data-card-style="cinematic"] .kpi-card.gold::after {
-  background: linear-gradient(135deg, #f5c842, transparent) !important;
-}
-[data-card-style="cinematic"] .kpi-card.red {
-  background: linear-gradient(145deg, #150505 0%, #0c0404 100%) !important;
-  border: 1px solid rgba(239,68,68,0.18) !important;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(239,68,68,0.12) !important;
-}
-[data-card-style="cinematic"] .kpi-card.red::after {
-  background: linear-gradient(135deg, #ef4444, transparent) !important;
-}
-[data-card-style="cinematic"] .kpi-card.green {
-  background: linear-gradient(145deg, #041210 0%, #030c0b 100%) !important;
-  border: 1px solid rgba(16,185,129,0.18) !important;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(16,185,129,0.12) !important;
-}
-[data-card-style="cinematic"] .kpi-card.green::after {
-  background: linear-gradient(135deg, #10b981, transparent) !important;
-}
-[data-card-style="cinematic"] .kpi-card.blue {
-  background: linear-gradient(145deg, #040d18 0%, #030a14 100%) !important;
-  border: 1px solid rgba(96,165,250,0.18) !important;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(96,165,250,0.12) !important;
-}
-[data-card-style="cinematic"] .kpi-card.blue::after {
-  background: linear-gradient(135deg, #60a5fa, transparent) !important;
-}
-[data-card-style="cinematic"] .kpi-label {
-  font-size: 9px !important; font-weight: 800 !important;
-  letter-spacing: 0.18em !important; color: rgba(255,255,255,0.3) !important;
-}
-[data-card-style="cinematic"] .kpi-card.gold .kpi-value { color: #fbbf24 !important; text-shadow: 0 0 20px rgba(245,200,66,0.4) !important; }
-[data-card-style="cinematic"] .kpi-card.red   .kpi-value { color: #f87171 !important; text-shadow: 0 0 20px rgba(239,68,68,0.4) !important; }
-[data-card-style="cinematic"] .kpi-card.green .kpi-value { color: #34d399 !important; text-shadow: 0 0 20px rgba(16,185,129,0.4) !important; }
-[data-card-style="cinematic"] .kpi-card.blue  .kpi-value { color: #93c5fd !important; text-shadow: 0 0 20px rgba(96,165,250,0.4) !important; }
-[data-card-style="cinematic"] .kpi-value { font-size: 30px !important; font-weight: 700 !important; }
-[data-card-style="cinematic"] .card {
-  background: rgba(10,10,14,0.92) !important;
-  border-radius: 18px !important;
-  border: 1px solid rgba(255,255,255,0.07) !important;
-  box-shadow: 0 12px 48px rgba(0,0,0,0.7) !important;
-}
-[data-card-style="cinematic"] .card-header {
-  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
-  position: relative !important;
-}
-[data-card-style="cinematic"] .card-header::before {
-  content: '' !important;
-  position: absolute !important; left: 0 !important; top: 50% !important;
-  transform: translateY(-50%) !important;
-  width: 3px !important; height: 60% !important;
-  background: linear-gradient(180deg, #f5c842, #e8a020) !important;
-  box-shadow: 0 0 8px rgba(245,200,66,0.5) !important;
-  border-radius: 0 2px 2px 0 !important;
-}
-[data-card-style="cinematic"] .card-title { padding-left: 8px !important; font-weight: 800 !important; }
 </style>
 </head>
 <body>
@@ -3649,18 +3518,6 @@ tr.overdue-critical .heat-ring {
               <span style="width:22px;height:22px;border-radius:6px;background:#07060d;border-left:3px solid #f5c842;flex-shrink:0"></span>
               <span style="flex:1;text-align:left"><span style="display:block;font-size:12px;font-weight:600;color:var(--text)">Neon Editorial</span><span style="display:block;font-size:10px;color:var(--text3)">Left-border accent, no fills</span></span>
               <svg id="card-style-check-editorial" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px;color:var(--gold);flex-shrink:0;display:none"><polyline points="2,9 6,13 14,3"/></svg>
-            </button>
-            <button class="card-style-opt-btn" id="card-style-btn-glassmorphic" onclick="settingsSetCardStyle('glassmorphic');cardStyleDropdownToggle()"
-              style="width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:none;background:transparent;cursor:pointer;border-radius:8px;font-family:var(--font-body);transition:background 0.12s">
-              <span style="width:22px;height:22px;border-radius:6px;background:rgba(255,255,255,0.07);backdrop-filter:blur(8px);border:1.5px solid rgba(255,255,255,0.15);border-top-color:rgba(56,189,248,0.4);flex-shrink:0"></span>
-              <span style="flex:1;text-align:left"><span style="display:block;font-size:12px;font-weight:600;color:var(--text)">Glassmorphic</span><span style="display:block;font-size:10px;color:var(--text3)">Frosted glass + glow halos</span></span>
-              <svg id="card-style-check-glassmorphic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px;color:var(--gold);flex-shrink:0;display:none"><polyline points="2,9 6,13 14,3"/></svg>
-            </button>
-            <button class="card-style-opt-btn" id="card-style-btn-cinematic" onclick="settingsSetCardStyle('cinematic');cardStyleDropdownToggle()"
-              style="width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:none;background:transparent;cursor:pointer;border-radius:8px;font-family:var(--font-body);transition:background 0.12s">
-              <span style="width:22px;height:22px;border-radius:6px;overflow:hidden;position:relative;background:#060509;border:1.5px solid rgba(245,200,66,0.2);flex-shrink:0"><span style="position:absolute;top:0;right:0;width:60%;height:100%;background:linear-gradient(135deg,rgba(245,200,66,0.25),transparent);clip-path:polygon(30% 0%,100% 0%,100% 100%,0% 100%)"></span></span>
-              <span style="flex:1;text-align:left"><span style="display:block;font-size:12px;font-weight:600;color:var(--text)">Cinematic Dark</span><span style="display:block;font-size:10px;color:var(--text3)">Diagonal slash + glow numbers</span></span>
-              <svg id="card-style-check-cinematic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px;color:var(--gold);flex-shrink:0;display:none"><polyline points="2,9 6,13 14,3"/></svg>
             </button>
           </div>
         </div>
@@ -5043,7 +4900,7 @@ let _odFeeCacheDate = '';
 function _getOdFeeCached(b) {
   const today = new Date().toISOString().split('T')[0];
   if (today !== _odFeeCacheDate) { _odFeeCache.clear(); _odFeeCacheDate = today; }
-  const key = b.id + ':' + (b.amountPaid||0) + ':' + (b.isPaid?1:0);
+  const key = b.id + ':' + (b.amountPaid||0) + ':' + (b.isPaid?1:0) + ':' + (b.odFeeSnapshotDate||'') + ':' + (b.odFeeSnapshot||0);
   if (_odFeeCache.has(key)) return _odFeeCache.get(key);
   const val = getOdFee(b);
   _odFeeCache.set(key, val);
@@ -5157,15 +5014,7 @@ function getOdLog(b) {
     const payLog      = (b.payLog || []).filter(p => p.date && p.delta > 0 && p.date > snapDate);
     const sortedPays  = payLog.slice().sort((a, z) => a.date.localeCompare(z.date));
 
-    function paidAfterSnap(dayN) {
-      if (sortedPays.length === 0) return amountPaid;
-      const d = new Date(snapDate + 'T00:00:00Z');
-      d.setUTCDate(d.getUTCDate() + dayN);
-      const ds = d.toISOString().split('T')[0];
-      let cum = 0;
-      for (const p of sortedPays) { if (p.date < ds) cum += (p.delta || 0); }
-      return cum;
-    }
+    
 
     const log = [{ day: 'Snapshot', date: snapDate, rate: '—', base: principal, fee: b.odFeeSnapshot, cumulative: b.odFeeSnapshot, stopped: null, note: b.odFeeSnapshotNote || 'Manual OD correction' }];
     let cumOD = b.odFeeSnapshot;
@@ -5193,17 +5042,7 @@ function getOdLog(b) {
   const sortedPays  = payLog.slice().sort((a, z) => a.date.localeCompare(z.date));
   const startDateStr = b.startDate;
 
-  function paidBeforeDay(dayN) {
-    if (sortedPays.length === 0) return 0; // no payLog — no historical payment credit
-    const dayStartDate = new Date(startDateStr + 'T00:00:00Z');
-    dayStartDate.setUTCDate(dayStartDate.getUTCDate() + dayN);
-    const dayStr = dayStartDate.toISOString().split('T')[0];
-    let cumPaid = 0;
-    for (const p of sortedPays) {
-      if (p.date < dayStr) cumPaid += (p.delta || 0);
-    }
-    return cumPaid;
-  }
+  
 
   const log = [];
   let cumOD = 0;
@@ -5238,7 +5077,7 @@ function getGenerous(b) {
   return Math.max(0, getRemaining(b) + Math.round(_getOdFeeCached(b) * rate));
 }
 
-function getFirstName(b) { return b.name.split(' ')[0]; }
+
 
 // useGenerous: true = discounted offer, false = full amount
 function payGuide(b) {
@@ -5371,7 +5210,30 @@ function statusBadge(status) {
 function renderDashAgedOut() { /* aged out moved to Settings */ }
 function toggleDashAgedOut() { /* aged out moved to Settings */ }
 
+
+// ── AUTO-FLAG MISSED PTPs ─────────────────────────────────────
+// Called on dashboard render and app load.
+// Any PTP whose promiseDate has passed without payment gets flagged.
+function ptpAutoFlagMissed() {
+  var today = new Date().toISOString().split('T')[0];
+  var changed = false;
+  state.borrowers.forEach(function(b) {
+    if (!b.promisedToPay || !b.promiseDate) return;
+    var promDate = b.promiseDate.split(' ')[0];
+    // Already resolved
+    if (b.ptpOutcome === 'paid' || b.ptpOutcome === 'missed' || b.amountPaid > 0 || b.isPaid) return;
+    // Past due with no outcome
+    if (promDate < today && (!b.ptpOutcome || b.ptpOutcome === '' || b.ptpOutcome === 'pending')) {
+      b.ptpOutcome = 'missed';
+      b.ptpBreached = true;
+      changed = true;
+    }
+  });
+  if (changed) saveState();
+}
+
 function renderDashboard() {
+  ptpAutoFlagMissed();
   // Dynamic greeting
   const greetEl = document.getElementById('dash-greeting');
   if (greetEl) {
@@ -5520,6 +5382,22 @@ function renderDashboard() {
     + '<span style="margin-left:auto">' + _pacingText(logTotal, monthTarget, state.dailyLog) + '</span>'
     + '</div>'
     + forecastHtml
+    + (function() {
+        // Today's collection strip
+        var todayStr = new Date().toISOString().split('T')[0];
+        var ystStr   = new Date(Date.now()-86400000).toISOString().split('T')[0];
+        var todayEntry = state.dailyLog.find(function(e) { return e.date === todayStr; });
+        var ystEntry   = state.dailyLog.find(function(e) { return e.date === ystStr; });
+        var todayAmt   = todayEntry ? (Number(todayEntry.collected)||0) : 0;
+        var ystAmt     = ystEntry   ? (Number(ystEntry.collected)||0)   : 0;
+        var arrow = todayAmt > ystAmt ? '<span style="color:var(--green)">▲</span>' :
+                    todayAmt < ystAmt ? '<span style="color:var(--red)">▼</span>' : '—';
+        return '<div style="display:flex;align-items:center;gap:12px;margin-top:12px;padding:10px 14px;background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid var(--border)">'
+          + '<div style="font-size:11px;color:var(--text3);flex:1">📆 Today\'s Collection</div>'
+          + '<div style="font-family:var(--font-mono);font-size:14px;font-weight:800;color:var(--gold)">' + fmtC(todayAmt) + '</div>'
+          + '<div style="font-size:10px;color:var(--text3)">' + arrow + ' ' + fmtC(ystAmt) + ' yesterday</div>'
+          + '</div>';
+      })()
     + '</div>';
 
   // Animate progress bar after paint
@@ -9521,101 +9399,7 @@ function _buildPtpText(ptps, fmt, isEod) {
   }
   return text.trim();
 }
-function renderPtp() {
-  const ptps = getTodayPtps();
-  const groups = groupPtpsByTime(ptps);
 
-  // Update badge
-  ['badge-ptp','mbadge-ptp'].forEach(function(id) {
-    var el = document.getElementById(id);
-    if (el) { el.textContent = ptps.length; el.style.display = ptps.length ? 'inline' : 'none'; }
-  });
-
-  // ── Morning panel ─────────────────────────────────────────
-  var metaEl = document.getElementById('ptp-morning-meta');
-  if (metaEl) metaEl.textContent = ptps.length + ' PTP' + (ptps.length !== 1 ? 's' : '') + ' today';
-
-  var morningList = document.getElementById('ptp-morning-list');
-  if (morningList) {
-    if (!ptps.length) {
-      morningList.innerHTML = '<div class="empty-state" style="padding:24px 0"><div class="icon">🤝</div><div>No PTPs set for today.<br><span style="font-size:11px;color:var(--text3)">Mark borrowers as Promised to Pay with a today\'s date to see them here.</span></div></div>';
-    } else {
-      morningList.innerHTML = groups.map(function(g) {
-        return '<div style="margin-bottom:14px">'
-          + '<div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--border)">' + formatTimeLabel(g.time).replace(/\*/g,'') + '</div>'
-          + g.items.map(function(b) {
-              var st = getStatus(b);
-              var stColor = st==='Paid'?'var(--green)':st==='Partial'?'var(--gold)':'var(--red)';
-              return '<div style="padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer" data-detailid="' + b.id + '">'
-                + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
-                + '<div style="flex:1"><div style="font-weight:600;font-size:13px">' + b.name + '</div>'
-                + '<div style="font-size:11px;color:var(--text3)">' + b.phone + (b.promiseNote ? ' - ' + b.promiseNote : '') + '</div>'
-                + (b.notes ? '<div style="font-size:10px;color:var(--gold);margin-top:2px">Note: ' + b.notes + '</div>' : '')
-                + '</div>'
-                + '<div style="text-align:right">'
-                + '<div style="font-size:12px;font-family:var(--font-mono);color:'+stColor+';font-weight:700">' + (st==='Paid'?'Paid':fmtC(getDueToday(b))) + '</div>'
-                + '<div style="font-size:10px;color:var(--text3)">' + st + ' - Day ' + getOdAge(b.startDate) + '</div>'
-                + '</div></div>'
-                + '<div style="display:flex;gap:6px;flex-wrap:wrap">'
-                + '<button class="btn btn-green btn-xs" data-payid="' + b.id + '">Pay</button>'
-                + '<button class="btn btn-ghost btn-xs" data-detailbtn="' + b.id + '">Details</button>'
-                + '<button class="btn btn-ghost btn-xs" onclick="window.location.href=\'tel:\'+\'' + b.phone + '\'">📞 Call</button>'
-                + '<a href="https://wa.me/' + b.phone.replace(/[^0-9]/g,'') + '" target="_blank" class="btn btn-ghost btn-xs">WA</a>'
-                + '</div></div>';
-            }).join('')
-          + '</div>';
-      }).join('');
-    }
-  }
-
-  if (morningList) {
-    morningList.querySelectorAll('[data-payid]').forEach(function(btn){ btn.addEventListener('click',function(e){ e.stopPropagation(); openPayModal(btn.dataset.payid); }); });
-    morningList.querySelectorAll('[data-detailbtn]').forEach(function(btn){ btn.addEventListener('click',function(e){ e.stopPropagation(); openBorrowerDetail(btn.dataset.detailbtn); }); });
-    morningList.querySelectorAll('[data-detailid]').forEach(function(row){ row.addEventListener('click',function(){ openBorrowerDetail(row.dataset.detailid); }); });
-  }
-
-  _updateMemoSettings();
-
-  // ── EOD panel ─────────────────────────────────────────────
-  var eodList = document.getElementById('ptp-eod-list');
-  if (eodList) {
-    if (!ptps.length) {
-      eodList.innerHTML = '<div class="empty-state" style="padding:24px 0"><div class="icon">🤝</div><div>No PTPs for today</div></div>';
-    } else {
-      const OUTCOMES = ['Paid', 'Part Paid', 'No Answer', 'Yet to Pay', 'Still on it', 'Blocked', 'Postponed', 'Promised Again', 'Unreachable', 'Disputed'];
-      eodList.innerHTML = groups.map(function(g) {
-        return '<div style="margin-bottom:16px">'
-          + '<div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)">' + formatTimeLabel(g.time).replace(/\*/g,'') + '</div>'
-          + g.items.map(function(b) {
-              const cur = ptpOutcomes[b.id] || '';
-              const color = cur === 'Paid' ? 'var(--green)' : cur === 'Part Paid' ? 'var(--gold)' : cur ? 'var(--text2)' : 'var(--text3)';
-              return '<div style="padding:10px 0;border-bottom:1px solid var(--border)">'
-                + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
-                + '<div><div style="font-weight:600;font-size:13px">' + b.name + '</div>'
-                + '<div style="font-size:11px;color:var(--text3)">' + b.phone + '</div></div>'
-                + '<div style="font-size:11px;font-weight:700;color:' + color + '">' + (cur || '— set outcome') + '</div>'
-                + '</div>'
-                + '<div style="display:flex;gap:6px;flex-wrap:wrap">'
-                + OUTCOMES.map(function(o) {
-                    const active = cur.toLowerCase() === o.toLowerCase();
-                    return '<button class="btn btn-xs ' + (active ? 'btn-gold' : 'btn-ghost') + '" data-bid="' + b.id + '" data-outcome="' + o + '">' + o + '</button>';
-                  }).join('')
-                + '</div></div>';
-            }).join('')
-          + '</div>';
-      }).join('');
-
-      // Wire outcome buttons
-      eodList.querySelectorAll('[data-outcome]').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-          ptpOutcomes[btn.dataset.bid] = btn.dataset.outcome;
-          renderPtp();
-        });
-      });
-    }
-  }
-
-}
 
 
 // ── GLOBAL SEARCH ──────────────────────────────────────
@@ -9663,37 +9447,7 @@ function openGlobalSearch() {
 
 
 // ── PTP HISTORY ────────────────────────────────────────
-function renderPtpHistory() {
-  var el = document.getElementById('ptp-history-body');
-  if (!el) return;
-  // Build history from borrowers payLog + ptpOutcomes stored in state
-  var history = state.ptpHistory || [];
-  if (!history.length) {
-    el.innerHTML = '<div class="card"><div class="card-body"><div class="empty-state" style="padding:30px 0"><div class="icon">📅</div><div>No PTP history yet.<br><span style="font-size:11px;color:var(--text3)">History is saved each time you view the PTP Report page.</span></div></div></div></div>';
-    return;
-  }
-  el.innerHTML = history.slice().reverse().map(function(day) {
-    var metPct = day.total > 0 ? Math.round(day.met / day.total * 100) : 0;
-    var barColor = metPct >= 80 ? 'var(--green)' : metPct >= 50 ? 'var(--gold)' : 'var(--red)';
-    return '<div class="card" style="margin-bottom:12px">'
-      + '<div class="card-header" style="cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'\':\\\'none\\\'">'
-      + '<span class="card-title">' + day.date + '</span>'
-      + '<span style="font-size:12px;color:var(--text3)">' + day.total + ' PTPs &middot; <span style="color:'+barColor+';font-weight:700">' + day.met + ' paid</span> (' + metPct + '%)</span>'
-      + '</div>'
-      + '<div style="display:none"><div class="card-body">'
-      + '<div style="background:var(--border);border-radius:4px;height:6px;margin-bottom:12px;overflow:hidden"><div style="width:'+metPct+'%;height:100%;background:'+barColor+';border-radius:4px"></div></div>'
-      + (day.entries || []).map(function(e) {
-          var oc = e.outcome || '';
-          var ocColor = oc.toLowerCase()==='paid'?'var(--green)':oc.toLowerCase()==='part paid'?'var(--gold)':oc?'var(--text2)':'var(--text3)';
-          return '<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)">'
-            + '<div><div style="font-weight:600;font-size:12px">' + e.name + '</div>'
-            + '<div style="font-size:10px;color:var(--text3)">' + e.phone + (e.time ? ' &middot; ' + e.time : '') + '</div></div>'
-            + '<div style="font-size:11px;font-weight:700;color:'+ocColor+'">' + (oc || '—') + '</div>'
-            + '</div>';
-        }).join('')
-      + '</div></div></div>';
-  }).join('');
-}
+
 
 // Auto-save PTP snapshot when leaving PTP page
 function savePtpSnapshot() {
@@ -9719,47 +9473,7 @@ function savePtpSnapshot() {
 }
 
 // ── PTP STATS (Conversion Rate) ────────────────────────
-function renderPtpStats() {
-  var el = document.getElementById('ptp-stats-body');
-  if (!el) return;
-  var history = state.ptpHistory || [];
-  if (!history.length) {
-    el.innerHTML = '<div class="card"><div class="card-body"><div class="empty-state" style="padding:30px 0"><div class="icon">📊</div><div>No PTP data yet.<br><span style="font-size:11px;color:var(--text3)">Stats will appear after you record PTP outcomes.</span></div></div></div></div>';
-    return;
-  }
-  var totalPtps = history.reduce(function(s,d){ return s+d.total; }, 0);
-  var totalMet  = history.reduce(function(s,d){ return s+d.met; }, 0);
-  var overallPct = totalPtps > 0 ? (totalMet/totalPtps*100).toFixed(1) : 0;
-  var best = history.reduce(function(b,d){ return d.total>0&&(d.met/d.total)>(b.met/(b.total||1))?d:b; }, history[0]);
-  var last7 = history.slice(0, 7);
-  var l7total = last7.reduce(function(s,d){return s+d.total;},0);
-  var l7met   = last7.reduce(function(s,d){return s+d.met;},0);
-  var l7pct   = l7total > 0 ? (l7met/l7total*100).toFixed(1) : 0;
-  var rateColor = overallPct >= 70 ? 'var(--green)' : overallPct >= 50 ? 'var(--gold)' : 'var(--red)';
 
-  el.innerHTML = '<div class="kpi-grid" style="margin-bottom:16px">'
-    + '<div class="kpi-card" style="text-align:center"><div class="kpi-value" style="color:'+rateColor+'">' + overallPct + '%</div><div class="kpi-label">Overall Conversion</div></div>'
-    + '<div class="kpi-card" style="text-align:center"><div class="kpi-value">' + totalPtps + '</div><div class="kpi-label">Total PTPs Set</div></div>'
-    + '<div class="kpi-card" style="text-align:center"><div class="kpi-value" style="color:var(--green)">' + totalMet + '</div><div class="kpi-label">Total Paid</div></div>'
-    + '<div class="kpi-card" style="text-align:center"><div class="kpi-value" style="color:var(--gold)">' + l7pct + '%</div><div class="kpi-label">Last 7 Days</div></div>'
-    + '</div>'
-    + '<div class="card" style="margin-bottom:16px"><div class="card-header"><span class="card-title">Daily Conversion Rate</span></div><div class="card-body">'
-    + history.slice(0,14).reverse().map(function(d) {
-        var pct = d.total > 0 ? Math.round(d.met/d.total*100) : 0;
-        var col = pct>=70?'var(--green)':pct>=50?'var(--gold)':'var(--red)';
-        return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">'
-          + '<div style="font-size:11px;color:var(--text3);min-width:70px">' + d.date.split(' ').slice(0,2).join(' ') + '</div>'
-          + '<div style="flex:1;background:var(--border);border-radius:3px;height:8px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:'+col+';border-radius:3px"></div></div>'
-          + '<div style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:'+col+';min-width:36px;text-align:right">'+pct+'%</div>'
-          + '<div style="font-size:10px;color:var(--text3);min-width:40px">'+d.met+'/'+d.total+'</div>'
-          + '</div>';
-      }).join('')
-    + '</div></div>'
-    + '<div class="card"><div class="card-header"><span class="card-title">Best Day</span></div><div class="card-body">'
-    + '<div style="font-weight:700;font-size:15px">' + best.date + '</div>'
-    + '<div style="font-size:13px;color:var(--green)">' + best.met + ' of ' + best.total + ' PTPs paid (' + (best.total>0?Math.round(best.met/best.total*100):0) + '%)</div>'
-    + '</div></div>';
-}
 
 // ── COLLECTION FORECAST ────────────────────────────────
 function _buildForecastHtml() {
@@ -11340,37 +11054,7 @@ function renderSmartClusters() {
     </div>`;
 }
 
-function showClusterPopup(clusterId) {
-  const active = getActiveBorrowers();
-  const map = {
-    high:     active.filter(b => b.amountPaid > 0 && calcPriorityScore(b) <= 5),
-    pressure: active.filter(b => getOdAge(b.startDate) >= 8 && b.amountPaid === 0 && !b.promisedToPay),
-    escalate: active.filter(b => (b.promisedToPay && b.amountPaid === 0) || getOdAge(b.startDate) >= 13),
-  };
-  const labels = { high:'🟢 High Probability', pressure:'🟡 Needs Pressure', escalate:'🔴 Escalation Ready' };
-  const list = map[clusterId] || [];
-  document.getElementById('modal-title').textContent = labels[clusterId] || 'Cluster';
-  document.getElementById('modal-body').innerHTML = `<div style="font-size:11px;color:var(--text3);margin-bottom:10px">${list.length} accounts — tap any to open detail</div>`
-    + list.map(b => {
-      const phone = b.phone.replace(/\s/g,'').replace('+','');
-      const ps = calcPriorityScore(b);
-      const pCls = ps>=8?'p-high':ps>=5?'p-mid':'p-low';
-      return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="closeModal();openBorrowerDetail('${b.id}');haptic('light')">
-        <span class="priority-score ${pCls}">${ps}</span>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:12px;font-weight:600">${b.name}</div>
-          <div style="font-size:10px;color:var(--text3)">Day ${getOdAge(b.startDate)} · ${b.phone}</div>
-        </div>
-        <div style="display:flex;gap:4px">
-          <button class="btn btn-green btn-xs" onclick="event.stopPropagation();closeModal();openPayModal('${b.id}')">💰</button>
-          <a href="https://wa.me/${phone}" target="_blank" class="btn btn-ghost btn-xs" style="color:#25d366" onclick="event.stopPropagation();haptic('light')">💬</a>
-        </div>
-      </div>`;
-    }).join('') || '<div style="color:var(--text3);font-size:12px;padding:8px 0">No accounts in this cluster</div>';
-  document.getElementById('modal-footer').innerHTML = `<button class="btn btn-ghost" onclick="closeModal()">Close</button>`;
-  document.getElementById('modal-overlay').classList.add('open');
-  haptic('light');
-}
+
 
 function showClusterPopup(cls) {
   haptic('light');
@@ -14386,21 +14070,9 @@ function startWaQueuePersonalised(ids) {
   haptic('light');
   waqRenderModal();
 }
-function startWaQueuePersonalised(ids) {
-  if(!ids||!ids.length){toast('No contacts to queue','error');return;}
-  const borrowers=ids.map(id=>state.borrowers.find(b=>b.id===id)).filter(Boolean);
-  window._waqBorrowers=borrowers; window._waqIdx=0; window._waqGenerous=false;
-  document.getElementById('modal-overlay').classList.add('open');
-  haptic('light'); waqRenderModal();
-}
 
-function toggleRankingKeyVisibility() {
-  const inp = document.getElementById('ranking-claude-key');
-  const btn = document.getElementById('rank-key-toggle');
-  if (!inp) return;
-  if (inp.type === 'password') { inp.type = 'text'; if (btn) btn.textContent = '🙈'; }
-  else { inp.type = 'password'; if (btn) btn.textContent = '👁'; }
-}
+
+
 
 function toggleApiKeyBar() {
   const bar = document.getElementById('api-key-bar');
@@ -14782,13 +14454,7 @@ function renderMonthComparison() {
 }
 
 // ── F5: Key toggle ───────────────────────────────────────────
-function toggleRankingKeyVisibility() {
-  const inp = document.getElementById('ranking-claude-key');
-  const btn = document.getElementById('rank-key-toggle');
-  if (!inp) return;
-  inp.type = inp.type === 'password' ? 'text' : 'password';
-  if (btn) btn.textContent = inp.type === 'password' ? '👁' : '🙈';
-}
+
 
 
 // ── ONBOARDING WIZARD ──────────────────────────────────
@@ -15805,12 +15471,11 @@ var _CARD_STYLE_META = {
   'default':      { name: 'Default',      desc: 'Current glass style' },
   'obsidian':     { name: 'Obsidian Vault', desc: 'Gradient fills + seam glow' },
   'editorial':    { name: 'Neon Editorial', desc: 'Left-border accent, no fills' },
-  'glassmorphic': { name: 'Glassmorphic',   desc: 'Frosted glass + halos' },
-  'cinematic':    { name: 'Cinematic Dark', desc: 'Diagonal slash + glow numbers' }
+
 };
 
 function applyCardStyle(style) {
-  var validStyles = ['default','obsidian','editorial','glassmorphic','cinematic'];
+  var validStyles = ['default','obsidian','editorial'];
   var s = validStyles.indexOf(style) >= 0 ? style : 'default';
   if (s === 'default') {
     document.documentElement.removeAttribute('data-card-style');
@@ -15832,7 +15497,7 @@ function _updateCardStyleDropdownUI(style) {
   var subEl  = document.getElementById('card-style-sub-lbl');
   if (nameEl) nameEl.textContent = meta.name;
   if (subEl)  subEl.textContent  = meta.desc;
-  var allStyles = ['default','obsidian','editorial','glassmorphic','cinematic'];
+  var allStyles = ['default','obsidian','editorial'];
   allStyles.forEach(function(t) {
     var chk = document.getElementById('card-style-check-' + t);
     var btn = document.getElementById('card-style-btn-' + t);
