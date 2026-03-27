@@ -5082,7 +5082,8 @@ function getOdFee(b) {
     const sortedPays = payLog.slice().sort((a, z) => a.date.localeCompare(z.date));
 
     function paidAfterSnap(dayN) {
-      if (sortedPays.length === 0) return 0; // no payLog — assume paid today, no past credite(snapDate + 'T00:00:00Z');
+      if (sortedPays.length === 0) return 0;
+      const d = new Date(snapDate + 'T00:00:00Z');
       d.setUTCDate(d.getUTCDate() + dayN);
       const dayStr = d.toISOString().split('T')[0];
       let cum = 0;
@@ -13144,43 +13145,38 @@ function buildPtpStatsHtml() {
 
 // ── AI RANKING SCAN (item 1) — uses CLAUDE_API_KEY constant 
 // ══════════════════════════════════════════════════════════════
-// MULTI-PROVIDER AI SCAN SYSTEM
+// RANKING SCAN SYSTEM — Smart OCR + AI fallback
+// Handles 4-column format: Stage | Supervisor | AgentCode | Pct%
 // ══════════════════════════════════════════════════════════════
 
 var _scanProvider = localStorage.getItem('sq_scan_provider') || 'local';
+var _rankingScanPreview = []; // parsed rows waiting for confirmation
 
+// ── Provider UI ──────────────────────────────────────────────
 function setScanProvider(p) {
   _scanProvider = p;
   localStorage.setItem('sq_scan_provider', p);
-  // Update button styles
   ['local','gemini','claude','openai'].forEach(function(id) {
     var btn = document.getElementById('spbtn-' + id);
     var key = document.getElementById('scan-key-' + id);
     if (btn) {
-      if (id === p) {
-        btn.style.borderColor = 'var(--gold)';
-        btn.style.background  = 'rgba(232,160,32,0.1)';
-        btn.style.color       = 'var(--gold)';
-      } else {
-        btn.style.borderColor = 'var(--border2)';
-        btn.style.background  = 'transparent';
-        btn.style.color       = 'var(--text2)';
-      }
+      btn.style.borderColor = (id === p) ? 'var(--gold)' : 'var(--border2)';
+      btn.style.background  = (id === p) ? 'rgba(232,160,32,0.1)' : 'transparent';
+      btn.style.color       = (id === p) ? 'var(--gold)' : 'var(--text2)';
     }
     if (key) key.style.display = (id === p) ? '' : 'none';
   });
-  // Restore saved key into visible input
   var keyEl = document.getElementById('ranking-' + p + '-key');
-  if (keyEl) {
+  if (keyEl && !keyEl.value) {
     var saved = localStorage.getItem('sq_scan_key_' + p) || '';
-    if (saved && !keyEl.value) keyEl.value = saved;
+    if (!saved && p === 'claude') saved = localStorage.getItem('claude_api_key') || '';
+    if (saved) keyEl.value = saved;
   }
 }
 
 function saveProviderKey(provider, val) {
   if (val && val.trim()) {
     localStorage.setItem('sq_scan_key_' + provider, val.trim());
-    // Keep backwards compat — also save claude key under old key
     if (provider === 'claude') localStorage.setItem('claude_api_key', val.trim());
   }
 }
@@ -13195,15 +13191,14 @@ function toggleKeyVis(inputId, btn) {
   var inp = document.getElementById(inputId);
   if (!inp) return;
   inp.type = inp.type === 'password' ? 'text' : 'password';
-  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+  if (btn) btn.textContent = inp.type === 'password' ? '👁' : '🙈';
 }
 
-// Init provider UI on ranking page open
 function initScanProviderUI() {
   setScanProvider(_scanProvider);
 }
 
-// ── MAIN SCAN ENTRY POINT ──────────────────────────────────────
+// ── MAIN SCAN ENTRY POINT ─────────────────────────────────────
 async function scanRankingImage() {
   var imageInput = document.getElementById('ranking-image-upload');
   var file = imageInput && imageInput.files && imageInput.files[0];
@@ -13220,26 +13215,32 @@ async function scanRankingImage() {
   haptic('light');
 
   try {
-    var extracted = '';
+    var rawText = '';
+
     if (_scanProvider === 'local') {
-      extracted = await _scanLocal(file, statusEl);
-    } else if (_scanProvider === 'gemini') {
-      extracted = await _scanGemini(file, statusEl);
-    } else if (_scanProvider === 'claude') {
-      extracted = await _scanClaude(file, statusEl);
-    } else if (_scanProvider === 'openai') {
-      extracted = await _scanOpenAI(file, statusEl);
+      rawText = await _runLocalOcr(file, statusEl);
+    } else {
+      rawText = await _runAiScan(file, statusEl);
     }
 
-    if (extracted && extracted.trim()) {
-      var el = document.getElementById('ranking-paste');
-      if (el) el.value = extracted.trim();
-      var lines = extracted.split('\n').filter(function(l) { return l.trim(); }).length;
-      if (statusEl) statusEl.innerHTML = '✅ Extracted ' + lines + ' entries — review text above then tap <b>Save from Text</b>';
-      haptic('pay');
-    } else {
-      if (statusEl) statusEl.textContent = '⚠️ No ranking data found — try a clearer image or use text paste';
+    if (!rawText || !rawText.trim()) {
+      if (statusEl) statusEl.textContent = '⚠️ Nothing extracted — try a clearer image';
+      if (btn) { btn.disabled = false; btn.textContent = '🔍 Scan Image'; }
+      return;
     }
+
+    // Parse into structured rows
+    var rows = _parseRankingText(rawText);
+
+    if (!rows.length) {
+      if (statusEl) statusEl.textContent = '⚠️ Could not parse ranking data — check image quality or use text paste';
+      if (btn) { btn.disabled = false; btn.textContent = '🔍 Scan Image'; }
+      return;
+    }
+
+    // Show preview table
+    _showRankingPreview(rows, statusEl);
+
   } catch(e) {
     if (statusEl) statusEl.textContent = '❌ Scan failed: ' + (e.message || 'unknown error');
     console.error('Scan error:', e);
@@ -13248,201 +13249,330 @@ async function scanRankingImage() {
   if (btn) { btn.disabled = false; btn.textContent = '🔍 Scan Image'; }
 }
 
-// ── LOCAL OCR via Tesseract.js ─────────────────────────────────
-async function _scanLocal(file, statusEl) {
+// ── LOCAL OCR ─────────────────────────────────────────────────
+async function _runLocalOcr(file, statusEl) {
   if (typeof Tesseract === 'undefined') {
-    throw new Error('OCR library not loaded yet — please wait a moment and try again');
+    throw new Error('OCR library not loaded — please wait a moment and try again');
   }
-  if (statusEl) statusEl.innerHTML = '⏳ Running local OCR (no internet needed)...';
+  if (statusEl) statusEl.innerHTML = '⏳ Running OCR on device...';
 
-  var result = await Tesseract.recognize(file, 'eng', {
+  // Pre-process: draw to canvas, boost contrast
+  var processedBlob = await _preprocessImage(file);
+
+  var result = await Tesseract.recognize(processedBlob || file, 'eng', {
     logger: function(m) {
       if (m.status === 'recognizing text' && statusEl) {
         statusEl.innerHTML = '⏳ OCR: ' + Math.round((m.progress || 0) * 100) + '%';
       }
-    }
+    },
+    // Use PSM 6 = single uniform block of text (best for tables)
+    tessedit_pageseg_mode: '6'
   });
 
-  var raw = (result && result.data && result.data.text) ? result.data.text : '';
-  return _parseOcrText(raw);
+  return (result && result.data && result.data.text) ? result.data.text : '';
 }
 
-// ── GEMINI API ─────────────────────────────────────────────────
-async function _scanGemini(file, statusEl) {
-  var key = getProviderKey('gemini');
-  if (!key) throw new Error('Gemini API key not set — tap Gemini above and enter your key from aistudio.google.com');
-  if (statusEl) statusEl.innerHTML = '⏳ Sending to Google Gemini...';
+// Image pre-processing — boost contrast for cleaner OCR
+async function _preprocessImage(file) {
+  try {
+    var bitmap = await createImageBitmap(file);
+    var canvas = document.createElement('canvas');
+    canvas.width  = bitmap.width;
+    canvas.height = bitmap.height;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(bitmap, 0, 0);
+    // Boost contrast
+    var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    var data = imageData.data;
+    for (var i = 0; i < data.length; i += 4) {
+      // Convert to greyscale then apply threshold
+      var grey = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+      // Increase contrast: push towards black or white
+      var contrast = 1.5;
+      var intercept = 128 * (1 - contrast);
+      grey = Math.min(255, Math.max(0, contrast * grey + intercept));
+      data[i] = data[i+1] = data[i+2] = grey;
+    }
+    ctx.putImageData(imageData, 0, 0);
+    return new Promise(function(res) { canvas.toBlob(res, 'image/png'); });
+  } catch(e) {
+    return null; // fall back to original file
+  }
+}
 
-  var base64 = await _fileToBase64(file);
+// ── AI SCAN (Gemini / Claude / OpenAI) ───────────────────────
+async function _runAiScan(file, statusEl) {
+  var provider = _scanProvider;
+  var key = getProviderKey(provider);
+  if (!key) throw new Error(provider + ' API key not set — tap provider above and enter your key');
+
+  var base64   = await _fileToBase64(file);
   var mimeType = file.type || 'image/png';
+  var prompt   = _aiScanPrompt();
 
-  var resp = await fetch(
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + key,
-    {
+  if (provider === 'gemini') {
+    if (statusEl) statusEl.innerHTML = '⏳ Sending to Gemini...';
+    var resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + key, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { inline_data: { mime_type: mimeType, data: base64 } },
-            { text: _aiScanPrompt() }
-          ]
-        }]
-      })
-    }
-  );
+      body: JSON.stringify({ contents: [{ parts: [{ inline_data: { mime_type: mimeType, data: base64 } }, { text: prompt }] }] })
+    });
+    if (!resp.ok) { var e = await resp.json().catch(function(){return{};}); throw new Error('Gemini: ' + (e.error&&e.error.message||resp.status)); }
+    var d = await resp.json();
+    return (d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts&&d.candidates[0].content.parts[0]&&d.candidates[0].content.parts[0].text)||'';
 
-  if (!resp.ok) {
-    var err = await resp.json().catch(function() { return {}; });
-    throw new Error('Gemini error: ' + (err.error && err.error.message ? err.error.message : resp.status));
+  } else if (provider === 'claude') {
+    if (statusEl) statusEl.innerHTML = '⏳ Sending to Claude...';
+    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
+      body: JSON.stringify({ model:'claude-opus-4-5', max_tokens:2048, messages:[{ role:'user', content:[{ type:'image', source:{ type:'base64', media_type:mimeType, data:base64 } },{ type:'text', text:prompt }] }] })
+    });
+    if (!resp.ok) { var e = await resp.json().catch(function(){return{};}); throw new Error('Claude: ' + (e.error&&e.error.message||resp.status)); }
+    var d = await resp.json();
+    return (d.content&&d.content[0]&&d.content[0].text)||'';
+
+  } else if (provider === 'openai') {
+    if (statusEl) statusEl.innerHTML = '⏳ Sending to GPT-4o...';
+    var resp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json','Authorization':'Bearer '+key },
+      body: JSON.stringify({ model:'gpt-4o', max_tokens:2048, messages:[{ role:'user', content:[{ type:'image_url', image_url:{ url:'data:'+mimeType+';base64,'+base64, detail:'high' } },{ type:'text', text:prompt }] }] })
+    });
+    if (!resp.ok) { var e = await resp.json().catch(function(){return{};}); throw new Error('OpenAI: ' + (e.error&&e.error.message||resp.status)); }
+    var d = await resp.json();
+    return (d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content)||'';
   }
-
-  var data = await resp.json();
-  var text = data.candidates &&
-             data.candidates[0] &&
-             data.candidates[0].content &&
-             data.candidates[0].content.parts &&
-             data.candidates[0].content.parts[0] &&
-             data.candidates[0].content.parts[0].text;
-  if (!text) throw new Error('Gemini returned empty response');
-  return text.trim();
+  return '';
 }
 
-// ── CLAUDE (ANTHROPIC) API ─────────────────────────────────────
-async function _scanClaude(file, statusEl) {
-  var key = getProviderKey('claude');
-  if (!key) throw new Error('Claude API key not set — tap Claude above and enter your key from console.anthropic.com');
-  if (statusEl) statusEl.innerHTML = '⏳ Sending to Claude AI...';
-
-  var base64 = await _fileToBase64(file);
-
-  var resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-opus-4-5',
-      max_tokens: 1024,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image', source: { type: 'base64', media_type: file.type || 'image/png', data: base64 } },
-          { type: 'text', text: _aiScanPrompt() }
-        ]
-      }]
-    })
-  });
-
-  if (!resp.ok) {
-    var err = await resp.json().catch(function() { return {}; });
-    throw new Error('Claude error: ' + (err.error && err.error.message ? err.error.message : resp.status));
-  }
-
-  var data = await resp.json();
-  var text = data.content && data.content[0] && data.content[0].text;
-  if (!text) throw new Error('Claude returned empty response');
-  return text.trim();
-}
-
-// ── OPENAI GPT-4o API ──────────────────────────────────────────
-async function _scanOpenAI(file, statusEl) {
-  var key = getProviderKey('openai');
-  if (!key) throw new Error('OpenAI API key not set — tap GPT-4o above and enter your key from platform.openai.com');
-  if (statusEl) statusEl.innerHTML = '⏳ Sending to OpenAI GPT-4o...';
-
-  var base64 = await _fileToBase64(file);
-  var mimeType = file.type || 'image/png';
-
-  var resp = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + key
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      max_tokens: 1024,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image_url', image_url: { url: 'data:' + mimeType + ';base64,' + base64, detail: 'high' } },
-          { type: 'text', text: _aiScanPrompt() }
-        ]
-      }]
-    })
-  });
-
-  if (!resp.ok) {
-    var err = await resp.json().catch(function() { return {}; });
-    throw new Error('OpenAI error: ' + (err.error && err.error.message ? err.error.message : resp.status));
-  }
-
-  var data = await resp.json();
-  var text = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-  if (!text) throw new Error('OpenAI returned empty response');
-  return text.trim();
-}
-
-// ── Shared helpers ─────────────────────────────────────────────
 function _aiScanPrompt() {
-  return 'Extract all agent names and their percentage rates from this ranking screenshot.\n'
-    + 'Return ONLY lines in this exact format, one per line, no extra text, no markdown:\n'
-    + '1. Agent Name XX.X%\n'
-    + 'If no percentage is visible for an agent, use 0.0%.\n'
-    + 'Include every agent visible. Do not add any explanation.';
+  return 'This is a LoanBase ranking screenshot. Extract every row as exactly:\n'
+    + 'STAGE|SUPERVISOR|AGENT_CODE|PERCENTAGE\n'
+    + 'Where AGENT_CODE is like "Shadrack Agyei OCT25" (name + month + year).\n'
+    + 'One row per line. No headers. No extra text. Example:\n'
+    + '2|OSAE EMMANUEL|Shadrack Agyei OCT25|19.70%\n'
+    + 'Extract all visible rows.';
 }
 
+// ── COLUMN-AWARE PARSER ───────────────────────────────────────
+// Understands the 4-column format: Stage | Supervisor | AgentCode | Pct
+// AgentCode always ends: [Name] [MON][YY] e.g. "Shadrack Agyei OCT25"
+// Percentage always ends: [number]%
+function _parseRankingText(raw) {
+  if (!raw) return [];
+  var rows = [];
+  var lines = raw.split('\n');
+
+  // Month abbreviations for anchor detection
+  var MONTHS = /\b(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)\d{2}\b/i;
+  // Percentage pattern
+  var PCT = /(\d{1,3}[.,]\d{1,2})\s*%/;
+
+  lines.forEach(function(line) {
+    var t = line.trim();
+    if (!t || t.length < 5) return;
+
+    // ── Strategy 1: Pipe-separated (from AI providers) ──
+    if (t.indexOf('|') >= 0) {
+      var parts = t.split('|').map(function(p) { return p.trim(); });
+      if (parts.length >= 4) {
+        var pct = parts[3].replace('%','').replace(',','.').trim();
+        if (!isNaN(parseFloat(pct))) {
+          rows.push({
+            stage:      parts[0] || '2',
+            supervisor: parts[1] || '',
+            agent:      parts[2] || '',
+            pct:        parseFloat(pct).toFixed(2)
+          });
+        }
+        return;
+      }
+    }
+
+    // ── Strategy 2: Column-aware using month-code anchor ──
+    // Format: STAGE SUPERVISOR AGENTFIRST AGENTLAST MONTHYEAR PCT%
+    // Agent code is ALWAYS the last 2 words + MONTHYEAR before the percentage
+    var pctMatch = t.match(/(\d{1,3}[.,]\d{1,2})\s*%\s*$/);
+    if (!pctMatch) return;
+    var pct = parseFloat(pctMatch[1].replace(',','.')).toFixed(2);
+    var beforePct = t.slice(0, t.lastIndexOf(pctMatch[0])).trim();
+
+    // Find the month-year that ends the agent code (3-4 letters + 2 digits)
+    var monthMatch = beforePct.match(/(.*?)\s+([A-Za-z]{3,4}\d{2})\s*$/);
+    if (monthMatch) {
+      var rest      = monthMatch[1].trim();
+      var monthYear = monthMatch[2].toUpperCase();
+      var parts     = rest.split(/\s+/);
+      var stage = '', supervisor = '', agentName = '';
+
+      if (parts.length >= 1 && /^\d$/.test(parts[0])) {
+        stage = parts[0];
+        parts = parts.slice(1);
+      }
+
+      // Agent name = last 2 words of what remains (FirstName LastName)
+      // Supervisor = everything before those 2 words
+      if (parts.length >= 2) {
+        agentName  = parts.slice(-2).join(' ');
+        supervisor = parts.slice(0, -2).join(' ');
+      } else if (parts.length === 1) {
+        agentName  = parts[0];
+        supervisor = '';
+      }
+
+      rows.push({
+        stage:      stage || '2',
+        supervisor: supervisor,
+        agent:      (agentName + ' ' + monthYear).trim(),
+        pct:        pct
+      });
+      return;
+    }
+
+    // ── Strategy 3: Fallback — just name + percentage ──
+    var nameMatch = beforePct.match(/^(?:\d+[.)\s]+)?(.+)$/);
+    if (nameMatch) {
+      rows.push({
+        stage: '',
+        supervisor: '',
+        agent: nameMatch[1].trim(),
+        pct:   pct
+      });
+    }
+  });
+
+  // Sort by percentage descending, deduplicate
+  rows.sort(function(a,b) { return parseFloat(b.pct) - parseFloat(a.pct); });
+
+  // Deduplicate by agent name
+  var seen = {};
+  rows = rows.filter(function(r) {
+    var key = r.agent.toLowerCase().trim();
+    if (seen[key]) return false;
+    seen[key] = true;
+    return true;
+  });
+
+  return rows;
+}
+
+// ── PREVIEW TABLE ─────────────────────────────────────────────
+function _showRankingPreview(rows, statusEl) {
+  var myName = (document.getElementById('ranking-my-name')?.value || localStorage.getItem('ranking_my_name') || '').trim().toLowerCase();
+  _rankingScanPreview = rows;
+
+  // Find my row
+  var myIdx = -1;
+  if (myName) {
+    myIdx = rows.findIndex(function(r) { return r.agent.toLowerCase().includes(myName); });
+  }
+
+  var html = '<div style="margin-top:12px;background:var(--surface2);border-radius:12px;overflow:hidden;border:1px solid var(--border2)">';
+
+  // Header
+  html += '<div style="display:grid;grid-template-columns:32px 1fr 2fr 60px;gap:0;background:var(--surface);border-bottom:2px solid var(--border2);padding:8px 10px">'
+    + '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase">#</div>'
+    + '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase">Sup.</div>'
+    + '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase">Agent Code</div>'
+    + '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:right">Pct</div>'
+    + '</div>';
+
+  // My position banner
+  if (myIdx >= 0) {
+    html += '<div style="background:rgba(232,160,32,0.12);border-bottom:1px solid rgba(232,160,32,0.3);padding:8px 10px;font-size:12px;display:flex;align-items:center;gap:8px">'
+      + '<span style="font-size:16px">📍</span>'
+      + '<span style="color:var(--gold);font-weight:700">Your position: #' + (myIdx+1) + ' of ' + rows.length + '</span>'
+      + '<span style="color:var(--text3)">·</span>'
+      + '<span style="font-family:var(--font-mono);font-weight:700;color:var(--gold)">' + rows[myIdx].pct + '%</span>'
+      + '</div>';
+  }
+
+  // Rows (scrollable, max-height)
+  html += '<div style="max-height:260px;overflow-y:auto">';
+  rows.forEach(function(r, i) {
+    var isMe = (i === myIdx);
+    var bg   = isMe ? 'background:rgba(232,160,32,0.1);' : (i % 2 === 0 ? '' : 'background:rgba(255,255,255,0.015);');
+    var borderL = isMe ? 'border-left:3px solid var(--gold);' : 'border-left:3px solid transparent;';
+    html += '<div style="display:grid;grid-template-columns:32px 1fr 2fr 60px;gap:0;padding:7px 10px;border-bottom:1px solid var(--border);' + bg + borderL + 'align-items:center">'
+      + '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono)">' + (i+1) + '</div>'
+      + '<div style="font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + r.supervisor + '">' + (r.supervisor || '—') + '</div>'
+      + '<div style="font-size:12px;font-weight:' + (isMe?'700':'500') + ';color:' + (isMe?'var(--gold)':'var(--text)') + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'
+        + r.agent
+      + '</div>'
+      + '<div style="font-size:12px;font-weight:700;color:' + (isMe?'var(--gold)':i<3?'var(--green)':'var(--text)') + ';text-align:right;font-family:var(--font-mono)">' + r.pct + '%</div>'
+      + '</div>';
+  });
+  html += '</div>';
+
+  // Confirm / Edit controls
+  html += '<div style="padding:12px 10px;display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--border2);background:var(--surface)">'
+    + '<button class="btn btn-ghost btn-sm" onclick="_discardRankingPreview()">✕ Discard</button>'
+    + '<button class="btn btn-ghost btn-sm" onclick="_editRankingPreview()">✏️ Edit in Text</button>'
+    + '<button class="btn btn-gold" onclick="_confirmRankingPreview()" style="margin-left:auto">✅ Confirm & Save (' + rows.length + ' agents)</button>'
+    + '</div>';
+  html += '</div>';
+
+  // Show preview under the status element
+  if (statusEl) {
+    statusEl.innerHTML = '✅ Extracted <b>' + rows.length + '</b> agents — review below' + (myIdx >= 0 ? ', <b>your row is highlighted</b>' : '') + ':';
+    // Insert preview after statusEl
+    var existing = document.getElementById('ranking-preview-table');
+    if (existing) existing.remove();
+    var div = document.createElement('div');
+    div.id = 'ranking-preview-table';
+    div.innerHTML = html;
+    statusEl.parentNode.insertBefore(div, statusEl.nextSibling);
+  }
+  haptic('pay');
+}
+
+function _discardRankingPreview() {
+  _rankingScanPreview = [];
+  var el = document.getElementById('ranking-preview-table');
+  if (el) el.remove();
+  var s = document.getElementById('ranking-scan-status');
+  if (s) s.textContent = '↩ Preview discarded';
+}
+
+function _editRankingPreview() {
+  // Put the parsed data into the text area for manual editing
+  var text = _rankingScanPreview.map(function(r, i) {
+    return (i+1) + '. ' + r.agent + ' ' + r.pct + '%';
+  }).join('\n');
+  var el = document.getElementById('ranking-paste');
+  if (el) el.value = text;
+  _discardRankingPreview();
+  var s = document.getElementById('ranking-scan-status');
+  if (s) s.textContent = '✏️ Data loaded into text area — edit then tap Save from Text';
+}
+
+function _confirmRankingPreview() {
+  if (!_rankingScanPreview.length) return;
+  var pasteEl = document.getElementById('ranking-paste');
+  // Convert to the format scanRanking() expects: "Agent Name XX.XX%"
+  var text = _rankingScanPreview.map(function(r) {
+    return r.agent + ' ' + r.pct + '%';
+  }).join('\n');
+  if (pasteEl) pasteEl.value = text;
+  _discardRankingPreview();
+  // Trigger the normal save
+  scanRanking();
+}
+
+// ── Helper ────────────────────────────────────────────────────
 function _fileToBase64(file) {
   return new Promise(function(resolve, reject) {
     var reader = new FileReader();
-    reader.onload = function() { resolve(reader.result.split(',')[1]); };
+    reader.onload  = function() { resolve(reader.result.split(',')[1]); };
     reader.onerror = function() { reject(new Error('Failed to read image file')); };
     reader.readAsDataURL(file);
   });
 }
 
-// Clean up OCR output — Tesseract can produce noisy text
-// Try to extract ranking lines even from messy OCR output
-function _parseOcrText(raw) {
-  if (!raw) return '';
-  var lines = raw.split('\n');
-  var results = [];
-  var rank = 1;
-
-  lines.forEach(function(line) {
-    var trimmed = line.trim();
-    if (!trimmed) return;
-
-    // Try: "1. Name 87.4%" or "1 Name 87.4%" or "Name 87.4%"
-    var m = trimmed.match(/^(?:\d+[.):\s]+)?(.+?)\s+([\d]{1,3}[.,][\d]{1,2})\s*%?\s*$/);
-    if (!m) {
-      // Try just a percentage at end
-      m = trimmed.match(/^(?:\d+[.):\s]+)?(.+?)\s+([\d]+\.[\d]+)%/);
-    }
-    if (m) {
-      var name = m[1].trim().replace(/[^a-zA-Z\s\-']/g, '').trim();
-      var pct  = m[2].replace(',', '.');
-      if (name.length >= 3 && parseFloat(pct) >= 0) {
-        results.push(rank + '. ' + name + ' ' + pct + '%');
-        rank++;
-      }
-    }
-  });
-
-  // If structured parse found nothing, return raw for manual review
-  return results.length > 0 ? results.join('\n') : raw.trim();
-}
-
-// ── Backwards compat: keep old API key save working ──────────────
+// Backwards compat
 function saveApiKeyFromDash(val) {
-  if (val) {
-    saveProviderKey('claude', val.trim());
-    if (val.startsWith('sk-ant')) toast('Claude API key saved \u2705', 'success');
-  }
+  if (val) saveProviderKey('claude', val.trim());
 }
 function toggleRankingKeyVisibility() {
   toggleKeyVis('ranking-claude-key', document.getElementById('rank-key-toggle'));
