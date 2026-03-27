@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title id="page-title">SqueveTrack</title>
 <meta name="theme-color" content="#06080f">
 <meta name="mobile-web-app-capable" content="yes">
@@ -14,6 +14,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 <style>
@@ -3424,18 +3425,48 @@ tr.overdue-critical .heat-ring {
           <label>Paste ranking text</label>
           <textarea class="form-input" id="ranking-paste" rows="5" placeholder="Paste screenshot text here e.g.&#10;1. Akos Mensah 87.4%&#10;2. Shadrack Agyei 83.1%&#10;3. Eric Boateng 79.2%"></textarea>
         </div>
+        <!-- AI Provider selector -->
         <div class="form-group">
-          <label>Claude API Key <span style="font-size:10px;color:var(--text3);font-weight:400">— for AI image scan only, stored locally</span></label>
-          <div style="display:flex;gap:8px;align-items:center">
-            <input type="password" class="form-input" id="ranking-api-key-input" placeholder="sk-ant-api03-..." style="font-family:var(--font-mono);font-size:11px;flex:1" onchange="saveApiKeyFromDash(this.value)">
-            <button class="btn btn-ghost btn-xs" onclick="toggleRankingKeyVisibility()" id="rank-key-toggle" title="Show/hide key">👁</button>
+          <label>AI Scan Provider</label>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">
+            <button class="scan-provider-btn active" id="spbtn-local" onclick="setScanProvider('local')" style="padding:8px 4px;border-radius:8px;border:1.5px solid var(--gold);background:rgba(232,160,32,0.1);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font-body);color:var(--gold)">📱 Local<br><span style="font-weight:400;color:var(--text3)">Free · offline</span></button>
+            <button class="scan-provider-btn" id="spbtn-gemini" onclick="setScanProvider('gemini')" style="padding:8px 4px;border-radius:8px;border:1.5px solid var(--border2);background:transparent;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font-body);color:var(--text2)">✨ Gemini<br><span style="font-weight:400;color:var(--text3)">Free tier</span></button>
+            <button class="scan-provider-btn" id="spbtn-claude" onclick="setScanProvider('claude')" style="padding:8px 4px;border-radius:8px;border:1.5px solid var(--border2);background:transparent;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font-body);color:var(--text2)">🤖 Claude<br><span style="font-weight:400;color:var(--text3)">Anthropic</span></button>
+            <button class="scan-provider-btn" id="spbtn-openai" onclick="setScanProvider('openai')" style="padding:8px 4px;border-radius:8px;border:1.5px solid var(--border2);background:transparent;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font-body);color:var(--text2)">⚡ GPT-4o<br><span style="font-weight:400;color:var(--text3)">OpenAI</span></button>
           </div>
-          <div style="font-size:10px;color:var(--text3);margin-top:3px">Key saved in your browser only. Used only when tapping 🤖 AI Scan Image.</div>
+
+          <!-- Provider-specific key inputs -->
+          <div id="scan-key-local" style="font-size:11px;color:var(--green);padding:6px 0">✅ No API key needed — runs entirely on your device using OCR.</div>
+
+          <div id="scan-key-gemini" style="display:none">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
+              <input type="password" class="form-input" id="ranking-gemini-key" placeholder="AIza..." style="font-family:var(--font-mono);font-size:11px;flex:1" oninput="saveProviderKey('gemini',this.value)">
+              <button class="btn btn-ghost btn-xs" onclick="toggleKeyVis('ranking-gemini-key',this)">👁</button>
+            </div>
+            <div style="font-size:10px;color:var(--text3)">Free key from <b>aistudio.google.com</b> — 1,500 scans/day at no cost.</div>
+          </div>
+
+          <div id="scan-key-claude" style="display:none">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
+              <input type="password" class="form-input" id="ranking-claude-key" placeholder="sk-ant-api03-..." style="font-family:var(--font-mono);font-size:11px;flex:1" oninput="saveProviderKey('claude',this.value)">
+              <button class="btn btn-ghost btn-xs" onclick="toggleKeyVis('ranking-claude-key',this)">👁</button>
+            </div>
+            <div style="font-size:10px;color:var(--text3)">Key from <b>console.anthropic.com</b> — stored in your browser only.</div>
+          </div>
+
+          <div id="scan-key-openai" style="display:none">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
+              <input type="password" class="form-input" id="ranking-openai-key" placeholder="sk-..." style="font-family:var(--font-mono);font-size:11px;flex:1" oninput="saveProviderKey('openai',this.value)">
+              <button class="btn btn-ghost btn-xs" onclick="toggleKeyVis('ranking-openai-key',this)">👁</button>
+            </div>
+            <div style="font-size:10px;color:var(--text3)">Key from <b>platform.openai.com</b> — stored in your browser only.</div>
+          </div>
         </div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:8px">💡 No key needed for text paste. Key required only for photo/screenshot AI scan.</div>
+
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px">💡 No key needed for text paste or local OCR. AI providers give better accuracy on complex images.</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn btn-gold" onclick="scanRanking()" id="ranking-scan-btn">💾 Save from Text</button>
-          <button class="btn btn-ghost" onclick="scanRankingImage()" id="ranking-ai-btn">🤖 AI Scan Image</button>
+          <button class="btn btn-ghost" onclick="scanRankingImage()" id="ranking-ai-btn">🔍 Scan Image</button>
         </div>
         <div id="ranking-scan-status" style="margin-top:8px;font-size:12px;color:var(--text2)"></div>
       </div>
@@ -11466,6 +11497,7 @@ function scanRanking() {
 }
 
 function renderRanking() {
+  if (typeof initScanProviderUI === 'function') initScanProviderUI();
   const myName = (localStorage.getItem('ranking_my_name') || '').toLowerCase();
   const body   = document.getElementById('ranking-body');
   if (!body) return;
@@ -11473,7 +11505,7 @@ function renderRanking() {
   // Pre-fill saved agent name and API key
   const nameEl = document.getElementById('ranking-my-name');
   if (nameEl && !nameEl.value && myName) nameEl.value = localStorage.getItem('ranking_my_name');
-  const keyEl = document.getElementById('ranking-api-key-input');
+  const keyEl = document.getElementById('ranking-claude-key');
   if (keyEl && !keyEl.value) { const k = getActiveApiKey(); if (k) keyEl.value = k; }
 
   const history = state.rankingHistory || [];
@@ -12197,68 +12229,131 @@ function _ptpLogSend(borrowerId, tone, channel) {
   saveState();
 }
 
+
+// ══════════════════════════════════════════════════════════════
+// PTP SEQUENTIAL REMINDER — matches startSequential pattern
+// ══════════════════════════════════════════════════════════════
+var _ptpSeqList  = [];
+var _ptpSeqIndex = 0;
+var _ptpSeqChan  = 'wa';
+
 function ptpSendAllReminders() {
   var today = new Date().toISOString().split('T')[0];
-  var ptps = state.borrowers.filter(function(b) {
-    return b.promisedToPay && b.promiseDate && b.promiseDate.startsWith(today);
+
+  // Today's PTPs (pending)
+  var todayPtps = state.borrowers.filter(function(b) {
+    return b.promisedToPay && b.promiseDate && b.promiseDate.startsWith(today)
+      && b.amountPaid <= 0 && b.ptpOutcome !== 'paid';
   });
-  if (!ptps.length) { toast('No PTPs for today', 'info'); return; }
-  var pending = ptps.filter(function(b) { return b.amountPaid <= 0 && b.ptpOutcome !== 'paid'; });
-  if (!pending.length) { toast('All PTPs already honoured ✅', 'success'); return; }
 
-  var listHtml = '<div style="background:var(--surface2);border-radius:10px;overflow:hidden;max-height:180px;overflow-y:auto;margin-bottom:12px">'
-    + pending.map(function(b) {
-        return '<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border)">'
-          + '<div style="width:7px;height:7px;border-radius:50%;background:var(--orange);flex-shrink:0"></div>'
-          + '<div style="flex:1;font-size:12px;font-weight:600">' + b.name.split(' ')[0] + '</div>'
-          + '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono)">' + fmtC(getDueToday(b)) + '</div>'
-          + '</div>';
-      }).join('')
-    + '</div>';
+  // Upcoming PTPs (future dates)
+  var upcomingPtps = state.borrowers.filter(function(b) {
+    return b.promisedToPay && b.promiseDate && b.promiseDate.split(' ')[0] > today;
+  });
 
-  document.getElementById('modal-title').textContent = '📨 Blast Reminders';
+  var allPtps = todayPtps.concat(upcomingPtps);
+
+  if (!allPtps.length) {
+    toast('No PTPs to remind — set some promises first', 'info');
+    return;
+  }
+
+  // Show channel picker first
+  document.getElementById('modal-title').textContent = '📨 Blast PTP Reminders';
   document.getElementById('modal-body').innerHTML =
     '<div style="text-align:center;padding:8px 0 16px">'
     + '<div style="font-size:32px;margin-bottom:8px">📩</div>'
-    + '<div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:4px">' + pending.length + ' pending PTP' + (pending.length!==1?'s':'') + '</div>'
-    + '<div style="font-size:12px;color:var(--text3)">Each chat opens pre-filled — just tap Send</div>'
-    + '</div>' + listHtml
-    + '<div style="font-size:11px;color:var(--text2);padding:10px 12px;background:rgba(255,255,255,0.04);border-radius:8px">Uses <b>Day-Of Confirmation</b> template for each borrower</div>';
+    + '<div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:4px">'
+      + allPtps.length + ' PTP reminder' + (allPtps.length !== 1 ? 's' : '') + ' queued</div>'
+    + '<div style="font-size:12px;color:var(--text3);margin-bottom:16px">Opens each chat one by one — just tap Send in each</div>'
+    + '</div>'
+    + '<div style="background:var(--surface2);border-radius:10px;overflow:hidden;max-height:200px;overflow-y:auto;margin-bottom:14px">'
+    + allPtps.map(function(b) {
+        var isToday = b.promiseDate && b.promiseDate.startsWith(today);
+        return '<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border)">'
+          + '<div style="width:7px;height:7px;border-radius:50%;background:' + (isToday ? 'var(--orange)' : 'var(--blue)') + ';flex-shrink:0"></div>'
+          + '<div style="flex:1;font-size:12px;font-weight:600">' + b.name.split(' ')[0] + '</div>'
+          + '<div style="font-size:10px;color:var(--text3)">' + (isToday ? 'Today' : (b.promiseDate || '').split(' ')[0]) + '</div>'
+          + '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono)">' + fmtC(getDueToday(b)) + '</div>'
+          + '</div>';
+      }).join('')
+    + '</div>'
+    + '<div style="font-size:11px;color:var(--text2);padding:10px 12px;background:rgba(255,255,255,0.04);border-radius:8px">Day-of template for today · Friendly reminder for upcoming</div>';
 
   document.getElementById('modal-footer').innerHTML =
     '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
     + '<div style="display:flex;gap:8px">'
-    + '<button class="btn btn-ghost" id="bulk-remind-sms-btn" style="color:var(--blue);border-color:rgba(96,165,250,0.35)">'
+    + '<button class="btn btn-ghost" id="ptp-seq-sms-btn" style="color:var(--blue);border-color:rgba(96,165,250,0.35)">'
     + '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:13px;height:13px;vertical-align:middle;margin-right:4px"><path d="M3 5h14a1 1 0 011 1v8a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1z"/><polyline points="2,5 10,11 18,5"/></svg>'
-    + 'Blast SMS</button>'
-    + '<button class="btn btn-gold" id="bulk-remind-wa-btn">'
+    + 'Via SMS</button>'
+    + '<button class="btn btn-gold" id="ptp-seq-wa-btn">'
     + '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:13px;height:13px;vertical-align:middle;margin-right:4px"><path d="M17.5 2.5L9.2 10.8M17.5 2.5L12 17.5l-2.8-6.7-6.7-2.8L17.5 2.5z"/></svg>'
-    + 'Blast WhatsApp</button>'
+    + 'Via WhatsApp</button>'
     + '</div>';
 
   document.getElementById('modal-overlay').classList.add('open');
+
   setTimeout(function() {
-    var waBtn  = document.getElementById('bulk-remind-wa-btn');
-    var smsBtn = document.getElementById('bulk-remind-sms-btn');
-    if (waBtn)  waBtn.addEventListener('click',  function() { closeModal(); _ptpBulkSend(pending, 0, 'wa'); });
-    if (smsBtn) smsBtn.addEventListener('click', function() { closeModal(); _ptpBulkSend(pending, 0, 'sms'); });
+    var waBtn  = document.getElementById('ptp-seq-wa-btn');
+    var smsBtn = document.getElementById('ptp-seq-sms-btn');
+    if (waBtn)  waBtn.addEventListener('click',  function() { _ptpSeqList = allPtps; _ptpSeqIndex = 0; _ptpSeqChan = 'wa';  closeModal(); _showPtpSeqModal(); });
+    if (smsBtn) smsBtn.addEventListener('click', function() { _ptpSeqList = allPtps; _ptpSeqIndex = 0; _ptpSeqChan = 'sms'; closeModal(); _showPtpSeqModal(); });
   }, 50);
 }
 
-function _ptpBulkSend(list, index, channel) {
-  if (index >= list.length) { toast('All ' + list.length + ' reminders sent ✅', 'success'); haptic('pay'); return; }
-  var b = list[index];
-  var phone = (b.phone || '').replace(/\s/g, '').replace('+', '');
-  if (phone.startsWith('0')) phone = '233' + phone.slice(1);
-  if (channel === 'wa') {
-    window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(_ptpBuildMessage(b, 'dayon')), '_blank');
-  } else {
-    window.location.href = 'sms:' + (b.phone||'').replace(/\s/g,'') + '?body=' + encodeURIComponent(_ptpBuildMessage(b, 'sms'));
+function _showPtpSeqModal() {
+  if (_ptpSeqIndex >= _ptpSeqList.length) {
+    closeModal();
+    toast('All ' + _ptpSeqList.length + ' PTP reminders sent ✅', 'success');
+    haptic('pay');
+    return;
   }
-  _ptpLogSend(b.id, 'dayon', channel);
-  toast((index+1) + '/' + list.length + ' — ' + b.name.split(' ')[0] + ' ✅', 'success');
-  setTimeout(function() { _ptpBulkSend(list, index+1, channel); }, 1800);
+
+  var b     = _ptpSeqList[_ptpSeqIndex];
+  var today = new Date().toISOString().split('T')[0];
+  var isToday   = b.promiseDate && b.promiseDate.startsWith(today);
+  var isMissed  = b.promiseDate && b.promiseDate.split(' ')[0] < today;
+  var tone      = isMissed ? 'missed' : isToday ? 'dayon' : 'friendly';
+  var msg       = _ptpBuildMessage(b, tone);
+  var phone     = (b.phone || '').replace(/\s/g, '').replace('+', '');
+  if (phone.startsWith('0')) phone = '233' + phone.slice(1);
+  var link = _ptpSeqChan === 'wa'
+    ? 'https://wa.me/' + phone + '?text=' + encodeURIComponent(msg)
+    : 'sms:' + (b.phone || '').replace(/\s/g, '') + '?body=' + encodeURIComponent(msg);
+
+  var num   = _ptpSeqIndex + 1;
+  var total = _ptpSeqList.length;
+  var pct   = Math.round((_ptpSeqIndex / total) * 100);
+  var toneLabel = isMissed ? '⚠️ Missed' : isToday ? '☀️ Day-Of' : '🙂 Upcoming';
+
+  document.getElementById('modal-title').textContent = 'PTP Reminder ' + num + ' of ' + total;
+  document.getElementById('modal-body').innerHTML =
+    '<div style="margin-bottom:12px">'
+    + '<div style="font-weight:700;font-size:15px">' + b.name + '</div>'
+    + '<div style="font-size:12px;color:var(--text3);margin-top:2px">'
+      + b.phone + ' · ' + fmtC(getDueToday(b)) + ' due · ' + toneLabel
+    + '</div>'
+    + '</div>'
+    + '<div style="background:var(--surface2);border-radius:8px;padding:12px;font-size:12px;color:var(--text2);line-height:1.65;margin-bottom:16px;white-space:pre-wrap">'
+      + msg
+    + '</div>'
+    + '<div style="margin-top:4px;background:var(--surface2);border-radius:6px;height:5px;overflow:hidden">'
+    + '<div style="height:100%;background:var(--gold);width:' + pct + '%;transition:width 0.3s"></div>'
+    + '</div>'
+    + '<div style="font-size:11px;color:var(--text3);margin-top:4px;text-align:center">' + _ptpSeqIndex + ' of ' + total + ' sent</div>';
+
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost" onclick="closeModal()">Stop</button>'
+    + '<button class="btn btn-ghost btn-sm" onclick="_ptpSeqIndex++;_showPtpSeqModal()">Skip →</button>'
+    + '<a href="' + link + '" target="' + (_ptpSeqChan === 'wa' ? '_blank' : '_self') + '" class="btn btn-gold" onclick="_ptpLogSend(\'' + b.id + '\',\'' + tone + '\',\'' + _ptpSeqChan + '\');setTimeout(function(){_ptpSeqIndex++;_showPtpSeqModal();},1800)">'
+    + (_ptpSeqChan === 'wa' ? '💬 Open WhatsApp →' : '📱 Open SMS →')
+    + '</a>';
+
+  document.getElementById('modal-overlay').classList.add('open');
 }
+
+
+
 
 
 
@@ -13048,54 +13143,312 @@ function buildPtpStatsHtml() {
 
 
 // ── AI RANKING SCAN (item 1) — uses CLAUDE_API_KEY constant 
+// ══════════════════════════════════════════════════════════════
+// MULTI-PROVIDER AI SCAN SYSTEM
+// ══════════════════════════════════════════════════════════════
+
+var _scanProvider = localStorage.getItem('sq_scan_provider') || 'local';
+
+function setScanProvider(p) {
+  _scanProvider = p;
+  localStorage.setItem('sq_scan_provider', p);
+  // Update button styles
+  ['local','gemini','claude','openai'].forEach(function(id) {
+    var btn = document.getElementById('spbtn-' + id);
+    var key = document.getElementById('scan-key-' + id);
+    if (btn) {
+      if (id === p) {
+        btn.style.borderColor = 'var(--gold)';
+        btn.style.background  = 'rgba(232,160,32,0.1)';
+        btn.style.color       = 'var(--gold)';
+      } else {
+        btn.style.borderColor = 'var(--border2)';
+        btn.style.background  = 'transparent';
+        btn.style.color       = 'var(--text2)';
+      }
+    }
+    if (key) key.style.display = (id === p) ? '' : 'none';
+  });
+  // Restore saved key into visible input
+  var keyEl = document.getElementById('ranking-' + p + '-key');
+  if (keyEl) {
+    var saved = localStorage.getItem('sq_scan_key_' + p) || '';
+    if (saved && !keyEl.value) keyEl.value = saved;
+  }
+}
+
+function saveProviderKey(provider, val) {
+  if (val && val.trim()) {
+    localStorage.setItem('sq_scan_key_' + provider, val.trim());
+    // Keep backwards compat — also save claude key under old key
+    if (provider === 'claude') localStorage.setItem('claude_api_key', val.trim());
+  }
+}
+
+function getProviderKey(provider) {
+  var key = localStorage.getItem('sq_scan_key_' + provider) || '';
+  if (!key && provider === 'claude') key = localStorage.getItem('claude_api_key') || '';
+  return key;
+}
+
+function toggleKeyVis(inputId, btn) {
+  var inp = document.getElementById(inputId);
+  if (!inp) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
+// Init provider UI on ranking page open
+function initScanProviderUI() {
+  setScanProvider(_scanProvider);
+}
+
+// ── MAIN SCAN ENTRY POINT ──────────────────────────────────────
 async function scanRankingImage() {
-  const imageInput = document.getElementById('ranking-image-upload');
-  const file = imageInput?.files?.[0];
-  const statusEl = document.getElementById('ranking-scan-status');
-  const btn = document.getElementById('ranking-scan-btn');
-  if (!file) { if (statusEl) statusEl.textContent = '❌ No image selected'; return; }
-  if (btn) btn.disabled = true;
-  if (statusEl) statusEl.innerHTML = '⏳ Sending image to Claude AI...';
+  var imageInput = document.getElementById('ranking-image-upload');
+  var file = imageInput && imageInput.files && imageInput.files[0];
+  var statusEl = document.getElementById('ranking-scan-status');
+  var btn = document.getElementById('ranking-ai-btn');
+
+  if (!file) {
+    if (statusEl) statusEl.textContent = '❌ No image selected — choose an image first';
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Scanning...'; }
+  if (statusEl) statusEl.innerHTML = '⏳ Starting scan...';
   haptic('light');
+
   try {
-    const base64 = await new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload = () => res(r.result.split(',')[1]);
-      r.onerror = rej;
-      r.readAsDataURL(file);
-    });
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    var extracted = '';
+    if (_scanProvider === 'local') {
+      extracted = await _scanLocal(file, statusEl);
+    } else if (_scanProvider === 'gemini') {
+      extracted = await _scanGemini(file, statusEl);
+    } else if (_scanProvider === 'claude') {
+      extracted = await _scanClaude(file, statusEl);
+    } else if (_scanProvider === 'openai') {
+      extracted = await _scanOpenAI(file, statusEl);
+    }
+
+    if (extracted && extracted.trim()) {
+      var el = document.getElementById('ranking-paste');
+      if (el) el.value = extracted.trim();
+      var lines = extracted.split('\n').filter(function(l) { return l.trim(); }).length;
+      if (statusEl) statusEl.innerHTML = '✅ Extracted ' + lines + ' entries — review text above then tap <b>Save from Text</b>';
+      haptic('pay');
+    } else {
+      if (statusEl) statusEl.textContent = '⚠️ No ranking data found — try a clearer image or use text paste';
+    }
+  } catch(e) {
+    if (statusEl) statusEl.textContent = '❌ Scan failed: ' + (e.message || 'unknown error');
+    console.error('Scan error:', e);
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = '🔍 Scan Image'; }
+}
+
+// ── LOCAL OCR via Tesseract.js ─────────────────────────────────
+async function _scanLocal(file, statusEl) {
+  if (typeof Tesseract === 'undefined') {
+    throw new Error('OCR library not loaded yet — please wait a moment and try again');
+  }
+  if (statusEl) statusEl.innerHTML = '⏳ Running local OCR (no internet needed)...';
+
+  var result = await Tesseract.recognize(file, 'eng', {
+    logger: function(m) {
+      if (m.status === 'recognizing text' && statusEl) {
+        statusEl.innerHTML = '⏳ OCR: ' + Math.round((m.progress || 0) * 100) + '%';
+      }
+    }
+  });
+
+  var raw = (result && result.data && result.data.text) ? result.data.text : '';
+  return _parseOcrText(raw);
+}
+
+// ── GEMINI API ─────────────────────────────────────────────────
+async function _scanGemini(file, statusEl) {
+  var key = getProviderKey('gemini');
+  if (!key) throw new Error('Gemini API key not set — tap Gemini above and enter your key from aistudio.google.com');
+  if (statusEl) statusEl.innerHTML = '⏳ Sending to Google Gemini...';
+
+  var base64 = await _fileToBase64(file);
+  var mimeType = file.type || 'image/png';
+
+  var resp = await fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + key,
+    {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': getActiveApiKey(),
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-opus-4-5',
-        max_tokens: 1024,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: file.type || 'image/png', data: base64 } },
-            { type: 'text', text: 'Extract all agent names and their percentage rates from this ranking screenshot. Return ONLY lines in this exact format, one per line, no extra text:\n1. Agent Name XX.X%\nIf no percentage visible use 0.0%.' }
+        contents: [{
+          parts: [
+            { inline_data: { mime_type: mimeType, data: base64 } },
+            { text: _aiScanPrompt() }
           ]
         }]
       })
-    });
-    const data = await resp.json();
-    if (data.error) throw new Error(data.error.message);
-    const extracted = data?.content?.[0]?.text || '';
-    const el = document.getElementById('ranking-paste');
-    if (el) { el.value = extracted.trim(); }
-    if (statusEl) statusEl.innerHTML = '✅ AI extracted ' + (extracted.split('\n').filter(l=>l.trim()).length) + ' entries — review and tap Save';
-    haptic('pay');
-  } catch(e) {
-    if (statusEl) statusEl.textContent = '❌ AI scan failed: ' + (e.message||'check connection');
+    }
+  );
+
+  if (!resp.ok) {
+    var err = await resp.json().catch(function() { return {}; });
+    throw new Error('Gemini error: ' + (err.error && err.error.message ? err.error.message : resp.status));
   }
-  if (btn) btn.disabled = false;
+
+  var data = await resp.json();
+  var text = data.candidates &&
+             data.candidates[0] &&
+             data.candidates[0].content &&
+             data.candidates[0].content.parts &&
+             data.candidates[0].content.parts[0] &&
+             data.candidates[0].content.parts[0].text;
+  if (!text) throw new Error('Gemini returned empty response');
+  return text.trim();
 }
+
+// ── CLAUDE (ANTHROPIC) API ─────────────────────────────────────
+async function _scanClaude(file, statusEl) {
+  var key = getProviderKey('claude');
+  if (!key) throw new Error('Claude API key not set — tap Claude above and enter your key from console.anthropic.com');
+  if (statusEl) statusEl.innerHTML = '⏳ Sending to Claude AI...';
+
+  var base64 = await _fileToBase64(file);
+
+  var resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-opus-4-5',
+      max_tokens: 1024,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: file.type || 'image/png', data: base64 } },
+          { type: 'text', text: _aiScanPrompt() }
+        ]
+      }]
+    })
+  });
+
+  if (!resp.ok) {
+    var err = await resp.json().catch(function() { return {}; });
+    throw new Error('Claude error: ' + (err.error && err.error.message ? err.error.message : resp.status));
+  }
+
+  var data = await resp.json();
+  var text = data.content && data.content[0] && data.content[0].text;
+  if (!text) throw new Error('Claude returned empty response');
+  return text.trim();
+}
+
+// ── OPENAI GPT-4o API ──────────────────────────────────────────
+async function _scanOpenAI(file, statusEl) {
+  var key = getProviderKey('openai');
+  if (!key) throw new Error('OpenAI API key not set — tap GPT-4o above and enter your key from platform.openai.com');
+  if (statusEl) statusEl.innerHTML = '⏳ Sending to OpenAI GPT-4o...';
+
+  var base64 = await _fileToBase64(file);
+  var mimeType = file.type || 'image/png';
+
+  var resp = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + key
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      max_tokens: 1024,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image_url', image_url: { url: 'data:' + mimeType + ';base64,' + base64, detail: 'high' } },
+          { type: 'text', text: _aiScanPrompt() }
+        ]
+      }]
+    })
+  });
+
+  if (!resp.ok) {
+    var err = await resp.json().catch(function() { return {}; });
+    throw new Error('OpenAI error: ' + (err.error && err.error.message ? err.error.message : resp.status));
+  }
+
+  var data = await resp.json();
+  var text = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+  if (!text) throw new Error('OpenAI returned empty response');
+  return text.trim();
+}
+
+// ── Shared helpers ─────────────────────────────────────────────
+function _aiScanPrompt() {
+  return 'Extract all agent names and their percentage rates from this ranking screenshot.\n'
+    + 'Return ONLY lines in this exact format, one per line, no extra text, no markdown:\n'
+    + '1. Agent Name XX.X%\n'
+    + 'If no percentage is visible for an agent, use 0.0%.\n'
+    + 'Include every agent visible. Do not add any explanation.';
+}
+
+function _fileToBase64(file) {
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function() { resolve(reader.result.split(',')[1]); };
+    reader.onerror = function() { reject(new Error('Failed to read image file')); };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Clean up OCR output — Tesseract can produce noisy text
+// Try to extract ranking lines even from messy OCR output
+function _parseOcrText(raw) {
+  if (!raw) return '';
+  var lines = raw.split('\n');
+  var results = [];
+  var rank = 1;
+
+  lines.forEach(function(line) {
+    var trimmed = line.trim();
+    if (!trimmed) return;
+
+    // Try: "1. Name 87.4%" or "1 Name 87.4%" or "Name 87.4%"
+    var m = trimmed.match(/^(?:\d+[.):\s]+)?(.+?)\s+([\d]{1,3}[.,][\d]{1,2})\s*%?\s*$/);
+    if (!m) {
+      // Try just a percentage at end
+      m = trimmed.match(/^(?:\d+[.):\s]+)?(.+?)\s+([\d]+\.[\d]+)%/);
+    }
+    if (m) {
+      var name = m[1].trim().replace(/[^a-zA-Z\s\-']/g, '').trim();
+      var pct  = m[2].replace(',', '.');
+      if (name.length >= 3 && parseFloat(pct) >= 0) {
+        results.push(rank + '. ' + name + ' ' + pct + '%');
+        rank++;
+      }
+    }
+  });
+
+  // If structured parse found nothing, return raw for manual review
+  return results.length > 0 ? results.join('\n') : raw.trim();
+}
+
+// ── Backwards compat: keep old API key save working ──────────────
+function saveApiKeyFromDash(val) {
+  if (val) {
+    saveProviderKey('claude', val.trim());
+    if (val.startsWith('sk-ant')) toast('Claude API key saved \u2705', 'success');
+  }
+}
+function toggleRankingKeyVisibility() {
+  toggleKeyVis('ranking-claude-key', document.getElementById('rank-key-toggle'));
+}
+
+
 
 // ── RANKING GAP ALERT ON APP OPEN (item 4) ─────────────
 function checkRankingGapAlert() {
@@ -13912,7 +14265,7 @@ function startWaQueuePersonalised(ids) {
 }
 
 function toggleRankingKeyVisibility() {
-  const inp = document.getElementById('ranking-api-key-input');
+  const inp = document.getElementById('ranking-claude-key');
   const btn = document.getElementById('rank-key-toggle');
   if (!inp) return;
   if (inp.type === 'password') { inp.type = 'text'; if (btn) btn.textContent = '🙈'; }
@@ -13931,13 +14284,7 @@ function toggleApiKeyBar() {
     haptic('light');
   }
 }
-function saveApiKeyFromDash(val) {
-  if (val && val.startsWith('sk-ant')) {
-    localStorage.setItem('claude_api_key', val.trim());
-    toast('API key saved ✅', 'success');
-    haptic('medium');
-  }
-}
+// saveApiKeyFromDash moved to multi-provider scan system
 function getActiveApiKey() {
   return localStorage.getItem('claude_api_key') || (typeof CLAUDE_API_KEY !== 'undefined' ? CLAUDE_API_KEY : '');
 }
@@ -14306,7 +14653,7 @@ function renderMonthComparison() {
 
 // ── F5: Key toggle ───────────────────────────────────────────
 function toggleRankingKeyVisibility() {
-  const inp = document.getElementById('ranking-api-key-input');
+  const inp = document.getElementById('ranking-claude-key');
   const btn = document.getElementById('rank-key-toggle');
   if (!inp) return;
   inp.type = inp.type === 'password' ? 'text' : 'password';
