@@ -4952,24 +4952,28 @@ function getOdFee(b) {
     const sortedPays = payLog.slice().sort((a, z) => a.date.localeCompare(z.date));
 
     function paidAfterSnap(dayN) {
-      if (sortedPays.length === 0) return 0;
+      // If no payLog after snapshot, fall back to total amountPaid
+      // (covers cases where payment was recorded before snap date or no log exists)
+      if (sortedPays.length === 0) return amountPaid;
       const d = new Date(snapDate + 'T00:00:00Z');
       d.setUTCDate(d.getUTCDate() + dayN);
       const dayStr = d.toISOString().split('T')[0];
-      let cum = 0;
-      for (const p of sortedPays) { if (p.date < dayStr) cum += (p.delta || 0); }
-      return cum;
+      // Cumulative payments after snapshot PLUS any paid before snapshot
+      const preSnapPaid = amountPaid - sortedPays.reduce((s, p) => s + (p.delta || 0), 0);
+      let cumPost = 0;
+      for (const p of sortedPays) { if (p.date < dayStr) cumPost += (p.delta || 0); }
+      return Math.max(0, preSnapPaid) + cumPost;
     }
 
     let newOD = b.odFeeSnapshot;
     for (let day = 1; day <= daysElapsed; day++) {
       const paid      = paidAfterSnap(day);
-      if (paid >= threshold) break;
+      if (paid >= threshold) break;    // 100% of principal paid — stop
       const remaining = Math.max(0, principal - paid);
       if (remaining <= 0) break;
       const dayOD = Math.round(remaining * 0.02); // 2% per day post-snapshot
       newOD += dayOD;
-      if (newOD >= cap * 2) { newOD = cap * 2; break; } // safety cap
+      if (newOD >= cap) { newOD = cap; break; } // cap = 1× principal (consistent with standard path)
     }
     return newOD;
   }
