@@ -3365,13 +3365,13 @@ tr.overdue-critical .heat-ring {
 
   <!-- REPORTS PAGE -->
   <section class="page" id="page-reports">
-    <div class="page-header"><div><div class="page-title">📋 Supervisor Reports</div><div class="page-sub">Pre-built report formats for NANA OSAE EMMANUEL</div></div></div>
+    <div class="page-header"><div><div class="page-title">📋 Supervisor Reports</div><div class="page-sub">Pre-built report formats — share with your supervisor</div></div></div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-header"><span class="card-title">👤 Report Settings</span></div>
       <div class="card-body">
         <div class="form-row">
           <div class="form-group" style="margin-bottom:0"><label>Agent Name</label><input type="text" class="form-input" id="rpt-agent" placeholder="Your full name" id="rpt-agent-val"></div>
-          <div class="form-group" style="margin-bottom:0"><label>Supervisor</label><input type="text" class="form-input" id="rpt-supervisor" placeholder="NANA OSAE EMMANUEL" value="NANA OSAE EMMANUEL"></div>
+          <div class="form-group" style="margin-bottom:0"><label>Supervisor</label><input type="text" class="form-input" id="rpt-supervisor" placeholder="Supervisor name" value=""></div>
         </div>
       </div>
     </div>
@@ -4605,6 +4605,7 @@ let _db = null;                  // Supabase client
 //    only destroys+recreates when type or axis structure changes ──
 function updateOrCreateChart(key, ctxEl, config) {
   if (!ctxEl) return;
+  if (typeof Chart === 'undefined') { console.warn('Chart.js not loaded'); return; }
   const existing = charts[key];
   if (existing) {
     const sameType = existing.config.type === config.type;
@@ -4756,6 +4757,10 @@ async function loadState() {
         localStorage.setItem(getStateKey(), JSON.stringify(state)); // warm cache
         purgeAgedOut();
         setSyncStatus('saved');
+      // Conflict detection: if our local state is newer, warn
+      if (state._lastSaveTs && row.data._lastSaveTs && state._lastSaveTs > row.data._lastSaveTs) {
+        console.warn('Local state is newer than server — possible conflict. Local:', state._lastSaveTs, 'Server:', row.data._lastSaveTs);
+      }
         showSkeletons(false);
         return;
       }
@@ -4827,11 +4832,13 @@ async function _pushToSupabase() {
     const agents = getAgentList();
     const myAgent = agents.find(a => a.id === _activeAgent?.id);
     const pinHash = myAgent?.pinHash || state._pinHash || null;
+    const nowTs = new Date().toISOString();
     const { error } = await _db.from('app_state').upsert({
       id: getSupabaseId(),
       data: {
         ...state,
         _pinHash: pinHash,
+        _lastSaveTs: nowTs,
         // Always embed agent identity so any device can reconstruct from this row
         agentProfile: {
           ...(state.agentProfile || {}),
@@ -4841,7 +4848,7 @@ async function _pushToSupabase() {
           stage:  _activeAgent?.stage  || state.agentProfile?.stage,
         }
       },
-      updated_at: new Date().toISOString()
+      updated_at: nowTs
     });
     if (error) throw error;
     setSyncStatus('saved');
@@ -5635,12 +5642,32 @@ function renderDailyChart() {
 
 // ── LOANS TABLE ────────────────────────────────────────
 function renderLoansTable() {
-  const search = document.getElementById('loan-search')?.value?.toLowerCase() || '';
-  const fStatus = document.getElementById('loan-filter-status')?.value || '';
-  const fType = document.getElementById('loan-filter-type')?.value || '';
-  const fOd = document.getElementById('loan-filter-od')?.value || '';
-  const fPriority = document.getElementById('loan-filter-priority')?.value || '';
-  const fBadge = document.getElementById('loan-filter-badge')?.value || '';
+  const searchEl   = document.getElementById('loan-search');
+  const statusEl2  = document.getElementById('loan-filter-status');
+  const typeEl     = document.getElementById('loan-filter-type');
+  const odEl       = document.getElementById('loan-filter-od');
+  const priorityEl = document.getElementById('loan-filter-priority');
+  const badgeEl    = document.getElementById('loan-filter-badge');
+  // Restore persisted filter values if elements exist
+  if (searchEl   && !searchEl.value   && _loanSearchValue)   searchEl.value   = _loanSearchValue;
+  if (statusEl2  && !statusEl2.value  && _loanFilterStatus)  statusEl2.value  = _loanFilterStatus;
+  if (typeEl     && !typeEl.value     && _loanFilterType)     typeEl.value     = _loanFilterType;
+  if (odEl       && !odEl.value       && _loanFilterOd)       odEl.value       = _loanFilterOd;
+  if (priorityEl && !priorityEl.value && _loanFilterPriority) priorityEl.value = _loanFilterPriority;
+  if (badgeEl    && !badgeEl.value    && _loanFilterBadge)    badgeEl.value    = _loanFilterBadge;
+  // Read current values and persist them
+  const search    = (searchEl?.value || '').toLowerCase();
+  const fStatus   = statusEl2?.value  || '';
+  const fType     = typeEl?.value     || '';
+  const fOd       = odEl?.value       || '';
+  const fPriority = priorityEl?.value || '';
+  const fBadge    = badgeEl?.value    || '';
+  _loanSearchValue  = search;
+  _loanFilterStatus = fStatus;
+  _loanFilterType   = fType;
+  _loanFilterOd     = fOd;
+  _loanFilterPriority = fPriority;
+  _loanFilterBadge  = fBadge;
 
   let rows = state.borrowers.map(b => ({
     ...b,
@@ -5714,6 +5741,7 @@ function renderLoansTable() {
   setTimeout(initRowSwipe, 80);
   document.getElementById('loans-count-sub').innerHTML = `<span style="color:var(--text2)">${state.borrowers.length} total</span> · <span style="color:var(--gold);font-weight:700;font-family:var(--font-mono)">${getActiveBorrowers().length} active</span>`;
 
+  _rowSwipeInited = false; // reset so swipe re-inits on fresh render
   const list = document.getElementById('loans-tbody');
   if (!rows.length) {
     list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)"><div style="font-size:32px;margin-bottom:10px">🔍</div><div style="font-size:14px">No borrowers match your filters</div></div>';
@@ -5863,6 +5891,7 @@ function sortLoans(col) {
 
 // ── ANALYTICS ──────────────────────────────────────────
 function renderAnalytics() {
+
   const all = state.borrowers;
   const active = getActiveBorrowers();
   const paid = all.filter(b => getStatus(b) === 'Paid');
@@ -5870,7 +5899,7 @@ function renderAnalytics() {
   const unpaid = all.filter(b => getStatus(b) === 'Unpaid');
   const totalOutstanding = active.reduce((s,b) => s+getRemaining(b), 0);
   const totalPrincipal = active.reduce((s,b) => s+b.principal, 0);
-  const totalOdFees = active.reduce((s,b) => s+b.overdueFeee, 0);
+  const totalOdFees = active.reduce((s,b) => s+getOdFee(b), 0);
   const totalPaid = all.reduce((s,b) => s+b.amountPaid, 0);
   const avgOwed = active.length > 0 ? totalOutstanding / active.length : 0;
   const recoveryRate = (totalPrincipal + totalOdFees) > 0 ? totalPaid / (totalPrincipal + totalOdFees) : 0;
@@ -7060,6 +7089,9 @@ function importFromClipboard() {
     if (cols.length < 5) { skipped++; return; }
     const [name, phone, loanDue, principal, amountPaid, loanType, odAgeStr] = cols;
     if (!name || !loanDue) { skipped++; return; }
+    // Phone validation - must have at least 7 digits
+    const phoneDigits = (phone||'').replace(/\D/g,'');
+    if (phoneDigits.length < 7) { skipped++; return; }
     const odAge = parseInt(odAgeStr) || 6;
     const d = new Date(); d.setDate(d.getDate() - (odAge - 1));  // store (odAge-1) days ago so getOdAge returns odAge
     state.borrowers.push({
@@ -7543,15 +7575,35 @@ function saveBorrower(id) {
   const instalment = (instAmt > 0 && instFreq) ? { amount: instAmt, freq: instFreq, start: instStart } : null;
 
   if (!name) return toast('Name is required', 'error');
+  if (!phone) return toast('Phone number is required', 'error');
+  if (phone.replace(/\D/g,'').length < 7) return toast('Enter a valid phone number', 'error');
   if (!loanDue) return toast('Loan due amount is required', 'error');
   if (!principal) return toast('Principal amount is required', 'error');
 
   if (id) {
     const b = state.borrowers.find(x => x.id === id);
-    if (b) Object.assign(b, { name, phone, principal, loanDue, amountPaid, startDate, loanType, notes, targetPayment, instalment });
+    if (b) Object.assign(b, { name, phone, principal, loanDue, amountPaid, startDate, loanType, notes, targetPayment, instalment,
+      // Preserve fields not in the form
+      payLog: b.payLog || [], callLog: b.callLog || [],
+      promisedToPay: b.promisedToPay, promiseDate: b.promiseDate, promiseNote: b.promiseNote,
+      ptpOutcome: b.ptpOutcome, ptpBreached: b.ptpBreached, isPaid: b.isPaid,
+      odFeeSnapshot: b.odFeeSnapshot, odFeeSnapshotDate: b.odFeeSnapshotDate, odFeeSnapshotNote: b.odFeeSnapshotNote
+    });
     toast('Borrower updated', 'success');
   } else {
-    state.borrowers.push({ id: (crypto && crypto.randomUUID ? crypto.randomUUID() : 'b' + Date.now()), name, phone, principal, loanDue, overdueFeee: 0, amountPaid, startDate, loanType, notes, targetPayment, instalment, promisedToPay: false, isPaid: false });
+    // Duplicate detection — warn if same name+phone already exists
+    const normPhone = phone.replace(/\D/g, '');
+    const normName  = name.toLowerCase().trim();
+    const dupe = state.borrowers.find(x =>
+      x.name.toLowerCase().trim() === normName ||
+      (normPhone.length > 6 && x.phone.replace(/\D/g,'') === normPhone)
+    );
+    if (dupe) {
+      if (!confirm('A borrower named "' + dupe.name + '" with a similar name or phone already exists. Add anyway?')) return;
+    }
+    state.borrowers.push({ id: (crypto && crypto.randomUUID ? crypto.randomUUID() : 'b' + Date.now()),
+      name, phone, principal, loanDue, overdueFeee: 0, amountPaid, startDate, loanType, notes, targetPayment, instalment,
+      promisedToPay: false, isPaid: false, payLog: [], callLog: [] });
     toast('Borrower added', 'success');
   }
   _odFeeCache.clear();
@@ -7674,6 +7726,7 @@ function bioHasCred(agentId) {
 }
 
 async function bioUnlockAgent(agent) {
+  try {
   const ok = await bioAuthenticate(agent.id);
   if (!ok) { toast('Biometric not recognised', 'error'); return; }
   _activeAgent = agent;
@@ -7682,6 +7735,10 @@ async function bioUnlockAgent(agent) {
   hideLockScreen();
   haptic('pay');
   await loadStateForAgent();
+  } catch(e) {
+    console.error("bioUnlockAgent error:", e);
+    toast("Biometric error: " + (e.message||"try PIN instead"), "error");
+  }
 }
 
 // ── In-app confirmation dialog (replaces native confirm()) ───────────────
@@ -11412,10 +11469,20 @@ function _renderRankingChart(myName) {
 
 
 // ── SUPERVISOR REPORTS PAGE ────────────────────────────
-function renderReportsPage() { /* nothing dynamic needed, HTML handles it */ }
+function renderReportsPage() {
+  // Auto-fill agent name and supervisor from profile
+  var agentEl = document.getElementById('rpt-agent');
+  var supEl   = document.getElementById('rpt-supervisor');
+  if (agentEl && !agentEl.value) {
+    agentEl.value = getAgentProfileName() || (_activeAgent && _activeAgent.name) || '';
+  }
+  if (supEl && !supEl.value) {
+    supEl.value = (state.agentProfile && state.agentProfile.supervisor) || (_activeAgent && _activeAgent.supervisor) || '';
+  }
+}
 function generateReport(type) {
   const agent = document.getElementById('rpt-agent')?.value || '';
-  const sup = document.getElementById('rpt-supervisor')?.value || 'NANA OSAE EMMANUEL';
+  const sup = document.getElementById('rpt-supervisor')?.value || (state.agentProfile&&state.agentProfile.supervisor) || 'your supervisor';
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-GB', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
   const todayKey = today.toISOString().split('T')[0];
@@ -12989,6 +13056,7 @@ async function _runAiScan(file, statusEl) {
   var provider = _scanProvider;
   var key = getProviderKey(provider);
   if (!key) throw new Error(provider + ' API key not set — tap provider above and enter your key');
+  // Individual provider errors will propagate to scanRankingImage's outer try/catch
 
   var base64   = await _fileToBase64(file);
   var mimeType = file.type || 'image/png';
@@ -13001,7 +13069,7 @@ async function _runAiScan(file, statusEl) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ inline_data: { mime_type: mimeType, data: base64 } }, { text: prompt }] }] })
     });
-    if (!resp.ok) { var e = await resp.json().catch(function(){return{};}); throw new Error('Gemini: ' + (e.error&&e.error.message||resp.status)); }
+    if (!resp.ok) { var e = await resp.json().catch(function(){return{};}); throw new Error('Gemini error ' + resp.status + ': ' + (e.error&&e.error.message||'check your API key')); }
     var d = await resp.json();
     return (d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts&&d.candidates[0].content.parts[0]&&d.candidates[0].content.parts[0].text)||'';
 
@@ -13012,7 +13080,7 @@ async function _runAiScan(file, statusEl) {
       headers: { 'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
       body: JSON.stringify({ model:'claude-opus-4-5', max_tokens:2048, messages:[{ role:'user', content:[{ type:'image', source:{ type:'base64', media_type:mimeType, data:base64 } },{ type:'text', text:prompt }] }] })
     });
-    if (!resp.ok) { var e = await resp.json().catch(function(){return{};}); throw new Error('Claude: ' + (e.error&&e.error.message||resp.status)); }
+    if (!resp.ok) { var e = await resp.json().catch(function(){return{};}); throw new Error('Claude error ' + resp.status + ': ' + (e.error&&e.error.message||'check your API key')); }
     var d = await resp.json();
     return (d.content&&d.content[0]&&d.content[0].text)||'';
 
@@ -13023,7 +13091,7 @@ async function _runAiScan(file, statusEl) {
       headers: { 'Content-Type':'application/json','Authorization':'Bearer '+key },
       body: JSON.stringify({ model:'gpt-4o', max_tokens:2048, messages:[{ role:'user', content:[{ type:'image_url', image_url:{ url:'data:'+mimeType+';base64,'+base64, detail:'high' } },{ type:'text', text:prompt }] }] })
     });
-    if (!resp.ok) { var e = await resp.json().catch(function(){return{};}); throw new Error('OpenAI: ' + (e.error&&e.error.message||resp.status)); }
+    if (!resp.ok) { var e = await resp.json().catch(function(){return{};}); throw new Error('OpenAI error ' + resp.status + ': ' + (e.error&&e.error.message||'check your API key')); }
     var d = await resp.json();
     return (d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content)||'';
   }
@@ -13178,13 +13246,14 @@ function _showRankingPreview(rows, statusEl) {
     var isMe = (i === myIdx);
     var bg   = isMe ? 'background:rgba(232,160,32,0.1);' : (i % 2 === 0 ? '' : 'background:rgba(255,255,255,0.015);');
     var borderL = isMe ? 'border-left:3px solid var(--gold);' : 'border-left:3px solid transparent;';
-    html += '<div style="display:grid;grid-template-columns:32px 1fr 2fr 60px;gap:0;padding:7px 10px;border-bottom:1px solid var(--border);' + bg + borderL + 'align-items:center">'
-      + '<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono)">' + (i+1) + '</div>'
+    html += '<div style="display:grid;grid-template-columns:28px 1fr 2fr 56px 28px;gap:0;padding:6px 8px;border-bottom:1px solid var(--border);' + bg + borderL + 'align-items:center">'
+      + '<div style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">' + (i+1) + '</div>'
       + '<div style="font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + r.supervisor + '">' + (r.supervisor || '—') + '</div>'
       + '<div style="font-size:12px;font-weight:' + (isMe?'700':'500') + ';color:' + (isMe?'var(--gold)':'var(--text)') + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'
         + r.agent
       + '</div>'
       + '<div style="font-size:12px;font-weight:700;color:' + (isMe?'var(--gold)':i<3?'var(--green)':'var(--text)') + ';text-align:right;font-family:var(--font-mono)">' + r.pct + '%</div>'
+      + '<button onclick="_editRankingRow(' + i + ')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:12px;padding:2px;border-radius:4px" title="Edit this row">✏️</button>'
       + '</div>';
   });
   html += '</div>';
@@ -13209,6 +13278,35 @@ function _showRankingPreview(rows, statusEl) {
     statusEl.parentNode.insertBefore(div, statusEl.nextSibling);
   }
   haptic('pay');
+}
+
+
+function _editRankingRow(index) {
+  var r = _rankingScanPreview[index];
+  if (!r) return;
+  document.getElementById('modal-title').textContent = '✏️ Edit Row ' + (index+1);
+  document.getElementById('modal-body').innerHTML =
+    '<div class="form-group"><label>Agent Code</label>'
+    + '<input type="text" class="form-input" id="edit-row-agent" value="' + r.agent + '"></div>'
+    + '<div class="form-group"><label>Supervisor</label>'
+    + '<input type="text" class="form-input" id="edit-row-sup" value="' + (r.supervisor||'') + '"></div>'
+    + '<div class="form-group"><label>Percentage</label>'
+    + '<input type="number" class="form-input" id="edit-row-pct" value="' + r.pct + '" step="0.01" min="0" max="100"></div>';
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
+    + '<button class="btn btn-gold" id="edit-row-save">Save Row</button>';
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(function() {
+    var btn = document.getElementById('edit-row-save');
+    if (btn) btn.addEventListener('click', function() {
+      _rankingScanPreview[index].agent      = document.getElementById('edit-row-agent').value.trim();
+      _rankingScanPreview[index].supervisor = document.getElementById('edit-row-sup').value.trim();
+      _rankingScanPreview[index].pct        = parseFloat(document.getElementById('edit-row-pct').value).toFixed(2);
+      closeModal();
+      var statusEl = document.getElementById('ranking-scan-status');
+      _showRankingPreview(_rankingScanPreview, statusEl);
+    });
+  }, 50);
 }
 
 function _discardRankingPreview() {
@@ -13416,12 +13514,17 @@ function updatePendingSyncLabel() {
   }
 }
 async function replayOfflineQueue() {
+  try {
   if (!_offlineQueue.length) return;
   toast('Syncing ' + _offlineQueue.length + ' queued changes...', 'info');
   _offlineQueue = [];
   updatePendingSyncLabel();
   await _pushToSupabase();
   toast('All changes synced ✅', 'success');
+  } catch(e) {
+    console.error("replayOfflineQueue error:", e);
+    console.warn("Offline queue replay failed");
+  }
 }
 
 // ── BEST TIME TO CALL (item 29) ────────────────────────
@@ -13860,10 +13963,11 @@ html, body { overflow-x: hidden; max-width: 100vw; }
 }
 
 // ── Row Swipe Actions ────────────────────────────────────────
+var _rowSwipeInited = false;
 function initRowSwipe() {
   const tbody = document.getElementById('loans-tbody');
-  if (!tbody || tbody._swipeInited) return;
-  tbody._swipeInited = true;
+  if (!tbody || _rowSwipeInited) return;
+  _rowSwipeInited = true;
   let touchStartX = 0, touchStartY = 0, touchStartScrollY = 0, activeSwipeCard = null;
 
   tbody.addEventListener('touchstart', function(e) {
@@ -15120,6 +15224,7 @@ function updatePinDots() {
 }
 
 async function processPin() {
+  try {
   if (!_pinTarget) return;
 
   if (_pinMode === 'unlock') {
@@ -15241,6 +15346,12 @@ async function processPin() {
       haptic('medium');
     }
   }
+  } catch(e) {
+    console.error('processPin error:', e);
+    const errEl = document.getElementById('lock-pin-error');
+    if (errEl) errEl.textContent = 'An error occurred. Please try again.';
+    _pinBuffer = ''; updatePinDots();
+  }
 }
 
 function showDevOverride() {
@@ -15288,6 +15399,7 @@ function lockAddNewAgent() {
 
 // ── Load state for the just-unlocked agent ────────────────────
 async function loadStateForAgent() {
+  try {
   await loadState();
   updateBadges();
   checkOdAdvance();
@@ -15298,6 +15410,10 @@ async function loadStateForAgent() {
   renderDashboard();
   showSkeletons(false);
   _updateFab(currentPage);
+  } catch(e) {
+    console.error("loadStateForAgent error:", e);
+    toast("Failed to load account data — please try signing in again", "error");
+  }
 }
 
 // ── One-time migration from legacy key ───────────────────────
@@ -15331,6 +15447,7 @@ function slugifyCode(code) {
 }
 
 async function authSignInWithCode() {
+  try {
   const errEl  = document.getElementById('lock-pin-error');
   const statEl = document.getElementById('auth-status');
   const setStatus = (msg, isErr) => {
@@ -15413,6 +15530,10 @@ async function authSignInWithCode() {
   window._pendingAgent = agent;
   setStatus('');
   lockSelectAgent(agent.id);
+  } catch(e) {
+    console.error("authSignInWithCode error:", e);
+    var st=document.getElementById("auth-status"); if(st){st.textContent="Error signing in — check your connection and try again";st.style.color="var(--red)";}
+  }
 }
 
 // Settings page functions
@@ -15430,6 +15551,7 @@ function _getProfileData() {
 
 
 async function settingsToggleBiometric() {
+  try {
   if (!bioAvailable()) { toast('Biometric auth not supported on this device', 'error'); return; }
   if (!_activeAgent) { toast('No active agent', 'error'); return; }
   const id = _activeAgent.id;
@@ -15450,6 +15572,10 @@ async function settingsToggleBiometric() {
     } else {
       toast('Biometric registration failed or cancelled', 'error');
     }
+  }
+  } catch(e) {
+    console.error("settingsToggleBiometric error:", e);
+    toast("Biometric setup failed: " + (e.message||"unknown error"), "error");
   }
 }
 
@@ -16104,6 +16230,7 @@ function settingsDeleteAccount(){
 }
 
 async function settingsConfirmDelete(){
+  try {
   if((document.getElementById('delete-confirm-input')?.value||'').trim().toUpperCase()!=='DELETE'){toast('Type DELETE to confirm','error');haptic('medium');return;}
   closeModal();
   const id=_activeAgent.id;
@@ -16115,6 +16242,10 @@ async function settingsConfirmDelete(){
   }catch{}}
   clearSession();_activeAgent=null;_sessionUnlocked=false;state=initState();
   haptic('pay');toast('Account deleted','success');showLockScreen();
+  } catch(e) {
+    console.error("settingsConfirmDelete error:", e);
+    toast("Error during delete: " + (e.message||"please try again"), "error");
+  }
 }
 
 
@@ -16231,6 +16362,14 @@ function updateStatusBarColor(page) {
 
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Auto-refresh PTP morning view and flag missed PTPs when user returns to app
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') {
+      if (typeof ptpAutoFlagMissed === 'function') ptpAutoFlagMissed();
+      if (currentPage === 'ptp' && typeof renderPtpHub === 'function') renderPtpHub();
+      if (currentPage === 'dashboard' && typeof renderDashboard === 'function') renderDashboard();
+    }
+  });
   // Init feature systems
   _updateOfflineBanner();
 
