@@ -2642,12 +2642,18 @@ tr.overdue-critical .heat-ring {
 <!-- SIDEBAR -->
 <nav id="sidebar">
   <div class="sidebar-logo">
-    <div style="display:flex;align-items:center;gap:10px">
-      <div style="width:34px;height:34px;border-radius:10px;background:var(--gold-grad);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 12px rgba(240,160,48,0.4)">
-        <span style="font-family:var(--font-head);font-size:15px;font-weight:800;color:#000;letter-spacing:-1px">ST</span>
+    <div style="display:flex;align-items:center;gap:11px">
+      <!-- Premium sidebar icon -->
+      <div style="position:relative;width:36px;height:36px;flex-shrink:0">
+        <!-- Ring -->
+        <div style="position:absolute;inset:-2px;border-radius:50%;background:conic-gradient(from 0deg,#f0a030,#fde68a,rgba(240,160,48,0.1),#f0a030);animation:lsRingSpin 4s linear infinite;border-radius:11px"></div>
+        <!-- Face -->
+        <div style="position:absolute;inset:1px;border-radius:9px;background:radial-gradient(circle at 35% 30%,#1a1100,#050400);box-shadow:inset 0 1px 0 rgba(255,255,255,0.1),0 4px 16px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center">
+          <span style="font-family:var(--font-head);font-size:13px;font-weight:800;background:linear-gradient(160deg,#fde68a,#f0a030,#c47a10);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-0.5px">ST</span>
+        </div>
       </div>
       <div>
-        <div class="logo-mark" id="logo-mark" style="background:var(--gold-grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">SqueveTrack</div>
+        <div class="logo-mark" id="logo-mark" style="background:linear-gradient(135deg,#fde68a,#f0a030);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 1px 4px rgba(240,160,48,0.25))">SqueveTrack</div>
         <div class="logo-sub">LoanBase Recovery</div>
       </div>
     </div>
@@ -12273,12 +12279,13 @@ function buildPtpMorningHtml() {
     html += `<div style="font-size:13px;font-weight:700;margin-bottom:8px">📅 Upcoming <span style="font-size:11px;font-weight:400;color:var(--text3)">${upcoming.length} promises</span></div>
     <div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;overflow:hidden">`;
     upcoming.slice(0,10).forEach(b => {
-      html += `<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer" onclick="openBorrowerDetail('${b.id}');haptic('light')">
-        <div style="flex:1;min-width:0">
+      html += `<div style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border)">
+        <div style="flex:1;min-width:0;cursor:pointer" onclick="openBorrowerDetail('${b.id}');haptic('light')">
           <div style="font-size:12px;font-weight:600">${b.name.split(' ')[0]}</div>
           <div style="font-size:10px;color:var(--text3)">${b.promiseDate}</div>
         </div>
-        <div style="font-family:var(--font-mono);font-size:12px">${fmtC(getDueToday(b))}</div>
+        <div style="font-family:var(--font-mono);font-size:12px;color:var(--text2)">${fmtC(getDueToday(b))}</div>
+        <button class="btn btn-ghost btn-xs" style="color:#25d366;font-size:10px;font-weight:700;padding:3px 7px;flex-shrink:0" onclick="ptpShowRemindMenu('${b.id}');haptic('light')" title="Send reminder">📩</button>
       </div>`;
     });
     if (upcoming.length > 10) html += `<div style="padding:8px 14px;font-size:11px;color:var(--text3)">+${upcoming.length-10} more</div>`;
@@ -16828,7 +16835,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     <div class="ls-logo-block ls-anim-1" id="ls-logo-block">
       <div class="ls-logo-icon">
         <div class="ls-logo-ring"></div>
-        <span class="ls-logo-letters">ST</span>
+        <div class="ls-logo-letters"></div>
       </div>
       <div class="ls-logo-name">SqueveTrack</div>
       <div class="ls-logo-sub">LoanBase Recovery Suite</div>
@@ -17021,56 +17028,119 @@ document.addEventListener('DOMContentLoaded', async () => {
 .ls-anim-in { animation: lsScaleIn 0.32s cubic-bezier(0.34,1.4,0.64,1) both; }
 
 /* ── Logo block ── Card Spotlight style ── */
-.ls-logo-block { text-align: center; margin-bottom: 32px; }
+.ls-logo-block { text-align: center; margin-bottom: 28px; }
+
+/* ── Premium icon shell ── */
 .ls-logo-icon {
   position: relative;
-  width: 72px; height: 72px;
-  margin: 0 auto 16px;
+  width: 90px; height: 90px;
+  margin: 0 auto 20px;
 }
-/* Halo glow behind logo */
+
+/* Outer ambient bloom */
 .ls-logo-icon::after {
   content: '';
-  position: absolute; inset: -16px;
+  position: absolute; inset: -24px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(240,160,48,0.2) 0%, transparent 70%);
+  background: radial-gradient(circle,
+    rgba(240,160,48,0.28) 0%,
+    rgba(240,160,48,0.10) 40%,
+    transparent 70%);
   z-index: 0;
   pointer-events: none;
+  animation: lsBloom 4s ease-in-out infinite alternate;
 }
-/* Spinning conic ring */
+@keyframes lsBloom {
+  from { opacity: 0.7; transform: scale(0.95); }
+  to   { opacity: 1.0; transform: scale(1.05); }
+}
+
+/* Dual-track spinning rings */
 .ls-logo-ring {
-  position: absolute; inset: -4px;
+  position: absolute; inset: -5px;
   border-radius: 50%;
-  background: conic-gradient(from 0deg, rgba(240,160,48,0.85), rgba(252,192,68,0.4), rgba(240,160,48,0.05), rgba(240,160,48,0.85));
-  animation: lsRingSpin 3.5s linear infinite;
-  filter: blur(0.5px);
+  background: conic-gradient(from 0deg,
+    #f0a030 0%,
+    #fde68a 20%,
+    rgba(240,160,48,0.08) 45%,
+    #fcc044 65%,
+    #f0a030 100%);
+  animation: lsRingSpin 4s linear infinite;
+  filter: blur(0.3px);
+}
+.ls-logo-ring::after {
+  content: '';
+  position: absolute; inset: 6px;
+  border-radius: 50%;
+  background: conic-gradient(from 180deg,
+    rgba(252,192,68,0.55) 0%,
+    rgba(240,160,48,0.02) 40%,
+    rgba(252,192,68,0.45) 70%,
+    rgba(252,192,68,0.55) 100%);
+  animation: lsRingSpin 6s linear infinite reverse;
 }
 @keyframes lsRingSpin { to { transform: rotate(360deg); } }
-/* Inner icon face */
+
+/* Icon face — deep dark with premium gloss */
 .ls-logo-icon::before {
   content: '';
-  position: absolute; inset: 2px;
+  position: absolute; inset: 4px;
   border-radius: 50%;
-  background: var(--ls-gold-g);
-  box-shadow: 0 0 32px rgba(240,160,48,0.4), inset 0 1px 0 rgba(255,255,255,0.35);
+  background: radial-gradient(circle at 38% 32%,
+    #1e1506 0%,
+    #0e0c06 50%,
+    #050400 100%);
+  box-shadow:
+    0 0 0 1px rgba(240,160,48,0.35),
+    0 8px 40px rgba(0,0,0,0.8),
+    0 0 60px rgba(240,160,48,0.15),
+    inset 0 1px 0 rgba(255,255,255,0.12),
+    inset 0 -1px 0 rgba(0,0,0,0.6);
   z-index: 1;
 }
+
+/* Gloss highlight on top of icon face */
 .ls-logo-letters {
-  position: absolute; inset: 0; z-index: 2;
+  position: absolute; inset: 4px; z-index: 3;
   display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-head); font-size: 26px; font-weight: 800;
-  color: #000; letter-spacing: -1px;
+  border-radius: 50%;
+  overflow: hidden;
 }
-.ls-logo-name {
-  font-family: var(--font-head);
-  font-size: 26px; font-weight: 800; letter-spacing: -0.5px;
-  background: var(--ls-gold-g);
+.ls-logo-letters::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 50%;
+  border-radius: 50% 50% 0 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 100%);
+  z-index: 1;
+  pointer-events: none;
+}
+.ls-logo-letters::after {
+  content: 'ST';
+  font-family: var(--font-head); font-size: 30px; font-weight: 800;
+  background: linear-gradient(160deg, #fde68a 0%, #f0a030 40%, #c47a10 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-bottom: 5px;
+  letter-spacing: -1.5px;
+  z-index: 2;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.7));
 }
+
+/* App name */
+.ls-logo-name {
+  font-family: var(--font-head);
+  font-size: 28px; font-weight: 800; letter-spacing: -0.8px;
+  background: linear-gradient(135deg, #fde68a 0%, #f0a030 50%, #fcc044 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 6px;
+  text-shadow: none;
+  filter: drop-shadow(0 2px 8px rgba(240,160,48,0.3));
+}
+
+/* Tagline with separator dots */
 .ls-logo-sub {
-  font-size: 10px; font-weight: 600; color: var(--ls-muted);
-  letter-spacing: 2.5px; text-transform: uppercase;
+  font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.3);
+  letter-spacing: 3px; text-transform: uppercase;
 }
 
 /* ── Tabs ── */
