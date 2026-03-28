@@ -5647,6 +5647,14 @@ function renderDailyChart() {
 }
 
 // ── LOANS TABLE ────────────────────────────────────────
+// Persisted loan filter state
+var _loanSearchValue    = '';
+var _loanFilterStatus   = '';
+var _loanFilterType     = '';
+var _loanFilterOd       = '';
+var _loanFilterPriority = '';
+var _loanFilterBadge    = '';
+
 function renderLoansTable() {
   const searchEl   = document.getElementById('loan-search');
   const statusEl2  = document.getElementById('loan-filter-status');
