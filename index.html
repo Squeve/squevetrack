@@ -2086,7 +2086,7 @@ tr.overdue-critical .heat-ring {
 [data-theme="navy"] .bl-filter-bar { background: rgba(6,14,26,0.6) !important; border-color: #1e3350 !important; backdrop-filter: blur(8px) !important; }
 
 /* Lock screen */
-[data-theme="navy"] .ls-bg { background: radial-gradient(ellipse at 30% 10%, rgba(30,64,128,0.5) 0%, transparent 50%), linear-gradient(160deg, #04090f 0%, #060e1a 100%); }
+[data-theme="navy"] .ls-bg { background: linear-gradient(160deg, #040608 0%, #060810 50%, #040608 100%); }
 [data-theme="navy"] .ls-card, [data-theme="navy"] .ls-pin-card {
   background: linear-gradient(145deg, #0f1f38, #08152a);
   border: 1px solid rgba(40,74,114,0.6);
@@ -7061,6 +7061,7 @@ function openAddModal() {
     + '<button class="btn btn-gold btn-sm" id="tab-manual" data-addtab="manual">✍️ Manual Entry</button>'
     + '<button class="btn btn-ghost btn-sm" id="tab-clipboard" data-addtab="clipboard">📋 Paste Rows</button>'
     + '<button class="btn btn-ghost btn-sm" id="tab-csv" data-addtab="csv">⬆ Upload CSV</button>'
+    + '<button class="btn btn-ghost btn-sm" id="tab-xlsx" data-addtab="xlsx">📊 Upload Excel</button>'
     + '</div>'
     + '<div id="add-tab-manual">' + borrowerForm() + '</div>'
     + '<div id="add-tab-clipboard" style="display:none">'
@@ -7086,6 +7087,24 @@ function openAddModal() {
     + '<input type="file" id="csv-upload" accept=".csv,.txt" class="form-input" style="padding:10px" onchange="previewCSV(this)">'  
     + '<div id="csv-preview" style="margin-top:8px;font-size:12px;color:var(--text3)"></div>'
     + '<button class="btn btn-gold" style="width:100%;margin-top:8px" id="btn-import-csv">⬆ Import CSV</button>'
+    + '</div>'
+    + '<div id="add-tab-xlsx" style="display:none">'
+    + '<div style="background:rgba(34,197,94,0.07);border:1px solid rgba(34,197,94,0.25);border-radius:8px;padding:12px;margin-bottom:12px;font-size:12px">'
+    + '<div style="font-weight:700;color:var(--green);margin-bottom:6px">📊 Direct Excel Import</div>'
+    + '<div style="color:var(--text2);line-height:1.8">Upload your <b>.xlsx</b> or <b>.xls</b> file directly — no need to convert. First row must be the header:<br>'
+    + '<code style="color:var(--green);font-size:11px">name, phone, loanDue, principal, amountPaid, loanType, odAge</code><br>'
+    + 'Column names are case-insensitive. The first sheet will be read.'
+    + '</div></div>'
+    + '<label style="display:block;cursor:pointer">'
+    + '<div style="border:2px dashed rgba(34,197,94,0.35);border-radius:10px;padding:20px;text-align:center;background:rgba(34,197,94,0.04);transition:all 0.2s" id="xlsx-drop-zone">'
+    + '<div style="font-size:28px;margin-bottom:8px">📂</div>'
+    + '<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">Tap to choose Excel file</div>'
+    + '<div style="font-size:11px;color:var(--text3)">Supports .xlsx and .xls</div>'
+    + '</div>'
+    + '<input type="file" id="xlsx-upload" accept=".xlsx,.xls" style="display:none" onchange="previewXLSX(this)">'
+    + '</label>'
+    + '<div id="xlsx-preview" style="margin-top:10px;font-size:12px;color:var(--text3)"></div>'
+    + '<button class="btn btn-gold" style="width:100%;margin-top:8px;display:none" id="btn-import-xlsx">📊 Import Excel</button>'
     + '</div>';
   document.getElementById('modal-footer').innerHTML =
     '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
@@ -7101,11 +7120,13 @@ function openAddModal() {
     if (btnClip) btnClip.addEventListener('click', importFromClipboard);
     var btnCsv = document.getElementById('btn-import-csv');
     if (btnCsv) btnCsv.addEventListener('click', importFromCSV);
+    var btnXlsx = document.getElementById('btn-import-xlsx');
+    if (btnXlsx) btnXlsx.addEventListener('click', importFromXLSX);
   }, 0);
 }
 
 function showAddTab(tab) {
-  ['manual','clipboard','csv'].forEach(t => {
+  ['manual','clipboard','csv','xlsx'].forEach(t => {
     const el = document.getElementById('add-tab-' + t);
     const btn = document.getElementById('tab-' + t);
     if (el) el.style.display = t === tab ? '' : 'none';
@@ -7148,6 +7169,201 @@ function importFromClipboard() {
   purgeAgedOut(); saveState(); closeModal(); updateBadges(); renderCurrentPage();
   toast('Imported ' + added + ' contact' + (added!==1?'s':'') + (skipped?' · '+skipped+' skipped':''), 'success');
 }
+
+
+// ══════════════════════════════════════════════════════════════
+// EXCEL (XLSX) IMPORT
+// Uses SheetJS (already loaded in head) — no extra dependencies
+// ══════════════════════════════════════════════════════════════
+
+function previewXLSX(input) {
+  var file = input && input.files && input.files[0];
+  if (!file) return;
+
+  var dropZone = document.getElementById('xlsx-drop-zone');
+  var preview  = document.getElementById('xlsx-preview');
+  var importBtn = document.getElementById('btn-import-xlsx');
+
+  if (dropZone) {
+    dropZone.innerHTML =
+      '<div style="font-size:22px;margin-bottom:6px">📊</div>'
+      + '<div style="font-size:13px;font-weight:600;color:var(--green)">' + escapeHtml(file.name) + '</div>'
+      + '<div style="font-size:11px;color:var(--text3);margin-top:3px">Reading file...</div>';
+  }
+  if (preview) preview.innerHTML = '';
+
+  if (typeof XLSX === 'undefined') {
+    if (preview) preview.innerHTML = '<span style="color:var(--red)">❌ XLSX library not loaded — please refresh and try again</span>';
+    return;
+  }
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data     = new Uint8Array(e.target.result);
+      var workbook = XLSX.read(data, { type: 'array' });
+      var sheetName = workbook.SheetNames[0];
+      var sheet    = workbook.Sheets[sheetName];
+      var rows     = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+      if (!rows || rows.length === 0) {
+        if (preview) preview.innerHTML = '<span style="color:var(--red)">❌ Sheet appears empty or has no data rows</span>';
+        if (dropZone) dropZone.querySelector('div:last-child').textContent = 'No data found';
+        return;
+      }
+
+      // Normalise column names (case-insensitive, strip spaces/special chars)
+      var normRows = rows.map(function(row) {
+        var normRow = {};
+        Object.keys(row).forEach(function(key) {
+          var normKey = key.toLowerCase().trim().replace(/[^a-z]/g, '');
+          normRow[normKey] = String(row[key]).trim();
+        });
+        return normRow;
+      });
+
+      // Validate required columns
+      var firstRow = normRows[0];
+      var hasName    = 'name' in firstRow;
+      var hasPhone   = 'phone' in firstRow;
+      var hasLoanDue = 'loandue' in firstRow;
+      if (!hasName || !hasLoanDue) {
+        if (preview) preview.innerHTML =
+          '<span style="color:var(--red)">❌ Missing required columns. Need: <b>name</b>, <b>loanDue</b></span><br>'
+          + '<span style="color:var(--text3);font-size:11px">Found: ' + Object.keys(firstRow).join(', ') + '</span>';
+        return;
+      }
+
+      // Count valid rows
+      var validCount = 0, skipCount = 0;
+      normRows.forEach(function(row) {
+        if (row.name && row.loandue && parseFloat(row.loandue) > 0) validCount++;
+        else skipCount++;
+      });
+
+      // Show sample preview
+      var sampleHtml =
+        '<div style="background:var(--surface2);border-radius:8px;padding:10px;margin-top:8px">'
+        + '<div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:6px">'
+          + '✅ ' + validCount + ' borrowers ready' + (skipCount > 0 ? ' · ' + skipCount + ' empty rows will be skipped' : '')
+        + '</div>'
+        + '<div style="font-size:11px;color:var(--text3);margin-bottom:6px">Sheet: <b>' + escapeHtml(sheetName) + '</b> · First 3 rows:</div>'
+        + '<div style="overflow-x:auto">'
+        + '<table style="font-size:10px;border-collapse:collapse;width:100%">'
+        + '<tr style="color:var(--text3)">'
+          + '<th style="padding:3px 6px;border-bottom:1px solid var(--border);text-align:left">Name</th>'
+          + '<th style="padding:3px 6px;border-bottom:1px solid var(--border);text-align:left">Phone</th>'
+          + '<th style="padding:3px 6px;border-bottom:1px solid var(--border);text-align:right">Loan Due</th>'
+          + '<th style="padding:3px 6px;border-bottom:1px solid var(--border);text-align:right">Principal</th>'
+        + '</tr>'
+        + normRows.slice(0, 3).map(function(row) {
+            return '<tr>'
+              + '<td style="padding:3px 6px;border-bottom:1px solid var(--border)">' + escapeHtml(row.name || '—') + '</td>'
+              + '<td style="padding:3px 6px;border-bottom:1px solid var(--border);color:var(--text3)">' + escapeHtml(row.phone || '—') + '</td>'
+              + '<td style="padding:3px 6px;border-bottom:1px solid var(--border);text-align:right;font-family:var(--font-mono)">' + (row.loandue ? '₵'+row.loandue : '—') + '</td>'
+              + '<td style="padding:3px 6px;border-bottom:1px solid var(--border);text-align:right;font-family:var(--font-mono)">' + (row.principal ? '₵'+row.principal : '—') + '</td>'
+              + '</tr>';
+          }).join('')
+        + '</table>'
+        + (normRows.length > 3 ? '<div style="padding:4px 6px;font-size:10px;color:var(--text3)">+' + (normRows.length - 3) + ' more rows</div>' : '')
+        + '</div></div>';
+
+      if (preview) preview.innerHTML = sampleHtml;
+      if (importBtn) {
+        importBtn.style.display = 'block';
+        importBtn.textContent = '📊 Import ' + validCount + ' Borrowers from Excel';
+        importBtn.dataset.xlsxRows = JSON.stringify(normRows);
+      }
+      if (dropZone) dropZone.innerHTML =
+        '<div style="font-size:22px;margin-bottom:6px">✅</div>'
+        + '<div style="font-size:13px;font-weight:600;color:var(--green)">' + escapeHtml(file.name) + '</div>'
+        + '<div style="font-size:11px;color:var(--text3);margin-top:3px">' + rows.length + ' rows · ' + sheetName + '</div>';
+
+    } catch(err) {
+      console.error('XLSX parse error:', err);
+      if (preview) preview.innerHTML = '<span style="color:var(--red)">❌ Failed to read file: ' + escapeHtml(err.message || 'unknown error') + '</span>';
+      if (dropZone) dropZone.querySelector('div:last-child') && (dropZone.querySelector('div:last-child').textContent = 'Read failed');
+    }
+  };
+  reader.onerror = function() {
+    if (preview) preview.innerHTML = '<span style="color:var(--red)">❌ Could not read file</span>';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function importFromXLSX() {
+  var importBtn = document.getElementById('btn-import-xlsx');
+  if (!importBtn || !importBtn.dataset.xlsxRows) {
+    toast('No Excel data loaded — choose a file first', 'error');
+    return;
+  }
+
+  var normRows;
+  try {
+    normRows = JSON.parse(importBtn.dataset.xlsxRows);
+  } catch(e) {
+    toast('Error reading Excel data — try again', 'error');
+    return;
+  }
+
+  var added = 0, skipped = 0;
+
+  normRows.forEach(function(row) {
+    var name     = (row.name || '').trim();
+    var phone    = (row.phone || '').trim();
+    var loanDue  = parseFloat(row.loandue)  || 0;
+    var principal = parseFloat(row.principal) || parseFloat(row.loandue) || 0;
+    var amountPaid = parseFloat(row.amountpaid) || 0;
+    var loanType = (row.loantype || 'LoanBase').trim();
+    var odAge    = parseInt(row.odage) || 6;
+
+    if (!name || !loanDue) { skipped++; return; }
+
+    // Phone validation
+    var phoneDigits = phone.replace(/\D/g, '');
+    if (phone && phoneDigits.length < 7) { skipped++; return; }
+
+    // Validate loanType
+    if (loanType !== 'LoanBase' && loanType !== 'LoanBase Pro') loanType = 'LoanBase';
+    if (odAge < 1 || odAge > 30) odAge = 6;
+
+    // Compute startDate from odAge
+    var d = new Date();
+    d.setDate(d.getDate() - (odAge - 1));
+    var startDate = d.toISOString().split('T')[0];
+
+    // Duplicate check
+    var normPhone = phoneDigits;
+    var normName  = name.toLowerCase();
+    var dupe = state.borrowers.find(function(x) {
+      return x.name.toLowerCase() === normName ||
+             (normPhone.length > 6 && x.phone.replace(/\D/g,'') === normPhone);
+    });
+    if (dupe) { skipped++; return; }
+
+    state.borrowers.push({
+      id: (crypto && crypto.randomUUID ? crypto.randomUUID() : 'b' + Date.now() + added),
+      name: name, phone: phone, principal: principal, loanDue: loanDue,
+      overdueFeee: 0, amountPaid: amountPaid, startDate: startDate,
+      loanType: loanType, notes: '', targetPayment: 0, instalment: null,
+      promisedToPay: false, isPaid: false, payLog: [], callLog: []
+    });
+    added++;
+  });
+
+  if (added === 0) {
+    toast('No valid borrowers found in the Excel file', 'error');
+    return;
+  }
+
+  saveState();
+  haptic('pay');
+  closeModal();
+  updateBadges();
+  renderCurrentPage();
+  toast('✅ Imported ' + added + ' borrower' + (added !== 1 ? 's' : '') + ' from Excel' + (skipped > 0 ? ' · ' + skipped + ' skipped' : ''), 'success');
+}
+
 
 function importFromCSV() {
   const file = document.getElementById('csv-upload').files[0];
@@ -17014,18 +17230,58 @@ document.addEventListener('DOMContentLoaded', async () => {
 .ls-bg-mesh {
   position: absolute; inset: 0;
   background:
-    radial-gradient(ellipse 80% 60% at 50% 25%, rgba(240,160,48,0.09) 0%, transparent 55%),
-    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(56,189,248,0.06) 0%, transparent 50%);
+    radial-gradient(ellipse 90% 55% at 50% 10%, rgba(240,160,48,0.18) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 35% at 15% 85%, rgba(56,189,248,0.07) 0%, transparent 50%),
+    radial-gradient(ellipse 40% 30% at 85% 75%, rgba(240,160,48,0.05) 0%, transparent 50%);
 }
 .ls-bg-grid {
-  position: absolute; inset: 0; opacity: 0.025;
-  background-image:
-    linear-gradient(rgba(56,189,248,0.6) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(56,189,248,0.6) 1px, transparent 1px);
-  background-size: 36px 36px;
-  mask-image: radial-gradient(ellipse 90% 80% at 50% 0%, black 20%, transparent 75%);
+  position: absolute; inset: 0;
 }
-/* CRT scanline overlay for neon feel */
+/* Carbon fibre layer 1 — forward diagonal with gold glow */
+.ls-bg-grid::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      transparent 0px,
+      transparent 9px,
+      rgba(240,160,48,0.13) 9px,
+      rgba(240,160,48,0.13) 10px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent 0px,
+      transparent 9px,
+      rgba(240,160,48,0.06) 9px,
+      rgba(240,160,48,0.06) 10px
+    );
+  filter: drop-shadow(0 0 2px rgba(240,160,48,0.25));
+  mask-image: radial-gradient(ellipse 110% 90% at 50% 50%, rgba(0,0,0,1) 20%, transparent 85%);
+  -webkit-mask-image: radial-gradient(ellipse 110% 90% at 50% 50%, rgba(0,0,0,1) 20%, transparent 85%);
+}
+/* Carbon fibre layer 2 — tighter cross for depth */
+.ls-bg-grid::after {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      transparent 0px,
+      transparent 4px,
+      rgba(255,255,255,0.025) 4px,
+      rgba(255,255,255,0.025) 5px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent 0px,
+      transparent 4px,
+      rgba(255,255,255,0.018) 4px,
+      rgba(255,255,255,0.018) 5px
+    );
+  mask-image: radial-gradient(ellipse 100% 80% at 50% 50%, rgba(0,0,0,0.8) 0%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse 100% 80% at 50% 50%, rgba(0,0,0,0.8) 0%, transparent 80%);
+}
 .ls-bg-vignette {
   position: absolute; inset: 0;
   background: radial-gradient(ellipse 120% 100% at 50% 50%, transparent 40%, rgba(0,0,0,0.65) 100%);
