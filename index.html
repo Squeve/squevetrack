@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
-    script-src 'self' 'unsafe-inline'
+    script-src 'self' 'unsafe-inline' 'unsafe-eval'
       https://cdnjs.cloudflare.com
       https://cdn.jsdelivr.net
       https://cdn.sheetjs.com;
@@ -16,9 +16,11 @@
       https://*.supabase.co
       https://generativelanguage.googleapis.com
       https://api.anthropic.com
-      https://api.openai.com;
+      https://api.openai.com
+      https://cdn.jsdelivr.net
+      https://tessdata.projectnaptha.com;
     img-src 'self' data: blob:;
-    worker-src blob:;
+    worker-src blob: https://cdn.jsdelivr.net;
   ">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title id="page-title">SqueveTrack</title>
@@ -13218,14 +13220,29 @@ async function scanRankingImage() {
   if (statusEl) statusEl.innerHTML = '⏳ Starting scan...';
   haptic('light');
 
+  // 60-second timeout — prevents infinite spin
+  var _scanTimeout = null;
+  var _scanTimedOut = false;
+  var _timeoutPromise = new Promise(function(_, reject) {
+    _scanTimeout = setTimeout(function() {
+      _scanTimedOut = true;
+      reject(new Error('Scan timed out after 60 seconds — try a clearer image or smaller file'));
+    }, 60000);
+  });
+
   try {
     var rawText = '';
 
-    if (_scanProvider === 'local') {
-      rawText = await _runLocalOcr(file, statusEl);
-    } else {
-      rawText = await _runAiScan(file, statusEl);
-    }
+    var _scanPromise = (function() {
+      if (_scanProvider === 'local') {
+        return _runLocalOcr(file, statusEl);
+      } else {
+        return _runAiScan(file, statusEl);
+      }
+    })();
+
+    rawText = await Promise.race([_scanPromise, _timeoutPromise]);
+    clearTimeout(_scanTimeout);
 
     if (!rawText || !rawText.trim()) {
       if (statusEl) statusEl.textContent = '⚠️ Nothing extracted — try a clearer image';
