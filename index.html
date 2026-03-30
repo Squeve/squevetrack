@@ -5686,26 +5686,14 @@ function renderLoansTable() {
   const odEl       = document.getElementById('loan-filter-od');
   const priorityEl = document.getElementById('loan-filter-priority');
   const badgeEl    = document.getElementById('loan-filter-badge');
-  // Restore persisted filter values if elements exist
-  if (searchEl   && !searchEl.value   && _loanSearchValue)   searchEl.value   = _loanSearchValue;
-  if (statusEl2  && !statusEl2.value  && _loanFilterStatus)  statusEl2.value  = _loanFilterStatus;
-  if (typeEl     && !typeEl.value     && _loanFilterType)     typeEl.value     = _loanFilterType;
-  if (odEl       && !odEl.value       && _loanFilterOd)       odEl.value       = _loanFilterOd;
-  if (priorityEl && !priorityEl.value && _loanFilterPriority) priorityEl.value = _loanFilterPriority;
-  if (badgeEl    && !badgeEl.value    && _loanFilterBadge)    badgeEl.value    = _loanFilterBadge;
-  // Read current values and persist them
+  // Read filter values DIRECTLY from the DOM — never override what the user set.
+  // Persisted globals are only used to restore state when navigating back to this page.
   const search    = (searchEl?.value || '').toLowerCase();
   const fStatus   = statusEl2?.value  || '';
   const fType     = typeEl?.value     || '';
   const fOd       = odEl?.value       || '';
   const fPriority = priorityEl?.value || '';
   const fBadge    = badgeEl?.value    || '';
-  _loanSearchValue  = search;
-  _loanFilterStatus = fStatus;
-  _loanFilterType   = fType;
-  _loanFilterOd     = fOd;
-  _loanFilterPriority = fPriority;
-  _loanFilterBadge  = fBadge;
 
   let rows = state.borrowers.map(b => ({
     ...b,
