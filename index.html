@@ -17201,7 +17201,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       </div>
     </div>
 
-    <div class="ls-footer">Developed by Shadrack Agyei Arthur</div>
+    <div class="ls-footer">
+      <div class="ls-footer-inner">
+        <div class="ls-footer-line"></div>
+        <div class="ls-footer-credit">
+          <span class="ls-footer-label">crafted by</span>
+          <span class="ls-footer-name">Shadrack Agyei Arthur</span>
+        </div>
+        <div class="ls-footer-line"></div>
+      </div>
+    </div>
   </div>
 </div>
 <style>
@@ -17713,8 +17722,44 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 /* Footer */
 .ls-footer {
-  margin-top: 32px; font-size: 10px; color: rgba(255,255,255,0.12);
-  letter-spacing: 0.5px; text-align: center;
+  margin-top: 36px;
+  text-align: center;
+  width: 100%;
+}
+.ls-footer-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+}
+.ls-footer-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(240,160,48,0.25), transparent);
+  max-width: 60px;
+}
+.ls-footer-credit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.ls-footer-label {
+  font-size: 8px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.25);
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+}
+.ls-footer-name {
+  font-size: 11px;
+  font-weight: 700;
+  background: linear-gradient(135deg, rgba(240,160,48,0.7) 0%, rgba(252,192,68,0.9) 50%, rgba(240,160,48,0.6) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 0.8px;
+  filter: drop-shadow(0 0 6px rgba(240,160,48,0.3));
 }
 </style>
 
