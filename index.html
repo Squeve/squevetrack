@@ -7679,7 +7679,7 @@ function openPayModal(id) {
       <div class="summary-row"><span class="summary-label">Loan Due</span><span class="summary-value">${fmtC(b.loanDue)}</span></div>
       <div class="summary-row"><span class="summary-label">Already Paid</span><span class="summary-value text-green">${fmtC(b.amountPaid)}</span></div>
       <div class="summary-row"><span class="summary-label">Loan Remaining</span><span class="summary-value text-red">${fmtC(remaining)}</span></div>
-      <div class="summary-row" style="cursor:pointer" onclick="openOdFeeModal('${id}')" title="Tap for breakdown"><span class="summary-label">OD Fee <span style="font-size:9px;color:var(--blue)">↗ breakdown</span></span><span class="summary-value text-gold">${fmtC(getOdFee(b))}</span></div>
+      <div class="summary-row" style="cursor:pointer" id="pay-od-row" data-odid="${id}" style="cursor:pointer" title="Tap for OD breakdown \u2197"><span class="summary-label">OD Fee <span style="font-size:9px;color:var(--blue)">↗ breakdown</span></span><span class="summary-value text-gold">${fmtC(getOdFee(b))}</span></div>
       <div class="summary-row" style="background:rgba(232,160,32,0.06);border-radius:6px;padding:10px 8px;margin-top:4px">
         <span class="summary-label" style="font-weight:700;color:var(--text)">Total Balance Owed</span>
         <span class="summary-value text-gold" style="font-size:16px">${fmtC(getDueToday(b))}</span>
@@ -7709,6 +7709,14 @@ function openPayModal(id) {
     <button class="btn btn-green" onclick="recordPayment('${id}')">Save Payment</button>
   `;
   document.getElementById('modal-overlay').classList.add('open');
+  // Wire OD row click after innerHTML is set
+  var odRow = document.getElementById('pay-od-row');
+  if (odRow) {
+    odRow.onclick = function() {
+      var oid = odRow.dataset.odid;
+      if (oid) { _pushModal(); openOdFeeModal(oid); }
+    };
+  }
 }
 
 function setPayAmount(amount) {
@@ -7728,10 +7736,26 @@ function recordPayment(id) {
   // Full settlement = Due Today (loan remaining + OD fee) + what they already paid
   const fullSettlement = getDueToday(b) + b.amountPaid;
   const prevPaid = b.amountPaid;
+  // Capture current OD BEFORE amountPaid changes so we can snapshot it
+  const odBeforePayment = getOdFee(b);
   b.amountPaid = newPaid;
   b.notes = notes;
-  if (newPaid >= fullSettlement && fullSettlement > 0) { b.isPaid = true; }
-  else { b.isPaid = false; }
+  if (newPaid >= fullSettlement && fullSettlement > 0) {
+    b.isPaid = true;
+    // Fully paid — clear any snapshot, OD is frozen at 0 via isPaid check
+    delete b.odFeeSnapshot; delete b.odFeeSnapshotDate; delete b.odFeeSnapshotNote;
+  } else {
+    b.isPaid = false;
+    // Partial payment — set OD snapshot to today's value so it accrues
+    // FORWARD from here rather than recalculating retroactively with new amountPaid.
+    // Only set if not already on snapshot path (snapshot path self-updates correctly).
+    if (!(b.odFeeSnapshot !== undefined && b.odFeeSnapshot !== null && b.odFeeSnapshotDate)) {
+      const today = new Date().toISOString().split('T')[0];
+      b.odFeeSnapshot     = odBeforePayment;
+      b.odFeeSnapshotDate = today;
+      b.odFeeSnapshotNote = 'Auto-locked on payment';
+    }
+  }
   if (!b.payLog) b.payLog = [];
   if (newPaid !== prevPaid) {
     b.payLog.push({ date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}), amount: newPaid, delta: newPaid - prevPaid, note: notes, isPaid: b.isPaid });
@@ -8587,7 +8611,7 @@ function sendBulkSMS() {
     return;
   }
 
-  const smsLink = 'sms:' + numbers + '?body=' + encodeURIComponent(sharedMsg);
+  const smsLink = 'sms:' + numbers + (/iPad|iPhone|iPod/.test(navigator.userAgent) ? '&body=' : '?body=') + encodeURIComponent(sharedMsg);
   window.location.href = smsLink;
   toast('Opening SMS app with ' + contacts.length + ' recipient' + (contacts.length > 1 ? 's' : '') + '...', 'success');
 }
@@ -8595,7 +8619,7 @@ function sendBulkSMS() {
 function _confirmBulkOrSequential(contacts, numbers) {
   // Generate a generic message using the current template
   const genericMsg = _buildGenericBulkMsg(contacts);
-  const smsLink = 'sms:' + numbers + '?body=' + encodeURIComponent(genericMsg);
+  const smsLink = 'sms:' + numbers + (/iPad|iPhone|iPod/.test(navigator.userAgent) ? '&body=' : '?body=') + encodeURIComponent(genericMsg);
 
   document.getElementById('modal-title').textContent = '📤 Bulk SMS — ' + contacts.length + ' Recipients';
   document.getElementById('modal-body').innerHTML =
@@ -8667,6 +8691,32 @@ function startSequential(mode) {
   showSeqModal();
 }
 
+
+function _copySmsMsg(encodedMsg) {
+  var msg = typeof encodedMsg === 'string' && encodedMsg.includes('%') 
+    ? decodeURIComponent(encodedMsg) 
+    : encodedMsg;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(msg).then(function() {
+      toast('Message copied — paste into SMS app 📋', 'success');
+    }).catch(function() {
+      _copySmsLegacy(msg);
+    });
+  } else {
+    _copySmsLegacy(msg);
+  }
+}
+function _copySmsLegacy(msg) {
+  var ta = document.createElement('textarea');
+  ta.value = msg;
+  ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try { document.execCommand('copy'); toast('Message copied — paste into SMS app 📋', 'success'); }
+  catch(e) { toast('Could not copy — please copy manually', 'error'); }
+  document.body.removeChild(ta);
+}
+
 function showSeqModal() {
   if (seqIndex >= seqList.length) {
     closeModal();
@@ -8676,7 +8726,9 @@ function showSeqModal() {
   const b = seqList[seqIndex];
   const msg = getSmsBlastMsg(b);
   const phone = b.phone.replace(/\s/g,'');
-  const smsLink = 'sms:' + phone + '?body=' + encodeURIComponent(msg);
+  // iOS needs &body= not ?body=, and we detect iOS for the link format
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const smsLink = 'sms:' + phone + (isIOS ? '&body=' : '?body=') + encodeURIComponent(msg);
   const waLink = 'https://wa.me/' + phone.replace('+','') + '?text=' + encodeURIComponent(msg);
   document.getElementById('modal-title').textContent = 'Send Message ' + (seqIndex+1) + ' of ' + seqList.length;
   document.getElementById('modal-body').innerHTML =
@@ -8686,7 +8738,8 @@ function showSeqModal() {
     + '</div>'
     + '<div style="background:var(--surface2);border-radius:8px;padding:12px;font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:16px">' + msg + '</div>'
     + '<div style="display:flex;gap:10px;flex-wrap:wrap">'
-    + '<a href="' + smsLink + '" class="btn btn-gold btn-sm">📱 Open SMS App</a>'
+    + '<a href="' + smsLink + '" class="btn btn-gold btn-sm" onclick="if(isIOS){setTimeout(function(){if(document.hasFocus()){_copySmsMsg(msg);}},800)}">📱 Open SMS App</a>'
+    + (isIOS ? '<button class="btn btn-ghost btn-sm" id="seq-copy-btn" style="font-size:11px">📋 Copy Message</button>' : '')
     + '<a href="' + waLink + '" target="_blank" class="btn btn-green btn-sm">💬 Open WhatsApp</a>'
     + '</div>'
     + '<div style="margin-top:14px;background:var(--surface2);border-radius:6px;height:5px;overflow:hidden">'
@@ -8698,6 +8751,11 @@ function showSeqModal() {
     + '<button class="btn btn-ghost btn-sm" onclick="seqIndex++;showSeqModal()">Skip →</button>'
     + '<button class="btn btn-gold" onclick="seqIndex++;showSeqModal()">Mark Sent & Next ✓</button>';
   document.getElementById('modal-overlay').classList.add('open');
+  // Wire iOS copy button if rendered
+  setTimeout(function() {
+    var copyBtn = document.getElementById('seq-copy-btn');
+    if (copyBtn) copyBtn.onclick = function() { _copySmsMsg(msg); };
+  }, 50);
 }
 
 function openSmsReviewModal(action) {
@@ -12204,7 +12262,8 @@ function _ptpSendViaSMS(borrowerId) {
   var tone = _ptpGetActiveTone();
   var msg = _ptpBuildMessage(b, 'sms'); // SMS is always short format
   var phone = (b.phone || '').replace(/\s/g, '');
-  var url = 'sms:' + phone + '?body=' + encodeURIComponent(msg);
+  var isIOSdev = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  var url = 'sms:' + phone + (isIOSdev ? '&body=' : '?body=') + encodeURIComponent(msg);
   _ptpLogSend(borrowerId, tone, 'sms');
   closeModal();
   window.location.href = url;
@@ -12313,7 +12372,7 @@ function _showPtpSeqModal() {
   if (phone.startsWith('0')) phone = '233' + phone.slice(1);
   var link = _ptpSeqChan === 'wa'
     ? 'https://wa.me/' + phone + '?text=' + encodeURIComponent(msg)
-    : 'sms:' + (b.phone || '').replace(/\s/g, '') + '?body=' + encodeURIComponent(msg);
+    : 'sms:' + (b.phone || '').replace(/\s/g, '') + (/iPad|iPhone|iPod/.test(navigator.userAgent) ? '&body=' : '?body=') + encodeURIComponent(msg);
 
   var num   = _ptpSeqIndex + 1;
   var total = _ptpSeqList.length;
