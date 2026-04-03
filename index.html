@@ -6706,60 +6706,106 @@ function addLogEntry() {
 function openExportModal() {
   document.getElementById('modal-title').textContent = '⬇ Export Data';
   const cols = [
-    { id:'name',    label:'Full Name',         def:true  },
-    { id:'phone',   label:'Phone Number',       def:true  },
-    { id:'loanType',label:'Loan Type',          def:true  },
-    { id:'odAge',   label:'OD Age',             def:true  },
-    { id:'generous',label:'Generous Amount (₵)',def:true  },
-    { id:'dueToday',label:'Full Balance (₵)',   def:false },
-    { id:'loanDue', label:'Loan Due (₵)',       def:false },
-    { id:'paid',    label:'Amount Paid (₵)',    def:false },
-    { id:'remaining',label:'Remaining (₵)',     def:false },
-    { id:'odFee',   label:'OD Fee (₵)',         def:false },
-    { id:'status',  label:'Status',             def:false },
-    { id:'smsMsg',  label:'SMS Message',        def:false },
-    { id:'serial',  label:'Serial (1=Base 2=Pro)', def:false },
+    { id:'name',        label:'Full Name',           def:true  },
+    { id:'phone',       label:'Phone Number',         def:true  },
+    { id:'loanType',    label:'Loan Type',            def:true  },
+    { id:'odAge',       label:'OD Age',               def:true  },
+    { id:'promiseDate', label:'Promise Date',         def:true  },
+    { id:'generous',    label:'Generous Amount (₵)',  def:true  },
+    { id:'dueToday',    label:'Full Balance (₵)',     def:false },
+    { id:'loanDue',     label:'Loan Due (₵)',         def:false },
+    { id:'paid',        label:'Amount Paid (₵)',      def:false },
+    { id:'remaining',   label:'Remaining (₵)',        def:false },
+    { id:'odFee',       label:'OD Fee (₵)',           def:false },
+    { id:'status',      label:'Status',               def:false },
+    { id:'smsMsg',      label:'SMS Message',          def:false },
+    { id:'serial',      label:'Serial (1=Base 2=Pro)',def:false },
   ];
   const colHtml = cols.map(c =>
     '<div class="export-col-item' + (c.def?' checked':'') + '" onclick="toggleExportCol(this)" data-col="' + c.id + '">'
     + '<input type="checkbox"' + (c.def?' checked':'') + '> ' + c.label + '</div>'
   ).join('');
+
+  // Build OD day range options from actual borrower data
+  const allOdAges = [...new Set(state.borrowers.map(b => getOdAge(b.startDate)))].sort((a,b)=>a-b);
+  const minOd = allOdAges.length ? allOdAges[0] : 6;
+  const maxOd = allOdAges.length ? allOdAges[allOdAges.length-1] : 15;
+
   document.getElementById('modal-body').innerHTML =
-    '<div style="font-size:12px;color:var(--text3);margin-bottom:10px">Select columns to include in your CSV export:</div>'
+    // ── Columns
+    '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Columns to include</div>'
     + '<div class="export-cols">' + colHtml + '</div>'
-    + '<div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px;display:flex;flex-direction:column;gap:12px">'
-    + '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
-    + '<label style="font-size:12px;font-weight:700;color:var(--text2);white-space:nowrap">Name format:</label>'
-    + '<select id="export-name-format" class="filter-select" style="font-size:12px;flex:1;min-width:160px">'
-    + '<option value="full">Full Name</option>'
-    + '<option value="first">First Name only</option>'
-    + '<option value="last">Last Name only</option>'
-    + '<option value="middle">Middle Name only</option>'
-    + '<option value="first_last">First + Last</option>'
-    + '<option value="first_middle">First + Middle</option>'
+    + '<div style="border-top:1px solid var(--border);padding-top:14px;margin-top:8px;display:flex;flex-direction:column;gap:14px">'
+
+    // ── OD Day Range filter
+    + '<div>'
+    + '<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">📅 Filter by OD Day Range</div>'
+    + '<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center">'
+    + '<div><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px">From Day</label>'
+    + '<input type="number" id="exp-od-min" class="form-input" style="font-size:12px;padding:6px 10px" min="0" max="90" value="' + minOd + '"></div>'
+    + '<div style="font-size:12px;color:var(--text3);padding-top:16px">—</div>'
+    + '<div><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px">To Day</label>'
+    + '<input type="number" id="exp-od-max" class="form-input" style="font-size:12px;padding:6px 10px" min="0" max="90" value="' + maxOd + '"></div>'
+    + '</div>'
+    + '<div style="font-size:10px;color:var(--text3);margin-top:4px">Leave as default to include all days · Your range: Day ' + minOd + ' – Day ' + maxOd + '</div>'
+    + '</div>'
+
+    // ── Amount filter
+    + '<div>'
+    + '<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">💰 Filter by Balance Owed (₵)</div>'
+    + '<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center">'
+    + '<div><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px">Min Amount</label>'
+    + '<input type="number" id="exp-amt-min" class="form-input" style="font-size:12px;padding:6px 10px" min="0" placeholder="0" value="0"></div>'
+    + '<div style="font-size:12px;color:var(--text3);padding-top:16px">—</div>'
+    + '<div><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px">Max Amount</label>'
+    + '<input type="number" id="exp-amt-max" class="form-input" style="font-size:12px;padding:6px 10px" min="0" placeholder="No limit" value=""></div>'
+    + '</div>'
+    + '</div>'
+
+    // ── Status filters
+    + '<div>'
+    + '<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">🗂️ Include by Status</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
+    + _expCheckbox('exp-inc-unpaid',        '⏳ Unpaid',     true)
+    + _expCheckbox('exp-inc-partial',       '⚠️ Part Paid',  true)
+    + _expCheckbox('exp-inc-paid',          '✅ Fully Paid', false)
+    + _expCheckbox('exp-inc-promised',      '🤝 Promised',   true)
+    + '</div>'
+    + '<div style="margin-top:8px">'
+    + _expCheckbox('exp-inc-promised-only', '🤝 Promised accounts only (overrides above)', false, true)
+    + '</div>'
+    + '</div>'
+
+    // ── Sort
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    + '<div>'
+    + '<label style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px">Sort by</label>'
+    + '<select id="exp-sort-by" class="filter-select" style="font-size:12px;width:100%">'
+    + '<option value="odAge">OD Age (default)</option>'
+    + '<option value="balance">Highest Balance</option>'
+    + '<option value="paid">Amount Paid</option>'
+    + '<option value="name">Name A–Z</option>'
+    + '<option value="promiseDate">Promise Date</option>'
     + '</select>'
     + '</div>'
     + '<div>'
-    + '<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Include accounts by status</div>'
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
-    + '<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px">'
-    + '<input type="checkbox" id="exp-inc-unpaid" checked style="accent-color:var(--gold)"> <span>⏳ Unpaid</span></label>'
-    + '<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px">'
-    + '<input type="checkbox" id="exp-inc-partial" checked style="accent-color:var(--gold)"> <span>⚠️ Part Paid</span></label>'
-    + '<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px">'
-    + '<input type="checkbox" id="exp-inc-paid" style="accent-color:var(--gold)"> <span>✅ Fully Paid</span></label>'
-    + '<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px">'
-    + '<input type="checkbox" id="exp-inc-promised" checked style="accent-color:var(--gold)"> <span>🤝 Promised</span></label>'
-    + '</div>'
-    + '<div style="margin-top:10px">'
-    + '<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;color:var(--text2)">'
-    + '<input type="checkbox" id="exp-inc-promised-only" style="accent-color:var(--gold)"> <span>Only promised accounts (overrides above)</span></label>'
+    + '<label style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px">Name format</label>'
+    + '<select id="export-name-format" class="filter-select" style="font-size:12px;width:100%">'
+    + '<option value="full">Full Name</option>'
+    + '<option value="first">First Name only</option>'
+    + '<option value="last">Last Name only</option>'
+    + '<option value="first_last">First + Last</option>'
+    + '</select>'
     + '</div>'
     + '</div>'
-    + '<label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer">'
-    + '<input type="checkbox" id="export-msg-generous" checked style="accent-color:var(--gold)"> SMS message uses Generous amount (uncheck for Full amount)'
+
+    // ── Misc
+    + '<label style="display:flex;align-items:center;gap:10px;font-size:12px;cursor:pointer;color:var(--text2)">'
+    + '<input type="checkbox" id="export-msg-generous" checked style="accent-color:var(--gold)"> SMS uses Generous amount (uncheck for Full)'
     + '</label>'
+
     + '</div>';
+
   document.getElementById('modal-footer').innerHTML =
     '<button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>'
     + '<button class="btn btn-ghost btn-sm" onclick="doExportCSV()">⬇ CSV</button>'
@@ -6772,6 +6818,7 @@ function openExportModal() {
     + '</select>'
     + '<button class="btn btn-gold" style="border-radius:0;padding:5px 12px;font-size:12px" id="pdf-dl-btn">⬇ PDF</button>'
     + '</div>';
+
   setTimeout(function() {
     var btn = document.getElementById('pdf-dl-btn');
     if (btn) btn.addEventListener('click', function() {
@@ -6785,79 +6832,144 @@ function openExportModal() {
   document.getElementById('modal-overlay').classList.add('open');
 }
 
+function _expCheckbox(id, label, checked, wide) {
+  return '<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 10px' + (wide ? ';grid-column:1/-1' : '') + '">'
+    + '<input type="checkbox" id="' + id + '"' + (checked ? ' checked' : '') + ' style="accent-color:var(--gold);flex-shrink:0"> <span>' + label + '</span></label>';
+}
+
+
 function toggleExportCol(el) {
   el.classList.toggle('checked');
   el.querySelector('input').checked = el.classList.contains('checked');
 }
 
 function doExportCSV() {
-  const { checkedCols, colDefs, borrowers } = _getExportData();
+  const { checkedCols, colDefs, borrowers, descriptor } = _getExportData();
   if (!checkedCols.length) return toast('Select at least one column', 'error');
   if (!borrowers.length) return toast('No accounts match your filters', 'error');
+  const month = new Date().toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }).replace(' ', '');
   const headers = checkedCols.map(c => colDefs[c].label);
-  const rows = borrowers.map(b => checkedCols.map(c => colDefs[c].fn(b)).join(','));
-  const csv = [headers.join(','), ...rows].join('\n');
+  const rows    = borrowers.map(b => checkedCols.map(c => colDefs[c].fn(b)).join(','));
+  // Summary rows at bottom
+  const totalBal   = borrowers.reduce((s,b) => s + getDueToday(b), 0);
+  const totalPaid  = borrowers.reduce((s,b) => s + (b.amountPaid||0), 0);
+  const totalOd    = borrowers.reduce((s,b) => s + getOdFee(b), 0);
+  const promised   = borrowers.filter(b => b.promisedToPay).length;
+  const summaryRows = [
+    [],
+    ['— SUMMARY —'],
+    ['Accounts exported', borrowers.length],
+    ['Total balance owed', totalBal],
+    ['Total collected', totalPaid],
+    ['Total OD fees', totalOd],
+    ['Promised to pay', promised],
+    ['Generated', new Date().toLocaleDateString('en-GB')],
+  ];
+  const csv = [headers.join(','), ...rows, ...summaryRows.map(r => r.join(','))].join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  const month = new Date().toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }).replace(' ', '-');
-  a.href = url; a.download = 'SqueveTrack-' + month + '-export.csv';
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'SqueveTrack-' + month + (descriptor||'') + '.csv';
   a.click(); URL.revokeObjectURL(url);
   closeModal();
-  toast('CSV downloaded (' + borrowers.length + ' accounts)', 'success');
+  toast('✅ CSV downloaded — ' + borrowers.length + ' accounts', 'success');
 }
 
 function _getExportData() {
-  const checkedCols = Array.from(document.querySelectorAll('.export-col-item.checked')).map(el => el.dataset.col);
+  const checkedCols  = Array.from(document.querySelectorAll('.export-col-item.checked')).map(el => el.dataset.col);
   const incUnpaid    = document.getElementById('exp-inc-unpaid')?.checked !== false;
   const incPartial   = document.getElementById('exp-inc-partial')?.checked !== false;
   const incPaid      = document.getElementById('exp-inc-paid')?.checked || false;
   const incPromised  = document.getElementById('exp-inc-promised')?.checked !== false;
   const onlyPromised = document.getElementById('exp-inc-promised-only')?.checked || false;
   const msgGenerous  = document.getElementById('export-msg-generous')?.checked !== false;
-  const nameFmt = document.getElementById('export-name-format')?.value || 'full';
+  const nameFmt      = document.getElementById('export-name-format')?.value || 'full';
+  const sortBy       = document.getElementById('exp-sort-by')?.value || 'odAge';
+  const odMin        = parseInt(document.getElementById('exp-od-min')?.value) || 0;
+  const odMax        = parseInt(document.getElementById('exp-od-max')?.value) || 999;
+  const amtMin       = parseFloat(document.getElementById('exp-amt-min')?.value) || 0;
+  const amtMaxRaw    = document.getElementById('exp-amt-max')?.value;
+  const amtMax       = amtMaxRaw && amtMaxRaw.trim() !== '' ? parseFloat(amtMaxRaw) : Infinity;
+
   function exportName(b) {
     const parts = b.name.trim().split(/\s+/);
     const first = parts[0]||'', last = parts.length>1?parts[parts.length-1]:'', middle = parts.length>2?parts.slice(1,-1).join(' '):'';
-    switch(nameFmt){case 'first':return first;case 'last':return last;case 'middle':return middle||first;case 'first_last':return(first+' '+last).trim();case 'first_middle':return(first+' '+(middle||last)).trim();default:return b.name;}
+    switch(nameFmt){
+      case 'first': return first;
+      case 'last':  return last;
+      case 'middle': return middle||first;
+      case 'first_last': return (first+' '+last).trim();
+      case 'first_middle': return (first+' '+(middle||last)).trim();
+      default: return b.name;
+    }
   }
+
   const colDefs = {
-    name:    {label:'Name',           fn:b=>'\"'+exportName(b)+'\"',   raw:b=>exportName(b)},
-    phone:   {label:'Phone',          fn:b=>b.phone,                  raw:b=>b.phone},
-    loanType:{label:'Loan Type',      fn:b=>b.loanType,               raw:b=>b.loanType},
-    odAge:   {label:'OD Age',         fn:b=>'Day '+getOdAge(b.startDate), raw:b=>'Day '+getOdAge(b.startDate)},
-    generous:{label:'Generous Amt',   fn:b=>getGenerous(b),           raw:b=>getGenerous(b)},
-    dueToday:{label:'Full Balance',   fn:b=>getDueToday(b),           raw:b=>getDueToday(b)},
-    loanDue: {label:'Loan Due',       fn:b=>b.loanDue,                raw:b=>b.loanDue},
-    paid:    {label:'Amount Paid',    fn:b=>b.amountPaid||0,          raw:b=>b.amountPaid||0},
-    remaining:{label:'Remaining',     fn:b=>getRemaining(b),          raw:b=>getRemaining(b)},
-    odFee:   {label:'OD Fee',         fn:b=>b.overdueFeee||0,         raw:b=>b.overdueFeee||0},
-    status:  {label:'Status',         fn:b=>getStatus(b),             raw:b=>getStatus(b)},
-    smsMsg:  {label:'SMS Message',    fn:b=>'\"'+getSmsMessage(b,msgGenerous).replace(/"/g,"'")+'\"', raw:b=>getSmsMessage(b,msgGenerous)},
-    serial:  {label:'Serial',          fn:b=>b.loanType==='LoanBase Pro'?2:1,                              raw:b=>b.loanType==='LoanBase Pro'?2:1},
+    name:        { label:'Name',           fn:b=>'"'+exportName(b)+'"',                                 raw:b=>exportName(b) },
+    phone:       { label:'Phone',          fn:b=>b.phone,                                               raw:b=>b.phone },
+    loanType:    { label:'Loan Type',      fn:b=>b.loanType,                                            raw:b=>b.loanType },
+    odAge:       { label:'OD Age',         fn:b=>'Day '+getOdAge(b.startDate),                          raw:b=>getOdAge(b.startDate) },
+    promiseDate: { label:'Promise Date',   fn:b=>b.promiseDate||'',                                     raw:b=>b.promiseDate||'' },
+    generous:    { label:'Generous Amt',   fn:b=>getGenerous(b),                                        raw:b=>getGenerous(b) },
+    dueToday:    { label:'Full Balance',   fn:b=>getDueToday(b),                                        raw:b=>getDueToday(b) },
+    loanDue:     { label:'Loan Due',       fn:b=>b.loanDue,                                             raw:b=>b.loanDue },
+    paid:        { label:'Amount Paid',    fn:b=>b.amountPaid||0,                                       raw:b=>b.amountPaid||0 },
+    remaining:   { label:'Remaining',      fn:b=>getRemaining(b),                                       raw:b=>getRemaining(b) },
+    odFee:       { label:'OD Fee',         fn:b=>getOdFee(b),                                           raw:b=>getOdFee(b) },
+    status:      { label:'Status',         fn:b=>getStatus(b),                                          raw:b=>getStatus(b) },
+    smsMsg:      { label:'SMS Message',    fn:b=>'"'+getSmsMessage(b,msgGenerous).replace(/"/g,"'")+'"', raw:b=>getSmsMessage(b,msgGenerous) },
+    serial:      { label:'Serial',         fn:b=>b.loanType==='LoanBase Pro'?2:1,                       raw:b=>b.loanType==='LoanBase Pro'?2:1 },
   };
-  let borrowers = state.borrowers;
-  if (onlyPromised) {
-    borrowers = borrowers.filter(b => b.promisedToPay);
-  } else {
-    borrowers = borrowers.filter(b => {
-      const s = getStatus(b);
-      if (s === 'Unpaid'  && !incUnpaid)  return false;
-      if (s === 'Partial' && !incPartial) return false;
-      if (s === 'Paid'    && !incPaid)    return false;
-      if (b.promisedToPay && !incPromised) return false;
-      return true;
-    });
-  }
-  borrowers = borrowers.sort((a,b) => getOdAge(a.startDate) - getOdAge(b.startDate));
-  return { checkedCols, colDefs, borrowers };
+
+  // ── Filter ─────────────────────────────────────────────────
+  let borrowers = state.borrowers.filter(function(b) {
+    const age    = getOdAge(b.startDate);
+    const bal    = getDueToday(b);
+    const status = getStatus(b);
+
+    // OD day range
+    if (age < odMin || age > odMax) return false;
+    // Balance range
+    if (bal < amtMin || bal > amtMax) return false;
+    // Status / promise
+    if (onlyPromised) return !!b.promisedToPay;
+    if (status === 'Unpaid'  && !incUnpaid)  return false;
+    if (status === 'Partial' && !incPartial) return false;
+    if (status === 'Paid'    && !incPaid)    return false;
+    if (b.promisedToPay && !incPromised)     return false;
+    return true;
+  });
+
+  // ── Sort ───────────────────────────────────────────────────
+  borrowers = borrowers.slice().sort(function(a, b) {
+    switch(sortBy) {
+      case 'balance':     return getDueToday(b) - getDueToday(a);
+      case 'paid':        return (b.amountPaid||0) - (a.amountPaid||0);
+      case 'name':        return a.name.localeCompare(b.name);
+      case 'promiseDate': return (a.promiseDate||'zzz').localeCompare(b.promiseDate||'zzz');
+      default:            return getOdAge(b.startDate) - getOdAge(a.startDate); // most overdue first
+    }
+  });
+
+  // ── Build descriptor for filename ─────────────────────────
+  var parts = [];
+  if (odMin > 0 || odMax < 999) parts.push('Day' + odMin + '-' + (odMax < 999 ? odMax : 'max'));
+  if (amtMin > 0) parts.push('min' + amtMin);
+  if (amtMax < Infinity) parts.push('max' + amtMax);
+  if (onlyPromised) parts.push('Promised');
+  if (sortBy !== 'odAge') parts.push(sortBy.charAt(0).toUpperCase() + sortBy.slice(1));
+  var descriptor = parts.length ? '-' + parts.join('-') : '';
+
+  return { checkedCols, colDefs, borrowers, descriptor, msgGenerous };
 }
 
+
 function doExportXLSX() {
-  const { checkedCols, colDefs, borrowers } = _getExportData();
+  const { checkedCols, colDefs, borrowers, descriptor } = _getExportData();
   if (!checkedCols.length) return toast('Select at least one column', 'error');
   if (!window.XLSX) return toast('SheetJS library not loaded — try refreshing', 'error');
-  const month = new Date().toLocaleDateString('en-GB',{month:'short',year:'numeric'}).replace(' ','-');
+  const month = new Date().toLocaleDateString('en-GB',{month:'short',year:'numeric'}).replace(' ','');
 
   // Build worksheet data array
   const header = checkedCols.map(c => colDefs[c].label);
@@ -6883,21 +6995,33 @@ function doExportXLSX() {
   XLSX.utils.book_append_sheet(wb, ws, 'Borrowers');
 
   // Add summary sheet
+  const _totBal  = borrowers.reduce((s,b) => s + getDueToday(b), 0);
+  const _totPaid = borrowers.reduce((s,b) => s + (b.amountPaid||0), 0);
+  const _totOd   = borrowers.reduce((s,b) => s + getOdFee(b), 0);
+  const _totProm = borrowers.filter(b => b.promisedToPay).length;
   const summaryData = [
-    ['SqueveTrack Export', month],
-    ['Generated', new Date().toLocaleDateString('en-GB')],
+    ['SqueveTrack Export'],
+    ['Generated', new Date().toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'})],
+    ['Filter applied', (descriptor||'None (all accounts)')],
     [],
-    ['Total accounts', borrowers.length],
-    ['Active (unpaid/partial)', borrowers.filter(b => getStatus(b) !== 'Paid').length],
+    ['ACCOUNTS', ''],
+    ['Total exported', borrowers.length],
+    ['Unpaid', borrowers.filter(b => getStatus(b) === 'Unpaid').length],
+    ['Partial', borrowers.filter(b => getStatus(b) === 'Partial').length],
     ['Fully paid', borrowers.filter(b => getStatus(b) === 'Paid').length],
-    ['Total outstanding', borrowers.reduce((s,b) => s + getDueToday(b), 0)],
-    ['Total collected', borrowers.reduce((s,b) => s + (b.amountPaid||0), 0)],
+    ['Promised to pay', _totProm],
+    [],
+    ['FINANCIALS', ''],
+    ['Total balance owed', _totBal],
+    ['Total collected', _totPaid],
+    ['Total OD fees', _totOd],
+    ['Net outstanding', Math.max(0, _totBal - _totPaid)],
   ];
   const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
   wsSummary['!cols'] = [{wch:22},{wch:18}];
   XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
 
-  XLSX.writeFile(wb, 'SqueveTrack-' + month + '.xlsx');
+  XLSX.writeFile(wb, 'SqueveTrack-' + month + (descriptor||'') + '.xlsx');
   closeModal();
   toast('XLSX downloaded (' + borrowers.length + ' accounts)', 'success');
 }
