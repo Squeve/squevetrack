@@ -3783,7 +3783,7 @@ tr.overdue-critical .heat-ring {
           <div class="settings-row-label-main">SqueveTrack</div>
           <div class="settings-row-label-sub">LoanBase Ghana · M0–M5</div>
         </div>
-        <span class="settings-row-value" style="font-family:var(--font-mono)">v2.0.0</span>
+        <span class="settings-row-value" style="font-family:var(--font-mono)">v2.1.0</span>
       </div>
       <div class="settings-row" style="cursor:default">
         <div class="settings-row-icon" style="background:rgba(167,139,250,0.12);color:var(--purple)">
@@ -3800,7 +3800,7 @@ tr.overdue-critical .heat-ring {
         </div>
         <div class="settings-row-label">
           <div class="settings-row-label-main">Changelog</div>
-          <div class="settings-row-label-sub">What's new in this version</div>
+          <div class="settings-row-label-sub">What's new in v2.1.0</div>
         </div>
         <span class="settings-chevron">›</span>
       </button>
@@ -10138,22 +10138,35 @@ function openUserManual() {
       .um-dot { width:6px;height:6px;border-radius:50%;background:var(--gold);
                 flex-shrink:0;margin-top:5px }
       .um-divider { height:1px;background:var(--border);margin:16px 0 }
+      .um-badge { display:inline-block;font-family:var(--font-mono);font-size:10px;
+                  font-weight:700;padding:1px 6px;border-radius:6px;margin-right:4px;
+                  background:rgba(232,160,32,0.1);color:var(--gold) }
     </style>
+
+    <!-- VERSION -->
+    <div style="background:rgba(232,160,32,0.07);border:1px solid rgba(232,160,32,0.2);border-radius:10px;padding:12px 14px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-weight:700;font-size:13px">SqueveTrack</div>
+        <div style="font-size:11px;color:var(--text3)">LoanBase Ghana · M0–M5 Recovery Suite</div>
+      </div>
+      <div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--gold)">v2.1.0</div>
+    </div>
 
     <!-- GETTING STARTED -->
     <div class="um-section">
       <div class="um-h"><span>🚀</span> Getting Started</div>
-      <div class="um-p">SqueveTrack is a LoanBase recovery portfolio manager. Each agent works within a specific default stage (M0–M5) that defines their day range and collection rules.</div>
+      <div class="um-p">SqueveTrack is a LoanBase recovery portfolio manager. Each agent works within a specific stage (M0–M5) that defines their day range and OD fee rules.</div>
       <div class="um-sub">Creating your account</div>
       <div class="um-row"><div class="um-dot"></div><div>Tap <strong>New Agent</strong> on the lock screen</div></div>
       <div class="um-row"><div class="um-dot"></div><div>Select your recovery stage (M1, M2, M3 etc)</div></div>
-      <div class="um-row"><div class="um-dot"></div><div>Enter your <strong>LoanBase Agent Code</strong> — this is your permanent identity (e.g. <em>Black AJ Oct25</em>). Must be unique. Internet required.</div></div>
-      <div class="um-row"><div class="um-dot"></div><div>Enter your full name, supervisor, and monthly target</div></div>
+      <div class="um-row"><div class="um-dot"></div><div>Enter your <strong>LoanBase Agent Code</strong> — your permanent identity (e.g. <em>Black AJ Oct25</em>). Must be unique. Internet required.</div></div>
+      <div class="um-row"><div class="um-dot"></div><div>Enter your full name, supervisor name, and monthly target</div></div>
       <div class="um-row"><div class="um-dot"></div><div>Import borrowers from Excel/CSV or add manually</div></div>
-      <div class="um-row"><div class="um-dot"></div><div>Set a 4-digit PIN — this protects your data on this device</div></div>
+      <div class="um-row"><div class="um-dot"></div><div>Set a 4-digit PIN to protect your data on this device</div></div>
       <div class="um-sub">Signing in on a new device</div>
-      <div class="um-row"><div class="um-dot"></div><div>Tap <strong>Sign In</strong>, enter your Agent Code, enter your PIN</div></div>
-      <div class="um-row"><div class="um-dot"></div><div>Your full portfolio loads from the cloud automatically</div></div>
+      <div class="um-row"><div class="um-dot"></div><div>Tap <strong>Sign In</strong>, enter your Agent Code, enter your PIN — your full portfolio loads from the cloud automatically</div></div>
+      <div class="um-sub">Biometric unlock</div>
+      <div class="um-row"><div class="um-dot"></div><div>After setting your PIN, go to Settings → Security → Enable Biometric to use Face ID or Fingerprint instead of PIN</div></div>
     </div>
 
     <div class="um-divider"></div>
@@ -10162,16 +10175,16 @@ function openUserManual() {
     <div class="um-section">
       <div class="um-h"><span>🏷️</span> Recovery Stages</div>
       <div class="um-p">Your stage determines which borrowers are active, what OD fees apply, and when accounts age out.</div>
-      <div class="um-row"><div class="um-dot"></div><div><span class="um-tag blue">M0</span> Pre-due / Due today — No OD fee</div></div>
-      <div class="um-row"><div class="um-dot"></div><div><span class="um-tag green">M1</span> Day 1–5 — Early default. 4% Day 1, then 2%/day</div></div>
+      <div class="um-row"><div class="um-dot"></div><div><span class="um-tag blue">M0</span> Pre-due / Due today — No OD fee yet</div></div>
+      <div class="um-row"><div class="um-dot"></div><div><span class="um-tag green">M1</span> Day 1–5 — Early default. OD starts</div></div>
       <div class="um-row"><div class="um-dot"></div><div><span class="um-tag">M2</span> Day 6–15 — Active default. Daily OD accumulates</div></div>
-      <div class="um-row"><div class="um-dot"></div><div><span class="um-tag red">M3</span> Day 16–40 — Formal escalation. Legal territory</div></div>
+      <div class="um-row"><div class="um-dot"></div><div><span class="um-tag red">M3</span> Day 16–40 — Formal escalation</div></div>
       <div class="um-row"><div class="um-dot"></div><div><span class="um-tag red">M4</span> Day 41–60 — Full enforcement</div></div>
       <div class="um-row"><div class="um-dot"></div><div><span class="um-tag purple">M5</span> Day 61+ — Total enforcement. No age-out</div></div>
       <div class="um-sub">OD Fee Rules</div>
       <div class="um-row"><div class="um-dot"></div><div><strong>Day 1:</strong> 4% of remaining principal</div></div>
-      <div class="um-row"><div class="um-dot"></div><div><strong>Day 2+:</strong> +2% of remaining principal per day</div></div>
-      <div class="um-row"><div class="um-dot"></div><div><strong>70% rule:</strong> OD stops once 100% of principal is paid</div></div>
+      <div class="um-row"><div class="um-dot"></div><div><strong>Day 2+:</strong> +2% of principal per day</div></div>
+      <div class="um-row"><div class="um-dot"></div><div><strong>Stop rule:</strong> OD stops once principal is fully paid</div></div>
       <div class="um-row"><div class="um-dot"></div><div><strong>Cap:</strong> OD never exceeds 1× original principal</div></div>
     </div>
 
@@ -10180,14 +10193,18 @@ function openUserManual() {
     <!-- DASHBOARD -->
     <div class="um-section">
       <div class="um-h"><span>📊</span> Dashboard</div>
-      <div class="um-p">Your daily command centre. Shows KPIs, overdue alerts, PTP status, and aged-out accounts.</div>
+      <div class="um-p">Your daily command centre — KPIs, alerts, PTP status, and collection progress at a glance.</div>
       <div class="um-sub">Key metrics</div>
-      <div class="um-row"><div class="um-dot"></div><div><strong>Active</strong> — borrowers within your stage's day range who haven't fully paid</div></div>
+      <div class="um-row"><div class="um-dot"></div><div><strong>Active</strong> — borrowers within your stage day range who have not fully paid</div></div>
       <div class="um-row"><div class="um-dot"></div><div><strong>Outstanding</strong> — total principal + OD fee owed across active accounts</div></div>
       <div class="um-row"><div class="um-dot"></div><div><strong>Collected Today</strong> — payments recorded in today's daily log</div></div>
-      <div class="um-row"><div class="um-dot"></div><div><strong>Treadmill alert</strong> — borrowers entering your stage today (new workload)</div></div>
-      <div class="um-sub">Aged-Out accounts</div>
-      <div class="um-p">Borrowers who pass your stage's maximum day are automatically moved to Aged Out. They appear in Settings → Aged Out Accounts for reference.</div>
+      <div class="um-row"><div class="um-dot"></div><div><strong>Treadmill alert</strong> — borrowers entering your stage today (new workload added)</div></div>
+      <div class="um-sub">Collection Gap Alert</div>
+      <div class="um-p">If you have a monthly target set and are behind the expected daily pace, a coloured banner appears showing the gap and the exact ₵/day needed to recover. Orange = slightly behind. Red = significantly behind.</div>
+      <div class="um-sub">Today's Hit List</div>
+      <div class="um-row"><div class="um-dot"></div><div>Pin up to 10 borrowers for priority follow-up today. Tap the pin icon on any borrower card to add them. Clears automatically at midnight.</div></div>
+      <div class="um-sub">Payment Streak</div>
+      <div class="um-row"><div class="um-dot"></div><div>Flame badge 🔥 shows consecutive days with at least one collection logged. Resets if you miss a day.</div></div>
     </div>
 
     <div class="um-divider"></div>
@@ -10197,17 +10214,30 @@ function openUserManual() {
       <div class="um-h"><span>👥</span> Borrowers</div>
       <div class="um-p">Your full active portfolio. Filter, search, sort, and act on any account.</div>
       <div class="um-sub">Adding borrowers</div>
-      <div class="um-row"><div class="um-dot"></div><div>Tap <strong>＋</strong> (FAB) → Add Borrower → fill form. Enter the OD day the customer is currently on.</div></div>
+      <div class="um-row"><div class="um-dot"></div><div>Tap <strong>＋</strong> → Add Borrower → fill the form. Enter the OD day the customer is currently on.</div></div>
       <div class="um-row"><div class="um-dot"></div><div>Or use <strong>Paste Import</strong> for bulk entry: Name, Phone, LoanDue, Principal, Paid, LoanType, OdAge</div></div>
-      <div class="um-row"><div class="um-dot"></div><div>Or upload a <strong>CSV / Excel</strong> file from LoanBase</div></div>
+      <div class="um-row"><div class="um-dot"></div><div>Or upload a <strong>CSV / Excel</strong> file exported from LoanBase</div></div>
       <div class="um-sub">Recording a payment</div>
-      <div class="um-row"><div class="um-dot"></div><div>Tap a borrower card → tap <span class="um-tag green">💰 Pay</span> → enter amount → Save</div></div>
-      <div class="um-row"><div class="um-dot"></div><div>Once paid in full, borrower is marked <strong>Paid</strong> and OD stops</div></div>
+      <div class="um-row"><div class="um-dot"></div><div>Tap a borrower card → tap <span class="um-tag green">💰 Pay</span> → enter amount → Save. The account is marked Paid when the full balance is cleared.</div></div>
+      <div class="um-row"><div class="um-dot"></div><div>The quick-pay bar (swipe left on a row on mobile) gives 25% / 50% / Full buttons without opening a modal</div></div>
+      <div class="um-sub">Borrower detail sheet</div>
+      <div class="um-row"><div class="um-dot"></div><div>Tap any card to open the full detail sheet — OD breakdown, payment history, PTP status, instalment plan, activity timeline, and risk score</div></div>
+      <div class="um-sub">Risk Score (A / B / C)</div>
+      <div class="um-row"><div class="um-dot"></div><div>Each borrower gets an automatic tier rating based on OD age, payment ratio, and promise status. Tap the score bar in Analytics → Behaviour Scores to see the full point-by-point breakdown.</div></div>
       <div class="um-sub">Bulk actions</div>
-      <div class="um-row"><div class="um-dot"></div><div>Long-press a card to enter bulk selection mode</div></div>
-      <div class="um-row"><div class="um-dot"></div><div>Select multiple → Mark Paid, Add to Hit List, Delete</div></div>
-      <div class="um-sub">Borrower detail</div>
-      <div class="um-row"><div class="um-dot"></div><div>Tap any card to open the detail sheet — shows OD breakdown, payment history, PTP, instalment plan, and activity timeline</div></div>
+      <div class="um-row"><div class="um-dot"></div><div>Long-press any card to enter bulk selection. Select multiple → Mark Paid, Add to Hit List, Delete, or set loan type in one step.</div></div>
+    </div>
+
+    <div class="um-divider"></div>
+
+    <!-- EXPORT -->
+    <div class="um-section">
+      <div class="um-h"><span>⬇️</span> Export Data</div>
+      <div class="um-p">Export your portfolio in three formats. Accessed from the Borrowers page → Export button, or Settings → Export Data.</div>
+      <div class="um-sub">3-step export wizard</div>
+      <div class="um-row"><div class="um-dot"></div><div><strong>① Columns</strong> — choose which fields to include. Select All / None shortcuts available.</div></div>
+      <div class="um-row"><div class="um-dot"></div><div><strong>② Filters</strong> — filter by status (Unpaid / Part Paid / Paid / Promised), OD day range, balance range, and sort order. Live account count updates as you adjust.</div></div>
+      <div class="um-row"><div class="um-dot"></div><div><strong>③ Export</strong> — choose CSV, Excel (.xlsx with 2 sheets), or PDF portfolio report. One download button.</div></div>
     </div>
 
     <div class="um-divider"></div>
@@ -10215,11 +10245,12 @@ function openUserManual() {
     <!-- WHATSAPP DISPATCH -->
     <div class="um-section">
       <div class="um-h"><span>💬</span> WhatsApp Dispatch</div>
-      <div class="um-p">Send personalised WhatsApp collection messages to your active borrowers.</div>
+      <div class="um-p">Send personalised WhatsApp collection messages to active borrowers.</div>
       <div class="um-row"><div class="um-dot"></div><div>Filter by: All, Unpaid, Partial, Promised, Critical</div></div>
-      <div class="um-row"><div class="um-dot"></div><div>Tap a contact → message auto-generated based on their stage, OD age, and payment status</div></div>
-      <div class="um-row"><div class="um-dot"></div><div>Toggle <strong>Generous Mode</strong> to offer a discounted OD settlement</div></div>
-      <div class="um-row"><div class="um-dot"></div><div><span class="um-tag green">💬 Queue All</span> — auto-launches each contact in sequence</div></div>
+      <div class="um-row"><div class="um-dot"></div><div>Tap a contact → message auto-generated based on stage, OD age, and payment status</div></div>
+      <div class="um-row"><div class="um-dot"></div><div>Toggle <strong>Generous Mode</strong> to offer a discounted OD settlement to all accounts — including partially paid customers</div></div>
+      <div class="um-row"><div class="um-dot"></div><div>The <strong>OD Discount slider</strong> controls the generous offer percentage. Synced with SMS Blast.</div></div>
+      <div class="um-row"><div class="um-dot"></div><div><span class="um-tag green">💬 Queue All</span> — auto-launches each contact in sequence. Shows progress counter.</div></div>
       <div class="um-row"><div class="um-dot"></div><div><span class="um-tag blue">📋 Broadcast List</span> — exports all numbers for WA broadcast</div></div>
     </div>
 
@@ -10229,10 +10260,11 @@ function openUserManual() {
     <div class="um-section">
       <div class="um-h"><span>📈</span> Analytics</div>
       <div class="um-p">Charts and breakdowns of your portfolio performance.</div>
-      <div class="um-row"><div class="um-dot"></div><div><strong>Daily chart</strong> — collections bar chart with target line</div></div>
-      <div class="um-row"><div class="um-dot"></div><div><strong>Aging timeline</strong> — where your borrowers sit within your stage range</div></div>
-      <div class="um-row"><div class="um-dot"></div><div><strong>Recovery rate</strong> — percentage of total owed that has been collected</div></div>
-      <div class="um-row"><div class="um-dot"></div><div><strong>Portfolio Segments</strong> (collapsible) — Tier A/B/C risk breakdown based on payment behaviour</div></div>
+      <div class="um-row"><div class="um-dot"></div><div><strong>Daily chart</strong> — collections bar chart with target line overlay</div></div>
+      <div class="um-row"><div class="um-dot"></div><div><strong>Aging timeline</strong> — bar chart of account counts per OD day band, plus dot scatter. Tap any band to filter Borrowers.</div></div>
+      <div class="um-row"><div class="um-dot"></div><div><strong>Payment Behaviour Scores</strong> — each active borrower scored 0–100. Tap any bar to open their full Risk Score Card showing the point breakdown.</div></div>
+      <div class="um-row"><div class="um-dot"></div><div><strong>Portfolio Segments</strong> (collapsible) — Tier A/B/C grouping based on payment behaviour. Tap any row to open borrower detail.</div></div>
+      <div class="um-row"><div class="um-dot"></div><div><strong>Recovery rate</strong> — percentage of total owed that has been collected this cycle</div></div>
     </div>
 
     <div class="um-divider"></div>
@@ -10240,10 +10272,35 @@ function openUserManual() {
     <!-- PTP HUB -->
     <div class="um-section">
       <div class="um-h"><span>🤝</span> PTP Hub</div>
-      <div class="um-p">Promise-to-Pay tracker. Manage and follow up on payment commitments.</div>
-      <div class="um-row"><div class="um-dot"></div><div>Set a PTP from the borrower detail modal</div></div>
-      <div class="um-row"><div class="um-dot"></div><div>PTP Hub shows today's promises, upcoming, and breached</div></div>
-      <div class="um-row"><div class="um-dot"></div><div>Breached PTPs are flagged in red and affect priority scoring</div></div>
+      <div class="um-p">Promise-to-Pay manager. Set, track, share, and report on payment commitments.</div>
+      <div class="um-sub">Setting a PTP</div>
+      <div class="um-row"><div class="um-dot"></div><div>Open borrower detail → tap <span class="um-tag purple">Promise to Pay</span> → set date, time, and optional note</div></div>
+      <div class="um-row"><div class="um-dot"></div><div>PTPs show in the hub grouped by promised time slot</div></div>
+      <div class="um-sub">Morning report (12PM)</div>
+      <div class="um-row"><div class="um-dot"></div><div>Shows today's PTPs with amounts and notes. Tap <strong>Share Morning Report</strong> to generate a formatted message in your chosen format (WhatsApp Bold, Plain Text, Formal Memo, etc)</div></div>
+      <div class="um-sub">EOD Summary (6PM)</div>
+      <div class="um-row"><div class="um-dot"></div><div>Tap each customer's outcome button — Paid, Part Paid, No Answer, Postponed, Blocked, etc. Tap <strong>Share EOD Summary</strong> for the formatted report with outcomes included.</div></div>
+      <div class="um-sub">PTP History & Stats</div>
+      <div class="um-row"><div class="um-dot"></div><div>History tab shows past days as collapsible cards with conversion rate bars. Stats tab shows overall rate, last 7 days, and best day.</div></div>
+      <div class="um-sub">Breached PTPs</div>
+      <div class="um-row"><div class="um-dot"></div><div>If a borrower with a PTP did not pay by the promised date, they are flagged with a breach. Breaches affect their priority score.</div></div>
+    </div>
+
+    <div class="um-divider"></div>
+
+    <!-- RANKING -->
+    <div class="um-section">
+      <div class="um-h"><span>🏆</span> Ranking</div>
+      <div class="um-p">Track your position on the LoanBase leaderboard over time.</div>
+      <div class="um-sub">Scanning a ranking screenshot</div>
+      <div class="um-row"><div class="um-dot"></div><div>Go to Ranking → tap <strong>Scan Screenshot</strong> → upload your ranking image. AI reads agent names and percentages automatically.</div></div>
+      <div class="um-row"><div class="um-dot"></div><div>Your position is recorded with the date and plotted on a line chart over time</div></div>
+      <div class="um-sub">Gap indicators</div>
+      <div class="um-row"><div class="um-dot"></div><div>Shows gap to 1st place, gap to the person directly above you, and the ₵ amount you need today to move up one spot</div></div>
+      <div class="um-sub">Mini-League</div>
+      <div class="um-row"><div class="um-dot"></div><div>Each scan updates the private leaderboard of top agents with trend arrows — up ↑, down ↓, or flat — compared to the previous scan</div></div>
+      <div class="um-sub">Ranking Gap Alert</div>
+      <div class="um-row"><div class="um-dot"></div><div>If your rate drops overnight, a single-line alert appears on the dashboard when you open the app: <em>"Your rate dropped 0.4% overnight. You need ₵1,200 today to stay at #3."</em></div></div>
     </div>
 
     <div class="um-divider"></div>
@@ -10251,9 +10308,10 @@ function openUserManual() {
     <!-- DAILY LOG -->
     <div class="um-section">
       <div class="um-h"><span>📋</span> Daily Log</div>
-      <div class="um-p">Every payment recorded today, plus end-of-day summary.</div>
-      <div class="um-row"><div class="um-dot"></div><div>Tap <strong>EOD Summary</strong> to generate a WhatsApp-ready end-of-day report</div></div>
-      <div class="um-row"><div class="um-dot"></div><div>Log entries are permanent — they do not roll over</div></div>
+      <div class="um-p">Record your total collection amount each day. Drives the dashboard chart, streak counter, and forecast.</div>
+      <div class="um-row"><div class="um-dot"></div><div>Enter the total collected for the day — not individual payments</div></div>
+      <div class="um-row"><div class="um-dot"></div><div>Tap <strong>EOD Summary</strong> to generate a WhatsApp-ready end-of-day report for your supervisor</div></div>
+      <div class="um-row"><div class="um-dot"></div><div>Log entries are permanent and do not roll over with New Month</div></div>
     </div>
 
     <div class="um-divider"></div>
@@ -10263,27 +10321,45 @@ function openUserManual() {
       <div class="um-h"><span>⚙️</span> Settings</div>
       <div class="um-sub">Security</div>
       <div class="um-row"><div class="um-dot"></div><div><strong>Change PIN</strong> — update your 4-digit lock code at any time</div></div>
-      <div class="um-row"><div class="um-dot"></div><div><strong>Biometric Unlock</strong> — enable Face ID or Fingerprint after setting up your PIN</div></div>
+      <div class="um-row"><div class="um-dot"></div><div><strong>Biometric Unlock</strong> — enable Face ID or Fingerprint after setting your PIN</div></div>
+      <div class="um-row"><div class="um-dot"></div><div>If your PIN is reset by an admin, you will be prompted to set a new one the next time you open the app</div></div>
       <div class="um-sub">Data</div>
       <div class="um-row"><div class="um-dot"></div><div><strong>Export Backup</strong> — downloads a full JSON snapshot of your portfolio</div></div>
       <div class="um-row"><div class="um-dot"></div><div><strong>Restore Backup</strong> — imports a previously exported JSON file</div></div>
-      <div class="um-sub">Behaviour</div>
-      <div class="um-row"><div class="um-dot"></div><div><strong>Default Discount</strong> — sets the generous offer percentage shown in Dispatch</div></div>
-      <div class="um-row"><div class="um-dot"></div><div><strong>Monthly Target</strong> — sets the target line on your daily chart</div></div>
-      <div class="um-row"><div class="um-dot"></div><div><strong>Theme</strong> — Dark, Light, or AMOLED</div></div>
+      <div class="um-sub">Appearance & Behaviour</div>
+      <div class="um-row"><div class="um-dot"></div><div><strong>Theme</strong> — Dark, Light, AMOLED, Navy, Indigo, Glacier</div></div>
+      <div class="um-row"><div class="um-dot"></div><div><strong>Card Style</strong> — Default glass, Obsidian Vault, or Neon Editorial</div></div>
+      <div class="um-row"><div class="um-dot"></div><div><strong>Default Discount</strong> — the generous offer percentage used in WhatsApp Dispatch and SMS Blast</div></div>
+      <div class="um-row"><div class="um-dot"></div><div><strong>Monthly Target</strong> — sets the target line on your daily chart and powers the Gap Alert</div></div>
+    </div>
+
+    <div class="um-divider"></div>
+
+    <!-- ADMIN -->
+    <div class="um-section">
+      <div class="um-h"><span>🔐</span> Admin Panel</div>
+      <div class="um-p">Available to the designated admin only. Access via Settings → Admin Panel.</div>
+      <div class="um-sub">Agent management</div>
+      <div class="um-row"><div class="um-dot"></div><div>View all registered agents across all stages — name, stage, account count, last active</div></div>
+      <div class="um-row"><div class="um-dot"></div><div><strong>Reset PIN</strong> — clears an agent's PIN from Supabase. The agent is forced to set a new PIN the next time they open the app (even if currently offline — the reset syncs the moment they connect)</div></div>
+      <div class="um-row"><div class="um-dot"></div><div><strong>Delete Agent</strong> — permanently removes the agent and all their data from Supabase. This cannot be undone.</div></div>
+      <div class="um-sub">Dev override</div>
+      <div class="um-row"><div class="um-dot"></div><div>The lock screen has a hidden developer override accessible via a secure code. This allows PIN reset in emergency without admin panel access. Contact the developer for the override code.</div></div>
     </div>
 
     <div class="um-divider"></div>
 
     <!-- TIPS -->
     <div class="um-section">
-      <div class="um-h"><span>💡</span> Tips</div>
+      <div class="um-h"><span>💡</span> Tips & Shortcuts</div>
       <div class="um-row"><div class="um-dot"></div><div>Swipe down on any modal to close it quickly</div></div>
-      <div class="um-row"><div class="um-dot"></div><div>Long-press any borrower card to enter bulk selection</div></div>
+      <div class="um-row"><div class="um-dot"></div><div>Long-press any borrower card to enter bulk selection mode</div></div>
       <div class="um-row"><div class="um-dot"></div><div>Tap the OD fee on a borrower card for a full day-by-day breakdown</div></div>
-      <div class="um-row"><div class="um-dot"></div><div>The app works offline — changes sync automatically when back online</div></div>
-      <div class="um-row"><div class="um-dot"></div><div>Install as a PWA (tap Install App in the sidebar) for a native app experience</div></div>
+      <div class="um-row"><div class="um-dot"></div><div>The app works fully offline — changes sync automatically when back online. A pending sync counter shows queued changes.</div></div>
+      <div class="um-row"><div class="um-dot"></div><div>Install as a PWA (tap Install App in the sidebar) for a native app experience with home screen icon</div></div>
       <div class="um-row"><div class="um-dot"></div><div>Your Agent Code is your permanent identity — never share it with others</div></div>
+      <div class="um-row"><div class="um-dot"></div><div>On desktop: press <strong>D</strong> (Dashboard), <strong>L</strong> (Borrowers), <strong>A</strong> (Analytics), <strong>W</strong> (WhatsApp), <strong>P</strong> (PTP Hub), <strong>R</strong> (Ranking), <strong>N</strong> (New Borrower), <strong>F</strong> (Search)</div></div>
+      <div class="um-row"><div class="um-dot"></div><div>Tap the flame 🔥 streak badge to see your collection history</div></div>
     </div>
 
   </div>`;
@@ -10896,9 +10972,30 @@ function openChangelog() {
   document.getElementById('modal-body').innerHTML = `
     <div style="font-size:13px;line-height:1.8">
 
-      <div style="margin-bottom:18px">
-        <div style="font-family:var(--font-head);font-weight:800;font-size:15px;color:var(--gold);margin-bottom:2px">v2.0.0 — March 2026</div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Major release</div>
+      <div style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <div style="font-family:var(--font-head);font-weight:800;font-size:15px;color:var(--gold)">v2.1.0</div>
+          <span style="background:rgba(232,160,32,0.15);color:var(--gold);font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;font-family:var(--font-mono)">LATEST</span>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px">April 2026 — Security, UX & Intelligence update</div>
+        <ul style="margin:0;padding-left:18px;color:var(--text2);font-size:12px;line-height:2.1">
+          <li><strong>PIN override fixed</strong> — admin resets now sync to agent device immediately; old PIN no longer works after admin clears it</li>
+          <li><strong>Premium export redesign</strong> — 3-step wizard (Columns → Filters → Export) with live account count, pill toggles, and single download button</li>
+          <li><strong>Export format cards</strong> — CSV, Excel (.xlsx), and PDF as large selectable format tiles</li>
+          <li><strong>Haptic feedback</strong> — vibration patterns for payment confirmed, promise set, delete warning, and pay actions</li>
+          <li><strong>Risk Score Card</strong> — tap any borrower in Analytics → Behaviour Scores for a full point-by-point breakdown of their A/B/C tier rating with a recommendation</li>
+          <li><strong>Account Aging Timeline</strong> — new Analytics card showing accounts per OD day band (Day 6–15) as bar chart + dot scatter. Tap any band to filter</li>
+          <li><strong>Collection Gap Alert</strong> — dashboard banner fires when you are behind pace vs monthly target. Shows exact ₵/day needed. Colour-coded orange/red by severity</li>
+          <li><strong>Custom app icon</strong> — finance shield icon replacing the ST monogram. Transparent background, full bleed</li>
+          <li><strong>Excel export in SMS Blast</strong> — 📊 Excel button alongside CSV in the SMS Blast export modal; generates 2-sheet workbook with summary tab</li>
+        </ul>
+      </div>
+
+      <div style="height:1px;background:var(--border);margin:16px 0"></div>
+
+      <div style="margin-bottom:20px">
+        <div style="font-family:var(--font-head);font-weight:800;font-size:15px;color:var(--text);margin-bottom:4px">v2.0.0</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px">March 2026 — Major release</div>
         <ul style="margin:0;padding-left:18px;color:var(--text2);font-size:12px;line-height:2">
           <li>Slug-based agent identity — LoanBase code IS your account</li>
           <li>Sign-up requires internet + Supabase uniqueness check</li>
@@ -10916,15 +11013,22 @@ function openChangelog() {
           <li>Target line on daily collections chart</li>
           <li>Premium lock screen with stage colours</li>
           <li>Swipe-down to close modals (scroll-aware)</li>
-          <li>Drawer nav fills height evenly on mobile</li>
-          <li>All aged-out labels dynamic per stage</li>
+          <li>Ranking Tracker with AI scan and mini-league</li>
+          <li>Today's Hit List — pin up to 10 borrowers for the day</li>
+          <li>One-tap EOD Report to supervisor</li>
+          <li>Payment streak counter with flame badge</li>
+          <li>Collection Forecast with scenario table</li>
+          <li>PTP Hub — History, Stats, and conversion rate</li>
+          <li>Super Admin Panel — agent management, PIN reset, audit log</li>
         </ul>
       </div>
 
-      <div style="margin-bottom:18px">
-        <div style="font-family:var(--font-head);font-weight:800;font-size:15px;color:var(--text);margin-bottom:2px">v1.x — Earlier</div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Initial builds</div>
-        <ul style="margin:0;padding-left:18px;color:var(--text2);font-size:12px;line-height:2">
+      <div style="height:1px;background:var(--border);margin:16px 0"></div>
+
+      <div style="margin-bottom:8px">
+        <div style="font-family:var(--font-head);font-weight:800;font-size:15px;color:var(--text3);margin-bottom:4px">v1.x</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Earlier builds — M2 foundation</div>
+        <ul style="margin:0;padding-left:18px;color:var(--text3);font-size:12px;line-height:2">
           <li>Core loan portfolio tracking (M2 stage)</li>
           <li>WhatsApp Dispatch with message templates</li>
           <li>Daily log and monthly target tracking</li>
@@ -15716,6 +15820,42 @@ function lockSelectAgent(id) {
     || (window._pendingAgent?.id === id ? window._pendingAgent : null);
   if (!_pinTarget) return;
   _pinBuffer = ''; _pinMode = 'unlock';
+
+  // ── Always fetch latest pinHash from Supabase before unlock ──
+  // This ensures admin resets take effect immediately on the agent's device
+  // even if the device was offline or had a stale local copy.
+  (async function _syncPinHash() {
+    try {
+      const db = initSupabase();
+      if (!db) return;
+      const { data: row } = await db
+        .from('app_state')
+        .select('data')
+        .eq('id', 'agent_' + id)
+        .maybeSingle();
+      if (!row) return;
+      const remotePinHash = row.data?._pinHash || null;
+      // Sync local copy with Supabase value (could be null = admin cleared it)
+      const agentsList = getAgentList();
+      const local = agentsList.find(a => a.id === id);
+      if (local && local.pinHash !== remotePinHash) {
+        local.pinHash = remotePinHash;
+        saveAgentList(agentsList);
+        _pinTarget.pinHash = remotePinHash;
+      }
+      // If admin cleared the PIN — switch to set-PIN mode immediately
+      if (!remotePinHash) {
+        _pinBuffer = ''; _pinSetBuffer = '';
+        _pinMode = 'set';
+        updatePinDots();
+        const errEl = document.getElementById('lock-pin-error');
+        if (errEl) errEl.textContent = 'Your PIN was reset. Please set a new PIN.';
+        const nameEl = document.getElementById('lock-pin-name');
+        if (nameEl) nameEl.textContent = _pinTarget.name || 'Set new PIN';
+        toast('PIN reset by admin — set a new PIN', 'info');
+      }
+    } catch(e) { /* offline or error — proceed with local hash */ }
+  })();
 
   // Focus mode: hide logo, tabs, agent list, code input — but NOT auth-signin-panel itself
   // (PIN pad lives inside auth-signin-panel so we must keep the parent visible)
