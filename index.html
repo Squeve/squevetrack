@@ -5210,9 +5210,17 @@ function getSmsMessage(b, useGenerous) {
 }
 
 function getWaLink(b, useGenerous) {
-  const phone = b.phone.replace(/\s/g, '').replace('+', '');
+  // Use phone WITH leading + but no spaces for the deep link
+  const phoneRaw  = b.phone.replace(/\s/g, '');                  // e.g. +233256724791
+  const phoneDigits = phoneRaw.replace('+', '');                   // e.g. 233256724791
   const msg = encodeURIComponent(getSmsMessage(b, useGenerous));
-  return 'https://wa.me/' + phone + '?text=' + msg;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  // iOS: whatsapp:// deep link is more reliable than wa.me for pre-filled messages
+  // Android / desktop: wa.me works fine
+  if (isIOS) {
+    return 'whatsapp://send?phone=' + phoneDigits + '&text=' + msg;
+  }
+  return 'https://wa.me/' + phoneDigits + '?text=' + msg;
 }
 
 // Returns the agent stage day range [min, max] — dynamic per stage
@@ -8820,35 +8828,74 @@ function smsClearAll() {
 function sendBulkSMS() {
   if (!smsSelected.size) return toast('Select at least one contact', 'error');
   const contacts = [...smsSelected].map(id => state.borrowers.find(b => b.id === id)).filter(Boolean);
-
-  // Build comma-separated numbers (no spaces — required for multi-recipient sms: link)
-  const numbers = contacts.map(b => b.phone.replace(/\s/g, '')).join(',');
-
-  // For bulk SMS all contacts get the same message template
-  // Use the first selected contact to generate the preview, then use a generic version
-  const useGen = smsTemplate.startsWith('generous');
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
   const isCustom = smsTemplate === 'custom';
 
-  // Build a shared message — uses template but with generic placeholders resolved
-  // For bulk: name is omitted or replaced with "Dear Customer" since it's one message to many
-  let sharedMsg = '';
   if (isCustom) {
-    // Custom: use as-is (user wrote it themselves)
-    sharedMsg = document.getElementById('sms-custom-msg')?.value?.trim() || '';
+    const sharedMsg = document.getElementById('sms-custom-msg')?.value?.trim() || '';
     if (!sharedMsg) return toast('Enter a custom message first', 'error');
-  } else if (contacts.length === 1) {
-    // Single contact: personalise fully
-    sharedMsg = getSmsBlastMsg(contacts[0]);
-  } else {
-    // Multiple contacts: personalised per-contact not possible in one sms: link
-    // Show a confirm modal letting user choose between bulk (generic) or sequential (personal)
-    _confirmBulkOrSequential(contacts, numbers);
+    if (contacts.length === 1) {
+      const smsLink = 'sms:' + contacts[0].phone.replace(/\s/g,'') + (isIOS ? '&body=' : '?body=') + encodeURIComponent(sharedMsg);
+      window.open(smsLink, '_self');
+      return;
+    }
+    const numbers = contacts.map(b => b.phone.replace(/\s/g,'')).join(isIOS ? ';' : ',');
+    if (isIOS) {
+      // iOS sms: scheme only opens one recipient — show iOS-specific warning
+      _showIOSBulkModal(contacts, sharedMsg);
+      return;
+    }
+    const smsLink = 'sms:' + numbers + '?body=' + encodeURIComponent(sharedMsg);
+    window.location.href = smsLink;
+    toast('Opening SMS app with ' + contacts.length + ' recipients...', 'success');
     return;
   }
 
-  const smsLink = 'sms:' + numbers + (/iPad|iPhone|iPod/.test(navigator.userAgent) ? '&body=' : '?body=') + encodeURIComponent(sharedMsg);
-  window.location.href = smsLink;
-  toast('Opening SMS app with ' + contacts.length + ' recipient' + (contacts.length > 1 ? 's' : '') + '...', 'success');
+  if (contacts.length === 1) {
+    // Single contact: personalise fully — works on all platforms
+    const sharedMsg = getSmsBlastMsg(contacts[0]);
+    const smsLink = 'sms:' + contacts[0].phone.replace(/\s/g,'') + (isIOS ? '&body=' : '?body=') + encodeURIComponent(sharedMsg);
+    window.open(smsLink, '_self');
+    toast('Opening SMS app...', 'success');
+    return;
+  }
+
+  if (isIOS) {
+    // iOS does not support multi-recipient sms: links — route to sequential or copy flow
+    _showIOSBulkModal(contacts, null);
+    return;
+  }
+
+  // Android/desktop: multi-recipient bulk SMS works
+  _confirmBulkOrSequential(contacts, contacts.map(b => b.phone.replace(/\s/g,'')).join(','));
+}
+
+function _showIOSBulkModal(contacts, fixedMsg) {
+  // iOS cannot open multi-recipient SMS via URL scheme.
+  // Best options: Sequential (personalised, one by one) or Copy Numbers (paste manually).
+  const nums = contacts.map(b => b.phone.replace(/\s/g,'')).join('\n');
+  document.getElementById('modal-title').textContent = '📱 Send SMS — ' + contacts.length + ' Contacts';
+  document.getElementById('modal-body').innerHTML =
+    '<div style="background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.2);border-left:3px solid var(--blue);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--text2);line-height:1.6">'    + '<b style="color:var(--blue)">ℹ️ iPhone bulk SMS</b><br>'    + 'iOS does not support opening multiple SMS recipients at once. Choose an option below:</div>'    + '<div style="display:flex;flex-direction:column;gap:10px">'    + '<div style="background:var(--surface2);border-radius:8px;padding:12px">'    + '<div style="font-weight:700;font-size:13px;margin-bottom:4px">📱 Sequential SMS <span style="background:rgba(34,197,94,0.15);color:var(--green);font-size:10px;font-weight:700;padding:1px 6px;border-radius:6px;margin-left:4px">Recommended</span></div>'    + '<div style="font-size:12px;color:var(--text3)">Opens each contact one by one in Messages. Each message is personalised with their name and amount.</div>'    + '</div>'    + '<div style="background:var(--surface2);border-radius:8px;padding:12px">'    + '<div style="font-weight:700;font-size:13px;margin-bottom:4px">📋 Copy All Numbers</div>'    + '<div style="font-size:12px;color:var(--text3)">Copy all ' + contacts.length + ' numbers to clipboard, then paste into a new group message manually in Messages.</div>'    + '</div></div>';
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>'
+    + '<button class="btn btn-ghost btn-sm" id="ios-copy-nums-btn">📋 Copy Numbers</button>'
+    + '<button class="btn btn-gold btn-sm" id="ios-seq-btn">📱 Sequential</button>';
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(function() {
+    var sb = document.getElementById('ios-seq-btn'); if (sb) sb.addEventListener('click', function(){ closeModal(); startSequential('sms'); });
+    var cb = document.getElementById('ios-copy-nums-btn');
+    if (cb) cb.addEventListener('click', function() {
+      navigator.clipboard.writeText(nums).then(function() {
+        toast('📋 ' + contacts.length + ' numbers copied — paste into Messages', 'success');
+        closeModal();
+      }).catch(function() {
+        var ta=document.createElement('textarea');ta.value=nums;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+        toast('📋 Numbers copied — paste into Messages', 'success');
+        closeModal();
+      });
+    });
+  }, 0);
 }
 
 function _confirmBulkOrSequential(contacts, numbers) {
@@ -8964,7 +9011,11 @@ function showSeqModal() {
   // iOS needs &body= not ?body=, and we detect iOS for the link format
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
   const smsLink = 'sms:' + phone + (isIOS ? '&body=' : '?body=') + encodeURIComponent(msg);
-  const waLink = 'https://wa.me/' + phone.replace('+','') + '?text=' + encodeURIComponent(msg);
+  const phoneDigitsSeq = phone.replace('+','');
+  const isIOSSeq = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const waLink = isIOSSeq
+    ? 'whatsapp://send?phone=' + phoneDigitsSeq + '&text=' + encodeURIComponent(msg)
+    : 'https://wa.me/' + phoneDigitsSeq + '?text=' + encodeURIComponent(msg);
   document.getElementById('modal-title').textContent = 'Send Message ' + (seqIndex+1) + ' of ' + seqList.length;
   document.getElementById('modal-body').innerHTML =
     '<div style="margin-bottom:12px">'
