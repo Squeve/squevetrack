@@ -4795,7 +4795,26 @@ async function loadState() {
         .single();
       if (!error && data && data.data) {
         state = migrateState(data.data);
+       _syncLocalProfileFromState();
         localStorage.setItem(getStateKey(), JSON.stringify(state)); // warm cache
+       // One-time phone normalisation
+let migrationFlag = localStorage.getItem('sq_phone_migration_done');
+if (!migrationFlag && state.borrowers && state.borrowers.length) {
+  let changed = false;
+  state.borrowers.forEach(b => {
+    if (b.phone) {
+      const normalized = normalizePhone(b.phone);
+      if (normalized !== b.phone) {
+        b.phone = normalized;
+        changed = true;
+      }
+    }
+  });
+  if (changed) {
+    saveState();
+    localStorage.setItem('sq_phone_migration_done', 'true');
+  }
+}
         purgeAgedOut();
         setSyncStatus('saved');
       // Conflict detection: if our local state is newer, warn
@@ -4817,6 +4836,25 @@ async function loadState() {
       const json    = await _decryptFromStorage(raw, agentId);
       if (json) {
         state = migrateState(JSON.parse(json));
+   _syncLocalProfileFromState();
+   // One-time phone normalisation
+let migrationFlag = localStorage.getItem('sq_phone_migration_done');
+if (!migrationFlag && state.borrowers && state.borrowers.length) {
+  let changed = false;
+  state.borrowers.forEach(b => {
+    if (b.phone) {
+      const normalized = normalizePhone(b.phone);
+      if (normalized !== b.phone) {
+        b.phone = normalized;
+        changed = true;
+      }
+    }
+  });
+  if (changed) {
+    saveState();
+    localStorage.setItem('sq_phone_migration_done', 'true');
+  }
+}
         purgeAgedOut();
         if (_db) _pushToSupabase();
         return;
@@ -4901,6 +4939,33 @@ async function _pushToSupabase() {
 }
 
 // ── COMPUTED ───────────────────────────────────────────
+
+function normalizePhone(phone) {
+  if (!phone) return '';
+  // Remove all spaces, dashes, parentheses
+  let cleaned = phone.replace(/\s+/g, '').replace(/[-()]/g, '');
+  
+  // Already has '+' – assume correct format (but ensure no spaces)
+  if (cleaned.startsWith('+')) return cleaned;
+  
+  // If it starts with '0' (local Ghana format) replace leading '0' with '+233'
+  if (cleaned.startsWith('0') && cleaned.length >= 9) {
+    return '+233' + cleaned.substring(1);
+  }
+  
+  // If it starts with digits and looks like a Ghana number without leading 0 (e.g., 233203034211)
+  if (cleaned.length >= 10 && cleaned.length <= 12 && !cleaned.startsWith('+') && !cleaned.startsWith('0')) {
+    // Assume it already has country code but missing '+'
+    return '+' + cleaned;
+  }
+  
+  // If it's a very short number (invalid), return as is but log warning
+  if (cleaned.length < 9) {
+    console.warn('Phone number too short, may be invalid:', phone);
+  }
+  return cleaned;
+}
+
 function getOdAge(startDate) {
   if (!startDate) return 0;
   // Parse as local date (no Z suffix) to match how dates are stored
@@ -4913,6 +4978,50 @@ function getOdAge(startDate) {
   const diff = Math.floor((today - start) / 86400000);
   // +1 so Day 1 = the day after issue (consistent with stored startDate format)
   return Math.max(0, diff + 1);
+}
+
+// Normalize phone numbers for storage (store as +233XXXXXXXXX)
+function normalizePhone(phone) {
+  if (!phone) return '';
+  let cleaned = phone.replace(/\s+/g, '').replace(/[-()]/g, '');
+  if (cleaned.startsWith('+')) return cleaned;
+  if (cleaned.startsWith('0')) return '+233' + cleaned.substring(1);
+  if (cleaned.length >= 9 && cleaned.length <= 12 && !cleaned.startsWith('+') && !cleaned.startsWith('0')) {
+    return '+' + cleaned;
+  }
+  return cleaned;
+}
+
+// Format phone for display (add spaces: +233 24 123 4567)
+function formatPhoneDisplay(phone) {
+  if (!phone) return '';
+  let cleaned = phone.replace(/\s+/g, '').replace(/[-()]/g, '');
+  if (!cleaned.startsWith('+')) cleaned = '+' + cleaned;
+  let digits = cleaned.substring(1).replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('233')) {
+    let country = digits.substring(0,3);
+    let net = digits.substring(3,5);
+    let part1 = digits.substring(5,8);
+    let part2 = digits.substring(8,12);
+    return '+' + country + ' ' + net + ' ' + part1 + ' ' + part2;
+  } else if (digits.length === 10 && digits.startsWith('0')) {
+    return '+233 ' + digits.substring(1,3) + ' ' + digits.substring(3,6) + ' ' + digits.substring(6,10);
+  } else {
+    return cleaned;
+  }
+}
+
+// Sync avatar and display name from state.agentProfile to localStorage
+function _syncLocalProfileFromState() {
+  if (!_activeAgent) return;
+  const id = _activeAgent.id;
+  const profile = state.agentProfile || {};
+  if (profile.displayName) {
+    localStorage.setItem('sq_displayname_' + id, profile.displayName);
+  }
+  if (profile.avatar) {
+    localStorage.setItem('sq_avatar_' + id, profile.avatar);
+  }
 }
 
 function getStatus(b) {
@@ -5211,7 +5320,11 @@ function getSmsMessage(b, useGenerous) {
 
 function getWaLink(b, useGenerous) {
   // Use phone WITH leading + but no spaces for the deep link
-  const phoneRaw  = b.phone.replace(/\s/g, '');                  // e.g. +233256724791
+  let phoneRaw = b.phone.replace(/\s/g, '');
+// Convert local Ghana number (starting with 0) to international
+if (phoneRaw.startsWith('0')) {
+  phoneRaw = '+233' + phoneRaw.substring(1);
+}                  // e.g. +233256724791
   const phoneDigits = phoneRaw.replace('+', '');                   // e.g. 233256724791
   const msg = encodeURIComponent(getSmsMessage(b, useGenerous));
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -5822,7 +5935,7 @@ function renderLoansTable() {
         + '<div class="bl-content">'
           + '<div class="bl-name">' + r.name + badges + ' ' + getStageBadgeHtml(r) + '</div>'
           + '<div class="bl-meta-row">'
-            + '<span class="bl-phone">' + r.phone + '</span>'
+            + '<span class="bl-phone">' + formatPhoneDisplay(r.phone) + '</span>'
             + '<span class="bl-day ' + heatCls + '">Day ' + r.odAge + '</span>'
             + (r.loanType==='LoanBase Pro' ? '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;background:rgba(167,139,250,0.15);color:var(--purple)">PRO</span>' : '')
             + (r.promisedToPay ? '<span style="font-size:9px;color:var(--purple)">🤝' + ptpDateStr + '</span>' : '')
@@ -6518,7 +6631,7 @@ function renderDispatch() {
         + '<div class="dispatch-rank">' + (i+1) + '</div>'
         + '<div class="dispatch-info">'
         + '<div class="dispatch-name">' + escapeHtml(b.name) + (b.promisedToPay ? ' <span class="promise-badge">🤝 Promised</span>' : '') + '</div>'
-        + '<div class="dispatch-meta">' + b.phone
+        + '<div class="dispatch-meta">' + formatPhoneDisplay(b.phone)
         + ' &nbsp;·&nbsp; <span class="' + odCls + '">Day ' + b.odAge + '</span>'
         + ' &nbsp;·&nbsp; ' + (b.loanType==='LoanBase Pro' ? '<span class="badge badge-pro">Pro</span>' : '<span class="badge badge-loanbase">Base</span>')
         + ' &nbsp;·&nbsp; ' + statusBadge(b.status)
@@ -7378,15 +7491,16 @@ function importFromClipboard() {
     const cols = line.split(',').map(c => c.trim());
     if (cols.length < 5) { skipped++; return; }
     const [name, phone, loanDue, principal, amountPaid, loanType, odAgeStr] = cols;
+    let normalizedPhone = phone ? normalizePhone(phone) : '';
     if (!name || !loanDue) { skipped++; return; }
     // Phone validation - must have at least 7 digits
-    const phoneDigits = (phone||'').replace(/\D/g,'');
+    const phoneDigits = (normalizedPhone||'').replace(/\D/g,'');
     if (phoneDigits.length < 7) { skipped++; return; }
     const odAge = parseInt(odAgeStr) || 6;
     const d = new Date(); d.setDate(d.getDate() - (odAge - 1));  // store (odAge-1) days ago so getOdAge returns odAge
     state.borrowers.push({
       id: (crypto && crypto.randomUUID ? crypto.randomUUID() : 'b' + Date.now() + Math.random().toString(36).slice(2)),
-      name, phone: phone || '', principal: parseFloat(principal)||0,
+      name, phone: normalizedPhone || '', principal: parseFloat(principal)||0,
       loanDue: parseFloat(loanDue)||0, overdueFeee: 0,
       amountPaid: parseFloat(amountPaid)||0,
       startDate: d.toISOString().split('T')[0],
@@ -7543,7 +7657,7 @@ function importFromXLSX() {
 
   normRows.forEach(function(row) {
     var name     = (row.name || '').trim();
-    var phone    = (row.phone || '').trim();
+    var phone    = normalizePhone((row.phone || '').trim());
     var loanDue  = parseFloat(row.loandue)  || 0;
     var principal = parseFloat(row.principal) || parseFloat(row.loandue) || 0;
     var amountPaid = parseFloat(row.amountpaid) || 0;
@@ -7616,7 +7730,7 @@ function importFromCSV() {
       const d = new Date(); d.setDate(d.getDate() - (odAge - 1));  // store (odAge-1) days ago so getOdAge returns odAge
       state.borrowers.push({
         id: (crypto && crypto.randomUUID ? crypto.randomUUID() : 'b' + Date.now() + Math.random().toString(36).slice(2)),
-        name, phone: get(row,'phone')||'',
+        name, phone: normalizePhone(get(row,'phone')||''),
         principal: parseFloat(get(row,'principal'))||0,
         loanDue: parseFloat(loanDue)||0, overdueFeee: 0,
         amountPaid: parseFloat(get(row,'amountpaid'))||0,
@@ -7815,7 +7929,7 @@ function openBorrowerDetail(id) {
     liveActivityHtml
     + '<div style="background:var(--surface2);border-radius:8px;padding:14px;margin-bottom:14px">'
     + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px">'
-    + '<div><div style="font-size:12px;color:var(--text3)">' + b.loanType + ' &middot; ' + b.phone + '</div>'
+    + '<div><div style="font-size:12px;color:var(--text3)">' + b.loanType + ' &middot; ' + formatPhoneDisplay(b.phone) + '</div>'
     + (b.promisedToPay ? '<div style="font-size:11px;color:var(--purple);margin-top:2px">🤝 Promise: ' + (b.promiseDate||'today') + (b.promiseNote?' — '+b.promiseNote:'') + '</div>' : '')
     + (b.notes ? '<div style="font-size:11px;color:var(--gold);margin-top:2px">📝 ' + b.notes + '</div>' : '')
     + (badges ? '<div style="margin-top:4px">' + badges + '</div>' : '')
@@ -7842,6 +7956,7 @@ function openBorrowerDetail(id) {
     + '<button class="btn btn-ghost" id="bd-hitlist">' + ((state.hitList||[]).includes(id) ? '📌 In Hit List' : '📌 Add to Hit List') + '</button>'
     + '<button class="btn btn-ghost" id="bd-note">' + (b.notes?'📝 Edit Note':'📝 Add Note') + '</button>'
     + '<button class="btn btn-ghost" id="bd-history">📋 History (' + log.length + ')</button>'
+    + '<button class="btn btn-ghost" id="bd-instalment">📅 Instalment Plan</button>'
     + '<button class="btn btn-ghost" id="bd-adjod" style="color:var(--orange);border-color:rgba(249,115,22,0.3)">⚙️ Correct OD' + (b.odFeeSnapshot !== undefined && b.odFeeSnapshot !== null ? ' ✓' : '') + '</button>'
     + '<button class="btn btn-ghost" id="bd-timeline" style="grid-column:1/-1">📜 Timeline</button>'
     + '</div>'
@@ -7874,12 +7989,14 @@ function openBorrowerDetail(id) {
     var elCL  = document.getElementById('bd-calllog');
     var elHL  = document.getElementById('bd-hitlist');
     var elAO  = document.getElementById('bd-adjod');
+    var elInst = document.getElementById('bd-instalment');
     if (elPay) elPay.onclick = function(){ haptic('light'); closeModal(); openPayModal(id); };
     if (elPr)  elPr.onclick  = function(){ haptic('light'); closeModal(); togglePromise(id); };
     if (elN)   elN.onclick   = function(){ haptic('light'); closeModal(); openQuickNote(id); };
     if (elH)   elH.onclick   = function(){ haptic('light'); closeModal(); openHistoryModal(id); };
     if (elE)   elE.onclick   = function(){ haptic('light'); closeModal(); openEditModal(id); };
     if (elAO)  elAO.onclick  = function(){ haptic('light'); openAdjustOdModal(id); };
+    if (elInst) elInst.onclick = function(){ haptic('light'); closeModal(); openEditModal(id); };
     if (elCL)  elCL.onclick  = function(){ haptic('light'); closeModal(); openCallLogModal(id); };
     var elTL = document.getElementById('bd-timeline');
     if (elTL) elTL.onclick = function(){ haptic('light'); closeModal(); openBorrowerTimeline(id); };
@@ -8065,7 +8182,8 @@ function borrowerForm(b) {
 
 function saveBorrower(id) {
   const name = document.getElementById('f-name').value.trim();
-  const phone = document.getElementById('f-phone').value.trim();
+  let phone = document.getElementById('f-phone').value.trim();
+phone = normalizePhone(phone);
   const principal = parseFloat(document.getElementById('f-principal').value) || 0;
   const loanDue = parseFloat(document.getElementById('f-loandue').value) || 0;
   const amountPaid = parseFloat(document.getElementById('f-paid').value) || 0;
@@ -8085,7 +8203,8 @@ function saveBorrower(id) {
 
   if (!name) return toast('Name is required', 'error');
   if (!phone) return toast('Phone number is required', 'error');
-  if (phone.replace(/\D/g,'').length < 7) return toast('Enter a valid phone number', 'error');
+  const phoneDigits = phone.replace(/\D/g, '');
+if (phoneDigits.length < 9) return toast('Enter a valid phone number (include country code or leading 0)', 'error');
   if (!loanDue) return toast('Loan due amount is required', 'error');
   if (!principal) return toast('Principal amount is required', 'error');
 
@@ -9602,7 +9721,7 @@ function openHistoryModal(id) {
   document.getElementById('modal-title').textContent = '📋 Payment History — ' + b.name.split(' ')[0];
   let html = '<div style="background:var(--surface2);border-radius:8px;padding:12px;margin-bottom:14px">'
     + '<div style="font-weight:700;font-size:14px;margin-bottom:4px">' + b.name + '</div>'
-    + '<div style="font-size:12px;color:var(--text3)">' + b.phone + ' · ' + b.loanType + ' · Loan Due: ' + fmtC(b.loanDue) + '</div>'
+    + '<div style="font-size:12px;color:var(--text3)">' + formatPhoneDisplay(b.phone) + ' · ' + b.loanType + ' · Loan Due: ' + fmtC(b.loanDue) + '</div>'
     + '<div style="font-size:12px;margin-top:6px">Current paid: <b style="color:var(--green)">' + fmtC(b.amountPaid) + '</b> · Status: ' + statusBadge(getStatus(b)) + '</div>'
     + '</div>';
   if (!log.length) {
@@ -10065,7 +10184,7 @@ function renderGlobalSearch() {
     var stColor = st==='Paid'?'var(--green)':st==='Partial'?'var(--gold)':'var(--red)';
     return '<div style="padding:8px 14px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px" data-gsid="' + b.id + '">'
       + '<div style="flex:1"><div style="font-weight:600;font-size:12px">' + b.name + '</div>'
-      + '<div style="font-size:10px;color:var(--text3)">' + b.phone + ' &middot; Day ' + getOdAge(b.startDate) + '</div></div>'
+      + '<div style="font-size:10px;color:var(--text3)">' + formatPhoneDisplay(b.phone) + ' &middot; Day ' + getOdAge(b.startDate) + '</div></div>'
       + '<div style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:'+stColor+'">' + (st==='Paid'?'Paid':fmtC(getDueToday(b))) + '</div>'
       + '</div>';
   }).join('');
@@ -10754,6 +10873,16 @@ function _escalPhone() {
   return localStorage.getItem('sq_escalation_pay_number') || '714*674#';
 }
 
+function _escalAgentPhone() {
+  return localStorage.getItem('sq_agent_phone') || '+233 123 456 789';
+}
+
+function _escalVisitDate() {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return tomorrow.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long' });
+}
+
 function buildEscalationMsg(b, level) {
   const caseRef   = _escalCaseRef(b);
   const dateStr   = _escalDate();
@@ -10763,6 +10892,7 @@ function buildEscalationMsg(b, level) {
   const deadline  = _escalDeadline();
   const payNum    = _escalPhone();
   const odDays    = getOdAge(b.startDate);
+  const loanType = b.loanType;
 
   if (level === 1) {
     // ── LEVEL 1: Formal Warning Notice ──────────────────────────
@@ -10868,54 +10998,325 @@ After this deadline, additional legal fees, court costs, and enforcement charges
 *Ref: ${caseRef}*`;
   }
 
+  // ========== NEW LEVELS 4–13 ==========
+
+  // Level 4: Partial Payment Follow-Up
+  if (level === 4) {
+    const paidAmount = fmtC(b.amountPaid || 0);
+    return `⚠️ *PARTIAL PAYMENT ACKNOWLEDGMENT* ⚠️
+
+DATE: ${dateStr}
+CASE REF: ${caseRef}
+DEBTOR: *${fullName}*
+OUTSTANDING BALANCE: *${balance}*
+
+Dear ${salute},
+
+We acknowledge your recent payment of *${paidAmount}* on your ${loanType} account. Thank you.
+
+However, a balance of *${balance}* remains unpaid and is now *${odDays} days* overdue. Daily penalty fees continue to accrue on the remaining amount.
+
+To avoid escalation to formal recovery, you must settle the full outstanding balance by *${deadline}*.
+
+📌 Dial *${payNum}* to complete your payment immediately.
+
+*LoanBase Recovery Management*`;
+  }
+
+  // Level 5: Broken Promise Notice (PTP Missed)
+  if (level === 5) {
+    const promiseDate = b.promiseDate ? b.promiseDate.split(' ')[0] : 'not set';
+    return `🔴 *PROMISE TO PAY – BREACH NOTICE* 🔴
+
+DATE: ${dateStr}
+CASE REF: ${caseRef}
+DEBTOR: *${fullName}*
+PROMISED DATE: ${promiseDate}
+AMOUNT DUE: *${balance}*
+
+Dear ${salute},
+
+You made a solemn commitment to pay *${balance}* on *${promiseDate}*. To date, no payment has been received.
+
+This broken promise has been recorded in your file and will be used as evidence of unwillingness to cooperate. Your account is now being reviewed for *immediate escalation*.
+
+You have *24 hours* to make the payment. Failure to do so will result in:
+
+• Field recovery agent dispatch
+• Credit bureau reporting
+• Legal notice of default
+
+📌 Pay now via *${payNum}*.
+
+*LoanBase Recovery Management*`;
+  }
+
+  // Level 6: Field Visit Notification
+  if (level === 6) {
+    const agentPhone = _escalAgentPhone();
+    const visitDate = _escalVisitDate();
+    return `🚪 *FIELD RECOVERY NOTIFICATION* 🚪
+
+DATE: ${dateStr}
+CASE REF: ${caseRef}
+DEBTOR: *${fullName}*
+ADDRESS: (as registered)
+
+Dear ${salute},
+
+Despite multiple call attempts, we have been unable to reach you regarding your overdue ${loanType} loan of *${balance}* (Day ${odDays}).
+
+A *field recovery agent* has been scheduled to visit your registered address on *${visitDate}* between *9:00 AM – 5:00 PM*.
+
+To avoid an in‑person visit, please call us immediately at *${agentPhone}* or make a payment of *${balance}* before *${visitDate}*.
+
+📌 Dial *${payNum}* for instant payment.
+
+*LoanBase Recovery Management*`;
+  }
+
+  // Level 7: Final Demand Before Legal Handover
+  if (level === 7) {
+    const agentPhone = _escalAgentPhone();
+    return `⚖️ *FINAL DEMAND BEFORE LEGAL HANDOVER* ⚖️
+
+DATE: ${dateStr}
+CASE REF: ${caseRef}
+DEBTOR: *${fullName}*
+TOTAL OUTSTANDING: *${balance}* (including fees)
+
+Dear ${salute},
+
+This is your *FINAL NOTICE* before your file is handed over to our external solicitors for legal action.
+
+If full payment is not received by *${deadline}*, the following will occur WITHOUT further notice:
+
+• Your name will be filed at the *District Court*
+• A *judgment* will be sought against you
+• *Garnishee proceedings* will be initiated on your bank and mobile money accounts
+• All legal costs will be added to your debt
+
+You can still avoid legal action by paying *${balance}* immediately.
+
+📌 Dial *${payNum}* or contact us on *${agentPhone}*.
+
+*LoanBase Legal Recovery Unit*`;
+  }
+
+  // Level 8: Settlement Offer (Discounted)
+if (level === 8) {
+  const discountRate = (typeof state !== 'undefined' && state.discountRate) ? state.discountRate : 0.30;
+  const discounted = Math.round(getRemaining(b) + (getOdFee(b) * discountRate));
+  return `🎯 *DISCOUNTED SETTLEMENT OFFER – FINAL* 🎯
+
+DATE: ${dateStr}
+CASE REF: ${caseRef}
+DEBTOR: *${fullName}*
+ORIGINAL BALANCE: *${balance}*
+OFFERED SETTLEMENT: *${fmtC(discounted)}*
+
+Dear ${salute},
+
+As a gesture of goodwill, LoanBase is offering you a *one‑time discounted settlement* of *${fmtC(discounted)}* to fully close your ${loanType} account.
+
+This offer is valid only until *${deadline}* and will be revoked immediately afterward.
+
+Upon payment of ${fmtC(discounted)}, your account will be marked *PAID IN FULL* with a positive credit reference.
+
+After ${deadline}, the full balance of ${balance} plus accrued fees will be pursued.
+
+📌 Pay now via *${payNum}*.
+
+*LoanBase Recovery Management*`;
+}
+
+  // Level 9: Instalment Arrangement Confirmation
+  if (level === 9) {
+    const instalmentAmount = b.instalment?.amount ? fmtC(b.instalment.amount) : 'your agreed amount';
+    const instalmentFreq = b.instalment?.freq || 'weekly';
+    const instalmentStart = b.instalment?.start || 'the agreed start date';
+    return `📅 *INSTALMENT AGREEMENT CONFIRMATION* 📅
+
+DATE: ${dateStr}
+CASE REF: ${caseRef}
+DEBTOR: *${fullName}*
+PLAN: *${instalmentAmount}* every *${instalmentFreq}* starting *${instalmentStart}*
+
+Dear ${salute},
+
+Thank you for committing to the following repayment plan for your overdue ${loanType} loan:
+
+• Amount per instalment: *${instalmentAmount}*
+• Frequency: *${instalmentFreq}*
+• First payment due: *${instalmentStart}*
+
+Please ensure each payment is made on or before the due date. Missing two consecutive instalments will void this agreement and reactivate full recovery actions.
+
+📌 Dial *${payNum}* and select “Instalment Payment”.
+
+*LoanBase Recovery Management*`;
+  }
+
+  // Level 10: Instalment Breach Notice
+  if (level === 10) {
+    const instalmentAmount = b.instalment?.amount ? fmtC(b.instalment.amount) : 'your agreed amount';
+    const instalmentStart = b.instalment?.start || 'the agreed start date';
+    return `⚠️ *INSTALMENT PLAN BREACH NOTICE* ⚠️
+
+DATE: ${dateStr}
+CASE REF: ${caseRef}
+DEBTOR: *${fullName}*
+MISSED INSTALMENT: *${instalmentAmount}* due on *${instalmentStart}*
+
+Dear ${salute},
+
+You have missed your agreed instalment payment of *${instalmentAmount}* due on *${instalmentStart}*.
+
+Under the terms of your instalment agreement, this constitutes a breach. You have *48 hours* to bring your account current.
+
+If payment is not received by *${deadline}*, your instalment plan will be cancelled and the full outstanding balance of *${balance}* will become due immediately, with escalation proceedings restarted.
+
+📌 Pay the missed amount now via *${payNum}*.
+
+*LoanBase Recovery Management*`;
+  }
+
+  // Level 11: Asset Attachment Warning (secured loans)
+  if (level === 11) {
+    const assetDesc = b.assetDescription || 'the collateral listed in your agreement';
+    const visitDate = _escalVisitDate();
+    return `🚨 *ASSET ATTACHMENT WARNING* 🚨
+
+DATE: ${dateStr}
+CASE REF: ${caseRef}
+DEBTOR: *${fullName}*
+SECURED ASSET: *${assetDesc}*
+
+Dear ${salute},
+
+Your ${loanType} loan is secured against *${assetDesc}*. You are now *${odDays} days* in default with an outstanding balance of *${balance}*.
+
+We have obtained a *court order* for the attachment and repossession of the above‑mentioned asset.
+
+A recovery team will arrive at your registered address on *${visitDate}* to take possession of the asset unless you pay the full outstanding amount *before that date*.
+
+📌 To stop repossession, pay *${balance}* immediately via *${payNum}*.
+
+*LoanBase Legal & Recovery Unit*`;
+  }
+
+  // Level 12: Guarantor Notification
+  if (level === 12) {
+    const guarantorName = b.guarantorName || 'the guarantor on file';
+    const agentPhone = _escalAgentPhone();
+    return `📢 *GUARANTOR NOTIFICATION OF DEFAULT* 📢
+
+DATE: ${dateStr}
+CASE REF: ${caseRef}
+BORROWER: *${fullName}*
+GUARANTOR: *${guarantorName}*
+AMOUNT DUE: *${balance}*
+
+Dear ${guarantorName},
+
+This is to inform you that ${b.name} has defaulted on their ${loanType} loan with an outstanding balance of *${balance}*, now *${odDays} days* overdue.
+
+As the guarantor, you are legally liable for this debt. Please contact ${b.name} immediately to arrange payment.
+
+If the loan is not brought current within *7 days*, we will pursue recovery against you directly, including legal action and credit bureau reporting in your name.
+
+📌 Contact us at *${agentPhone}* to discuss settlement.
+
+*LoanBase Recovery Management*`;
+  }
+
+  // Level 13: Payment Received – Acknowledgment & Release
+  if (level === 13) {
+    return `✅ *FULL PAYMENT CONFIRMATION & RELEASE* ✅
+
+DATE: ${dateStr}
+CASE REF: ${caseRef}
+DEBTOR: *${fullName}*
+AMOUNT PAID: *${balance}*
+
+Dear ${salute},
+
+We hereby confirm receipt of *${balance}* as full and final settlement of your ${loanType} loan account.
+
+All escalation actions have been *cancelled*. Your credit reference will be updated to reflect “Paid in Full”.
+
+Thank you for resolving this matter.
+
+*LoanBase Recovery Management*`;
+  }
   return '';
 }
 
 function openEscalationPanel() {
-  // Show escalation level selector
   document.getElementById('modal-title').textContent = '⚖️ Escalation Notices';
-  document.getElementById('modal-body').innerHTML = `
-    <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+  
+  const escalationOptions = [
+    // Standard warnings
+    { level:1, label:'⚠️ Level 1 – Formal Warning', color:'#f97316', desc:'First escalation. Credit bureau threat, 24hr deadline.' },
+    { level:2, label:'⚖️ Level 2 – Pre-Litigation', color:'#dc2626', desc:'Final notice. Field dispatch, third-party disclosure, judicial attachment.' },
+    { level:3, label:'🔴 Level 3 – Litigation Commenced', color:'#7c3aed', desc:'Court filing confirmed, account freeze, asset inventory.' },
+    // Payment & promise related
+    { level:4, label:'💰 Level 4 – Partial Payment Follow-Up', color:'#f59e0b', desc:'Acknowledge partial payment, demand remainder.' },
+    { level:5, label:'💔 Level 5 – Broken Promise (PTP Missed)', color:'#ef4444', desc:'Customer missed a promise to pay.' },
+    { level:8, label:'🎯 Level 8 – Settlement Offer (Discounted)', color:'#10b981', desc:'One‑time reduced amount to close account.' },
+    // Field & legal escalation
+    { level:6, label:'🚪 Level 6 – Field Visit Notification', color:'#f97316', desc:'Warn before sending a field agent.' },
+    { level:7, label:'⚖️ Level 7 – Final Demand (Pre-Legal)', color:'#dc2626', desc:'Last notice before handing over to lawyers.' },
+    { level:11,label:'🚗 Level 11 – Asset Attachment Warning', color:'#ef4444', desc:'For secured loans – repossession threat.' },
+    // Instalment plans
+    { level:9, label:'📅 Level 9 – Instalment Confirmation', color:'#3b82f6', desc:'Confirm a structured repayment plan.' },
+    { level:10,label:'⚠️ Level 10 – Instalment Breach', color:'#f97316', desc:'Missed payment on an instalment plan.' },
+    // Third‑party & closure
+    { level:12,label:'👥 Level 12 – Guarantor Notification', color:'#8b5cf6', desc:'Inform guarantor of default.' },
+    { level:13,label:'✅ Level 13 – Payment Acknowledgment', color:'#22c55e', desc:'Confirm full payment and release.' },
+  ];
+
+  let html = `<div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">
       Select an escalation level to send to the <strong>${_currentDispatchIds ? _currentDispatchIds.length : 0} contacts</strong>
-      currently showing in dispatch. Each message is auto-personalised with the borrower's name, balance, case ref, and today's date.
+      currently showing in dispatch.
     </div>
+    <div style="display:grid;gap:10px;margin-bottom:16px">`;
 
-    <div style="display:grid;gap:10px;margin-bottom:16px">
-      ${[
-        {level:1, label:'Level 1 — Formal Warning',    color:'#f97316', desc:'First escalation. Credit bureau threat, 24hr deadline. Firm but not final.'},
-        {level:2, label:'Level 2 — Pre-Litigation',    color:'#dc2626', desc:'Final notice. Field dispatch, third-party disclosure, judicial attachment. Your sample format.'},
-        {level:3, label:'Level 3 — Litigation Notice', color:'#7c3aed', desc:'Nuclear option. Court filing confirmed, account freeze, guarantor notification, asset inventory.'},
-      ].map(e => `
-        <div style="background:var(--surface2);border:2px solid ${e.color}22;border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color 0.15s"
-          onclick="previewEscalation(${e.level})"
-          onmouseover="this.style.borderColor='${e.color}88'"
-          onmouseout="this.style.borderColor='${e.color}22'">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-            <span style="font-weight:800;font-size:13px;color:${e.color}">${e.label}</span>
-            <span style="font-size:11px;color:var(--text3);background:var(--surface);padding:2px 8px;border-radius:10px">Preview →</span>
-          </div>
-          <div style="font-size:11px;color:var(--text3)">${e.desc}</div>
-        </div>`).join('')}
-    </div>
+  escalationOptions.forEach(opt => {
+    html += `
+      <div style="background:var(--surface2);border:2px solid ${opt.color}22;border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color 0.15s"
+        onclick="previewEscalation(${opt.level})"
+        onmouseover="this.style.borderColor='${opt.color}88'"
+        onmouseout="this.style.borderColor='${opt.color}22'">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <span style="font-weight:800;font-size:13px;color:${opt.color}">${opt.label}</span>
+          <span style="font-size:11px;color:var(--text3);background:var(--surface);padding:2px 8px;border-radius:10px">Preview →</span>
+        </div>
+        <div style="font-size:11px;color:var(--text3)">${opt.desc}</div>
+      </div>`;
+  });
 
+  html += `</div>
     <div style="background:rgba(240,160,48,0.08);border:1px solid rgba(240,160,48,0.2);border-radius:8px;padding:10px 12px">
       <div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:8px">⚙️ Escalation Settings</div>
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
         <label style="font-size:11px;color:var(--text3);flex-shrink:0">Deadline time:</label>
-        <input id="escal-deadline" type="text" value="${_escalDeadline()}"
-          style="flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:12px;color:var(--text);font-family:var(--font-body)"
-          placeholder="5:00 PM">
+        <input id="escal-deadline" type="text" value="${_escalDeadline()}" style="flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:12px">
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+        <label style="font-size:11px;color:var(--text3);flex-shrink:0">Payment dial:</label>
+        <input id="escal-paynum" type="text" value="${_escalPhone()}" style="flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:12px">
       </div>
       <div style="display:flex;gap:10px;align-items:center">
-        <label style="font-size:11px;color:var(--text3);flex-shrink:0">Payment dial:</label>
-        <input id="escal-paynum" type="text" value="${_escalPhone()}"
-          style="flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:12px;color:var(--text);font-family:var(--font-body)"
-          placeholder="714*674#">
+        <label style="font-size:11px;color:var(--text3);flex-shrink:0">Agent phone (for field visits):</label>
+        <input id="escal-agent-phone" type="text" value="${_escalAgentPhone()}" style="flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:12px">
       </div>
     </div>`;
-  document.getElementById('modal-footer').innerHTML =
-    '<button class="btn btn-ghost" onclick="closeModal()">Close</button>' +
-    '<button class="btn btn-ghost btn-sm" onclick="saveEscalSettings()">Save Settings</button>';
+
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal-footer').innerHTML = `
+    <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+    <button class="btn btn-ghost btn-sm" onclick="saveEscalSettings()">Save Settings</button>`;
   document.getElementById('modal-overlay').classList.add('open');
   haptic('light');
 }
@@ -10923,8 +11324,10 @@ function openEscalationPanel() {
 function saveEscalSettings() {
   const dl = document.getElementById('escal-deadline')?.value.trim();
   const pn = document.getElementById('escal-paynum')?.value.trim();
+  const ap = document.getElementById('escal-agent-phone')?.value.trim();
   if (dl) localStorage.setItem('sq_escalation_deadline', dl);
   if (pn) localStorage.setItem('sq_escalation_pay_number', pn);
+  if (ap) localStorage.setItem('sq_agent_phone', ap);
   toast('Settings saved ✅', 'success');
   haptic('success');
 }
@@ -16225,91 +16628,113 @@ function slugifyCode(code) {
 
 async function authSignInWithCode() {
   try {
-  const errEl  = document.getElementById('lock-pin-error');
-  const statEl = document.getElementById('auth-status');
-  const setStatus = (msg, isErr) => {
-    if (statEl) { statEl.textContent = msg; statEl.style.color = isErr ? 'var(--red)' : 'var(--text2)'; }
-    if (errEl)  errEl.textContent = '';
-  };
+    const errEl  = document.getElementById('lock-pin-error');
+    const statEl = document.getElementById('auth-status');
+    const setStatus = (msg, isErr) => {
+      if (statEl) { statEl.textContent = msg; statEl.style.color = isErr ? 'var(--red)' : 'var(--text2)'; }
+      if (errEl)  errEl.textContent = '';
+    };
 
-  const rawCode=(document.getElementById('auth-code-input')?.value||'').trim();
-  if(!rawCode){ setStatus('Enter your Agent Code first', true); return; }
-  const slugCode=slugifyCode(rawCode);
+    const rawCode = (document.getElementById('auth-code-input')?.value || '').trim();
+    if (!rawCode) { setStatus('Enter your Agent Code first', true); return; }
+    const slugCode = slugifyCode(rawCode);
 
-  // Already cached locally?
-  const localAgents=getAgentList();
-  let agent=localAgents.find(a=>a.id===slugCode||slugifyCode(a.lbCode||'')===slugCode);
-  if(agent){ setStatus(''); lockSelectAgent(agent.id); return; }
+    // Already cached locally?
+    const localAgents = getAgentList();
+    let agent = localAgents.find(a => a.id === slugCode || slugifyCode(a.lbCode || '') === slugCode);
+    if (agent) { setStatus(''); lockSelectAgent(agent.id); return; }
 
-  const db=initSupabase();
-  if(!db){ setStatus('No internet connection', true); return; }
-  setStatus('⏳ Looking up your account...');
+    const db = initSupabase();
+    if (!db) { setStatus('No internet connection', true); return; }
+    setStatus('⏳ Looking up your account...');
 
-  async function fetchRow(id){
-    try{const r=await db.from('app_state').select('*').eq('id',id).maybeSingle();return r?.data||null;}
-    catch(e){console.warn('fetchRow',id,e?.message);return null;}
-  }
+    async function fetchRow(id) {
+      try {
+        const r = await db.from('app_state').select('*').eq('id', id).maybeSingle();
+        return r?.data || null;
+      } catch(e) {
+        console.warn('fetchRow', id, e?.message);
+        return null;
+      }
+    }
 
-  // Try 1: direct slug key (primary path for all new agents)
-  let row=await fetchRow('agent_'+slugCode);
+    // Try 1: direct slug key
+    let row = await fetchRow('agent_' + slugCode);
 
-  // Try 2: scan all agent rows for matching lbCode (legacy UUID-based agents)
-  if(!row){
-    try{
-      const res=await db.from('app_state').select('*').like('id','agent_%');
-      const rows=res?.data||[];
-      row=rows.find(r=>{
-        const lb=r.data?.agentProfile?.lbCode||'';
-        const rid=(r.id||'').replace('agent_','');
-        // Match by lbCode slug OR if the row ID itself matches
-        return (lb&&slugifyCode(lb)===slugCode)||(rid===slugCode);
-      })||null;
-      if(!row&&rows.length===1) row=rows[0]; // sole legacy row
-    }catch{}
-  }
+    // Try 2: scan all agent rows for matching lbCode
+    if (!row) {
+      try {
+        const res = await db.from('app_state').select('*').like('id', 'agent_%');
+        const rows = res?.data || [];
+        row = rows.find(r => {
+          const lb = r.data?.agentProfile?.lbCode || '';
+          const rid = (r.id || '').replace('agent_', '');
+          return (lb && slugifyCode(lb) === slugCode) || (rid === slugCode);
+        }) || null;
+        if (!row && rows.length === 1) row = rows[0];
+      } catch {}
+    }
 
-  // Try 3: not applicable — all accounts use slug keys
+    if (!row) { setStatus('Account not found — check your code', true); return; }
 
-  if(!row){ setStatus('Account not found — check your code', true); return; }
+    const foundData = row.data || {};
+    const foundId = (row.id || 'main').replace('agent_', '');
+    const profile = foundData.agentProfile || {};
 
-  const foundData=row.data||{};
-  const foundId=(row.id||'main').replace('agent_','');
-  const profile=foundData.agentProfile||{};
+    // pinHash may be in agent row OR in main stamp
+    let pinHash = foundData._pinHash || null;
+    if (!pinHash) {
+      try {
+        const mainRow = await fetchRow('main');
+        if (mainRow?.data?.pinHash) pinHash = mainRow.data.pinHash;
+      } catch {}
+    }
 
-  // pinHash may be in agent row OR in main stamp — check both
-  let pinHash=foundData._pinHash||null;
-  if(!pinHash){
-    try{
-      const mainRow=await fetchRow('main');
-      if(mainRow?.data?.pinHash) pinHash=mainRow.data.pinHash;
-    }catch{}
-  }
+    // Migrate to slug key if needed
+    if (foundId !== slugCode) {
+      foundData.agentProfile = { ...profile, lbCode: rawCode, id: slugCode, setupComplete: true };
+      foundData._skipPurgeOnce = true;
+      try {
+        await db.from('app_state').upsert({ id: 'agent_' + slugCode, data: foundData, updated_at: new Date().toISOString() });
+        if (foundId !== 'main') await db.from('app_state').delete().eq('id', 'agent_' + foundId);
+      } catch {}
+    }
 
-  // Migrate to slug key if needed
-  if(foundId!==slugCode){
-    foundData.agentProfile={...profile,lbCode:rawCode,id:slugCode,setupComplete:true};
-    foundData._skipPurgeOnce=true;
-    try{
-      await db.from('app_state').upsert({id:'agent_'+slugCode,data:foundData,updated_at:new Date().toISOString()});
-      if(foundId!=='main') await db.from('app_state').delete().eq('id','agent_'+foundId);
-    }catch{}
-  }
-  localStorage.setItem('squevetrack_'+slugCode,JSON.stringify(foundData));
-  // Restore display name + avatar from _profile (synced separately from credentials)
-  if (foundData._profile) {
-    if (foundData._profile.displayName) localStorage.setItem('sq_displayname_'+slugCode, foundData._profile.displayName);
-    if (foundData._profile.avatar)      localStorage.setItem('sq_avatar_'+slugCode,      foundData._profile.avatar);
-  }
+    // ========== NEW: Restore avatar & display name from _profile into localStorage ==========
+    const remoteProfile = foundData._profile || {};
+    if (remoteProfile.displayName) {
+      localStorage.setItem('sq_displayname_' + slugCode, remoteProfile.displayName);
+    }
+    if (remoteProfile.avatar) {
+      localStorage.setItem('sq_avatar_' + slugCode, remoteProfile.avatar);
+    }
+    // Also inject into the cached state that we will store locally
+    if (foundData.agentProfile) {
+      foundData.agentProfile.displayName = remoteProfile.displayName || foundData.agentProfile.name;
+      foundData.agentProfile.avatar = remoteProfile.avatar || '';
+    }
+    // ================================================================================
 
-  agent={id:slugCode,lbCode:rawCode,name:profile.name||rawCode,stage:profile.stage||'M2',
-    supervisor:profile.supervisor||'',pinHash,createdAt:profile.createdAt||new Date().toISOString()};
-  // Store as pending — committed to permanent list only after PIN confirmed
-  window._pendingAgent = agent;
-  setStatus('');
-  lockSelectAgent(agent.id);
+    // Store full state locally (cache)
+    localStorage.setItem('squevetrack_' + slugCode, JSON.stringify(foundData));
+
+    agent = {
+      id: slugCode,
+      lbCode: rawCode,
+      name: profile.name || rawCode,
+      stage: profile.stage || 'M2',
+      supervisor: profile.supervisor || '',
+      pinHash: pinHash,
+      createdAt: profile.createdAt || new Date().toISOString()
+    };
+
+    window._pendingAgent = agent;
+    setStatus('');
+    lockSelectAgent(agent.id);
   } catch(e) {
     console.error("authSignInWithCode error:", e);
-    var st=document.getElementById("auth-status"); if(st){st.textContent="Error signing in — check your connection and try again";st.style.color="var(--red)";}
+    var st = document.getElementById("auth-status");
+    if (st) { st.textContent = "Error signing in — check your connection and try again"; st.style.color = "var(--red)"; }
   }
 }
 
@@ -16742,11 +17167,14 @@ function cropConfirm() {
   ctx.drawImage(srcCanvas, 10, 10, 260, 260, 0, 0, 200, 200);
   const dataUrl = out.toDataURL('image/jpeg', 0.80);
   localStorage.setItem('sq_avatar_' + _activeAgent.id, dataUrl);
+  if (!state.agentProfile) state.agentProfile = {};
+state.agentProfile.avatar = dataUrl;
+saveState();   // this pushes to Supabase
+_syncProfileToSupabase()
   // Update avatar preview in edit modal if open
   const editAvatar = document.getElementById('profile-edit-avatar');
   if (editAvatar) editAvatar.innerHTML = '<img src="'+dataUrl+'" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--gold)"><div style="position:absolute;bottom:2px;right:2px;width:26px;height:26px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.3)">📷</div>';
   document.getElementById('crop-overlay').style.display = 'none';
-  _syncProfileToSupabase();
   renderSettingsPage();
   toast('Profile photo saved ✅', 'success');
   haptic('pay');
@@ -16767,18 +17195,24 @@ function settingsClearAvatar() {
 
 function settingsSaveProfile() {
   if (!_activeAgent) return;
-  // Read from edit modal input (or fallback to old field)
   const name = (document.getElementById('profile-edit-name') || document.getElementById('settings-name-input'))?.value.trim();
   if (!name) { toast('Enter a display name', 'error'); return; }
 
   // Save locally
   localStorage.setItem('sq_displayname_' + _activeAgent.id, name);
+  // Update state.agentProfile
+  if (!state.agentProfile) state.agentProfile = {};
+  state.agentProfile.displayName = name;
+  // Also keep the old name field for compatibility
+  state.agentProfile.name = name;
+
   const agents = getAgentList();
   const idx = agents.findIndex(a => a.id === _activeAgent.id);
   if (idx >= 0) { agents[idx].name = name; saveAgentList(agents); _activeAgent.name = name; }
 
-  // Sync _profile to Supabase (separate from credentials)
-  _syncProfileToSupabase();
+  // Sync to Supabase via saveState()
+  saveState();
+_syncProfileToSupabase()
 
   closeModal();
   renderSettingsPage();
