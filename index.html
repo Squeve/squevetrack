@@ -15826,26 +15826,59 @@ function renderLockAgentList() {
   const agents = getAgentList().filter(a => a.pinHash);
   if (!agents.length) { el.innerHTML = ''; return; }
   const stageColors = { M0:'#3b82f6',M1:'#22c55e',M2:'#e8a020',M3:'#f97316',M4:'#ef4444',M5:'#7c3aed' };
-  el.innerHTML = agents.map(a => {
-    const col        = stageColors[a.stage] || '#e8a020';
-    // Use locally stored display name and avatar — credentials (lbCode, pinHash) unchanged
-    const displayName = localStorage.getItem('sq_displayname_' + a.id) || a.lbCode || a.name;
+  // ── Sort: last-active agent first ─────────────────────────
+  const sorted = [...agents].sort(function(a,b){
+    const ta = parseInt(localStorage.getItem('sq_lastactive_'+a.id)||'0');
+    const tb = parseInt(localStorage.getItem('sq_lastactive_'+b.id)||'0');
+    return tb - ta;
+  });
+
+  el.innerHTML = sorted.map(function(a, idx) {
+    const col         = stageColors[a.stage] || '#e8a020';
+    const displayName = localStorage.getItem('sq_displayname_' + a.id) || a.name || a.lbCode;
     const avatar      = localStorage.getItem('sq_avatar_' + a.id);
-    const initials    = displayName.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    const isActive    = _activeAgent?.id === a.id;
-    const avatarHtml  = avatar
-      ? `<img src="${avatar}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0">`
-      : `<div class="lock-agent-avatar" style="background:${col}22;color:${col}">${initials}</div>`;
-    return `<div style="margin-bottom:8px">
-      <button class="lock-agent-card" style="width:100%;${isActive?'border-color:var(--gold);background:rgba(240,160,48,0.06);':''}" onclick="lockSelectAgent('${a.id}')">
-        ${avatarHtml}
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${displayName}${isActive ? ' <span style="font-size:10px;color:var(--green);font-weight:600">● Active</span>' : ''}</div>
-          <div style="font-size:11px;color:var(--text3)">${a.stage||'M2'} · ${a.stage ? (STAGE_CONFIG[a.stage]?.name||'') : 'Active Default'}</div>
-        </div>
-      </button>
-    </div>`;
+    const initials    = displayName.split(/\s+/).map(function(w){return w[0]||'';}).join('').slice(0,2).toUpperCase();
+    const isActive    = _activeAgent && _activeAgent.id === a.id;
+    const stageName   = (typeof STAGE_CONFIG !== 'undefined' && STAGE_CONFIG[a.stage]) ? STAGE_CONFIG[a.stage].name : 'Active Default';
+
+    // Last-seen relative time
+    const lastTs = parseInt(localStorage.getItem('sq_lastactive_'+a.id)||'0');
+    let lastSeenStr = '';
+    if (lastTs > 0) {
+      const diff = Date.now() - lastTs;
+      if      (diff < 60000)         lastSeenStr = 'Just now';
+      else if (diff < 3600000)       lastSeenStr = Math.floor(diff/60000) + 'm ago';
+      else if (diff < 86400000)      lastSeenStr = Math.floor(diff/3600000) + 'h ago';
+      else if (diff < 604800000)     lastSeenStr = Math.floor(diff/86400000) + 'd ago';
+      else                           lastSeenStr = new Date(lastTs).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    }
+
+    const avatarHtml = avatar
+      ? '<img src="'+avatar+'" style="width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0;box-shadow:0 0 0 2px '+col+'55,0 0 0 4px '+col+'18">'
+      : '<div class="lock-agent-avatar" style="background:linear-gradient(135deg,'+col+'33,'+col+'18);color:'+col+';border:1.5px solid '+col+'44;font-size:16px">'+initials+'</div>';
+
+    return '<div style="margin-bottom:10px">'
+      + '<button class="lock-agent-card" data-agentid="'+a.id+'" style="--lac-color:'+col+';width:100%">'
+      + avatarHtml
+      + '<div style="flex:1;min-width:0">'
+      + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">'
+      + '<div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#fff">'+displayName+'</div>'
+      + (isActive ? '<span style="background:rgba(34,197,94,0.2);color:#22c55e;font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;flex-shrink:0;letter-spacing:0.3px">ACTIVE</span>' : '')
+      + '</div>'
+      + '<div style="display:flex;align-items:center;gap:6px">'
+      + '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:'+col+';flex-shrink:0;opacity:0.8"></span>'
+      + '<span style="font-size:11px;color:rgba(255,255,255,0.45)">'+(a.stage||'M2')+' · '+stageName+'</span>'
+      + (lastSeenStr ? '<span style="font-size:10px;color:rgba(255,255,255,0.28);margin-left:auto">'+lastSeenStr+'</span>' : '')
+      + '</div>'
+      + '</div>'
+      + '<div class="lock-agent-arrow"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" style="width:12px;height:12px"><path d="M7 5l5 5-5 5"/></svg></div>'
+      + '</button>'
+      + '</div>';
   }).join('');
+  // Wire clicks via delegation — avoids quote nesting in onclick
+  el.querySelectorAll('[data-agentid]').forEach(function(btn){
+    btn.addEventListener('click', function(){ lockSelectAgent(btn.dataset.agentid); });
+  });
 }
 
 function lockSelectAgent(id) {
@@ -16004,6 +16037,7 @@ async function processPin() {
         window._pendingAgent = null;
       }
       _pinAttempts = 0; _pinLockUntil = 0;  // reset on success
+      localStorage.setItem('sq_lastactive_' + _pinTarget.id, Date.now().toString());
       hideLockScreen();
       haptic('pay');
       await loadStateForAgent();
@@ -18156,29 +18190,38 @@ document.addEventListener('DOMContentLoaded', async () => {
 /* ── Agent cards ── */
 .lock-agent-card {
   display: flex; align-items: center; gap: 14px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.09);
-  border-radius: 14px; padding: 13px 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 16px; padding: 14px 16px;
   cursor: pointer; width: 100%;
-  transition: all 0.18s ease; text-align: left; margin-bottom: 8px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+  transition: all 0.2s ease; text-align: left;
+  position: relative; overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.lock-agent-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  border-radius: 16px 0 0 16px;
+  background: var(--lac-color, #e8a020);
+  opacity: 0.85;
 }
 .lock-agent-card:hover {
-  border-color: rgba(240,160,48,0.4);
-  background: rgba(240,160,48,0.06);
-  box-shadow: 0 6px 24px rgba(0,0,0,0.25), 0 0 0 1px rgba(240,160,48,0.15);
-  transform: translateY(-1px);
+  border-color: var(--lac-color, rgba(240,160,48,0.5));
+  background: rgba(255,255,255,0.07);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.08), inset 0 1px 0 rgba(255,255,255,0.08);
+  transform: translateY(-2px) scale(1.005);
 }
+.lock-agent-card:active { transform: translateY(0) scale(0.99); }
 .lock-agent-card.selected {
-  border-color: var(--ls-gold);
+  border-color: var(--lac-color, var(--ls-gold));
   background: rgba(240,160,48,0.08);
-  box-shadow: 0 6px 24px rgba(240,160,48,0.15);
+  box-shadow: 0 8px 32px rgba(240,160,48,0.2);
 }
 .lock-agent-avatar {
-  width: 44px; height: 44px; border-radius: 50%;
+  width: 48px; height: 48px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-head); font-size: 16px; font-weight: 800;
-  flex-shrink: 0; border: 2px solid transparent;
+  font-family: var(--font-head); font-size: 17px; font-weight: 800;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.08), 0 0 0 4px rgba(255,255,255,0.03);
 }
 .lock-agent-name {
   font-family: var(--font-head); font-size: 14px; font-weight: 700;
@@ -18188,8 +18231,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   font-size: 11px; color: var(--ls-muted); margin-top: 2px; letter-spacing: 0.2px;
 }
 .lock-agent-arrow {
-  margin-left: auto; color: var(--ls-gold); font-size: 18px; flex-shrink: 0;
+  margin-left: auto; color: var(--lac-color, var(--ls-gold)); font-size: 16px;
+  flex-shrink: 0; opacity: 0.7;
+  background: rgba(255,255,255,0.05); border-radius: 50%;
+  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
 }
+.lock-agent-card:hover .lock-agent-arrow { opacity: 1; background: rgba(255,255,255,0.09); }
 
 /* Signup panel */
 .ls-signup-icon {
