@@ -5319,20 +5319,12 @@ function getSmsMessage(b, useGenerous) {
 }
 
 function getWaLink(b, useGenerous) {
-  // Use phone WITH leading + but no spaces for the deep link
   let phoneRaw = b.phone.replace(/\s/g, '');
-// Convert local Ghana number (starting with 0) to international
-if (phoneRaw.startsWith('0')) {
-  phoneRaw = '+233' + phoneRaw.substring(1);
-}                  // e.g. +233256724791
-  const phoneDigits = phoneRaw.replace('+', '');                   // e.g. 233256724791
-  const msg = encodeURIComponent(getSmsMessage(b, useGenerous));
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  // iOS: whatsapp:// deep link is more reliable than wa.me for pre-filled messages
-  // Android / desktop: wa.me works fine
-  if (isIOS) {
-    return 'whatsapp://send?phone=' + phoneDigits + '&text=' + msg;
+  if (phoneRaw.startsWith('0')) {
+    phoneRaw = '+233' + phoneRaw.substring(1);
   }
+  const phoneDigits = phoneRaw.replace('+', ''); // e.g., 233241234567
+  const msg = encodeURIComponent(getSmsMessage(b, useGenerous));
   return 'https://wa.me/' + phoneDigits + '?text=' + msg;
 }
 
