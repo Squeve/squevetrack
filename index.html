@@ -4940,31 +4940,7 @@ async function _pushToSupabase() {
 
 // ── COMPUTED ───────────────────────────────────────────
 
-function normalizePhone(phone) {
-  if (!phone) return '';
-  // Remove all spaces, dashes, parentheses
-  let cleaned = phone.replace(/\s+/g, '').replace(/[-()]/g, '');
-  
-  // Already has '+' – assume correct format (but ensure no spaces)
-  if (cleaned.startsWith('+')) return cleaned;
-  
-  // If it starts with '0' (local Ghana format) replace leading '0' with '+233'
-  if (cleaned.startsWith('0') && cleaned.length >= 9) {
-    return '+233' + cleaned.substring(1);
-  }
-  
-  // If it starts with digits and looks like a Ghana number without leading 0 (e.g., 233203034211)
-  if (cleaned.length >= 10 && cleaned.length <= 12 && !cleaned.startsWith('+') && !cleaned.startsWith('0')) {
-    // Assume it already has country code but missing '+'
-    return '+' + cleaned;
-  }
-  
-  // If it's a very short number (invalid), return as is but log warning
-  if (cleaned.length < 9) {
-    console.warn('Phone number too short, may be invalid:', phone);
-  }
-  return cleaned;
-}
+
 
 function getOdAge(startDate) {
   if (!startDate) return 0;
@@ -4983,13 +4959,29 @@ function getOdAge(startDate) {
 // Normalize phone numbers for storage (store as +233XXXXXXXXX)
 function normalizePhone(phone) {
   if (!phone) return '';
-  let cleaned = phone.replace(/\s+/g, '').replace(/[-()]/g, '');
-  if (cleaned.startsWith('+')) return cleaned;
-  if (cleaned.startsWith('0')) return '+233' + cleaned.substring(1);
-  if (cleaned.length >= 9 && cleaned.length <= 12 && !cleaned.startsWith('+') && !cleaned.startsWith('0')) {
-    return '+' + cleaned;
+  // Strip spaces, dashes, parentheses
+  let raw = phone.replace(/[\s\-()]/g, '');
+  // Strip leading international dialing prefix '00'
+  if (raw.startsWith('00')) raw = raw.substring(2);
+  // Extract pure digits (drop any + or other stray chars)
+  let digits = raw.replace(/[^\d]/g, '');
+  // Case: country code 233 already present (e.g. +233XXXXXXXXX, 233XXXXXXXXX, or +2330XXXXXXXXX)
+  if (digits.startsWith('233')) {
+    let local = digits.substring(3);
+    // Fix double-prefix bug: +2330XXXXXXXXX — strip the erroneous leading 0
+    if (local.startsWith('0')) local = local.substring(1);
+    if (local.length === 9) return '+233' + local;
   }
-  return cleaned;
+  // Local Ghana format: 0XXXXXXXXX (10 digits)
+  if (digits.startsWith('0') && digits.length === 10) {
+    return '+233' + digits.substring(1);
+  }
+  // Bare 9-digit number without leading 0 (e.g. 241234567)
+  if (digits.length === 9) {
+    return '+233' + digits;
+  }
+  // Fallback: reconstruct with + if original had one
+  return (raw.startsWith('+') || phone.includes('+')) ? '+' + digits : digits;
 }
 
 // Format phone for display (add spaces: +233 24 123 4567)
