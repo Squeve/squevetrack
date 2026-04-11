@@ -31,7 +31,6 @@
 <meta name="apple-mobile-web-app-title" content="SqueveTrack">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -3995,7 +3994,7 @@ tr.overdue-critical .heat-ring {
 </style>
 
 <!-- TOAST AREA -->
-<div id="toast-area"></div>
+<div id="toast-area" role="status" aria-live="polite"></div>
 
 <!-- BULK ACTION BAR — fixed to bottom of screen, above everything -->
 <style>
@@ -4723,6 +4722,106 @@ function setSyncStatus(status) {
   }
 }
 
+let _lastKnownHash = '';
+let _lastFullState = null;
+
+async function _hashState(obj) {
+  const str = JSON.stringify(obj);
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+const DB_NAME = 'SqueveTrackDB';
+const STORE_NAME = 'app_state';
+let _dbPromise = null;
+
+function _openIndexedDB() {
+  if (!window.indexedDB) return Promise.resolve(null);
+  if (_dbPromise) return _dbPromise;
+  _dbPromise = new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  return _dbPromise;
+}
+
+async function _saveStateToIndexedDB(key, data) {
+  const db = await _openIndexedDB();
+  if (!db) return false;
+  const tx = db.transaction(STORE_NAME, 'readwrite');
+  const store = tx.objectStore(STORE_NAME);
+  store.put(data, key);
+  return new Promise(resolve => { tx.oncomplete = () => resolve(true); });
+}
+
+async function _loadStateFromIndexedDB(key) {
+  const db = await _openIndexedDB();
+  if (!db) return null;
+  const tx = db.transaction(STORE_NAME, 'readonly');
+  const store = tx.objectStore(STORE_NAME);
+  const request = store.get(key);
+  return new Promise(resolve => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => resolve(null);
+  });
+}
+
+async function _pushToSupabaseIncremental() {
+  if (!_db) return;
+  setSyncStatus('saving');
+  try {
+    const currentState = state;
+    const currentHash = await _hashState(currentState);
+    if (currentHash === _lastKnownHash) {
+      setSyncStatus('saved');
+      return;
+    }
+    if (!_lastKnownHash || !_lastFullState) {
+      await _db.from('app_state').upsert({
+        id: getSupabaseId(),
+        data: currentState,
+        updated_at: new Date().toISOString()
+      });
+      _lastFullState = JSON.parse(JSON.stringify(currentState));
+      _lastKnownHash = currentHash;
+      setSyncStatus('saved');
+      return;
+    }
+    const changes = {};
+    const keysToWatch = ['borrowers', 'dailyLog', 'monthlyTarget', 'discountRate', 'agedOutLog', 'rankingHistory', 'agentProfile'];
+    for (const key of keysToWatch) {
+      if (JSON.stringify(currentState[key]) !== JSON.stringify(_lastFullState[key])) {
+        changes[key] = currentState[key];
+      }
+    }
+    if (Object.keys(changes).length === 0) {
+      setSyncStatus('saved');
+      return;
+    }
+    changes._partial = true;
+    changes._lastSaveTs = new Date().toISOString();
+    await _db.from('app_state').upsert({
+      id: getSupabaseId(),
+      data: { ...currentState, ...changes },
+      updated_at: new Date().toISOString()
+    });
+    _lastFullState = JSON.parse(JSON.stringify(currentState));
+    _lastKnownHash = currentHash;
+    setSyncStatus('saved');
+    setTimeout(() => setSyncStatus('saved'), 2000);
+  } catch(e) {
+    setSyncStatus('error');
+    console.warn('Supabase incremental sync error:', e.message);
+  }
+}
+
 function initState() {
   return { borrowers: [], dailyLog: [], month: new Date().toLocaleDateString('en-GB',{month:'long',year:'numeric'}),
     discountRate: 0.30, monthlyTarget: 0, agedOutLog: [], archive: [],
@@ -4829,15 +4928,33 @@ if (!migrationFlag && state.borrowers && state.borrowers.length) {
   }
 
   // 2. Fall back to localStorage (decrypt if encrypted)
-  const raw = localStorage.getItem(getStateKey());
+    // 2. Try IndexedDB (new)
+  const idbKey = getStateKey();
+  const idbState = await _loadStateFromIndexedDB(idbKey);
+  if (idbState) {
+    state = migrateState(idbState);
+    _syncLocalProfileFromState();
+    // Phone normalisation (keep your existing code block here – don't delete it)
+    let migrationFlag = localStorage.getItem('sq_phone_migration_done');
+    if (!migrationFlag && state.borrowers && state.borrowers.length) {
+      // ... your existing migration code ...
+    }
+    purgeAgedOut();
+    showSkeletons(false);
+    if (_db) _pushToSupabaseIncremental();
+    return;
+  }
+
+  // 3. Fall back to localStorage (decrypt if encrypted)
+  const raw = localStorage.getItem(idbKey);
   if (raw) {
     try {
       const agentId = _activeAgent?.id || null;
       const json    = await _decryptFromStorage(raw, agentId);
       if (json) {
         state = migrateState(JSON.parse(json));
-   _syncLocalProfileFromState();
-   // One-time phone normalisation
+        _syncLocalProfileFromState();
+        // One-time phone normalisation
 let migrationFlag = localStorage.getItem('sq_phone_migration_done');
 if (!migrationFlag && state.borrowers && state.borrowers.length) {
   let changed = false;
@@ -4855,8 +4972,10 @@ if (!migrationFlag && state.borrowers && state.borrowers.length) {
     localStorage.setItem('sq_phone_migration_done', 'true');
   }
 }
+
         purgeAgedOut();
-        if (_db) _pushToSupabase();
+        if (_db) _pushToSupabaseIncremental();
+        showSkeletons(false);
         return;
       }
     } catch(e) {}
@@ -4895,12 +5014,18 @@ function saveState() {
   if (agentId && crypto?.subtle) {
     _encryptForStorage(json, agentId).then(function(encrypted) {
       localStorage.setItem(key, encrypted);
+  if (window.indexedDB) {
+  _saveStateToIndexedDB(key, state).catch(console.warn);
+}
     });
   } else {
     localStorage.setItem(key, json); // fallback for no-agent or no-crypto
   }
+if (window.indexedDB) {
+  _saveStateToIndexedDB(key, state).catch(console.warn);
+}
   clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(_pushToSupabase, 300);
+  _saveTimer = setTimeout(_pushToSupabaseIncremental, 300);
 }
 
 async function _pushToSupabase() {
@@ -5736,6 +5861,20 @@ function chartGoldColor() {
   return document.documentElement.getAttribute('data-theme') === 'light' ? '#c47a0a' : '#e8a020';
 }
 
+let _chartJSPromise = null;
+function loadChartJS() {
+  if (window.Chart) return Promise.resolve();
+  if (_chartJSPromise) return _chartJSPromise;
+  _chartJSPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Failed to load Chart.js'));
+    document.head.appendChild(script);
+  });
+  return _chartJSPromise;
+}
+
 function renderDailyChart() {
   const logs = [...state.dailyLog].sort((a,b) => a.date.localeCompare(b.date));
   const labels = logs.map(e => {
@@ -5934,9 +6073,9 @@ function renderLoansTable() {
       + '</div>'
       + '<div class="bl-actions">'
         + '<div class="bl-priority ' + pCls + '" title="Priority ' + pScore + '/10">' + pScore + '</div>'
-        + '<button class="bl-action-btn pay" data-action="pay"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" style="width:13px;height:13px"><circle cx="10" cy="10" r="8"/><path d="M10 6v1.5M10 12.5V14M7.5 8.5a2.5 2.5 0 015 1c0 1.38-1.12 2-2.5 2.5"/></svg>Pay</button>'
-        + '<button class="bl-action-btn ptp' + (r.promisedToPay?' active':'') + '" data-action="ptp"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" style="width:13px;height:13px"><path d="M2 10C2 5.58 5.58 2 10 2s8 3.58 8 8-3.58 8-8 8"/><polyline points="6,10 9,13 14,8"/></svg>' + (r.promisedToPay?'PTP Set':'PTP') + '</button>'
-        + '<button class="bl-action-btn" id="note-' + r.id + '" data-action="note"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" style="width:13px;height:13px"><rect x="3" y="3" width="14" height="14" rx="2"/><line x1="7" y1="8" x2="13" y2="8"/><line x1="7" y1="11" x2="11" y2="11"/></svg>' + notesDot + '</button>'
+        + '<button class="bl-action-btn pay" data-action="pay" aria-label="Record payment">💰 Pay</button>'
+        + '<button class="bl-action-btn ptp' + (r.promisedToPay?' active':'') + '" data-action="ptp" aria-label="Promise to pay">🤝 ' + (r.promisedToPay?'PTP Set':'PTP') + '</button>'
+        + '<button class="bl-action-btn" id="note-' + r.id + '" data-action="note" aria-label="Add note">📝 ' + notesDot + '</button>'
         + '<button class="bl-action-btn" id="hist-' + r.id + '" data-action="hist"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" style="width:13px;height:13px"><circle cx="10" cy="10" r="8"/><polyline points="10,6 10,10 13,13"/></svg>' + (callCount>0?'<span style="font-size:9px;color:var(--blue);font-family:var(--font-mono)">' + callCount + '</span>':'') + '</button>'
         + '<button class="bl-action-btn" data-action="hitlist" style="' + (inHitList?'border-color:var(--gold);color:var(--gold)':'') + '"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" style="width:13px;height:13px"><path d="M10 2l2.47 5h5.53l-4.5 3.27L15 16l-5-3.27L5 16l1.5-5.73L2 7h5.53z"/></svg></button>'
         + '<button class="bl-action-btn" data-action="edit"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" style="width:13px;height:13px"><path d="M4 16l9-9 3 3-9 9H4z"/><path d="M14 5l1-1a1 1 0 011.41 0l.59.59a1 1 0 010 1.41L16 7"/></svg></button>'
@@ -5986,35 +6125,50 @@ function renderLoansTable() {
 
     return d;
   }
-  function _renderLoanChunk(start, append) {
-    const chunk = window._loanRows.slice(start, start + 20);
-    if (!append) list.innerHTML = '';
-    else { var lm = list.querySelector('.bl-load-more'); if(lm) lm.remove(); }
-    chunk.forEach(r => list.appendChild(_buildBorrowerCard(r)));
-    var lm2 = list.querySelector('.bl-load-more'); if(lm2) lm2.remove();
-    const loaded = start + chunk.length;
-    if (loaded < window._loanRows.length) {
-      const rem = window._loanRows.length - loaded;
-      const lmDiv = document.createElement('div');
-      lmDiv.className = 'bl-load-more';
-      const lmBtn = document.createElement('button');
-      lmBtn.className = 'btn btn-ghost btn-sm';
-      lmBtn.textContent = 'Show ' + Math.min(20,rem) + ' more · ' + rem + ' remaining';
-      lmBtn.onclick = function() { _renderLoanChunk(loaded, true); haptic('light'); };
-      lmDiv.appendChild(lmBtn);
-      list.appendChild(lmDiv);
-    }
-    // Wire bulk bar buttons once
-    var baCb = document.getElementById('ba-paid');
-    if (baCb && !baCb._wired) {
-      baCb._wired = true;
-      baCb.addEventListener('click', function() { bulkAction('paid'); });
-      document.getElementById('ba-promise').addEventListener('click', function() { bulkAction('promise'); });
-      document.getElementById('ba-base').addEventListener('click', function() { bulkAction('base'); });
-      document.getElementById('ba-pro').addEventListener('click', function() { bulkAction('pro'); });
-      document.getElementById('ba-delete').addEventListener('click', function() { bulkAction('delete'); });
+    window._loanRows = rows;
+  // Keep _buildBorrowerCard as is (do not modify)
+
+  // Remove any existing observer
+  if (window._loanObserver) window._loanObserver.disconnect();
+
+  let currentPage = 0;
+  const PAGE_SIZE = 25;
+  const container = document.getElementById('loans-tbody');
+  container.innerHTML = ''; // clear existing content
+
+  function loadPage() {
+    const start = currentPage * PAGE_SIZE;
+    const chunk = window._loanRows.slice(start, start + PAGE_SIZE);
+    if (!chunk.length) return;
+    // Remove loading sentinel if present
+    const oldSentinel = document.getElementById('loan-loading-marker');
+    if (oldSentinel) oldSentinel.remove();
+    // Append new cards
+    chunk.forEach(b => container.appendChild(_buildBorrowerCard(b)));
+    currentPage++;
+    // If more rows remain, add a sentinel to trigger next load
+    if (start + PAGE_SIZE < window._loanRows.length) {
+      const sentinel = document.createElement('div');
+      sentinel.id = 'loan-loading-marker';
+      sentinel.style.height = '20px';
+      sentinel.style.margin = '8px 0';
+      sentinel.innerHTML = '<div class="skeleton" style="height:40px;width:100%;border-radius:8px"></div>';
+      container.appendChild(sentinel);
+      if (window._loanObserver) window._loanObserver.disconnect();
+      window._loanObserver = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+          window._loanObserver.disconnect();
+          loadPage();
+        }
+      }, { rootMargin: '200px' });
+      window._loanObserver.observe(sentinel);
+    } else {
+      // All loaded, disconnect observer
+      if (window._loanObserver) window._loanObserver.disconnect();
     }
   }
+
+  loadPage(); // start loading
   _renderLoanChunk(0, false);
 }
 
@@ -6036,8 +6190,8 @@ function sortLoans(col) {
 }
 
 // ── ANALYTICS ──────────────────────────────────────────
-function renderAnalytics() {
-
+async function renderAnalytics() {
+  await loadChartJS();
   const all = state.borrowers;
   const active = getActiveBorrowers();
   const paid = all.filter(b => getStatus(b) === 'Paid');
