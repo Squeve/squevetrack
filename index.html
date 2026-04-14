@@ -4544,8 +4544,33 @@ function _updateOfflineBanner() {
   if (!navigator.onLine) { banner.classList.add('show'); }
   else { banner.classList.remove('show'); }
 }
-window.addEventListener('online',  () => { _updateOfflineBanner(); toast('Back online — syncing…','success'); if(_db)_pushToSupabase(); });
-window.addEventListener('offline', () => { _updateOfflineBanner(); toast('You are offline — changes saved locally','warn'); });
+
+window.addEventListener('online', async () => {
+  try {
+    _updateOfflineBanner();
+    toast('Back online — syncing…', 'success');
+
+    // Replay queued offline actions
+    if (_offlineQueue && _offlineQueue.length) {
+      for (const action of _offlineQueue) {
+        await replayAction(action);
+      }
+      _offlineQueue = [];
+      saveState();
+    }
+
+    // Push current state to Supabase
+    if (_db) {
+      await _pushToSupabase();
+    } else {
+      setSyncStatus('offline');
+    }
+  } catch (err) {
+    console.error('Online sync error:', err);
+    setSyncStatus('error');
+    toast('Sync failed – will retry later', 'error');
+  }
+});
 
 // ── STAGE CONFIGURATION — M0 through M5 ────────────────
 const STAGE_CONFIG = {
@@ -4783,33 +4808,10 @@ async function _pushToSupabaseIncremental() {
       setSyncStatus('saved');
       return;
     }
-    if (!_lastKnownHash || !_lastFullState) {
-      await _db.from('app_state').upsert({
-        id: getSupabaseId(),
-        data: currentState,
-        updated_at: new Date().toISOString()
-      });
-      _lastFullState = JSON.parse(JSON.stringify(currentState));
-      _lastKnownHash = currentHash;
-      setSyncStatus('saved');
-      return;
-    }
-    const changes = {};
-    const keysToWatch = ['borrowers', 'dailyLog', 'monthlyTarget', 'discountRate', 'agedOutLog', 'rankingHistory', 'agentProfile'];
-    for (const key of keysToWatch) {
-      if (JSON.stringify(currentState[key]) !== JSON.stringify(_lastFullState[key])) {
-        changes[key] = currentState[key];
-      }
-    }
-    if (Object.keys(changes).length === 0) {
-      setSyncStatus('saved');
-      return;
-    }
-    changes._partial = true;
-    changes._lastSaveTs = new Date().toISOString();
+    // Always do a full upsert – simpler and safer
     await _db.from('app_state').upsert({
       id: getSupabaseId(),
-      data: { ...currentState, ...changes },
+      data: { ...currentState, _lastSaveTs: new Date().toISOString() },
       updated_at: new Date().toISOString()
     });
     _lastFullState = JSON.parse(JSON.stringify(currentState));
@@ -4818,7 +4820,7 @@ async function _pushToSupabaseIncremental() {
     setTimeout(() => setSyncStatus('saved'), 2000);
   } catch(e) {
     setSyncStatus('error');
-    console.warn('Supabase incremental sync error:', e.message);
+    console.warn('Supabase sync error:', e.message);
   }
 }
 
@@ -4894,6 +4896,8 @@ async function loadState() {
         .single();
       if (!error && data && data.data) {
         state = migrateState(data.data);
+       _lastFullState = JSON.parse(JSON.stringify(state));
+       _lastKnownHash = await _hashState(state);
        _syncLocalProfileFromState();
         localStorage.setItem(getStateKey(), JSON.stringify(state)); // warm cache
        // One-time phone normalisation
@@ -4917,10 +4921,7 @@ if (!migrationFlag && state.borrowers && state.borrowers.length) {
         purgeAgedOut();
         setSyncStatus('saved');
       // Conflict detection: if our local state is newer, warn
-      if (state._lastSaveTs && row.data._lastSaveTs && state._lastSaveTs > row.data._lastSaveTs) {
-        console.warn('Local state is newer than server — possible conflict. Local:', state._lastSaveTs, 'Server:', row.data._lastSaveTs);
-      }
-        showSkeletons(false);
+     showSkeletons(false);
         return;
       }
     } catch(e) { /* fall through to localStorage */ }
@@ -4987,6 +4988,58 @@ if (!migrationFlag && state.borrowers && state.borrowers.length) {
   if (_db) _pushToSupabase();
   else saveState();
 }
+
+async function pullRemoteState() {
+  if (!_db || !_activeAgent) return;
+  try {
+    const { data, error } = await _db
+      .from('app_state')
+      .select('data')
+      .eq('id', getSupabaseId())
+      .single();
+    if (error) throw error;
+    if (!data || !data.data) return;
+
+    const remoteState = data.data;
+    const remoteHash = await _hashState(remoteState);
+    const localHash = await _hashState(state);
+
+    if (remoteHash === localHash) return; // already in sync
+
+    // Simple last-write-wins based on _lastSaveTs
+    const remoteTs = remoteState._lastSaveTs || 0;
+    const localTs = state._lastSaveTs || 0;
+    if (remoteTs > localTs) {
+      // Remote is newer – replace local state
+      state = migrateState(remoteState);
+      _lastFullState = JSON.parse(JSON.stringify(state));
+      _lastKnownHash = remoteHash;
+      saveState(); // persist to localStorage
+      renderCurrentPage();
+      updateBadges();
+      toast('Updated with latest cloud data', 'info');
+    } else {
+      // Local is newer – push to cloud (already scheduled)
+      _pushToSupabaseIncremental();
+    }
+  } catch (e) {
+    console.warn('Pull remote state failed:', e);
+  }
+}
+
+// On visibility change (tab becomes active)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    pullRemoteState();
+  }
+});
+
+// Every 60 seconds when the page is visible
+setInterval(() => {
+  if (document.visibilityState === 'visible') {
+    pullRemoteState();
+  }
+}, 60000);
 
 // ── Save: localStorage immediately + Supabase debounced ──────
 function _trackBorrowerScores() {
@@ -5349,9 +5402,9 @@ function getDueToday(b) {
 }
 
 // Generous/discounted offer = loan remaining + (discountRate% of OD fee)
-// Default 30%: customer pays 30% of OD fee, 70% waived as incentive
+// Default 50%: customer pays 50% of OD fee, 50% waived as incentive
 function getGenerous(b) {
-  const rate = (state && state.discountRate !== undefined) ? state.discountRate : 0.30;
+  const rate = (state && state.discountRate !== undefined) ? state.discountRate : 0.50;
   return Math.max(0, getRemaining(b) + Math.round(_getOdFeeCached(b) * rate));
 }
 
@@ -14743,12 +14796,59 @@ function initPullToRefresh() {
 }
 
 // ── OFFLINE WORK QUEUE (item 42) ───────────────────────
+// When offline, push action to queue
 function queueOfflineAction(action) {
-  if (navigator.onLine) return; // only queue when offline
-  action.timestamp = new Date().toISOString();
-  _offlineQueue.push(action);
-  updatePendingSyncLabel();
+  if (!navigator.onLine) {
+    if (!state.offlineQueue) state.offlineQueue = [];
+    state.offlineQueue.push(action);
+    saveState();
+    updatePendingSyncLabel();
+  }
 }
+
+async function replayAction(action) {
+  try {
+    if (action.type === 'payment') {
+      const b = state.borrowers.find(x => x.id === action.id);
+      if (b) {
+        b.amountPaid = action.newPaid;
+        b.notes = action.notes || b.notes;
+        b.isPaid = (b.amountPaid >= getDueToday(b) + b.amountPaid);
+        if (!b.payLog) b.payLog = [];
+        b.payLog.push({
+          date: new Date().toISOString().split('T')[0],
+          amount: action.newPaid,
+          delta: action.newPaid - (b.amountPaidBefore || 0),
+          note: action.notes,
+          isPaid: b.isPaid
+        });
+      }
+    } else if (action.type === 'delete') {
+      state.borrowers = state.borrowers.filter(b => b.id !== action.id);
+    } else if (action.type === 'log') {
+      // add log entry replay logic if needed
+    }
+    // Mark as replayed – no need to re‑queue
+  } catch (e) {
+    console.warn('Failed to replay offline action:', action, e);
+    // keep in queue? optional retry later
+  }
+}
+
+// Call this in recordPayment, addLogEntry, deleteBorrower, etc.
+// Example inside recordPayment:
+
+if (!navigator.onLine) {
+  queueOfflineAction({
+    type: 'payment',
+    id,
+    newPaid,
+    notes,
+    amountPaidBefore: b.amountPaid
+  });
+  // still update local state and save
+}
+
 function updatePendingSyncLabel() {
   const el = document.getElementById('pending-sync-label');
   if (!el) return;
@@ -14761,6 +14861,7 @@ function updatePendingSyncLabel() {
     el.style.display = 'none';
   }
 }
+
 async function replayOfflineQueue() {
   try {
   if (!_offlineQueue.length) return;
