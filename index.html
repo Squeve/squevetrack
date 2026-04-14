@@ -3,25 +3,25 @@
 <head>
 <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="
-    default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval'
-      https://cdnjs.cloudflare.com
-      https://cdn.jsdelivr.net
-      https://cdn.sheetjs.com;
-    style-src 'self' 'unsafe-inline'
-      https://fonts.googleapis.com;
-    font-src 'self'
-      https://fonts.gstatic.com;
-    connect-src 'self'
-      https://*.supabase.co
-      https://generativelanguage.googleapis.com
-      https://api.anthropic.com
-      https://api.openai.com
-      https://cdn.jsdelivr.net
-      https://tessdata.projectnaptha.com;
-    img-src 'self' data: blob:;
-    worker-src blob: https://cdn.jsdelivr.net;
-  ">
+  default-src 'self';
+  script-src 'self' 'unsafe-inline'
+    https://cdnjs.cloudflare.com
+    https://cdn.jsdelivr.net
+    https://cdn.sheetjs.com;
+  style-src 'self' 'unsafe-inline'
+    https://fonts.googleapis.com;
+  font-src 'self'
+    https://fonts.gstatic.com;
+  connect-src 'self'
+    https://*.supabase.co
+    https://generativelanguage.googleapis.com
+    https://api.anthropic.com
+    https://api.openai.com
+    https://cdn.jsdelivr.net
+    https://tessdata.projectnaptha.com;
+  img-src 'self' data: blob:;
+  worker-src blob: https://cdn.jsdelivr.net;
+">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title id="page-title">SqueveTrack</title>
 <meta name="theme-color" content="#06080f">
@@ -4546,29 +4546,23 @@ function _updateOfflineBanner() {
 }
 
 window.addEventListener('online', async () => {
-  try {
-    _updateOfflineBanner();
-    toast('Back online — syncing…', 'success');
+  _updateOfflineBanner();
+  toast('Back online — syncing…', 'success');
 
-    // Replay queued offline actions
-    if (_offlineQueue && _offlineQueue.length) {
-      for (const action of _offlineQueue) {
-        await replayAction(action);
-      }
-      _offlineQueue = [];
-      saveState();
+  // Replay any queued offline actions
+  if (state.offlineQueue && state.offlineQueue.length) {
+    for (const action of state.offlineQueue) {
+      await replayAction(action);
     }
+    state.offlineQueue = [];
+    saveState();
+  }
 
-    // Push current state to Supabase
-    if (_db) {
-      await _pushToSupabase();
-    } else {
-      setSyncStatus('offline');
-    }
-  } catch (err) {
-    console.error('Online sync error:', err);
-    setSyncStatus('error');
-    toast('Sync failed – will retry later', 'error');
+  // Then push current state to Supabase
+  if (_db) {
+    await _pushToSupabase();
+  } else {
+    setSyncStatus('offline');
   }
 });
 
@@ -4828,6 +4822,7 @@ function initState() {
   return { borrowers: [], dailyLog: [], month: new Date().toLocaleDateString('en-GB',{month:'long',year:'numeric'}),
     discountRate: 0.30, monthlyTarget: 0, agedOutLog: [], archive: [],
     hitList: [], callLog: {}, rankingHistory: [], undoHistory: [], pendingSyncCount: 0,
+    offlineQueue: [],
     agentProfile: {} };
 }
 
@@ -4850,6 +4845,7 @@ function migrateState(s) {
     if (!b.callLog) b.callLog = [];
     if (b.ptpBreached === undefined) b.ptpBreached = false;
     if (b.priorityScore === undefined) b.priorityScore = 5;
+    if (!s.offlineQueue) s.offlineQueue = [];
   });
   return s;
 }
@@ -4991,6 +4987,10 @@ if (!migrationFlag && state.borrowers && state.borrowers.length) {
 
 async function pullRemoteState() {
   if (!_db || !_activeAgent) return;
+  if (state.offlineQueue && state.offlineQueue.length > 0) {
+    console.log('Skipping remote pull – offline actions pending');
+    return;
+  }
   try {
     const { data, error } = await _db
       .from('app_state')
@@ -5081,38 +5081,46 @@ if (window.indexedDB) {
   _saveTimer = setTimeout(_pushToSupabaseIncremental, 300);
 }
 
-async function _pushToSupabase() {
+async function _pushToSupabase(retries = 3) {
   if (!_db) return;
   setSyncStatus('saving');
-  try {
-    // Always include _pinHash so syncs never wipe it
-    const agents = getAgentList();
-    const myAgent = agents.find(a => a.id === _activeAgent?.id);
-    const pinHash = myAgent?.pinHash || state._pinHash || null;
-    const nowTs = new Date().toISOString();
-    const { error } = await _db.from('app_state').upsert({
-      id: getSupabaseId(),
-      data: {
-        ...state,
-        _pinHash: pinHash,
-        _lastSaveTs: nowTs,
-        // Always embed agent identity so any device can reconstruct from this row
-        agentProfile: {
-          ...(state.agentProfile || {}),
-          id:     _activeAgent?.id     || state.agentProfile?.id,
-          lbCode: _activeAgent?.lbCode || state.agentProfile?.lbCode,
-          name:   _activeAgent?.name   || state.agentProfile?.name,
-          stage:  _activeAgent?.stage  || state.agentProfile?.stage,
-        }
-      },
-      updated_at: nowTs
-    });
-    if (error) throw error;
-    setSyncStatus('saved');
-    setTimeout(() => setSyncStatus('saved'), 2000);
-  } catch(e) {
-    setSyncStatus('error');
-    console.warn('Supabase sync error:', e.message);
+  
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const agents = getAgentList();
+      const myAgent = agents.find(a => a.id === _activeAgent?.id);
+      const pinHash = myAgent?.pinHash || state._pinHash || null;
+      const nowTs = new Date().toISOString();
+      const { error } = await _db.from('app_state').upsert({
+        id: getSupabaseId(),
+        data: {
+          ...state,
+          _pinHash: pinHash,
+          _lastSaveTs: nowTs,
+          agentProfile: {
+            ...(state.agentProfile || {}),
+            id:     _activeAgent?.id     || state.agentProfile?.id,
+            lbCode: _activeAgent?.lbCode || state.agentProfile?.lbCode,
+            name:   _activeAgent?.name   || state.agentProfile?.name,
+            stage:  _activeAgent?.stage  || state.agentProfile?.stage,
+          }
+        },
+        updated_at: nowTs
+      });
+      if (error) throw error;
+      setSyncStatus('saved');
+      setTimeout(() => setSyncStatus('saved'), 2000);
+      return; // success – exit the function
+    } catch(e) {
+      console.warn(`Supabase sync attempt ${attempt} failed:`, e.message);
+      if (attempt === retries) {
+        setSyncStatus('error');
+        toast('Sync failed – will retry later', 'error');
+      } else {
+        // Wait 1s, 2s, 4s before next attempt
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)));
+      }
+    }
   }
 }
 
@@ -5928,7 +5936,8 @@ function loadChartJS() {
   return _chartJSPromise;
 }
 
-function renderDailyChart() {
+async function renderDailyChart() {
+  await loadChartJS();
   const logs = [...state.dailyLog].sort((a,b) => a.date.localeCompare(b.date));
   const labels = logs.map(e => {
     const d = new Date(e.date);
@@ -6848,7 +6857,8 @@ function copyDispatchMsg(id) {
 }
 
 // ── DAILY LOG ──────────────────────────────────────────
-function renderLog() {
+async function renderLog() {
+  await loadChartJS();
   const logs = [...state.dailyLog].sort((a,b) => a.date.localeCompare(b.date));
   const total = logs.reduce((s,e) => s + (e.collected||0), 0);
   const nonZero = logs.filter(e => (e.collected||0) > 0);
@@ -7009,6 +7019,9 @@ function addLogEntry() {
   const amount = parseFloat(document.getElementById('log-amount').value) || 0;
   const notes = document.getElementById('log-notes').value.trim();
   if (!date) return toast('Please select a date', 'error');
+  if (!navigator.onLine) {
+  queueOfflineAction({ type: 'log', date, amount, notes });
+}
   const prevBest = getPersonalBest();
   const existing = state.dailyLog.findIndex(e => e.date === date);
   if (existing >= 0) {
@@ -8284,6 +8297,19 @@ function recordPayment(id) {
   // Save undo snapshot before modifying
   pushUndo('Payment on ' + b.name.split(' ')[0], { borrowers: state.borrowers, dailyLog: state.dailyLog });
 
+  // --- Offline queue: store action if offline ---
+  if (!navigator.onLine) {
+    queueOfflineAction({
+      type: 'payment',
+      id,
+      newPaid,
+      notes,
+      amountPaidBefore: b.amountPaid
+    });
+    // Still update local state – we'll save below
+  }
+  // --- End offline queue ---
+
   // Full settlement = Due Today (loan remaining + OD fee) + what they already paid
   const fullSettlement = getDueToday(b) + b.amountPaid;
   const prevPaid = b.amountPaid;
@@ -8448,6 +8474,9 @@ function deleteBorrower(id) {
       updateBadges();
       renderCurrentPage();
       toast(b.name.split(' ')[0] + ' removed (Ctrl+Z to undo)', 'info');
+     if (!navigator.onLine) {
+  queueOfflineAction({ type: 'delete', id, name: b.name });
+}
     }
   });
 }
@@ -14800,7 +14829,7 @@ function initPullToRefresh() {
 function queueOfflineAction(action) {
   if (!navigator.onLine) {
     if (!state.offlineQueue) state.offlineQueue = [];
-    state.offlineQueue.push(action);
+    state.offlineQueue.push({ ...action, timestamp: Date.now() });
     saveState();
     updatePendingSyncLabel();
   }
@@ -14808,30 +14837,48 @@ function queueOfflineAction(action) {
 
 async function replayAction(action) {
   try {
-    if (action.type === 'payment') {
-      const b = state.borrowers.find(x => x.id === action.id);
-      if (b) {
-        b.amountPaid = action.newPaid;
-        b.notes = action.notes || b.notes;
-        b.isPaid = (b.amountPaid >= getDueToday(b) + b.amountPaid);
-        if (!b.payLog) b.payLog = [];
-        b.payLog.push({
-          date: new Date().toISOString().split('T')[0],
-          amount: action.newPaid,
-          delta: action.newPaid - (b.amountPaidBefore || 0),
-          note: action.notes,
-          isPaid: b.isPaid
-        });
+    const today = new Date().toISOString().split('T')[0];
+    switch (action.type) {
+      case 'payment': {
+        const b = state.borrowers.find(x => x.id === action.id);
+        if (b) {
+          const oldPaid = b.amountPaid;
+          b.amountPaid = action.newPaid;
+          b.notes = action.notes || b.notes;
+          const fullSettlement = getDueToday(b) + b.amountPaid;
+          b.isPaid = (action.newPaid >= fullSettlement && fullSettlement > 0);
+          if (!b.payLog) b.payLog = [];
+          b.payLog.push({
+            date: today,
+            time: new Date().toLocaleTimeString('en-GB'),
+            amount: action.newPaid,
+            delta: action.newPaid - (action.amountPaidBefore || oldPaid),
+            note: action.notes || 'Offline payment',
+            isPaid: b.isPaid
+          });
+        }
+        break;
       }
-    } else if (action.type === 'delete') {
-      state.borrowers = state.borrowers.filter(b => b.id !== action.id);
-    } else if (action.type === 'log') {
-      // add log entry replay logic if needed
+      case 'delete': {
+        state.borrowers = state.borrowers.filter(b => b.id !== action.id);
+        state.hitList = (state.hitList || []).filter(id => id !== action.id);
+        break;
+      }
+      case 'log': {
+        const existing = state.dailyLog.find(e => e.date === action.date);
+        if (existing) {
+          existing.collected = (existing.collected || 0) + action.amount;
+          existing.notes = action.notes || existing.notes;
+        } else {
+          state.dailyLog.push({ date: action.date, collected: action.amount, notes: action.notes });
+        }
+        break;
+      }
+      default:
+        console.warn('Unknown offline action type:', action.type);
     }
-    // Mark as replayed – no need to re‑queue
   } catch (e) {
     console.warn('Failed to replay offline action:', action, e);
-    // keep in queue? optional retry later
   }
 }
 
@@ -17833,6 +17880,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   })();
 
   await loadState();
+
+  // Preload Chart.js so it's ready for Dashboard and other pages
+loadChartJS().catch(e => console.warn('Chart.js failed to load:', e));
 
   // Apply saved theme
   const savedTheme = localStorage.getItem('m2_theme') || 'dark';
