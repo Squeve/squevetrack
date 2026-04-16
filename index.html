@@ -4536,7 +4536,6 @@ const SEED_LOG = [
 const SUPABASE_URL  = 'https://bbjpifrkzvzskwvjbhot.supabase.co';
 const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJianBpZnJrenZ6c2t3dmpiaG90Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3OTMzMzMsImV4cCI6MjA4OTM2OTMzM30.DMB1T7njYCMRKvPXuUiy-8T0wYuYQSo0fn5c0TPQQes';
 const CLAUDE_API_KEY = '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';
-let _offlineQueue = [];   // actions queued while offline
 // Offline banner
 function _updateOfflineBanner() {
   const banner = document.getElementById('offline-banner');
@@ -4621,27 +4620,17 @@ async function _deriveStorageKey(agentId) {
 }
 async function _encryptForStorage(plaintext, agentId) {
   try {
+    if (!crypto.subtle) throw new Error('Web Crypto not available');
     const key = await _deriveStorageKey(agentId);
     const iv  = crypto.getRandomValues(new Uint8Array(12));
     const enc = new TextEncoder();
     const ct  = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(plaintext));
-    // Store as "enc:" + base64(iv) + "." + base64(ciphertext)
     const toB64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
     return 'enc:' + toB64(iv) + '.' + toB64(ct);
-  } catch { return plaintext; } // fallback: store plain
-}
-async function _decryptFromStorage(stored, agentId) {
-  if (!stored || !stored.startsWith('enc:')) return stored; // unencrypted / legacy
-  try {
-    const key     = await _deriveStorageKey(agentId);
-    const payload = stored.slice(4);
-    const [ivB64, ctB64] = payload.split('.');
-    const fromB64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-    const iv      = fromB64(ivB64);
-    const ct      = fromB64(ctB64);
-    const pt      = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
-    return new TextDecoder().decode(pt);
-  } catch { return null; } // decryption failed — treat as missing
+  } catch (e) {
+    console.warn('Encryption disabled – using plaintext', e);
+    return plaintext;
+  }
 }
 
 function getStateKey() {
@@ -4730,6 +4719,7 @@ function setSyncStatus(status) {
   const pendEl = document.getElementById('pending-sync-label');
   if (pendEl) {
     if (status === 'saving') {
+      localStorage.setItem('last_sync_time', new Date().toISOString());
       if (!state.pendingSyncCount) state.pendingSyncCount = 0;
       state.pendingSyncCount++;
       pendEl.style.display = 'block';
@@ -5144,29 +5134,21 @@ function getOdAge(startDate) {
 // Normalize phone numbers for storage (store as +233XXXXXXXXX)
 function normalizePhone(phone) {
   if (!phone) return '';
-  // Strip spaces, dashes, parentheses
-  let raw = phone.replace(/[\s\-()]/g, '');
-  // Strip leading international dialing prefix '00'
-  if (raw.startsWith('00')) raw = raw.substring(2);
-  // Extract pure digits (drop any + or other stray chars)
-  let digits = raw.replace(/[^\d]/g, '');
-  // Case: country code 233 already present (e.g. +233XXXXXXXXX, 233XXXXXXXXX, or +2330XXXXXXXXX)
+  let digits = phone.replace(/\D/g, '');
+  // If starts with 233, ensure 9 digits after
   if (digits.startsWith('233')) {
-    let local = digits.substring(3);
-    // Fix double-prefix bug: +2330XXXXXXXXX — strip the erroneous leading 0
-    if (local.startsWith('0')) local = local.substring(1);
+    let local = digits.slice(3);
     if (local.length === 9) return '+233' + local;
+    if (local.length === 10 && local.startsWith('0')) return '+233' + local.slice(1);
   }
-  // Local Ghana format: 0XXXXXXXXX (10 digits)
-  if (digits.startsWith('0') && digits.length === 10) {
-    return '+233' + digits.substring(1);
+  // Local 10‑digit starting with 0
+  if (digits.length === 10 && digits.startsWith('0')) {
+    return '+233' + digits.slice(1);
   }
-  // Bare 9-digit number without leading 0 (e.g. 241234567)
-  if (digits.length === 9) {
-    return '+233' + digits;
-  }
-  // Fallback: reconstruct with + if original had one
-  return (raw.startsWith('+') || phone.includes('+')) ? '+' + digits : digits;
+  // Bare 9 digits
+  if (digits.length === 9) return '+233' + digits;
+  // Fallback
+  return '+' + digits;
 }
 
 // Format phone for display (add spaces: +233 24 123 4567)
@@ -5234,12 +5216,14 @@ let _odFeeCacheDate = '';
 function _getOdFeeCached(b) {
   const today = new Date().toISOString().split('T')[0];
   if (today !== _odFeeCacheDate) { _odFeeCache.clear(); _odFeeCacheDate = today; }
-  const key = b.id + ':' + (b.amountPaid||0) + ':' + (b.isPaid?1:0) + ':' + (b.odFeeSnapshotDate||'') + ':' + (b.odFeeSnapshot||0);
+  // Include current OD age in cache key
+  const key = b.id + ':' + getOdAge(b.startDate) + ':' + (b.amountPaid||0) + ':' + (b.isPaid?1:0) + ':' + (b.odFeeSnapshotDate||'') + ':' + (b.odFeeSnapshot||0);
   if (_odFeeCache.has(key)) return _odFeeCache.get(key);
   const val = getOdFee(b);
   _odFeeCache.set(key, val);
   return val;
 }
+  
 function _invalidateOdCache(borrowerId) {
   // Call after any payment or edit
   for (const k of _odFeeCache.keys()) {
@@ -5507,12 +5491,14 @@ function getWaLink(b, useGenerous) {
 
 // Returns the agent stage day range [min, max] — dynamic per stage
 function getAgentDayRange() {
+  if (!_activeAgent) return [1, 89];   // default M2 range
   const stage = (_activeAgent && _activeAgent.stage) ? _activeAgent.stage : 'M2';
   const bands = { M0:[0,0], M1:[1,5], M2:[6,15], M3:[16,40], M4:[41,60], M5:[61,89] };
   return bands[stage] || bands.M2;
 }
 
 function getActiveBorrowers() {
+  if (!_activeAgent) return state.borrowers.filter(b => getStatus(b) !== 'Paid');
   const [minDay, maxDay] = getAgentDayRange();
   return state.borrowers.filter(function(b) {
     const od = getOdAge(b.startDate);
@@ -5574,7 +5560,7 @@ function ptpAutoFlagMissed() {
   if (changed) saveState();
 }
 
-function renderDashboard() {
+async function renderDashboard() {
   ptpAutoFlagMissed();
   // Dynamic greeting
   const greetEl = document.getElementById('dash-greeting');
@@ -5900,7 +5886,7 @@ function renderDashboard() {
   }).join('') || '<div class="empty-state">No partial payments yet</div>';
 
 
-  renderDailyChart();
+  await renderDailyChart();
   renderStreakBadge();
   renderHitList();
   renderTreadmillAlert();
@@ -7861,7 +7847,9 @@ function importFromXLSX() {
   normRows.forEach(function(row) {
     var name     = (row.name || '').trim();
     var phone    = normalizePhone((row.phone || '').trim());
-    var loanDue  = parseFloat(row.loandue)  || 0;
+    var loanDueRaw = parseFloat(row.loandue);
+    if (isNaN(loanDueRaw) || loanDueRaw <= 0) { skipped++; return; }
+    var loanDue = loanDueRaw;
     var principal = parseFloat(row.principal) || parseFloat(row.loandue) || 0;
     var amountPaid = parseFloat(row.amountpaid) || 0;
     var loanType = (row.loantype || 'LoanBase').trim();
@@ -8088,6 +8076,7 @@ function clearOdSnapshot(id) {
   delete b.odFeeSnapshotNote;
   _odFeeCache.clear();
   saveState();
+  _odFeeCache.clear();
   closeModal();
   renderCurrentPage();
   toast('OD correction removed — back to auto-calculation', 'info');
@@ -8336,7 +8325,7 @@ function recordPayment(id) {
   if (newPaid !== prevPaid) {
     b.payLog.push({ date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}), amount: newPaid, delta: newPaid - prevPaid, note: notes, isPaid: b.isPaid });
   }
-  purgeAgedOut(); saveState(); closeModal();
+  purgeAgedOut(); saveState(); _odFeeCache.clear(); closeModal();
   updateTemplatePerfFromPayment(id);
   const status = getStatus(b);
   haptic(status === 'Paid' ? 'fullpay' : 'pay');
@@ -9846,6 +9835,8 @@ function bulkAction(action) {
   const ids = getSelectedIds();
   if (!ids.length) return toast('No accounts selected', 'error');
   haptic('medium');
+    // Capture snapshot before changes
+  pushUndo('Bulk ' + action + ' (' + ids.length + ')', { borrowers: JSON.parse(JSON.stringify(state.borrowers)), dailyLog: state.dailyLog });
   if (action === 'delete') {
     confirmAction({ title: 'Delete ' + ids.length + ' Account' + (ids.length > 1 ? 's' : ''), message: 'Permanently remove <strong>' + ids.length + '</strong> selected account' + (ids.length > 1 ? 's' : '') + ' from your portfolio?', confirmLabel: 'Delete All', onConfirm: function() {
       state.borrowers = state.borrowers.filter(b => !ids.includes(b.id));
@@ -14898,7 +14889,7 @@ if (!navigator.onLine) {
 function updatePendingSyncLabel() {
   const el = document.getElementById('pending-sync-label');
   if (!el) return;
-  const count = _offlineQueue.length;
+  const count = state.offlineQueue?.length || 0;
   if (count > 0) {
     el.style.display = 'block';
     el.textContent = count + ' change' + (count !== 1 ? 's' : '') + ' pending upload';
@@ -14907,19 +14898,18 @@ function updatePendingSyncLabel() {
     el.style.display = 'none';
   }
 }
-
+  
 async function replayOfflineQueue() {
-  try {
-  if (!_offlineQueue.length) return;
-  toast('Syncing ' + _offlineQueue.length + ' queued changes...', 'info');
-  _offlineQueue = [];
+  if (!state.offlineQueue || !state.offlineQueue.length) return;
+  toast('Syncing ' + state.offlineQueue.length + ' queued changes...', 'info');
+  for (const action of state.offlineQueue) {
+    await replayAction(action);
+  }
+  state.offlineQueue = [];
+  saveState();
   updatePendingSyncLabel();
   await _pushToSupabase();
   toast('All changes synced ✅', 'success');
-  } catch(e) {
-    console.error("replayOfflineQueue error:", e);
-    console.warn("Offline queue replay failed");
-  }
 }
 
 // ── BEST TIME TO CALL (item 29) ────────────────────────
