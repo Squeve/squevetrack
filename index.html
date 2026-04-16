@@ -5017,7 +5017,6 @@ async function pullRemoteState() {
       saveState(); // persist to localStorage
       renderCurrentPage();
       updateBadges();
-      toast('Updated with latest cloud data', 'info');
     } else {
       // Local is newer – push to cloud (already scheduled)
       _pushToSupabaseIncremental();
