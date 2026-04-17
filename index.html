@@ -8263,18 +8263,17 @@ function openPayModal(id) {
     <button class="btn btn-green" onclick="recordPayment('${id}')">Save Payment</button>
   `;
   document.getElementById('modal-overlay').classList.add('open');
-  // Wire OD row click after innerHTML is set
-    setTimeout(function() {
-    var odRow = document.getElementById('pay-od-row');
-    if (odRow) {
-      odRow.onclick = function() {
-        var oid = odRow.dataset.odid;
-        if (oid) { _pushModal(); openOdFeeModal(oid); }
-      };
-    } else {
-      console.warn('pay-od-row not found');
+    // Use event delegation to handle OD row click (no setTimeout needed)
+  const modalBody = document.getElementById('modal-body');
+  const odClickHandler = function(e) {
+    const odRow = e.target.closest('#pay-od-row');
+    if (odRow && odRow.dataset.odid) {
+      _pushModal();
+      openOdFeeModal(odRow.dataset.odid);
+      modalBody.removeEventListener('click', odClickHandler);
     }
-  }, 50);
+  };
+  modalBody.addEventListener('click', odClickHandler);
 
 function setPayAmount(amount) {
   const el = document.getElementById('pay-amount');
