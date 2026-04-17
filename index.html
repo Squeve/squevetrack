@@ -8233,7 +8233,7 @@ function openPayModal(id) {
       <div class="summary-row"><span class="summary-label">Loan Due</span><span class="summary-value">${fmtC(b.loanDue)}</span></div>
       <div class="summary-row"><span class="summary-label">Already Paid</span><span class="summary-value text-green">${fmtC(b.amountPaid)}</span></div>
       <div class="summary-row"><span class="summary-label">Loan Remaining</span><span class="summary-value text-red">${fmtC(remaining)}</span></div>
-      <div class="summary-row" style="cursor:pointer" id="pay-od-row" data-odid="${id}" style="cursor:pointer" title="Tap for OD breakdown \u2197"><span class="summary-label">OD Fee <span style="font-size:9px;color:var(--blue)">↗ breakdown</span></span><span class="summary-value text-gold">${fmtC(getOdFee(b))}</span></div>
+      <div class="summary-row" style="cursor:pointer" id="pay-od-row" data-odid="${id}" title="Tap for OD breakdown \u2197"><span class="summary-label">OD Fee <span style="font-size:9px;color:var(--blue)">↗ breakdown</span></span><span class="summary-value text-gold">${fmtC(getOdFee(b))}</span></div>
       <div class="summary-row" style="background:rgba(232,160,32,0.06);border-radius:6px;padding:10px 8px;margin-top:4px">
         <span class="summary-label" style="font-weight:700;color:var(--text)">Total Balance Owed</span>
         <span class="summary-value text-gold" style="font-size:16px">${fmtC(getDueToday(b))}</span>
@@ -8263,7 +8263,8 @@ function openPayModal(id) {
     <button class="btn btn-green" onclick="recordPayment('${id}')">Save Payment</button>
   `;
   document.getElementById('modal-overlay').classList.add('open');
-    // Use event delegation to handle OD row click (no setTimeout needed)
+
+  // Event delegation for OD row (replaces setTimeout)
   const modalBody = document.getElementById('modal-body');
   const odClickHandler = function(e) {
     const odRow = e.target.closest('#pay-od-row');
@@ -8274,7 +8275,7 @@ function openPayModal(id) {
     }
   };
   modalBody.addEventListener('click', odClickHandler);
-  }
+}
  
 function setPayAmount(amount) {
   const el = document.getElementById('pay-amount');
