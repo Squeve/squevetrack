@@ -12610,7 +12610,7 @@ function scanRanking() {
       const prevMonthly = lastMonthly ? lastMonthly.agents.find(p => p.name.toLowerCase() === a.name.toLowerCase()) : null;
       const monthlyPct  = prevMonthly ? parseFloat(prevMonthly.pct) : 0;
       const dailyPct    = parseFloat(a.pct);
-      const projPct     = (monthlyPct * 0.5 + dailyPct * 0.5).toFixed(2);
+      const projPct     = (monthlyPct + dailyPct * 0.5).toFixed(2);
       return { name: a.name, pct: projPct, monthlyPct: monthlyPct.toFixed(2), dailyPct: a.pct };
     }).sort((a,b) => parseFloat(b.pct) - parseFloat(a.pct));
 
