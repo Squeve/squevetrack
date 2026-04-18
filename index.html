@@ -5987,6 +5987,8 @@ var _loanFilterOd       = '';
 var _loanFilterPriority = '';
 var _loanFilterBadge    = '';
 
+let _lastLoanSearch = '', _lastFilterStatus = '', _lastFilterType = '', _lastFilterOd = '', _lastFilterPriority = '', _lastFilterBadge = '';
+  
 function renderLoansTable() {
   const searchEl   = document.getElementById('loan-search');
   const statusEl2  = document.getElementById('loan-filter-status');
@@ -10457,10 +10459,14 @@ function _buildPtpText(ptps, fmt, isEod) {
 
 // ── GLOBAL SEARCH ──────────────────────────────────────
 function renderGlobalSearch() {
-  var q = (document.getElementById('global-search-input')?.value || '').toLowerCase().trim();
-  var res = document.getElementById('global-search-results');
+  function renderGlobalSearch() {
+  const q = (document.getElementById('global-search-input')?.value || '').toLowerCase().trim();
+  const res = document.getElementById('global-search-results');
   if (!res) return;
-  if (!q) { res.style.display = 'none'; return; }
+  if (!q) {
+    res.style.display = 'none';
+    return;
+  }
   var matches = state.borrowers.filter(function(b) {
     return b.name.toLowerCase().includes(q) || b.phone.replace(/\s/g,'').includes(q.replace(/\s/g,''));
   }).slice(0, 8);
@@ -11898,13 +11904,13 @@ function filterAndNavigate(page, status, odAge, loanType) {
 var _loanSearchTimer = null;
 function debouncedRenderLoans() {
   clearTimeout(_loanSearchTimer);
-  _loanSearchTimer = setTimeout(renderLoansTable, 120);
+  _loanSearchTimer = setTimeout(renderLoansTable, 300);
 }
 
 var _globalSearchTimer = null;
 function debouncedGlobalSearch() {
   clearTimeout(_globalSearchTimer);
-  _globalSearchTimer = setTimeout(renderGlobalSearch, 120);
+  _globalSearchTimer = setTimeout(renderGlobalSearch, 300);
 }
 
 // ── SEARCH CLEAR HELPER ────────────────────────────────
