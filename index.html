@@ -4869,6 +4869,7 @@ function purgeAgedOut() {
 // ── Load: Supabase first, localStorage fallback ──────────────
 async function loadState() {
   _db = initSupabase();
+  showSkeletons(true);
 
   // 1. Try to load from Supabase
   if (_db) {
@@ -4907,6 +4908,7 @@ if (!migrationFlag && state.borrowers && state.borrowers.length) {
         autoExpirePtps();
         setSyncStatus('saved');
       // Conflict detection: if our local state is newer, warn
+     showSkeletons(false);
         return;
       }
     } catch(e) { /* fall through to localStorage */ }
@@ -4926,6 +4928,7 @@ if (!migrationFlag && state.borrowers && state.borrowers.length) {
       // ... your existing migration code ...
     }
     purgeAgedOut();
+    showSkeletons(false);
     if (_db) _pushToSupabaseIncremental();
     return;
   }
@@ -4961,6 +4964,7 @@ if (!migrationFlag && state.borrowers && state.borrowers.length) {
         purgeAgedOut();
         autoExpirePtps();
         if (_db) _pushToSupabaseIncremental();
+        showSkeletons(false);
         return;
       }
     } catch(e) {}
@@ -5515,75 +5519,6 @@ function fmt(n) {
 
 function fmtC(n) { return '₵' + fmt(n); }
 
-// ── SKELETON GENERATORS (add after fmtC) ──────────────────────
-function skeletonCard(height = '120px', width = '100%') {
-  return `<div class="skeleton" style="height:${height}; width:${width}; border-radius:var(--radius); margin-bottom:12px;"></div>`;
-}
-
-function skeletonList(itemCount = 5, itemHeight = '60px') {
-  let html = '';
-  for (let i = 0; i < itemCount; i++) {
-    html += `<div class="skeleton" style="height:${itemHeight}; width:100%; margin-bottom:8px; border-radius:8px;"></div>`;
-  }
-  return html;
-}
-
-function renderPageSkeleton(page) {
-  const pageEl = document.getElementById(`page-${page}`);
-  if (!pageEl) return;
-
-  switch (page) {
-    case 'dashboard':
-      const kpiGrid = pageEl.querySelector('#kpi-grid');
-      if (kpiGrid) kpiGrid.innerHTML = Array(4).fill(0).map(() => skeletonCard('100px')).join('');
-      const targetSec = pageEl.querySelector('#dash-target-section');
-      if (targetSec) targetSec.innerHTML = skeletonCard('140px');
-      const topDue = pageEl.querySelector('#dash-top-due');
-      if (topDue) topDue.innerHTML = skeletonList(5, '48px');
-      const topCommit = pageEl.querySelector('#dash-top-commit');
-      if (topCommit) topCommit.innerHTML = skeletonList(5, '48px');
-      const urgency = pageEl.querySelector('#dash-urgency');
-      if (urgency) urgency.innerHTML = skeletonList(6, '36px');
-      break;
-    case 'loans':
-      const loansContainer = pageEl.querySelector('#loans-tbody');
-      if (loansContainer) loansContainer.innerHTML = skeletonList(8, '110px');
-      break;
-    case 'dispatch':
-      const dispatchList = pageEl.querySelector('#dispatch-list');
-      if (dispatchList) dispatchList.innerHTML = skeletonList(6, '100px');
-      break;
-    case 'log':
-      const logEntries = pageEl.querySelector('#log-entries');
-      if (logEntries) logEntries.innerHTML = skeletonList(7, '50px');
-      const logChart = pageEl.querySelector('#chart-log');
-      if (logChart && logChart.parentNode) logChart.parentNode.innerHTML = skeletonCard('120px');
-      break;
-    case 'smsblast':
-      const smsContacts = pageEl.querySelector('#sms-contact-list');
-      if (smsContacts) smsContacts.innerHTML = skeletonList(5, '60px');
-      break;
-    case 'ranking':
-      const rankingBody = pageEl.querySelector('#ranking-body');
-      if (rankingBody) rankingBody.innerHTML = skeletonCard('200px') + skeletonList(5, '50px');
-      break;
-    case 'ptp':
-      const ptpContent = pageEl.querySelector('#ptp-hub-content');
-      if (ptpContent) ptpContent.innerHTML = skeletonCard('150px') + skeletonList(4, '70px');
-      break;
-    case 'health':
-      const healthBody = pageEl.querySelector('#health-body');
-      if (healthBody) healthBody.innerHTML = skeletonList(6, '40px');
-      const agedOutList = pageEl.querySelector('#settings-agedout-list');
-      if (agedOutList) agedOutList.innerHTML = skeletonList(3, '60px');
-      const undoHistory = pageEl.querySelector('#undo-history-body');
-      if (undoHistory) undoHistory.innerHTML = skeletonList(3, '50px');
-      break;
-    default:
-      pageEl.innerHTML = `<div style="padding:20px">${skeletonCard('300px')}</div>`;
-  }
-}
-  
 function odClass(od) {
   // Classify urgency relative to the agent's stage range
   const [minDay, maxDay] = getAgentDayRange();
@@ -6308,8 +6243,6 @@ function sortLoans(col) {
 // ── ANALYTICS ──────────────────────────────────────────
 async function renderAnalytics() {
   await loadChartJS();
-  // Remove skeleton overlays from chart wraps
-  document.querySelectorAll('.chart-wrap .skeleton-overlay').forEach(overlay => overlay.remove());
   const all = state.borrowers;
   const active = getActiveBorrowers();
   const paid = all.filter(b => getStatus(b) === 'Paid');
@@ -9665,10 +9598,6 @@ function navigate(page) {
 }
 
 function renderCurrentPage() {
-  // Show skeleton immediately while data loads
-  renderPageSkeleton(currentPage);
-
-  // Then actually render the content (will replace skeleton)
   if (currentPage === 'dashboard') renderDashboard();
   else if (currentPage === 'loans') { renderLoansTable(); setTimeout(initRowSwipe, 100); }
   else if (currentPage === 'analytics') renderAnalytics();
