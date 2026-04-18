@@ -7149,6 +7149,11 @@ function openExportModal() {
     + '<label style="display:flex;align-items:center;gap:10px;font-size:12px;cursor:pointer;color:var(--text2);padding:9px 12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">'
     + '<input type="checkbox" id="exp-inc-promised-only" style="accent-color:var(--gold)"> Promised accounts only <span style="margin-left:auto;font-size:10px;color:var(--text3)">(overrides above)</span>'
     + '</label></div>'
+          <div style="margin-bottom:16px">
+        <label style="display:flex;align-items:center;gap:10px;font-size:12px;cursor:pointer;color:var(--text2);padding:9px 12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+          <input type="checkbox" id="exp-inc-broken" style="accent-color:var(--gold)"> Include broken PTPs <span style="margin-left:auto;font-size:10px;color:var(--text3)">(off by default – excludes breached promises)</span>
+        </label>
+      </div>
     + '<div class="exp-section-label">OD Day range</div>'
     + '<div style="display:grid;grid-template-columns:1fr 24px 1fr;gap:8px;align-items:center;margin-bottom:16px">'
     + '<div><label style="font-size:10px;color:var(--text3);margin-bottom:3px;display:block">From</label>'
@@ -7305,6 +7310,7 @@ function _getExportData() {
   const incPartial   = document.getElementById('exp-inc-partial')?.checked !== false;
   const incPaid      = document.getElementById('exp-inc-paid')?.checked || false;
   const incPromised  = document.getElementById('exp-inc-promised')?.checked !== false;
+  const incBroken = document.getElementById('exp-inc-broken')?.checked || false;
   const onlyPromised = document.getElementById('exp-inc-promised-only')?.checked || false;
   const msgGenerous  = document.getElementById('export-msg-generous')?.checked !== false;
   const nameFmt      = document.getElementById('export-name-format')?.value || 'full';
@@ -7361,6 +7367,8 @@ function _getExportData() {
     if (status === 'Partial' && !incPartial) return false;
     if (status === 'Paid'    && !incPaid)    return false;
     if (b.promisedToPay && !incPromised)     return false;
+    // Exclude broken PTPs unless explicitly included
+    if (!incBroken && b.ptpBreached === true) return false;
     return true;
   });
 
@@ -8858,18 +8866,37 @@ function clearPromise(id) {
 
 function autoExpirePtps() {
   const now = new Date();
+  // Create a date at midnight today for safe date-only comparison
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   let changed = false;
+
   state.borrowers.forEach(b => {
     if (!b.promisedToPay || !b.promiseDate) return;
+
     const [datePart, timePart] = b.promiseDate.split(' ');
-    const promiseDateTime = new Date(datePart + 'T' + (timePart || '23:59:59'));
-    if (promiseDateTime < now && b.ptpOutcome !== 'paid' && b.ptpOutcome !== 'broken') {
+    // Parse the promise date as local date (YYYY-MM-DD)
+    const promiseDate = new Date(datePart + 'T00:00:00');
+
+    // If promise date is in the future → do nothing
+    if (promiseDate > todayMidnight) return;
+
+    // If promise date is today and a time is set, check if the time has passed
+    if (promiseDate.getTime() === todayMidnight.getTime() && timePart) {
+      const [hours, minutes] = timePart.split(':').map(Number);
+      const promiseDateTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+      if (promiseDateTime > now) return; // future time today → not broken yet
+    }
+
+    // If we reach here, the promise is expired (past date or past time today)
+    // Only mark as broken if not already paid or already broken
+    if (b.ptpOutcome !== 'paid' && b.ptpOutcome !== 'broken') {
       b.promisedToPay = false;
       b.ptpOutcome = 'broken';
       b.ptpBreached = true;
       changed = true;
     }
   });
+
   if (changed) {
     saveState();
     if (currentPage === 'ptp') renderPtpHub();
