@@ -18197,7 +18197,7 @@ loadChartJS().catch(e => console.warn('Chart.js failed to load:', e));
   }
 
   if ('serviceWorker' in navigator) {
-    // Use relative path so it works on both root and subfolder (GitHub Pages)
+    // Use a relative path so it works on both root and subfolder (GitHub Pages)
     navigator.serviceWorker.register('./sw.js', {scope: './'}).catch(function() {});
   }
 
@@ -19175,6 +19175,38 @@ loadChartJS().catch(e => console.warn('Chart.js failed to load:', e));
     </div>
   </div>
 </div>
+<script>
+(function() {
+  function fixRankingInputLag() {
+    const input = document.getElementById('ranking-my-name');
+    if (!input) return;
 
+    // Remove any inline oninput handler that might be causing instant re-renders
+    input.removeAttribute('oninput');
+
+    let debounceTimer = null;
+    input.addEventListener('input', function(e) {
+      const val = e.target.value.trim();
+      localStorage.setItem('ranking_my_name', val);
+
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        // Only re-render if ranking page is active
+        if (typeof renderRanking === 'function' && 
+            document.getElementById('page-ranking')?.classList.contains('active')) {
+          renderRanking();
+        }
+      }, 500);
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fixRankingInputLag);
+  } else {
+    fixRankingInputLag();
+  }
+})();
+</script>
+  
 </body>
 </html>
