@@ -5549,22 +5549,6 @@ function renderPageSkeleton(page) {
       const loansContainer = pageEl.querySelector('#loans-tbody');
       if (loansContainer) loansContainer.innerHTML = skeletonList(8, '110px');
       break;
-    case 'analytics':
-      const kpisAnalytics = pageEl.querySelector('#analytics-kpis');
-      if (kpisAnalytics) kpisAnalytics.innerHTML = Array(4).fill(0).map(() => skeletonCard('100px')).join('');
-      const chartWraps = pageEl.querySelectorAll('.chart-wrap');
-      chartWraps.forEach(wrap => { wrap.innerHTML = skeletonCard('180px'); });
-      const typeTable = pageEl.querySelector('#analytics-type-table');
-      if (typeTable) typeTable.innerHTML = skeletonList(2, '80px');
-      const agingMatrix = pageEl.querySelector('#analytics-aging');
-      if (agingMatrix) agingMatrix.innerHTML = skeletonList(5, '70px');
-      const heatmap = pageEl.querySelector('#analytics-heatmap');
-      if (heatmap) heatmap.innerHTML = skeletonCard('60px');
-      const efficiency = pageEl.querySelector('#analytics-efficiency');
-      if (efficiency) efficiency.innerHTML = skeletonCard('100px');
-      const clusters = pageEl.querySelector('#analytics-clusters');
-      if (clusters) clusters.innerHTML = skeletonList(3, '80px');
-      break;
     case 'dispatch':
       const dispatchList = pageEl.querySelector('#dispatch-list');
       if (dispatchList) dispatchList.innerHTML = skeletonList(6, '100px');
@@ -6324,6 +6308,8 @@ function sortLoans(col) {
 // ── ANALYTICS ──────────────────────────────────────────
 async function renderAnalytics() {
   await loadChartJS();
+  // Remove skeleton overlays from chart wraps
+  document.querySelectorAll('.chart-wrap .skeleton-overlay').forEach(overlay => overlay.remove());
   const all = state.borrowers;
   const active = getActiveBorrowers();
   const paid = all.filter(b => getStatus(b) === 'Paid');
