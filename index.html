@@ -8869,27 +8869,37 @@ function clearPromise(id) {
 }
 
 function autoExpirePtps() {
-  const now = new Date();
-  // Create a date at midnight today for safe date-only comparison
-  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const today = new Date();
+  // Midnight today (start of the day, no time component)
+  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   let changed = false;
 
   state.borrowers.forEach(b => {
     if (!b.promisedToPay || !b.promiseDate) return;
 
-    const [datePart, timePart] = b.promiseDate.split(' ');
-    // Parse the promise date as local date (YYYY-MM-DD)
+    // Extract only the date part (YYYY-MM-DD)
+    const [datePart] = b.promiseDate.split(' ');
     const promiseDate = new Date(datePart + 'T00:00:00');
 
-    // If promise date is in the future → do nothing
-    if (promiseDate > todayMidnight) return;
+    // If promise date is today or in the future → do nothing
+    if (promiseDate >= todayMidnight) return;
 
-    // If promise date is today and a time is set, check if the time has passed
-    if (promiseDate.getTime() === todayMidnight.getTime() && timePart) {
-      const [hours, minutes] = timePart.split(':').map(Number);
-      const promiseDateTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
-      if (promiseDateTime > now) return; // future time today → not broken yet
+    // Promise date is strictly before today (i.e., yesterday or earlier)
+    // Mark as broken only if not already paid or already broken
+    if (b.ptpOutcome !== 'paid' && b.ptpOutcome !== 'broken') {
+      b.promisedToPay = false;
+      b.ptpOutcome = 'broken';
+      b.ptpBreached = true;
+      changed = true;
     }
+  });
+
+  if (changed) {
+    saveState();
+    if (currentPage === 'ptp') renderPtpHub();
+    toast('Some PTPs have expired and been auto‑marked as broken', 'info');
+  }
+}
 
     // If we reach here, the promise is expired (past date or past time today)
     // Only mark as broken if not already paid or already broken
