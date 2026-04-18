@@ -7310,7 +7310,6 @@ function _getExportData() {
   const incPartial   = document.getElementById('exp-inc-partial')?.checked !== false;
   const incPaid      = document.getElementById('exp-inc-paid')?.checked || false;
   const incPromised  = document.getElementById('exp-inc-promised')?.checked !== false;
-  const incBroken = document.getElementById('exp-inc-broken')?.checked || false;
   const onlyPromised = document.getElementById('exp-inc-promised-only')?.checked || false;
   const msgGenerous  = document.getElementById('export-msg-generous')?.checked !== false;
   const nameFmt      = document.getElementById('export-name-format')?.value || 'full';
@@ -7320,6 +7319,10 @@ function _getExportData() {
   const amtMin       = parseFloat(document.getElementById('exp-amt-min')?.value) || 0;
   const amtMaxRaw    = document.getElementById('exp-amt-max')?.value;
   const amtMax       = amtMaxRaw && amtMaxRaw.trim() !== '' ? parseFloat(amtMaxRaw) : Infinity;
+
+  // --- NEW: Include broken PTPs checkbox ---
+  const incBrokenCheckbox = document.getElementById('exp-inc-broken');
+  const incBroken = incBrokenCheckbox ? incBrokenCheckbox.checked : false;
 
   function exportName(b) {
     const parts = b.name.trim().split(/\s+/);
