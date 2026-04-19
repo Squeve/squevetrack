@@ -3617,6 +3617,21 @@ tr.overdue-critical .heat-ring {
         </div>
         <span class="settings-chevron">›</span>
       </button>
+      <div class="settings-row" style="cursor:default">
+  <div class="settings-row-icon" style="background:rgba(96,165,250,0.12);color:var(--blue)">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><circle cx="10" cy="10" r="8"/><polyline points="10,6 10,10 13,13"/></svg>
+  </div>
+  <div class="settings-row-label">
+    <div class="settings-row-label-main">Auto-lock timeout</div>
+    <div class="settings-row-label-sub" id="lock-timeout-sub">Lock app after inactivity</div>
+  </div>
+  <select id="lock-timeout-select" class="filter-select" style="width:110px;font-size:12px" onchange="settingsSetLockTimeout(this.value)">
+    <option value="1">1 minute</option>
+    <option value="5">5 minutes</option>
+    <option value="60">1 hour</option>
+    <option value="0">Never</option>
+  </select>
+</div>
       <button class="settings-row" onclick="startOnboarding(true)">
         <div class="settings-row-icon" style="background:rgba(96,165,250,0.12);color:var(--blue)">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><circle cx="10" cy="10" r="8"/><path d="M10 6v4l3 3"/></svg>
@@ -8586,6 +8601,9 @@ async function bioUnlockAgent(agent) {
   if (!ok) { toast('Biometric not recognised', 'error'); return; }
   _activeAgent = agent;
   _sessionUnlocked = true;
+  startInactivityChecker();
+  bindActivityEvents();
+  updateLastActivity(); 
   setSessionAgent(agent);
   hideLockScreen();
   haptic('pay');
@@ -16603,8 +16621,13 @@ async function obFinish() {
     return;
   }
 
-  setSessionAgent(_activeAgent);
+  const ts = Date.now();
+  sessionStorage.setItem('sq_unlocked', JSON.stringify({ id: _activeAgent.id, name: _activeAgent.name, ts }));
+  _lastActivityTimestamp = ts;
   _sessionUnlocked = true;
+  startInactivityChecker();
+  bindActivityEvents();
+  updateLastActivity();
   updateSidebarAgentInfo();
   updateBadges();
   renderDashboard();
@@ -16671,24 +16694,23 @@ function getAgentList() {
 function saveAgentList(list) {
   localStorage.setItem(AGENTS_LS_KEY, JSON.stringify(list));
 }
+  
 function getActiveAgentFromSession() {
   try {
     const s = sessionStorage.getItem('sq_unlocked');
     if (!s) return null;
     const parsed = JSON.parse(s);
-    // Auto-lock after 30 minutes of inactivity
-    if (parsed && parsed.ts && (Date.now() - parsed.ts) > 30 * 60 * 1000) {
+    if (!parsed || !parsed.ts) return null;
+    const timeoutMinutes = getLockTimeoutMinutes();
+    if (timeoutMinutes === 0) return parsed;
+    const elapsed = Date.now() - parsed.ts;
+    const maxMs = timeoutMinutes * 60 * 1000;
+    if (elapsed > maxMs) {
       sessionStorage.removeItem('sq_unlocked');
       return null;
     }
     return parsed;
   } catch { return null; }
-}
-function setSessionAgent(agent) {
-  sessionStorage.setItem('sq_unlocked', JSON.stringify({ id: agent.id, name: agent.name, ts: Date.now() }));
-}
-function clearSession() {
-  sessionStorage.removeItem('sq_unlocked');
 }
 
 // ── Show lock screen ──────────────────────────────────────────
@@ -16928,7 +16950,12 @@ async function processPin() {
       // Correct PIN — unlock
       _activeAgent = _pinTarget;
       _sessionUnlocked = true;
-      setSessionAgent(_pinTarget);
+      const ts = Date.now();
+      sessionStorage.setItem('sq_unlocked', JSON.stringify({ id: _pinTarget.id, name: _pinTarget.name, ts }));
+      _lastActivityTimestamp = ts;
+      startInactivityChecker();
+      bindActivityEvents();
+      updateLastActivity();
       // Commit agent to permanent local list only after PIN confirmed
       if (window._pendingAgent && window._pendingAgent.id === _pinTarget.id) {
         const agents = getAgentList();
@@ -17471,6 +17498,17 @@ function renderSettingsPage() {
   renderUndoHistory();
   renderSettingsAgedOut();
   _updateBioSettingsRow();
+
+const savedTimeout = localStorage.getItem('sq_lock_timeout');
+const timeoutSelect = document.getElementById('lock-timeout-select');
+if (savedTimeout !== null && timeoutSelect) {
+  timeoutSelect.value = savedTimeout;
+  settingsSetLockTimeout(savedTimeout);
+} else if (timeoutSelect) {
+  localStorage.setItem('sq_lock_timeout', '30');
+  timeoutSelect.value = '30';
+  settingsSetLockTimeout('30');
+}
   // Admin access — long-press 3s on SqueveTrack row
   (function() {
     var row = document.getElementById('about-st-row');
@@ -17865,6 +17903,86 @@ function settingsToggleHaptic(on) {
   toast('Haptic ' + (on ? 'on' : 'off'), 'info');
 }
 
+// Get saved timeout in minutes, default 30 (from original behaviour)
+function getLockTimeoutMinutes() {
+  const val = localStorage.getItem('sq_lock_timeout');
+  if (val === null) return 30; // default 30 minutes (original)
+  const num = parseInt(val, 10);
+  return isNaN(num) ? 30 : num;
+}
+
+function settingsSetLockTimeout(minutes) {
+  localStorage.setItem('sq_lock_timeout', minutes);
+  const sub = document.getElementById('lock-timeout-sub');
+  if (minutes == 0) sub.textContent = 'Never lock automatically';
+  else sub.textContent = `Lock after ${minutes} minute${minutes != 1 ? 's' : ''} of inactivity`;
+  haptic('light');
+  toast(`Auto-lock set to ${minutes == 0 ? 'Never' : minutes + ' minute(s)'}`, 'success');
+}
+
+// Update the session expiry check
+function getActiveAgentFromSession() {
+  try {
+    const s = sessionStorage.getItem('sq_unlocked');
+    if (!s) return null;
+    const parsed = JSON.parse(s);
+    if (!parsed || !parsed.ts) return null;
+    const timeoutMinutes = getLockTimeoutMinutes();
+    if (timeoutMinutes === 0) return parsed; // never expire
+    const elapsed = Date.now() - parsed.ts;
+    const maxMs = timeoutMinutes * 60 * 1000;
+    if (elapsed > maxMs) {
+      sessionStorage.removeItem('sq_unlocked');
+      return null;
+    }
+    return parsed;
+  } catch { return null; }
+}
+
+// Refresh session timestamp on user activity
+let _activityThrottle = 0;
+let _lastActivityTimestamp = Date.now();
+function refreshSessionTimestamp() {
+  const now = Date.now();
+  if (now - _activityThrottle < 5000) return;
+  _activityThrottle = now;
+  if (_sessionUnlocked && _activeAgent) {
+    const sessionData = { id: _activeAgent.id, name: _activeAgent.name, ts: now };
+    sessionStorage.setItem('sq_unlocked', JSON.stringify(sessionData));
+    _lastActivityTimestamp = now;
+  }
+}
+
+// Inactivity checker (runs every 10 seconds)
+let _inactivityInterval = null;
+function startInactivityChecker() {
+  if (_inactivityInterval) clearInterval(_inactivityInterval);
+  _inactivityInterval = setInterval(() => {
+    if (!_sessionUnlocked) return;
+    const timeoutMinutes = getLockTimeoutMinutes();
+    if (timeoutMinutes === 0) return;
+    const lastActivity = _lastActivityTimestamp || Date.now();
+    if (Date.now() - lastActivity > timeoutMinutes * 60 * 1000) {
+      console.log('Inactivity lock triggered');
+      lockApp();
+    }
+  }, 10000);
+}
+
+// Track last user activity
+function updateLastActivity() {
+  _lastActivityTimestamp = Date.now();
+  refreshSessionTimestamp();
+}
+
+// Bind activity events
+function bindActivityEvents() {
+  const events = ['click', 'touchstart', 'keydown', 'scroll'];
+  events.forEach(ev => {
+    document.addEventListener(ev, updateLastActivity, { passive: true });
+  });
+}
+
 function settingsSaveTarget() {
   const val = parseFloat(document.getElementById('settings-target-input')?.value) || 0;
   state.monthlyTarget = val;
@@ -18037,7 +18155,8 @@ function lockApp() {
   clearSession();
   _activeAgent = null;
   _sessionUnlocked = false;
-  state = initState(); // clear in-memory state for privacy
+  state = initState();
+  if (_inactivityInterval) clearInterval(_inactivityInterval);
   showLockScreen();
   haptic('medium');
 }
@@ -18176,6 +18295,9 @@ loadChartJS().catch(e => console.warn('Chart.js failed to load:', e));
     // Session still valid — restore agent and load their data
     _activeAgent = agentList.find(a => a.id === sessionAgent.id);
     _sessionUnlocked = true;
+    startInactivityChecker();
+    bindActivityEvents();
+    updateLastActivity();
     await loadState();
     updateSidebarAgentInfo();
     if (!state.agentProfile?.setupComplete) {
@@ -18240,7 +18362,9 @@ loadChartJS().catch(e => console.warn('Chart.js failed to load:', e));
     if (now - _activityThrottle < 60000) return; // refresh at most once/min
     _activityThrottle = now;
     if (_sessionUnlocked && _activeAgent) {
-      setSessionAgent(_activeAgent);
+    const ts = Date.now();
+    sessionStorage.setItem('sq_unlocked', JSON.stringify({ id: _activeAgent.id, name: _activeAgent.name, ts }));
+    _lastActivityTimestamp = ts;
     }
   }
   document.addEventListener('touchstart', _refreshSession, { passive: true });
