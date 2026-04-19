@@ -3398,6 +3398,7 @@ tr.overdue-critical .heat-ring {
         <button class="ptp-tab"        id="ptptab-eod"      onclick="switchPtpHub('eod')">🌙 EOD</button>
         <button class="ptp-tab"        id="ptptab-history"  onclick="switchPtpHub('history')">📅 History</button>
         <button class="ptp-tab"        id="ptptab-stats"    onclick="switchPtpHub('stats')">📊 Stats</button>
+        <button class="ptp-tab"        id="ptptab-calendar" onclick="switchPtpHub('calendar')">📅 Calendar</button>
       </div>
     </div>
     <div id="ptp-hub-content"></div>
@@ -13115,6 +13116,11 @@ let _ptpTab = 'morning';
 function renderPtpHub() {
   const container = document.getElementById('ptp-hub-content');
   if (!container) return;
+  else if (_ptpTab === 'calendar') container.innerHTML = buildPtpCalendarHtml();
+  if (_ptpTab === 'morning') {
+  const remindBtn = document.getElementById('enable-reminders-btn');
+  if (remindBtn) remindBtn.addEventListener('click', enablePtpReminders);
+}
   // Update tab active state
   ['morning','eod','history','stats'].forEach(t => {
     const el = document.getElementById('ptptab-' + t);
@@ -13483,25 +13489,16 @@ function _showPtpSeqModal() {
   document.getElementById('modal-overlay').classList.add('open');
 }
 
-
-
-
-
-
-
 function ptpToggleHonour(bid) {
-  var b = state.borrowers.find(function(x) { return x.id === bid; });
+  const b = state.borrowers.find(x => x.id === bid);
   if (!b) return;
-  var isHonoured = b.amountPaid > 0 || b.ptpOutcome === 'paid';
-  if (isHonoured) {
-    // Undo — clear ptpOutcome (but don't touch real payment)
-    if (b.amountPaid > 0) {
-      toast('Payment recorded — use the borrower detail to adjust', 'info');
-      return;
-    }
+  
+  if (b.ptpOutcome === 'paid') {
+    // Undo honour
     b.ptpOutcome = '';
     toast(b.name.split(' ')[0] + ' marked as pending', 'info');
   } else {
+    // Mark as honoured (without changing payment amount)
     b.ptpOutcome = 'paid';
     toast(b.name.split(' ')[0] + ' marked as honoured ✅', 'success');
   }
@@ -13512,7 +13509,11 @@ function ptpToggleHonour(bid) {
 
 function switchPtpHub(tab) {
   _ptpTab = tab;
-  haptic('light');
+  const tabs = ['morning', 'eod', 'history', 'stats', 'calendar'];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`ptptab-${t}`);
+    if (btn) btn.classList.toggle('active', t === tab);
+  });
   renderPtpHub();
 }
 
@@ -13628,7 +13629,7 @@ function buildPtpMorningHtml() {
     </div>`;
     html += `<div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;overflow:hidden;margin-bottom:14px">`;
     ptps.forEach(b => {
-      const ok = b.amountPaid > 0 || b.ptpOutcome === 'paid';
+      const ok = b.isPaid === true || b.ptpOutcome === 'paid';
       const phone = b.phone.replace(/\s/g,'').replace('+','');
       html += `<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);${ok?'background:rgba(34,197,94,0.04)':''}">
         <div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${ok?'var(--green)':'var(--orange)'}"></div>
@@ -13666,7 +13667,59 @@ function buildPtpMorningHtml() {
     if (upcoming.length > 10) html += `<div style="padding:8px 14px;font-size:11px;color:var(--text3)">+${upcoming.length-10} more</div>`;
     html += `</div>`;
   }
+html += `
+  <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+    <button class="btn btn-ghost btn-sm" id="enable-reminders-btn" style="gap:4px">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px"><circle cx="10" cy="10" r="8"/><polyline points="10,6 10,10 13,13"/></svg>
+      Enable Daily Reminders
+    </button>
+  </div>
+`; 
   return html;
+}
+
+let _reminderInterval = null;
+
+function enablePtpReminders() {
+  if (_reminderInterval) {
+    clearInterval(_reminderInterval);
+    _reminderInterval = null;
+    localStorage.setItem('ptp_reminders_enabled', '0');
+    toast('Reminders disabled', 'info');
+    return;
+  }
+  _reminderInterval = setInterval(() => {
+    const now = new Date();
+    if (now.getHours() === 9 && now.getMinutes() === 0) {
+      sendPtpReminders();
+    }
+  }, 60 * 60 * 1000);
+  sendPtpReminders();
+  localStorage.setItem('ptp_reminders_enabled', '1');
+  toast('Daily reminders enabled (9 AM)', 'success');
+}
+
+function sendPtpReminders() {
+  const today = new Date().toISOString().split('T')[0];
+  const ptpsToday = state.borrowers.filter(b => 
+    b.promisedToPay && b.promiseDate && b.promiseDate.startsWith(today) && b.amountPaid === 0
+  );
+  if (!ptpsToday.length) return;
+  
+  if (Notification.permission === 'granted') {
+    ptpsToday.forEach(b => {
+      const notification = new Notification(`PTP Reminder: ${b.name.split(' ')[0]}`, {
+        body: `Promise: ${fmtC(getDueToday(b))} · ${b.promiseDate}`,
+        icon: './icon-192.png',
+        tag: `ptp-${b.id}`
+      });
+      notification.onclick = () => { window.focus(); openBorrowerDetail(b.id); };
+    });
+  } else if (Notification.permission !== 'denied') {
+    Notification.requestPermission().then(perm => {
+      if (perm === 'granted') sendPtpReminders();
+    });
+  }
 }
 
 function buildPtpEodHtml() {
@@ -13793,68 +13846,161 @@ function _getPtpConversionRate(days) {
 function buildPtpStatsHtml2() {
   const history = state.ptpHistory || [];
   if (history.length < 2) {
-    return `<div style="background:var(--surface2);border-radius:10px;padding:32px;text-align:center;color:var(--text3);font-size:12px">
-      Not enough data yet.<br><span style="font-size:11px">Stats appear after 2+ days of EOD submissions.</span></div>`;
+    return `<div class="empty-state">Not enough data yet.<br>Stats appear after 2+ days of EOD submissions.</div>`;
   }
-  const total = history.reduce((s,d) => s + d.total, 0);
-  const honoured = history.reduce((s,d) => s + d.honoured, 0);
-  const overall = total > 0 ? Math.round(honoured / total * 100) : 0;
-  const overallCol = overall >= 70 ? 'var(--green)' : overall >= 40 ? 'var(--gold)' : 'var(--red)';
-  const best = history.reduce((b,d) => (d.total>0 && d.honoured/d.total > (b.total>0?b.honoured/b.total:0)) ? d : b, history[0]);
-  const bestRate = best.total > 0 ? Math.round(best.honoured / best.total * 100) : 0;
-  const bestDate = new Date(best.date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
-  const avgPtps = Math.round(total / history.length * 10) / 10;
-  const avgVal  = total > 0 ? history.reduce((s,d) => s + (d.collected||0), 0) / history.length : 0;
-  // Day-of-week analysis
-  const dowData = [0,1,2,3,4,5,6].map(d => {
-    const days = history.filter(h => new Date(h.date).getDay() === d);
-    const t = days.reduce((s,h)=>s+h.total,0);
-    const h2 = days.reduce((s,h)=>s+h.honoured,0);
-    return { day:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d], rate: t>0?Math.round(h2/t*100):0, count:days.length };
-  }).filter(d => d.count > 0);
-  const bestDow = dowData.reduce((b,d) => d.rate > b.rate ? d : b, dowData[0] || {day:'—',rate:0});
-  const recent30 = history.slice(0,30);
-  const maxRate = Math.max(...recent30.map(d => d.total>0 ? d.honoured/d.total : 0), 0.01);
-
-  let html = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
-      <div style="background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:16px;text-align:center">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Overall Conversion</div>
-        <div style="font-family:var(--font-mono);font-size:32px;font-weight:800;color:${overallCol}">${overall}%</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:4px">${honoured} of ${total} PTPs</div>
+  
+  const labels = history.slice().reverse().map(d => {
+    const date = new Date(d.date);
+    return `${date.getDate()}/${date.getMonth()+1}`;
+  });
+  const rates = history.slice().reverse().map(d => 
+    d.total > 0 ? Math.round(d.honoured / d.total * 100) : 0
+  );
+  
+  setTimeout(() => {
+    const ctx = document.getElementById('ptp-trend-chart');
+    if (ctx && typeof Chart !== 'undefined') {
+      if (window._ptpChart) window._ptpChart.destroy();
+      window._ptpChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Conversion Rate (%)',
+            data: rates,
+            borderColor: 'var(--gold)',
+            backgroundColor: 'rgba(240,160,48,0.1)',
+            tension: 0.3,
+            fill: true,
+            pointRadius: 3,
+            pointBackgroundColor: 'var(--gold)'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: 'var(--text2)' } },
+            tooltip: { callbacks: { label: (ctx) => `${ctx.raw}%` } }
+          },
+          scales: {
+            y: { ticks: { callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+            x: { ticks: { color: 'var(--text3)' }, grid: { display: false } }
+          }
+        }
+      });
+    }
+  }, 50);
+  
+  const overallRate = history.reduce((s,d)=>s+d.honoured,0) / history.reduce((s,d)=>s+d.total,1) * 100;
+  const totalHonoured = history.reduce((s,d)=>s+d.honoured,0);
+  const totalPtps = history.reduce((s,d)=>s+d.total,0);
+  
+  return `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+      <div class="kpi-card" style="padding:12px;text-align:center">
+        <div style="font-size:28px;font-weight:800;color:var(--gold)">${Math.round(overallRate)}%</div>
+        <div>Overall Conversion</div>
       </div>
-      <div style="display:grid;gap:8px">
-        <div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:10px">
-          <div style="font-size:10px;color:var(--text3);margin-bottom:2px">Best Day</div>
-          <div style="font-size:13px;font-weight:700;color:var(--green)">${bestRate}% <span style="font-size:10px;font-weight:400;color:var(--text3)">${bestDate}</span></div>
-        </div>
-        <div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:10px">
-          <div style="font-size:10px;color:var(--text3);margin-bottom:2px">Best Day of Week</div>
-          <div style="font-size:13px;font-weight:700;color:var(--gold)">${bestDow.day} <span style="font-size:10px;font-weight:400;color:var(--text3)">${bestDow.rate}% avg</span></div>
-        </div>
-        <div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:10px">
-          <div style="font-size:10px;color:var(--text3);margin-bottom:2px">Avg PTPs/day · Avg Value</div>
-          <div style="font-size:13px;font-weight:700">${avgPtps} · ${fmtC(Math.round(avgVal))}</div>
-        </div>
+      <div class="kpi-card" style="padding:12px;text-align:center">
+        <div style="font-size:28px;font-weight:800;color:var(--green)">${totalHonoured}/${totalPtps}</div>
+        <div>Honoured / Total</div>
       </div>
     </div>
-    <div style="font-size:12px;font-weight:700;margin-bottom:8px">Conversion Rate · Last ${recent30.length} Days</div>
-    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:14px">
-      <div style="display:flex;align-items:flex-end;gap:3px;height:60px">`;
-  recent30.slice().reverse().forEach(d => {
-    const rate = d.total > 0 ? d.honoured / d.total : 0;
-    const h = Math.max(4, Math.round(rate / maxRate * 56));
-    const col = rate >= 0.7 ? 'var(--green)' : rate >= 0.4 ? 'var(--gold)' : 'var(--red)';
-    const dt = new Date(d.date).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-    html += `<div title="${dt}: ${Math.round(rate*100)}%" style="flex:1;background:${col};border-radius:2px 2px 0 0;height:${h}px;opacity:0.85;cursor:pointer" onclick="ptpShowHistoryDay('${d.date}')"></div>`;
+    <div style="height:200px;margin:16px 0">
+      <canvas id="ptp-trend-chart"></canvas>
+    </div>
+    <div style="margin-top:20px">${buildPtpStatsHtml()}</div>
+  `;
+}
+
+function buildPtpCalendarHtml() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const startOffset = firstDay.getDay();
+  const daysInMonth = lastDay.getDate();
+
+  const startStr = firstDay.toISOString().split('T')[0];
+  const endStr = lastDay.toISOString().split('T')[0];
+  const ptpsThisMonth = state.borrowers.filter(b => 
+    b.promisedToPay && b.promiseDate && b.promiseDate >= startStr && b.promiseDate <= endStr
+  );
+  const ptpByDate = {};
+  ptpsThisMonth.forEach(b => {
+    const date = b.promiseDate.split(' ')[0];
+    if (!ptpByDate[date]) ptpByDate[date] = [];
+    ptpByDate[date].push(b);
   });
-  html += `</div>
-      <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:9px;color:var(--text3)">
-        <span>${new Date(recent30[0]?.date).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>
-        <span>Today</span>
+
+  let html = `<div style="background:var(--surface);border-radius:16px;padding:16px;overflow-x:auto">
+    <div style="text-align:center;font-weight:700;margin-bottom:16px">${firstDay.toLocaleDateString('en-GB',{month:'long',year:'numeric'})}</div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;min-width:280px">`;
+  
+  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  dayNames.forEach(d => html += `<div style="font-size:11px;color:var(--text3);text-align:center;padding:6px">${d}</div>`);
+  
+  for (let i = 0; i < startOffset; i++) html += `<div></div>`;
+  
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const ptps = ptpByDate[dateStr] || [];
+    const isToday = dateStr === today.toISOString().split('T')[0];
+    const hasPtp = ptps.length > 0;
+    const bg = hasPtp ? 'var(--gold-glow)' : 'transparent';
+    
+    // Make the whole date cell clickable if there are PTPs
+    const onclickAttr = hasPtp ? `onclick="showPtpsForDate('${dateStr}')"` : '';
+    const cursor = hasPtp ? 'cursor:pointer' : '';
+    
+    html += `<div style="background:${bg};border-radius:10px;padding:6px 4px;text-align:center;${isToday ? 'border:1px solid var(--gold)' : ''};${cursor}" ${onclickAttr}>
+      <div style="font-size:12px;font-weight:600;color:${hasPtp ? 'var(--gold)' : 'var(--text)'}">${d}</div>
+      ${hasPtp ? `<div style="font-size:9px;color:var(--text2)">${ptps.length}</div>` : ''}
+      <div style="font-size:9px;margin-top:2px">
+        ${ptps.slice(0,2).map(b => `<div style="cursor:pointer;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${b.name}" onclick="event.stopPropagation();openBorrowerDetail('${b.id}')">${b.name.split(' ')[0]}</div>`).join('')}
+        ${ptps.length > 2 ? `<div style="font-size:8px;color:var(--text3)">+${ptps.length-2}</div>` : ''}
       </div>
     </div>`;
+  }
+  html += `</div></div>`;
   return html;
+}
+
+function showPtpsForDate(dateStr) {
+  const ptps = state.borrowers.filter(b => 
+    b.promisedToPay && b.promiseDate && b.promiseDate.startsWith(dateStr)
+  );
+  if (!ptps.length) return;
+  
+  const displayDate = new Date(dateStr).toLocaleDateString('en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+  
+  document.getElementById('modal-title').textContent = `📅 PTPs for ${displayDate}`;
+  document.getElementById('modal-body').innerHTML = `
+    <div style="max-height:60vh;overflow-y:auto">
+      ${ptps.map(b => `
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="closeModal();openBorrowerDetail('${b.id}')">
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:14px">${b.name}</div>
+            <div style="font-size:11px;color:var(--text3)">${b.phone} · ${b.promiseDate || dateStr}</div>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:14px;font-weight:700;color:${b.amountPaid > 0 ? 'var(--green)' : 'var(--red)'}">
+            ${fmtC(getDueToday(b))}
+          </div>
+          ${b.amountPaid > 0 ? '<span style="color:var(--green)">✅</span>' : '<span style="color:var(--orange)">⏳</span>'}
+        </div>
+      `).join('')}
+    </div>
+  `;
+  document.getElementById('modal-footer').innerHTML = `<button class="btn btn-ghost" onclick="closeModal()">Close</button>`;
+  document.getElementById('modal-overlay').classList.add('open');
+  haptic('light');
 }
 
 function savePtpSnapshot2() {
@@ -17946,6 +18092,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   })();
 
   await loadState();
+
+  if (localStorage.getItem('ptp_reminders_enabled') === '1') {
+  enablePtpReminders();
+}
 
   // Preload Chart.js so it's ready for Dashboard and other pages
 loadChartJS().catch(e => console.warn('Chart.js failed to load:', e));
