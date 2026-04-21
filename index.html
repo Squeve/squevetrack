@@ -13981,19 +13981,27 @@ function showPtpsForDate(dateStr) {
     year: 'numeric'
   });
   
+  // Calculate total expected amount for this date
+  const totalExpected = ptps.reduce((sum, b) => sum + getDueToday(b), 0);
+  
   document.getElementById('modal-title').textContent = `📅 PTPs for ${displayDate}`;
   document.getElementById('modal-body').innerHTML = `
-    <div style="max-height:60vh;overflow-y:auto">
+    <div style="margin-bottom:16px; padding:12px; background:rgba(240,160,48,0.08); border-radius:12px; border-left:3px solid var(--gold);">
+      <div style="font-size:12px; color:var(--text3); text-transform:uppercase; letter-spacing:0.5px;">Total Expected</div>
+      <div style="font-family:var(--font-mono); font-size:22px; font-weight:800; color:var(--gold);">${fmtC(totalExpected)}</div>
+      <div style="font-size:11px; color:var(--text3);">from ${ptps.length} PTP${ptps.length !== 1 ? 's' : ''}</div>
+    </div>
+    <div style="max-height:60vh; overflow-y:auto;">
       ${ptps.map(b => `
-        <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="closeModal();openBorrowerDetail('${b.id}')">
-          <div style="flex:1">
-            <div style="font-weight:600;font-size:14px">${b.name}</div>
-            <div style="font-size:11px;color:var(--text3)">${b.phone} · ${b.promiseDate || dateStr}</div>
+        <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--border); cursor:pointer;" onclick="closeModal(); openBorrowerDetail('${b.id}');">
+          <div style="flex:1;">
+            <div style="font-weight:600; font-size:14px;">${escapeHtml(b.name)}</div>
+            <div style="font-size:11px; color:var(--text3);">${b.phone} · ${b.promiseDate || dateStr}</div>
           </div>
-          <div style="font-family:var(--font-mono);font-size:14px;font-weight:700;color:${b.amountPaid > 0 ? 'var(--green)' : 'var(--red)'}">
+          <div style="font-family:var(--font-mono); font-size:14px; font-weight:700; color:${b.amountPaid > 0 ? 'var(--green)' : 'var(--red)'};">
             ${fmtC(getDueToday(b))}
           </div>
-          ${b.amountPaid > 0 ? '<span style="color:var(--green)">✅</span>' : '<span style="color:var(--orange)">⏳</span>'}
+          ${b.amountPaid > 0 ? '<span style="color:var(--green);">✅</span>' : '<span style="color:var(--orange);">⏳</span>'}
         </div>
       `).join('')}
     </div>
