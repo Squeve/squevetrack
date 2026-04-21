@@ -4634,6 +4634,23 @@ async function _encryptForStorage(plaintext, agentId) {
   }
 }
 
+async function _decryptFromStorage(encrypted, agentId) {
+  if (!encrypted.startsWith('enc:')) return encrypted; // plaintext fallback
+  try {
+    if (!crypto.subtle) throw new Error('Web Crypto not available');
+    const parts = encrypted.slice(4).split('.');
+    if (parts.length !== 2) throw new Error('Invalid encrypted format');
+    const iv = Uint8Array.from(atob(parts[0]), c => c.charCodeAt(0));
+    const ct = Uint8Array.from(atob(parts[1]), c => c.charCodeAt(0));
+    const key = await _deriveStorageKey(agentId || 'default');
+    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+    return new TextDecoder().decode(decrypted);
+  } catch (e) {
+    console.warn('Decryption failed – using plaintext', e);
+    return null;
+  }
+}
+
 function getStateKey() {
   return 'squevetrack_' + (_activeAgent ? _activeAgent.id : 'default');
 }
@@ -7023,6 +7040,7 @@ function addLogEntry() {
   }
   haptic('pay');
   saveState();
+  updateDailyPill();
   document.getElementById('log-amount').value = '';
   document.getElementById('log-notes').value = '';
   // Check personal best AFTER saving
@@ -7599,7 +7617,7 @@ function doExportPDF(mode) {
 function deleteLogEntry(date) {
   confirmAction({ title: 'Delete Log Entry', message: 'Remove this daily log entry?', confirmLabel: 'Delete', onConfirm: function() {
     state.dailyLog = state.dailyLog.filter(e => e.date !== date);
-    saveState(); renderLog(); toast('Entry deleted', 'info');
+    saveState(); renderLog(); updateDailyPill(); toast('Entry deleted', 'info');
   }});
 }
 
@@ -15717,7 +15735,7 @@ function openLogEntryEdit(date) {
       if (idx >= 0) state.dailyLog[idx] = { date, collected: newAmount, notes: newNotes };
       else state.dailyLog.push({ date, collected: newAmount, notes: newNotes });
       haptic('medium');
-      saveState(); closeModal();
+      saveState(); updateDailyPill(); closeModal();
       toast('Log updated for ' + display, 'success');
       renderCurrentPage();
     });
@@ -16084,7 +16102,7 @@ function updateDailyPill() {
     const barEl = document.getElementById('daily-pill-bar');
     if(barEl){barEl.style.width='100%';barEl.style.background='var(--green)';}
     // Trigger confetti once
-    if (!window._confettiShown) { window._confettiShown = true; setTimeout(launchConfetti, 400); }
+    if (!window._confettiShown) { window._confettiShown = true; setTimeout(fireConfetti, 400); }
   } else if (stillNeeded === 0 && todayCollected > 0) {
     pill.classList.add('done');
     amtEl.style.color = 'var(--green)';
@@ -16679,19 +16697,25 @@ function getAgentList() {
 function saveAgentList(list) {
   localStorage.setItem(AGENTS_LS_KEY, JSON.stringify(list));
 }
+  
 function getActiveAgentFromSession() {
   try {
     const s = sessionStorage.getItem('sq_unlocked');
     if (!s) return null;
     const parsed = JSON.parse(s);
-    // Auto-lock after 30 minutes of inactivity
-    if (parsed && parsed.ts && (Date.now() - parsed.ts) > 30 * 60 * 1000) {
+    if (!parsed || !parsed.ts) return null;
+    const timeoutMinutes = getLockTimeoutMinutes();
+    if (timeoutMinutes === 0) return parsed;
+    const elapsed = Date.now() - parsed.ts;
+    const maxMs = timeoutMinutes * 60 * 1000;
+    if (elapsed > maxMs) {
       sessionStorage.removeItem('sq_unlocked');
       return null;
     }
     return parsed;
   } catch { return null; }
 }
+  
 function setSessionAgent(agent) {
   sessionStorage.setItem('sq_unlocked', JSON.stringify({ id: agent.id, name: agent.name, ts: Date.now() }));
 }
