@@ -2912,9 +2912,6 @@ tr.overdue-critical .heat-ring {
         </label>
         <span id="loans-showing" style="font-size:11px;color:var(--text3)"></span>
       </div>
-    <div class="bl-meta" style="justify-content: flex-start; margin-top: 8px;">
-  <span id="msg-bank-count" style="font-size: 11px; color: var(--text3);"></span>
-  </div>
     </div>
 
     <!-- ── Cards list ─────────────────────────────────────── -->
@@ -3856,9 +3853,11 @@ tr.overdue-critical .heat-ring {
       <div class="page-title" style="font-size:22px">💬 Message Bank</div>
       <div class="page-sub" id="msg-bank-sub">300+ stage‑specific collection messages</div>
     </div>
-    <button class="btn btn-gold" onclick="msgBankOpenFavorite()" title="Your saved favorites">
-      ⭐ Favorites
-    </button>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+      <button class="btn btn-ghost btn-sm" onclick="msgBankSurpriseMe()" title="Random message from current filter" style="font-size:12px">🎲 Surprise Me</button>
+      <button class="btn btn-ghost btn-sm" onclick="msgBankOpenAddCustom()" title="Add your own message" style="font-size:12px">＋ New</button>
+      <button class="btn btn-gold" id="msg-fav-btn" onclick="msgBankOpenFavorite()" title="Your saved favorites">⭐ Favorites</button>
+    </div>
   </div>
 
   <div class="bl-filter-bar" style="margin-bottom: 10px;">
@@ -3866,7 +3865,7 @@ tr.overdue-critical .heat-ring {
       <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" class="bl-search-icon">
         <circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="17" y2="17"/>
       </svg>
-      <input class="bl-search" id="msg-bank-search" placeholder="Search messages…" oninput="renderMessageBank()">
+      <input class="bl-search" id="msg-bank-search" placeholder="Search messages…" oninput="msgBankDebouncedSearch()">
       <button onclick="clearSearch('msg-bank-search', renderMessageBank)" class="bl-clear-btn">✕</button>
     </div>
     <div class="bl-chips" id="msg-bank-chips">
@@ -3880,15 +3879,19 @@ tr.overdue-critical .heat-ring {
         <option value="M5">M5 – Day 61‑89</option>
       </select>
     </div>
-<div class="bl-chips" id="msg-tone-chips" style="margin-top: 8px;">
-  <button class="bl-chip-sel" data-tone="" style="background:var(--surface2);">All tones</button>
-  <button class="bl-chip-sel" data-tone="sweet">✨ Sweet</button>
-  <button class="bl-chip-sel" data-tone="direct">⚡ Direct</button>
-  <button class="bl-chip-sel" data-tone="serious">⚠️ Serious</button>
-  <button class="bl-chip-sel" data-tone="extreme">🔴 Extreme</button>
-</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      <span style="font-size:11px;color:var(--text3);flex-shrink:0">Tone:</span>
+      <button class="msg-tone-chip msg-tone-active" data-tone="" onclick="msgBankSetTone(this,'')">All</button>
+      <button class="msg-tone-chip" data-tone="sweet" onclick="msgBankSetTone(this,'sweet')">🍬 Sweet</button>
+      <button class="msg-tone-chip" data-tone="gentle" onclick="msgBankSetTone(this,'gentle')">🌿 Gentle</button>
+      <button class="msg-tone-chip" data-tone="direct" onclick="msgBankSetTone(this,'direct')">🎯 Direct</button>
+      <button class="msg-tone-chip" data-tone="serious" onclick="msgBankSetTone(this,'serious')">⚠️ Serious</button>
+      <button class="msg-tone-chip" data-tone="severe" onclick="msgBankSetTone(this,'severe')">🔴 Severe</button>
+      <button class="msg-tone-chip" data-tone="extreme" onclick="msgBankSetTone(this,'extreme')">⚡ Extreme</button>
+    </div>
   </div>
 
+  <div id="msg-bank-count" style="font-size:11px;color:var(--text3);margin-bottom:8px;padding:0 2px"></div>
   <div id="msg-bank-list" class="bl-list" style="margin-top: 4px;"></div>
 </section>
 
@@ -5214,7 +5217,7 @@ function initState() {
   return { borrowers: [], dailyLog: [], month: new Date().toLocaleDateString('en-GB',{month:'long',year:'numeric'}),
     discountRate: 0.30, monthlyTarget: 0, agedOutLog: [], archive: [],
     hitList: [], callLog: {}, rankingHistory: [], undoHistory: [], pendingSyncCount: 0,
-    offlineQueue: [],
+    offlineQueue: [], customMessages: [],
     agentProfile: {} };
 }
 
@@ -5230,6 +5233,7 @@ function migrateState(s) {
   if (!s.agentProfile) s.agentProfile = {};
   if (!s.undoHistory) s.undoHistory = [];
   if (!s.pendingSyncCount) s.pendingSyncCount = 0;
+  if (!s.customMessages) s.customMessages = [];
   (s.borrowers||[]).forEach(b => {
     if (b.promisedToPay === undefined) b.promisedToPay = false;
     if (b.isPaid === undefined) b.isPaid = (b.amountPaid >= b.loanDue && b.amountPaid > 0);
@@ -7241,6 +7245,18 @@ function renderDispatch() {
     });
   });
   document.getElementById('dispatch-list').innerHTML = html;
+
+  // If a message was pre-loaded from Message Bank / suggested messages, fill & show the custom panel
+  if (window._pendingDispatchMsg) {
+    const ta   = document.getElementById('dispatch-custom-msg');
+    const wrap = document.getElementById('dispatch-custom-wrap');
+    const btn  = document.getElementById('dispatch-custom-toggle');
+    if (ta)   ta.value = window._pendingDispatchMsg;
+    if (wrap) wrap.style.display = 'block';
+    if (btn)  { btn.style.color = 'var(--green)'; btn.style.borderColor = 'var(--green)'; }
+    window._pendingDispatchMsg = null;
+    setTimeout(() => ta?.focus(), 80);
+  }
 }
 
 function copyDispatchMsg(id) {
@@ -13530,9 +13546,29 @@ function renderPtpHub() {
   if (!container) return;
   else if (_ptpTab === 'calendar') container.innerHTML = buildPtpCalendarHtml();
   if (_ptpTab === 'morning') {
-  const remindBtn = document.getElementById('enable-reminders-btn');
-  if (remindBtn) remindBtn.addEventListener('click', enablePtpReminders);
-}
+    // Animate content swap
+    container.style.cssText += 'opacity:0;transform:translateX(8px);transition:none';
+    container.innerHTML = buildPtpMorningHtml();
+
+    // Wire up enable-reminders-btn NOW that the DOM exists
+    const remindBtn = document.getElementById('enable-reminders-btn');
+    if (remindBtn) {
+      const enabled = localStorage.getItem('ptp_reminders_enabled') === '1';
+      remindBtn.innerHTML = enabled
+        ? '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px"><circle cx="10" cy="10" r="8"/><polyline points="10,6 10,10 13,13"/></svg> Reminders On'
+        : '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px"><circle cx="10" cy="10" r="8"/><polyline points="10,6 10,10 13,13"/></svg> Enable Daily Reminders';
+      remindBtn.style.color = enabled ? 'var(--green)' : '';
+      remindBtn.style.borderColor = enabled ? 'var(--green)' : '';
+      remindBtn.addEventListener('click', enablePtpReminders);
+    }
+  } else {
+    // Non-morning tabs
+    container.style.cssText += 'opacity:0;transform:translateX(8px);transition:none';
+    if      (_ptpTab === 'eod')     container.innerHTML = buildPtpEodHtml();
+    else if (_ptpTab === 'history') container.innerHTML = buildPtpHistoryHtml2();
+    else if (_ptpTab === 'stats')   container.innerHTML = buildPtpStatsHtml2();
+  }
+
   // Update tab active state
   ['morning','eod','history','stats'].forEach(t => {
     const el = document.getElementById('ptptab-' + t);
@@ -13544,12 +13580,6 @@ function renderPtpHub() {
     const today = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
     sub.textContent = today;
   }
-  // Animate content swap
-  container.style.cssText += 'opacity:0;transform:translateX(8px);transition:none';
-  if      (_ptpTab === 'morning') container.innerHTML = buildPtpMorningHtml();
-  else if (_ptpTab === 'eod')     container.innerHTML = buildPtpEodHtml();
-  else if (_ptpTab === 'history') container.innerHTML = buildPtpHistoryHtml2();
-  else if (_ptpTab === 'stats')   container.innerHTML = buildPtpStatsHtml2();
   // Wire all interactive buttons via event delegation on container
   container.onclick = function(e) {
     // EOD outcome buttons
@@ -14091,56 +14121,45 @@ html += `
 }
 
 let _reminderInterval = null;
-let _lastReminderDate = '';
 
 function enablePtpReminders() {
   if (_reminderInterval) {
-    // Disable existing reminders
     clearInterval(_reminderInterval);
     _reminderInterval = null;
     localStorage.setItem('ptp_reminders_enabled', '0');
-    document.getElementById('enable-reminders-btn').innerHTML = `
-      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px"><circle cx="10" cy="10" r="8"/><polyline points="10,6 10,10 13,13"/></svg>
-      Enable Daily Reminders
-    `;
     toast('Reminders disabled', 'info');
+    const btn = document.getElementById('enable-reminders-btn');
+    if (btn) { btn.style.color = ''; btn.style.borderColor = ''; btn.querySelector ? null : null;
+      btn.innerHTML = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px"><circle cx="10" cy="10" r="8"/><polyline points="10,6 10,10 13,13"/></svg> Enable Daily Reminders';
+    }
     return;
   }
 
-  // Request notification permission if not granted
-  if (Notification.permission !== 'granted') {
-    Notification.requestPermission().then(perm => {
-      if (perm === 'granted') {
-        startReminderInterval();
-      } else {
-        toast('Notification permission denied – cannot send reminders', 'error');
-      }
-    });
-  } else {
-    startReminderInterval();
-  }
-
-  function startReminderInterval() {
+  const doEnable = () => {
     _reminderInterval = setInterval(() => {
       const now = new Date();
-      const today = now.toISOString().split('T')[0];
-      // Check if it's 9:00 AM (± 1 minute) and we haven't sent today
-      if (now.getHours() === 9 && now.getMinutes() === 0 && _lastReminderDate !== today) {
-        sendPtpReminders();
-        _lastReminderDate = today;
-      }
-    }, 60000); // check every minute
-
-    // Update button UI
+      if (now.getHours() === 9 && now.getMinutes() === 0) sendPtpReminders();
+    }, 60 * 1000); // check every minute (not 1 hour — 1 hour would miss the exact minute)
+    sendPtpReminders();
+    localStorage.setItem('ptp_reminders_enabled', '1');
+    toast('Daily reminders enabled (9 AM)', 'success');
     const btn = document.getElementById('enable-reminders-btn');
     if (btn) {
-      btn.innerHTML = `
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px"><circle cx="10" cy="10" r="8"/><polyline points="10,6 10,10 13,13"/></svg>
-        Disable Reminders
-      `;
+      btn.style.color = 'var(--green)'; btn.style.borderColor = 'var(--green)';
+      btn.innerHTML = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px"><circle cx="10" cy="10" r="8"/><polyline points="10,6 10,10 13,13"/></svg> Reminders On';
     }
-    localStorage.setItem('ptp_reminders_enabled', '1');
-    toast('Daily reminders set for 9:00 AM', 'success');
+  };
+
+  if (!('Notification' in window)) { toast('Notifications not supported on this browser', 'error'); return; }
+  if (Notification.permission === 'granted') {
+    doEnable();
+  } else if (Notification.permission !== 'denied') {
+    Notification.requestPermission().then(p => {
+      if (p === 'granted') doEnable();
+      else toast('Permission denied — enable notifications in your browser settings', 'error');
+    });
+  } else {
+    toast('Notifications blocked — enable them in browser settings', 'error');
   }
 }
 
@@ -18535,7 +18554,6 @@ function msgBankGetFavorites() {
 function msgBankSaveFavorites(ids) {
   localStorage.setItem('msg_favorites', JSON.stringify(ids));
 }
-  
 function msgBankToggleFavorite(msgId) {
   const favs = msgBankGetFavorites();
   const idx = favs.indexOf(msgId);
@@ -18546,58 +18564,10 @@ function msgBankToggleFavorite(msgId) {
   haptic('light');
 }
 
-function copyMessageDirect(msgId) {
-  const msg = (state.messageBank || []).find(m => m.id === msgId);
-  if (!msg) return;
-  navigator.clipboard.writeText(msg.body).then(() => {
-    toast('Message copied!', 'success');
-    haptic('light');
-    trackMessageUsage(msgId);   // for step 8, define later
-  }).catch(() => toast('Could not copy', 'error'));
-}
-
-function openBorrowerPickerForMessage(templateBody) {
-  const borrowers = getActiveBorrowers();
-  if (!borrowers.length) { toast('No active borrowers', 'error'); return; }
-  let html = `<div class="form-group"><label>Search borrower</label><input type="text" id="borrower-search" class="form-input" placeholder="Type name or phone"></div>
-    <div id="borrower-list" style="max-height: 300px; overflow-y: auto;">`;
-  borrowers.forEach(b => {
-    html += `<div class="borrower-item" data-id="${b.id}" style="padding: 8px; border-bottom: 1px solid var(--border); cursor: pointer;">
-      <div style="font-weight: 600;">${b.name}</div>
-      <div style="font-size: 11px; color: var(--text3);">${b.phone} · Day ${getOdAge(b.startDate)}</div>
-    </div>`;
-  });
-  html += `</div>`;
-  document.getElementById('modal-title').textContent = 'Select borrower';
-  document.getElementById('modal-body').innerHTML = html;
-  document.getElementById('modal-footer').innerHTML = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>`;
-  document.getElementById('modal-overlay').classList.add('open');
-  // filter and click handlers
-  const searchInput = document.getElementById('borrower-search');
-  if (searchInput) {
-    searchInput.oninput = function() {
-      const val = this.value.toLowerCase();
-      document.querySelectorAll('.borrower-item').forEach(item => {
-        const name = item.querySelector('div:first-child').textContent.toLowerCase();
-        const phone = item.querySelector('div:last-child').textContent.toLowerCase();
-        item.style.display = (name.includes(val) || phone.includes(val)) ? '' : 'none';
-      });
-    };
-  }
-  document.querySelectorAll('.borrower-item').forEach(el => {
-    el.onclick = () => {
-      const id = el.dataset.id;
-      const b = state.borrowers.find(x => x.id === id);
-      if (b) {
-        const personalised = templateBody.replace(/\[Name\]/g, getFirstName(b));
-        const phoneDigits = b.phone.replace(/\D/g, '');
-        const waLink = `https://wa.me/${phoneDigits}?text=${encodeURIComponent(personalised)}`;
-        window.open(waLink, '_blank');
-        closeModal();
-        toast(`Opening WhatsApp for ${b.name}`, 'success');
-      }
-    };
-  });
+// ── Debounced search ─────────────────────────────────────────
+function msgBankDebouncedSearch() {
+  clearTimeout(window._mbSearchTimer);
+  window._mbSearchTimer = setTimeout(renderMessageBank, 220);
 }
 
 // ── Render Message Bank Page ─────────────────────────────────
@@ -18609,125 +18579,309 @@ function renderMessageBank() {
       return;
     }
   }
-  const search = (document.getElementById('msg-bank-search')?.value || '').toLowerCase();
-  const stage = document.getElementById('msg-stage-filter')?.value || '';
-  const favOnly = window._mbFavOnly;
-  const activeToneBtn = document.querySelector('#msg-tone-chips .bl-chip-sel.active');
+  const search   = (document.getElementById('msg-bank-search')?.value || '').toLowerCase();
+  const stage    = document.getElementById('msg-stage-filter')?.value || '';
+  const favOnly  = window._mbFavOnly;
+  const tone     = window._mbTone || '';
 
-  let messages = state.messageBank;
-  if (stage) messages = messages.filter(m => m.stage === stage);
+  // Merge built-in + custom messages
+  const custom   = (state.customMessages || []).map(m => ({ ...m, _custom: true }));
+  let messages   = [...state.messageBank, ...custom];
+
+  if (stage)  messages = messages.filter(m => m.stage === stage);
+  if (tone)   messages = messages.filter(m => m.tone === tone);
   if (search) messages = messages.filter(m =>
-    m.body.toLowerCase().includes(search) ||
-    m.title.toLowerCase().includes(search) ||
-    (m.tags || []).some(t => t.toLowerCase().includes(search))
+    (m.body||'').toLowerCase().includes(search) ||
+    (m.title||'').toLowerCase().includes(search) ||
+    (m.tags||[]).some(t => t.toLowerCase().includes(search))
   );
-  let tone = activeToneBtn ? activeToneBtn.dataset.tone : '';
-if (tone) messages = messages.filter(m => m.tone === tone);
   if (favOnly) {
     const favIds = msgBankGetFavorites();
     messages = messages.filter(m => favIds.includes(m.id));
   }
 
-  const favs = msgBankGetFavorites();
+  const favs      = msgBankGetFavorites();
+  const total     = (state.messageBank.length) + (state.customMessages||[]).length;
   const container = document.getElementById('msg-bank-list');
+  const countEl   = document.getElementById('msg-bank-count');
   if (!container) return;
+
+  // Update result count
+  if (countEl) {
+    const filtersActive = stage || tone || search || favOnly;
+    countEl.textContent = filtersActive
+      ? `Showing ${messages.length} of ${total} messages`
+      : `${total} messages`;
+  }
+
+  // Update favorites button active state
+  const favBtn = document.getElementById('msg-fav-btn');
+  if (favBtn) {
+    favBtn.style.background = window._mbFavOnly ? 'var(--gold)' : '';
+    favBtn.style.color      = window._mbFavOnly ? '#000'        : '';
+    favBtn.textContent      = window._mbFavOnly ? '★ Exit Favorites' : '⭐ Favorites';
+  }
 
   if (!messages.length) {
     container.innerHTML = '<div class="empty-state" style="padding:30px 0">No messages match</div>';
     return;
   }
 
-  const stageColors = { M0: '#3b82f6', M1: '#22c55e', M2: '#e8a020', M3: '#f97316', M4: '#ef4444', M5: '#7c3aed' };
+  const stageColors = { M0:'#3b82f6', M1:'#22c55e', M2:'#e8a020', M3:'#f97316', M4:'#ef4444', M5:'#7c3aed' };
   let html = '';
   messages.forEach((msg, i) => {
-    const preview = msg.body.replace(/\n/g, ' ').slice(0, 100);
-    const isFav = favs.includes(msg.id);
+    const preview = (msg.body||'').replace(/\n/g,' ').slice(0,100);
+    const isFav   = favs.includes(msg.id);
+    const color   = stageColors[msg.stage] || '#888';
+    const anim    = i < 12 ? `animation:fadeUp 0.22s ease both;animation-delay:${i*0.018}s` : '';
+    const customBadge = msg._custom
+      ? `<span style="font-size:9px;background:rgba(139,92,246,0.2);color:#a78bfa;border-radius:4px;padding:1px 5px;font-weight:600;margin-left:4px">CUSTOM</span>`
+      : '';
     html += `
-      <div class="msg-card bl-card" style="cursor:pointer; animation: fadeUp 0.3s ease both; animation-delay: ${i*0.02}s"
-           onclick="openMessageDetail('${msg.id}')">
-        <div style="background:${stageColors[msg.stage]}22;border-left:4px solid ${stageColors[msg.stage]};padding:12px 14px;display:flex;gap:10px;align-items:center">
-          <span style="font-weight:700;color:${stageColors[msg.stage]};min-width:32px;font-size:12px">${msg.stage}</span>
+      <div class="msg-card bl-card" style="cursor:pointer;${anim}"
+           onclick="openMessageDetail('${msg.id}','${msg._custom?'custom':''}')">
+        <div style="background:${color}22;border-left:4px solid ${color};padding:12px 14px;display:flex;gap:10px;align-items:center">
+          <span style="font-weight:700;color:${color};min-width:32px;font-size:12px">${msg.stage||'—'}</span>
           <div style="flex:1;min-width:0">
-            <div style="font-weight:600;font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${msg.title}</div>
+            <div style="font-weight:600;font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${msg.title}${customBadge}</div>
             <div style="font-size:10px;color:var(--text3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${preview}</div>
           </div>
-          <button onclick="event.stopPropagation();msgBankToggleFavorite('${msg.id}')" style="background:none;border:none;font-size:16px;cursor:pointer;color:${isFav?'var(--gold)':'var(--text3)'}" title="${isFav?'Remove from favorites':'Add to favorites'}">${isFav ? '★' : '☆'}</button>
-          <button onclick="event.stopPropagation();copyMessageDirect('${msg.id}')" style="background:none;border:none;cursor:pointer;margin-left:4px;color:var(--text3)" title="Copy message">📋</button>
+          <button onclick="event.stopPropagation();msgBankToggleFavorite('${msg.id}')"
+                  style="background:none;border:none;font-size:16px;cursor:pointer;color:${isFav?'var(--gold)':'var(--text3)'}"
+                  title="${isFav?'Remove from favorites':'Add to favorites'}">${isFav?'★':'☆'}</button>
         </div>
       </div>`;
   });
-const totalAll = state.messageBank.length;
-const countSpan = document.getElementById('msg-bank-count');
-if (countSpan) countSpan.textContent = `Showing ${messages.length} of ${totalAll} messages`;
-  
-  container.innerHTML = html;
-document.querySelectorAll('#msg-tone-chips .bl-chip-sel').forEach(btn => {
-  btn.removeEventListener('click', toneHandler);
-  btn.addEventListener('click', toneHandler);
-});
-function toneHandler(e) {
-  document.querySelectorAll('#msg-tone-chips .bl-chip-sel').forEach(b => b.classList.remove('active'));
-  this.classList.add('active');
-  renderMessageBank();
-}
-  
+  requestAnimationFrame(() => { container.innerHTML = html; });
 }
 
 // ── Open Message Detail Modal ────────────────────────────────
-function openMessageDetail(msgId) {
-  const msg = (state.messageBank || []).find(m => m.id === msgId);
+function openMessageDetail(msgId, type) {
+  // Look in custom messages first if type='custom', otherwise messageBank
+  let msg = type === 'custom'
+    ? (state.customMessages||[]).find(m => m.id === msgId)
+    : (state.messageBank||[]).find(m => m.id === msgId);
+  if (!msg) msg = [...(state.messageBank||[]), ...(state.customMessages||[])].find(m => m.id === msgId);
   if (!msg) return;
+
   const stageColors = { M0:'#3b82f6', M1:'#22c55e', M2:'#e8a020', M3:'#f97316', M4:'#ef4444', M5:'#7c3aed' };
   const isFav = msgBankGetFavorites().includes(msg.id);
+  const isCustom = !!(msg._custom || type === 'custom');
 
-  document.getElementById('modal-title').textContent = `${msg.stage} – ${msg.title}`;
+  document.getElementById('modal-title').textContent = `${msg.stage||'Custom'} – ${msg.title}`;
   document.getElementById('modal-body').innerHTML = `
-    <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap">
-      ${(msg.legalRefs||[]).map(ref => `<span style="background:rgba(240,160,48,0.1);color:var(--gold);font-size:10px;padding:2px 6px;border-radius:6px;font-weight:600">${ref}</span>`).join('')}
-      ${(msg.tags||[]).map(tag => `<span style="background:rgba(56,189,248,0.1);color:var(--blue);font-size:10px;padding:2px 6px;border-radius:6px">${tag}</span>`).join('')}
+    <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      ${(msg.legalRefs||[]).map(ref=>`<span style="background:rgba(240,160,48,0.1);color:var(--gold);font-size:10px;padding:2px 6px;border-radius:6px;font-weight:600">${ref}</span>`).join('')}
+      ${(msg.tags||[]).map(tag=>`<span style="background:rgba(56,189,248,0.1);color:var(--blue);font-size:10px;padding:2px 6px;border-radius:6px">${tag}</span>`).join('')}
+      ${isCustom?`<span style="background:rgba(139,92,246,0.2);color:#a78bfa;font-size:10px;padding:2px 6px;border-radius:6px;font-weight:600">CUSTOM</span>`:''}
     </div>
-    <div style="background:var(--surface2);border-radius:8px;padding:12px;font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap">${msg.body}</div>
+
+    <!-- Name preview bar -->
+    <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;border:1px solid var(--border2)">
+      <span style="font-size:11px;color:var(--text3);white-space:nowrap">Preview as:</span>
+      <input id="mb-preview-name" placeholder="Enter borrower name…" oninput="msgBankUpdatePreview('${msgId}','${type||''}')"
+             style="flex:1;background:none;border:none;outline:none;font-size:12px;color:var(--text);font-family:var(--font-body)">
+      <span style="font-size:10px;color:var(--text3)">[Name] will be filled</span>
+    </div>
+
+    <div id="mb-body-display" style="background:var(--surface2);border-radius:8px;padding:12px;font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap">${msg.body}</div>
     <div style="margin-top:12px;font-size:11px;color:var(--text3)">
       ${msg.subStage ? `<span>📅 Stage days: ${msg.subStage}</span><br>` : ''}
-      ${msg.tone ? `<span>🗣️ Tone: ${msg.tone}</span><br>` : ''}
+      ${msg.tone    ? `<span>🗣️ Tone: ${msg.tone}</span><br>` : ''}
     </div>
     <button onclick="msgBankToggleFavorite('${msgId}')" style="margin-top:10px;background:none;border:none;font-size:20px;cursor:pointer;color:${isFav?'var(--gold)':'var(--text3)'}">
       ${isFav ? '★ Remove favorite' : '☆ Add to favorites'}
     </button>
+    ${isCustom?`<button onclick="msgBankDeleteCustom('${msgId}')" style="margin-top:10px;margin-left:8px;background:none;border:none;font-size:12px;cursor:pointer;color:var(--red)">🗑️ Delete</button>`:''}
   `;
   document.getElementById('modal-footer').innerHTML = `
     <button class="btn btn-ghost" onclick="closeModal()">Close</button>
-    <button class="btn btn-ghost btn-sm" id="mb-copy-btn">📋 Copy Message</button>
-    <button class="btn btn-green btn-sm" id="mb-send-btn">💬 Send via WhatsApp</button>
-    <button class="btn btn-ghost btn-sm" id="mb-send-to-borrower">📤 Send to borrower</button>
+    <button class="btn btn-ghost btn-sm" id="mb-copy-btn">📋 Copy</button>
+    <button class="btn btn-green btn-sm" id="mb-send-btn">💬 Send to Borrower</button>
   `;
   document.getElementById('modal-overlay').classList.add('open');
   haptic('light');
 
   setTimeout(() => {
     document.getElementById('mb-copy-btn').onclick = () => {
-      navigator.clipboard.writeText(msg.body).then(() => toast('Message copied!', 'success'));
+      const text = document.getElementById('mb-body-display').textContent;
+      navigator.clipboard.writeText(text).then(() => toast('Message copied!', 'success'));
     };
-    document.getElementById('mb-send-to-borrower').onclick = () => {
-    closeModal();
-    openBorrowerPickerForMessage(msg.body);
-    };
-    document.getElementById('mb-send-btn').onclick = () => {
-      closeModal();
-      navigate('dispatch');
-      setTimeout(() => {
-        const ta = document.getElementById('dispatch-custom-msg');
-        if (ta) ta.value = msg.body;
-        toggleDispatchCustomMsg();
-      }, 100);
-    };
+    document.getElementById('mb-send-btn').onclick = () => msgBankOpenBorrowerPicker(msgId, type);
   }, 0);
+}
+
+// Live-update preview body when name is typed
+function msgBankUpdatePreview(msgId, type) {
+  let msg = type === 'custom'
+    ? (state.customMessages||[]).find(m => m.id === msgId)
+    : (state.messageBank||[]).find(m => m.id === msgId);
+  if (!msg) msg = [...(state.messageBank||[]), ...(state.customMessages||[])].find(m => m.id === msgId);
+  if (!msg) return;
+  const name = document.getElementById('mb-preview-name')?.value?.trim() || '';
+  const display = document.getElementById('mb-body-display');
+  if (!display) return;
+  display.textContent = name
+    ? msg.body.replace(/\[Name\]/g, name)
+    : msg.body;
 }
 
 // ── Toggle Favorites View ────────────────────────────────────
 function msgBankOpenFavorite() {
   window._mbFavOnly = !window._mbFavOnly;
   renderMessageBank();
+  haptic('light');
+}
+
+// ── Set Tone Filter ──────────────────────────────────────────
+function msgBankSetTone(el, tone) {
+  window._mbTone = tone;
+  document.querySelectorAll('.msg-tone-chip').forEach(b => b.classList.remove('msg-tone-active'));
+  if (el) el.classList.add('msg-tone-active');
+  renderMessageBank();
+  haptic('light');
+}
+
+// ── Surprise Me ──────────────────────────────────────────────
+function msgBankSurpriseMe() {
+  if (!state || !state.messageBank) return;
+  const stage   = document.getElementById('msg-stage-filter')?.value || '';
+  const tone    = window._mbTone || '';
+  const custom  = (state.customMessages||[]);
+  let pool      = [...state.messageBank, ...custom];
+  if (stage) pool = pool.filter(m => m.stage === stage);
+  if (tone)  pool = pool.filter(m => m.tone  === tone);
+  if (!pool.length) { toast('No messages match current filter', 'info'); return; }
+  const msg = pool[Math.floor(Math.random() * pool.length)];
+  openMessageDetail(msg.id, msg._custom ? 'custom' : '');
+  haptic('medium');
+}
+
+// ── Borrower Picker for WhatsApp Send ────────────────────────
+function msgBankOpenBorrowerPicker(msgId, type) {
+  let msg = type === 'custom'
+    ? (state.customMessages||[]).find(m => m.id === msgId)
+    : (state.messageBank||[]).find(m => m.id === msgId);
+  if (!msg) msg = [...(state.messageBank||[]), ...(state.customMessages||[])].find(m => m.id === msgId);
+  if (!msg) return;
+
+  const borrowers = (state.borrowers||[]).filter(b => !b.isPaid && b.phone);
+  if (!borrowers.length) { toast('No active borrowers found', 'info'); return; }
+
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+  let bHtml = `
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Choose a borrower — then pick how to send:</div>
+    <input id="mb-bpicker-search" placeholder="Search borrower…" oninput="msgBankFilterBorrowers()" class="bl-search"
+           style="width:100%;margin-bottom:10px;box-sizing:border-box">
+    <div id="mb-bpicker-list" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:6px">`;
+
+  borrowers.forEach(b => {
+    const firstName = b.name.trim().split(/\s+/)[0];
+    const filled    = msg.body.replace(/\[Name\]/g, firstName);
+    const rawPhone  = b.phone.replace(/\D/g,'');
+    const waPhone   = rawPhone.startsWith('0') ? '233' + rawPhone.slice(1) : rawPhone;
+    const waLink    = `https://wa.me/${waPhone}?text=${encodeURIComponent(filled)}`;
+    const smsLink   = `sms:${b.phone.replace(/\s/g,'')}${isIOS?'&body=':'?body='}${encodeURIComponent(filled)}`;
+
+    bHtml += `
+      <div data-name="${b.name.toLowerCase()}"
+           style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border2)">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#000;flex-shrink:0">
+          ${b.name.trim()[0].toUpperCase()}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.name}</div>
+          <div style="font-size:10px;color:var(--text3)">${b.phone}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <a href="${waLink}" target="_blank" onclick="closeModal();haptic('medium')"
+             style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:8px;background:rgba(37,211,102,0.12);color:#25d366;font-size:11px;font-weight:600;text-decoration:none;border:1px solid rgba(37,211,102,0.25)">
+            💬 WA
+          </a>
+          <a href="${smsLink}" onclick="closeModal();haptic('medium')"
+             style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:8px;background:rgba(56,189,248,0.12);color:var(--blue);font-size:11px;font-weight:600;text-decoration:none;border:1px solid rgba(56,189,248,0.25)">
+            📱 SMS
+          </a>
+        </div>
+      </div>`;
+  });
+  bHtml += '</div>';
+
+  document.getElementById('modal-title').textContent  = '📲 Send to Borrower';
+  document.getElementById('modal-body').innerHTML      = bHtml;
+  document.getElementById('modal-footer').innerHTML    = '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>';
+  haptic('light');
+}
+
+// Live-filter borrower picker list
+function msgBankFilterBorrowers() {
+  const q = (document.getElementById('mb-bpicker-search')?.value || '').toLowerCase();
+  document.querySelectorAll('#mb-bpicker-list [data-name]').forEach(el => {
+    el.style.display = el.dataset.name.includes(q) ? '' : 'none';
+  });
+}
+
+// ── Add Custom Message ────────────────────────────────────────
+function msgBankOpenAddCustom() {
+  document.getElementById('modal-title').textContent = '＋ New Custom Message';
+  document.getElementById('modal-body').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <input id="cm-title" placeholder="Title (e.g. My gentle reminder)" class="form-input" style="font-size:13px">
+      <div style="display:flex;gap:8px">
+        <select id="cm-stage" class="bl-chip-sel" style="flex:1;border-radius:8px;padding:8px 10px">
+          <option value="M0">M0</option><option value="M1">M1</option>
+          <option value="M2" selected>M2</option><option value="M3">M3</option>
+          <option value="M4">M4</option><option value="M5">M5</option>
+        </select>
+        <select id="cm-tone" class="bl-chip-sel" style="flex:1;border-radius:8px;padding:8px 10px">
+          <option value="sweet">🍬 Sweet</option><option value="gentle">🌿 Gentle</option>
+          <option value="direct">🎯 Direct</option><option value="serious">⚠️ Serious</option>
+          <option value="severe">🔴 Severe</option><option value="extreme">⚡ Extreme</option>
+        </select>
+      </div>
+      <textarea id="cm-body" placeholder="Write your message here… Use [Name] as a placeholder for the borrower's first name." rows="6"
+                class="form-input" style="font-size:12px;resize:vertical;line-height:1.7"></textarea>
+      <div style="font-size:10px;color:var(--text3)">Tip: Use [Name] and it will auto-fill when you preview or send.</div>
+    </div>
+  `;
+  document.getElementById('modal-footer').innerHTML = `
+    <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-gold" onclick="msgBankSaveCustom()">💾 Save Message</button>
+  `;
+  document.getElementById('modal-overlay').classList.add('open');
+  haptic('light');
+}
+
+function msgBankSaveCustom() {
+  const title = document.getElementById('cm-title')?.value?.trim();
+  const body  = document.getElementById('cm-body')?.value?.trim();
+  const stage = document.getElementById('cm-stage')?.value || 'M2';
+  const tone  = document.getElementById('cm-tone')?.value  || 'gentle';
+  if (!title) { toast('Please enter a title', 'error'); return; }
+  if (!body)  { toast('Please write a message body', 'error'); return; }
+
+  if (!state.customMessages) state.customMessages = [];
+  state.customMessages.push({
+    id: 'custom_' + Date.now(),
+    title, body, stage, tone,
+    tags: [], legalRefs: [], _custom: true,
+    createdAt: new Date().toISOString()
+  });
+  saveState();
+  closeModal();
+  renderMessageBank();
+  toast('Custom message saved!', 'success');
+  haptic('medium');
+}
+
+function msgBankDeleteCustom(id) {
+  if (!state.customMessages) return;
+  state.customMessages = state.customMessages.filter(m => m.id !== id);
+  saveState();
+  closeModal();
+  renderMessageBank();
+  toast('Custom message deleted', 'info');
   haptic('light');
 }
 
@@ -18739,16 +18893,29 @@ function showSuggestedMessages(borrowerId) {
   const messages = (state.messageBank || []).filter(m => m.stage === stage).slice(0, 5);
   if (!messages.length) { toast('No suggestions for this stage', 'info'); return; }
 
+  // Store filled messages safely — avoids escaping hell in inline onclick
+  window._mbSuggestPool = messages.map(msg => msg.body.replace(/\[Name\]/g, getFirstName(b)));
+
   let html = `<div style="font-size:12px;color:var(--text2);margin-bottom:12px">Suggested messages for ${b.name.split(' ')[0]} (${stage})</div>`;
-  messages.forEach(msg => {
-    const filled = msg.body.replace(/\[Name\]/g, getFirstName(b));
-    html += `<div onclick="closeModal();navigate('dispatch');setTimeout(()=>{document.getElementById('dispatch-custom-msg').value='${filled.replace(/'/g,"\\'")}';toggleDispatchCustomMsg()},200)" style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:8px;cursor:pointer;font-size:11px;color:var(--text2);white-space:pre-wrap;border-left:3px solid var(--gold)">${filled.slice(0,100)}…</div>`;
+  window._mbSuggestPool.forEach((filled, i) => {
+    html += `<div onclick="msgBankSuggestSelect(${i})"
+      style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:8px;cursor:pointer;font-size:11px;color:var(--text2);white-space:pre-wrap;border-left:3px solid var(--gold)"
+    >${filled.slice(0, 100)}…</div>`;
   });
   document.getElementById('modal-title').textContent = 'Suggested Messages';
   document.getElementById('modal-body').innerHTML = html;
   document.getElementById('modal-footer').innerHTML = '<button class="btn btn-ghost" onclick="closeModal()">Close</button>';
   document.getElementById('modal-overlay').classList.add('open');
   haptic('light');
+}
+
+// Called when agent taps a suggested message — sends it to dispatch cleanly
+function msgBankSuggestSelect(i) {
+  const filled = (window._mbSuggestPool || [])[i];
+  if (!filled) return;
+  window._pendingDispatchMsg = filled;
+  closeModal();
+  navigate('dispatch');
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -19210,6 +19377,19 @@ loadChartJS().catch(e => console.warn('Chart.js failed to load:', e));
   background: rgba(240,160,48,0.08) !important;
 }
 
+/* ── TONE CHIPS ── */
+.msg-tone-chip {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border2); border-radius: 20px;
+  color: var(--text3); font-family: var(--font-body); font-size: 11px;
+  padding: 4px 10px; cursor: pointer; outline: none;
+  transition: all 0.15s;
+}
+.msg-tone-chip:hover { border-color: var(--gold); color: var(--text); }
+.msg-tone-chip.msg-tone-active {
+  background: rgba(240,160,48,0.15);
+  border-color: var(--gold); color: var(--gold); font-weight: 600;
+}
 /* ── MESSAGE BANK CARDS ── */
 .msg-card { position: relative; overflow: hidden; }
 .msg-card::before {
