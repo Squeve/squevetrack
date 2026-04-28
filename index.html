@@ -132,7 +132,9 @@ tr.row-swiped td:first-child div, tr.row-swiped td { transition: background 0.15
 @keyframes pageSlideIn { from { opacity:0; transform:translateX(18px); } to { opacity:1; transform:translateX(0); } }
 @keyframes pageSlideUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 @keyframes pageFadeIn  { from { opacity:0; } to { opacity:1; } }
+@keyframes pageExit    { from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(-14px); } }
 .page.active { animation: pageSlideIn 0.16s cubic-bezier(0.25,0.46,0.45,0.94) both; }
+.page.exiting { animation: pageExit 0.1s ease both; pointer-events:none; }
 /* Modal entrance */
 @keyframes modalSlideIn { from { opacity:0; transform:translateY(20px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
 #modal-overlay.open .modal { animation: modalSlideIn 0.18s cubic-bezier(0.34,1.2,0.64,1) both; }
@@ -268,7 +270,33 @@ tr.overdue-critical td:first-child,
   background: rgba(255,255,255,0.75);
 }
 
-/* ── END PREMIUM CSS ─────────────────────────────────── */
+/* SMART ACTION STRIP */
+.action-strip { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:16px; scrollbar-width:none; }
+.action-strip::-webkit-scrollbar { display:none; }
+.action-pill {
+  display:inline-flex; align-items:center; gap:6px; padding:7px 13px;
+  background:var(--surface); border:1px solid var(--border2); border-radius:20px;
+  font-size:11px; font-weight:600; color:var(--text2); cursor:pointer; white-space:nowrap;
+  transition:all 0.15s; flex-shrink:0;
+}
+.action-pill:hover { border-color:var(--gold); color:var(--gold); }
+.action-pill .pill-count {
+  font-family:var(--font-mono); font-size:12px; font-weight:700;
+  padding:1px 6px; border-radius:10px; background:var(--surface2); min-width:20px; text-align:center;
+}
+.action-pill.urgent .pill-count { background:rgba(239,68,68,0.18); color:var(--red); }
+.action-pill.warn   .pill-count { background:rgba(249,115,22,0.18); color:var(--orange); }
+.action-pill.gold   .pill-count { background:rgba(240,160,48,0.18); color:var(--gold); }
+.action-pill.green  .pill-count { background:rgba(34,197,94,0.18);  color:var(--green); }
+.action-pill.blue   .pill-count { background:rgba(96,165,250,0.18); color:var(--blue); }
+
+/* PAYMENT MINI PROGRESS BAR on borrower cards */
+.bl-pay-bar { height:3px; border-radius:2px; background:var(--border); margin-top:4px; overflow:hidden; }
+.bl-pay-bar-fill { height:100%; border-radius:2px; transition:width 0.4s cubic-bezier(0.34,1.2,0.64,1); }
+
+/* CLOSE-TO-PAYING badge */
+.badge-quickwin { display:inline-flex; align-items:center; gap:3px; font-size:9px; font-weight:700; padding:1px 5px; border-radius:10px; background:rgba(34,197,94,0.15); color:var(--green); border:1px solid rgba(34,197,94,0.25); flex-shrink:0; }
+
 
 /* Nav item transition */
 .nav-item { transition: all 0.1s ease; }
@@ -879,13 +907,17 @@ tbody tr:hover td { background: rgba(255,255,255,0.02); }
   -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
-  animation: fadeUp 0.22s cubic-bezier(0.34,1.2,0.64,1) both;
+  animation: modalSpring 0.24s cubic-bezier(0.34,1.4,0.64,1) both;
+}
+@keyframes modalSpring {
+  from { opacity:0; transform:scale(0.93) translateY(10px); }
+  to   { opacity:1; transform:scale(1)    translateY(0); }
 }
 .modal-body { padding: 20px 24px; flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .modal-header {
   padding: 20px 24px 16px;
   border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; gap: 0;
 }
 .modal-title { font-family: var(--font-head); font-size: 16px; font-weight: 700; }
 .modal-close {
@@ -2801,6 +2833,8 @@ tr.overdue-critical .heat-ring {
 
     <div class="kpi-grid" id="kpi-grid"></div>
 
+    <div id="dash-action-strip" class="action-strip"></div>
+
     <div id="dash-target-section"></div>
 
     <div id="dash-alerts"></div>
@@ -3902,8 +3936,11 @@ tr.overdue-critical .heat-ring {
   <div class="modal">
     <div class="modal-drag-handle"></div>
     <div class="modal-header">
-      <div class="modal-title" id="modal-title">Add Borrower</div>
-      <button class="modal-close" onclick="closeModal()">✕</button>
+      <button id="modal-back-btn" onclick="closeModal()" style="display:none;background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;font-weight:600;padding:2px 6px;border-radius:6px;display:none;align-items:center;gap:4px;margin-right:8px;flex-shrink:0" title="Go back">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="12,4 6,10 12,16"/></svg>Back
+      </button>
+      <div class="modal-title" id="modal-title" style="flex:1">Add Borrower</div>
+      <button class="modal-close" onclick="closeAllModals()">✕</button>
     </div>
     <div class="modal-body" id="modal-body"></div>
     <div class="modal-footer" id="modal-footer"></div>
@@ -5973,6 +6010,37 @@ function ptpAutoFlagMissed() {
   if (changed) saveState();
 }
 
+// ── Smart Action Strip ────────────────────────────────────────
+function renderDashActionStrip() {
+  const el = document.getElementById('dash-action-strip');
+  if (!el) return;
+  const active = getActiveBorrowers();
+  const today  = new Date().toISOString().split('T')[0];
+  const _3d    = new Date(Date.now() - 3*86400000).toISOString().split('T')[0];
+
+  // Count each signal
+  const ptpDue     = active.filter(b => b.promisedToPay && b.promiseDate && b.promiseDate.startsWith(today) && !b.isPaid).length;
+  const ptpBreached = active.filter(b => b.ptpBreached && !b.isPaid).length;
+  const critical   = active.filter(b => getOdAge(b.startDate) >= 13 && !b.isPaid).length;
+  const noContact  = active.filter(b => {
+    if (b.isPaid) return false;
+    const lastCall = (b.callLog||[]).slice(-1)[0];
+    return !lastCall || lastCall.date < _3d;
+  }).length;
+  const quickWins  = active.filter(b => !b.isPaid && b.loanDue > 0 && b.amountPaid / b.loanDue >= 0.75).length;
+  const partialPaid = active.filter(b => getStatus(b) === 'Partial').length;
+
+  const pills = [];
+  if (ptpDue > 0)      pills.push(`<button class="action-pill gold" onclick="showBorrowersPopup('','','','','');haptic('light')" title="PTP promised for today"><span class="pill-count">${ptpDue}</span>🤝 PTP Due Today</button>`);
+  if (ptpBreached > 0) pills.push(`<button class="action-pill urgent" onclick="showBorrowersPopup('','','','','');haptic('light')" title="Broken promises"><span class="pill-count">${ptpBreached}</span>🔴 PTP Breached</button>`);
+  if (critical > 0)    pills.push(`<button class="action-pill urgent" onclick="showBorrowersPopup('Unpaid','',13,'','');haptic('light')" title="Day 13+ — critical stage"><span class="pill-count">${critical}</span>🚨 Critical</button>`);
+  if (noContact > 0)   pills.push(`<button class="action-pill warn"   onclick="showBorrowersPopup('','','','','');haptic('light')" title="No call in 3+ days"><span class="pill-count">${noContact}</span>📵 No Contact 3d+</button>`);
+  if (quickWins > 0)   pills.push(`<button class="action-pill green"  onclick="showBorrowersPopup('Partial','','','','');haptic('light')" title="75%+ paid — close to done"><span class="pill-count">${quickWins}</span>⚡ Quick Wins</button>`);
+  if (partialPaid > 0) pills.push(`<button class="action-pill blue"   onclick="showBorrowersPopup('Partial','','','','');haptic('light')" title="Partial payers"><span class="pill-count">${partialPaid}</span>💰 Partial</button>`);
+
+  el.innerHTML = pills.length ? pills.join('') : '';
+}
+
 async function renderDashboard() {
   ptpAutoFlagMissed();
   // Dynamic greeting
@@ -6213,6 +6281,7 @@ async function renderDashboard() {
     }
   }
   document.getElementById('dash-alerts').innerHTML = alertHtml;
+  renderDashActionStrip();
   var zlb = document.getElementById('zero-log-btn');
   if (zlb) zlb.addEventListener('click', function() { navigate('log'); });
   var glb = document.getElementById('gap-log-btn');
@@ -6510,6 +6579,14 @@ function renderLoansTable() {
     const notesDot = r.notes ? '<span style="width:5px;height:5px;background:var(--gold);border-radius:50%;display:inline-block;flex-shrink:0"></span>' : '';
     const callCount = (r.callLog||[]).length;
     const badges = getBorrowerBadges(r);
+
+    // Payment progress bar
+    const payRatio   = r.loanDue > 0 ? Math.min(1, r.amountPaid / r.loanDue) : 0;
+    const barColor   = payRatio >= 1 ? 'var(--green)' : payRatio >= 0.75 ? '#22c55e' : payRatio >= 0.5 ? 'var(--gold)' : payRatio >= 0.25 ? 'var(--orange)' : 'var(--red)';
+    const payBarHtml = r.loanDue > 0 ? `<div class="bl-pay-bar"><div class="bl-pay-bar-fill" style="width:${(payRatio*100).toFixed(1)}%;background:${barColor}"></div></div>` : '';
+    // Quick-win badge
+    const quickWinBadge = (!r.isPaid && payRatio >= 0.75 && r.status !== 'Paid')
+      ? ' <span class="badge-quickwin">⚡ Close</span>' : '';
     const d = document.createElement('div');
     d.className = 'bl-card' + critCls;
     d.dataset.bid = r.id;
@@ -6518,7 +6595,7 @@ function renderLoansTable() {
       + '<div class="bl-card-inner">'
         + '<div class="bl-avatar" style="background:linear-gradient(135deg,' + ac1 + ',' + ac2 + ')" title="Priority ' + pScore + '/10">' + initials + '</div>'
         + '<div class="bl-content">'
-          + '<div class="bl-name">' + r.name + badges + ' ' + getStageBadgeHtml(r) + '</div>'
+          + '<div class="bl-name">' + r.name + badges + quickWinBadge + ' ' + getStageBadgeHtml(r) + '</div>'
           + '<div class="bl-meta-row">'
             + '<span class="bl-phone">' + formatPhoneDisplay(r.phone) + '</span>'
             + '<span class="bl-day ' + heatCls + '">Day ' + r.odAge + '</span>'
@@ -6526,6 +6603,7 @@ function renderLoansTable() {
             + (r.promisedToPay ? '<span style="font-size:9px;color:var(--purple)">🤝' + ptpDateStr + '</span>' : '')
             + getBestCallIndicator(r)
           + '</div>'
+          + payBarHtml
         + '</div>'
         + '<div class="bl-amounts">'
           + '<div class="bl-due" style="color:' + (r.dueToday>0?'var(--red)':'var(--green)') + '">' + (r.dueToday>0?fmtC(r.dueToday):'✓') + '</div>'
@@ -8559,7 +8637,7 @@ function openBorrowerDetail(id) {
     liveActivityHtml
     + '<div style="background:var(--surface2);border-radius:8px;padding:14px;margin-bottom:14px">'
     + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px">'
-    + '<div><div style="font-size:12px;color:var(--text3)">' + b.loanType + ' &middot; ' + formatPhoneDisplay(b.phone) + '</div>'
+    + '<div><div style="font-size:12px;color:var(--text3)">' + b.loanType + ' &middot; <span onclick="navigator.clipboard.writeText(\''+b.phone+'\').then(()=>toast(\'Phone copied\',\'success\'))" style="cursor:pointer;border-bottom:1px dashed var(--border2);padding-bottom:1px" title="Tap to copy">' + formatPhoneDisplay(b.phone) + ' 📋</span></div>'
     + (b.promisedToPay ? '<div style="font-size:11px;color:var(--purple);margin-top:2px">🤝 Promise: ' + (b.promiseDate||'today') + (b.promiseNote?' — '+b.promiseNote:'') + '</div>' : '')
     + (b.notes ? '<div style="font-size:11px;color:var(--gold);margin-top:2px">📝 ' + b.notes + '</div>' : '')
     + (badges ? '<div style="margin-top:4px">' + badges + '</div>' : '')
@@ -8621,19 +8699,19 @@ function openBorrowerDetail(id) {
     var elHL  = document.getElementById('bd-hitlist');
     var elAO  = document.getElementById('bd-adjod');
     var elInst = document.getElementById('bd-instalment');
-    if (elPay) elPay.onclick = function(){ haptic('light'); closeModal(); openPayModal(id); };
+    if (elPay) elPay.onclick = function(){ haptic('light'); _pushModal(); openPayModal(id); };
     if (document.getElementById('bd-msgbank')) {
   document.getElementById('bd-msgbank').onclick = () => { showSuggestedMessages(id); };
 }
-    if (elPr)  elPr.onclick  = function(){ haptic('light'); closeModal(); togglePromise(id); };
-    if (elN)   elN.onclick   = function(){ haptic('light'); closeModal(); openQuickNote(id); };
-    if (elH)   elH.onclick   = function(){ haptic('light'); closeModal(); openHistoryModal(id); };
-    if (elE)   elE.onclick   = function(){ haptic('light'); closeModal(); openEditModal(id); };
+    if (elPr)  elPr.onclick  = function(){ haptic('light'); _pushModal(); openPromiseModal(id); };
+    if (elN)   elN.onclick   = function(){ haptic('light'); _pushModal(); openQuickNote(id); };
+    if (elH)   elH.onclick   = function(){ haptic('light'); _pushModal(); openHistoryModal(id); };
+    if (elE)   elE.onclick   = function(){ haptic('light'); _pushModal(); openEditModal(id); };
     if (elAO)  elAO.onclick  = function(){ haptic('light'); openAdjustOdModal(id); };
-    if (elInst) elInst.onclick = function(){ haptic('light'); closeModal(); openEditModal(id); };
-    if (elCL)  elCL.onclick  = function(){ haptic('light'); closeModal(); openCallLogModal(id); };
+    if (elInst) elInst.onclick = function(){ haptic('light'); _pushModal(); openEditModal(id); };
+    if (elCL)  elCL.onclick  = function(){ haptic('light'); _pushModal(); openCallLogModal(id); };
     var elTL = document.getElementById('bd-timeline');
-    if (elTL) elTL.onclick = function(){ haptic('light'); closeModal(); openBorrowerTimeline(id); };
+    if (elTL) elTL.onclick = function(){ haptic('light'); _pushModal(); openBorrowerTimeline(id); };
     if (elHL)  elHL.onclick  = function(){ haptic('medium'); addToHitList(id); elHL.textContent = '📌 In Hit List'; };
     if (elD)   elD.onclick   = function(){
       confirmAction({ title: 'Delete Borrower', message: 'Remove <strong>' + escapeHtml(b.name) + '</strong> from your portfolio?', confirmLabel: 'Delete', onConfirm: function() { deleteBorrower(id); } });
@@ -8922,6 +9000,7 @@ function closeModal() {
     document.getElementById('modal-title').textContent = prev.title;
     document.getElementById('modal-body').innerHTML    = prev.body;
     document.getElementById('modal-footer').innerHTML  = prev.footer;
+    _syncModalBackBtn();
     // Re-run any wiring needed
     if (typeof initModalSwipeDown === 'function') setTimeout(function(){
       const overlay=document.getElementById('modal-overlay');
@@ -8934,7 +9013,19 @@ function closeModal() {
   const modal   = overlay?.querySelector('.modal');
   if (modal) { modal.style.transform = ''; modal.classList.remove('dragging','snap-back'); }
   overlay?.classList.remove('open');
+  _syncModalBackBtn();
   currentModal = null;
+}
+
+// Show/hide ← Back button based on stack depth
+function _syncModalBackBtn() {
+  const btn = document.getElementById('modal-back-btn');
+  if (!btn) return;
+  if (_modalStack.length > 0) {
+    btn.style.display = 'inline-flex';
+  } else {
+    btn.style.display = 'none';
+  }
 }
 
 // Push current modal state onto the stack before opening a new one
@@ -8943,6 +9034,7 @@ function _pushModal() {
   const body   = document.getElementById('modal-body')?.innerHTML || '';
   const footer = document.getElementById('modal-footer')?.innerHTML || '';
   if (title || body) _modalStack.push({ title, body, footer });
+  _syncModalBackBtn();
 }
 
 // Close all modals including any stack
@@ -9994,7 +10086,49 @@ function doSmsExportXLSX() {
 // ── NAV ────────────────────────────────────────────────
 let currentPage = 'dashboard';
 
+// ── Keyboard Shortcuts ────────────────────────────────────────
+// / → focus search  |  N → new borrower  |  Esc → close modal
+(function _initKeyboardShortcuts() {
+  document.addEventListener('keydown', function(e) {
+    // Don't fire when typing in an input/textarea
+    const tag = document.activeElement?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (document.activeElement?.isContentEditable) return;
+
+    if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      // Focus the search on whichever page is active
+      const searchInput = document.querySelector('.page.active .bl-search') ||
+                          document.getElementById('loan-search') ||
+                          document.getElementById('msg-bank-search');
+      if (searchInput) { searchInput.focus(); searchInput.select(); }
+      else openGlobalSearch();
+    }
+    if ((e.key === 'n' || e.key === 'N') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      openAddModal();
+    }
+    if (e.key === 'Escape') {
+      const overlay = document.getElementById('modal-overlay');
+      if (overlay && overlay.classList.contains('open')) {
+        closeModal();
+      }
+    }
+    // ? — show shortcut hint toast
+    if (e.key === '?') {
+      toast('Shortcuts: <b>/</b> search · <b>N</b> new borrower · <b>Esc</b> close modal', 'info');
+    }
+  });
+})();
+
 function navigate(page) {
+  // Brief exit animation on the current page
+  const outgoing = document.querySelector('.page.active');
+  if (outgoing && outgoing.id !== 'page-' + page) {
+    outgoing.classList.add('exiting');
+    setTimeout(() => outgoing.classList.remove('exiting'), 100);
+  }
+
   currentPage = page;
   _modalStack = [];  // clear modal stack on navigation
   // Clear all active states immediately (cheap DOM ops)
@@ -10262,8 +10396,8 @@ function openRiskCard(id) {
     + '<button class="btn btn-gold btn-sm" id="rc-pay-btn">Pay</button>';
   document.getElementById('modal-overlay').classList.add('open');
   setTimeout(function(){
-    var rp=document.getElementById('rc-pay-btn'); if(rp) rp.onclick=function(){ closeModal(); openPayModal(id); };
-    var rd2=document.getElementById('rc-detail-btn'); if(rd2) rd2.onclick=function(){ closeModal(); openBorrowerDetail(id); };
+    var rp=document.getElementById('rc-pay-btn'); if(rp) rp.onclick=function(){ _pushModal(); openPayModal(id); };
+    var rd2=document.getElementById('rc-detail-btn'); if(rd2) rd2.onclick=function(){ _pushModal(); openBorrowerDetail(id); };
   },0);
 }
 
@@ -12931,7 +13065,7 @@ function showClusterPopup(cls) {
   document.getElementById('modal-title').textContent = title + ' (' + list.length + ')';
   document.getElementById('modal-body').innerHTML = list.map(b => {
     const phone = b.phone.replace(/\s/g,'').replace('+','');
-    return `<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="closeModal();openBorrowerDetail('${b.id}');haptic('light')">
+    return `<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="_pushModal();openBorrowerDetail('${b.id}');haptic('light')">
       <div style="flex:1;min-width:0">
         <div style="font-size:12px;font-weight:600">${escapeHtml(b.name)} <span style="font-size:10px;color:var(--text3)">Day ${getOdAge(b.startDate)}</span></div>
         <div style="font-size:10px;color:var(--text3)">${escapeHtml(b.phone)}</div>
@@ -14457,7 +14591,7 @@ function showPtpsForDate(dateStr) {
     </div>
     <div style="max-height:60vh; overflow-y:auto;">
       ${ptps.map(b => `
-        <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--border); cursor:pointer;" onclick="closeModal(); openBorrowerDetail('${b.id}');">
+        <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--border); cursor:pointer;" onclick="_pushModal(); openBorrowerDetail('${b.id}');">
           <div style="flex:1;">
             <div style="font-weight:600; font-size:14px;">${escapeHtml(b.name)}</div>
             <div style="font-size:11px; color:var(--text3);">${b.phone} · ${b.promiseDate || dateStr}</div>
@@ -16141,7 +16275,7 @@ function showTreadmillPopup() {
     '<div style="font-size:11px;color:var(--text3);margin-bottom:10px">These accounts just entered recovery. Every day counts. Tap to act.</div>'
     + allDay6.map(b => {
         const phone = b.phone.replace(/\s/g,'').replace('+','');
-        return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="closeModal();openBorrowerDetail('${b.id}');haptic('light')">
+        return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="_pushModal();openBorrowerDetail('${b.id}');haptic('light')">
           <div style="flex:1;min-width:0">
             <div style="font-size:12px;font-weight:600">${escapeHtml(b.name)}</div>
             <div style="font-size:10px;color:var(--text3)">Day 6 · ${escapeHtml(b.phone)}</div>
@@ -16296,7 +16430,7 @@ function showBorrowersPopup(status, loanType, odAge, odMin, odMax) {
         const phone = b.phone.replace(/\s/g,'').replace('+','');
         const ps = calcPriorityScore(b);
         const pCls = ps>=8?'p-high':ps>=5?'p-mid':'p-low';
-        return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="closeModal();openBorrowerDetail(\'' + b.id + '\');haptic(\'light\')">'
+        return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="_pushModal();openBorrowerDetail(\'' + b.id + '\');haptic(\'light\')">'
           + '<span class="priority-score ' + pCls + '">' + ps + '</span>'
           + '<div style="flex:1;min-width:0">'
           + '<div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + b.name + '</div>'
@@ -16307,7 +16441,7 @@ function showBorrowersPopup(status, loanType, odAge, odMin, odMax) {
           + '<div>' + statusBadge(b.status) + '</div>'
           + '</div>'
           + '<div style="display:flex;gap:3px;flex-shrink:0">'
-          + '<button class="btn btn-green btn-xs" onclick="event.stopPropagation();closeModal();openPayModal(\'' + b.id + '\')">💰</button>'
+          + '<button class="btn btn-green btn-xs" onclick="event.stopPropagation();_pushModal();openPayModal(\'' + b.id + '\')">💰</button>'
           + '<a href="https://wa.me/' + phone + '" target="_blank" class="btn btn-ghost btn-xs" style="color:#25d366" onclick="event.stopPropagation();haptic(\'light\')">💬</a>'
           + '</div>'
           + '</div>';
@@ -16405,7 +16539,7 @@ function openBorrowerTimeline(id) {
 
   document.getElementById('modal-footer').innerHTML =
     '<button class="btn btn-ghost" onclick="closeModal()">Close</button>'
-    + '<button class="btn btn-ghost btn-sm" onclick="closeModal();openBorrowerDetail(\'' + id + '\')">← Detail</button>';
+    + '<button class="btn btn-ghost btn-sm" onclick="_pushModal();openBorrowerDetail(\'' + id + '\')">← Detail</button>';
   document.getElementById('modal-overlay').classList.add('open');
   haptic('light');
 }
@@ -18885,37 +19019,170 @@ function msgBankDeleteCustom(id) {
   haptic('light');
 }
 
-// ── Show Suggested Messages for a Borrower ───────────────────
+// ── Suggest Messages for a Borrower ─────────────────────────
+// Scores each message against the borrower's situation so the
+// most relevant ones rise to the top.
+function _scoreSuggestMsg(msg, b, od) {
+  let score = 0;
+  const tags  = (msg.tags  || []).join(' ').toLowerCase();
+  const title = (msg.title || '').toLowerCase();
+  const body  = (msg.body  || '').toLowerCase();
+
+  // ── PTP signals ──
+  if (b.promisedToPay && !b.ptpBreached) {
+    // Active promise — prefer messages that reference commitment or trust
+    if (/promise|commit|trust|honour|word/.test(tags + title)) score += 4;
+  }
+  if (b.ptpBreached) {
+    // Broken promise — prefer consequence / legal / breach messages
+    if (/breach|broken|consequen|default|legal|court/.test(tags + title + body)) score += 5;
+    score += 2; // generally escalate everything
+  }
+
+  // ── Partial payment ──
+  if ((b.amountPaid || 0) > 0 && (b.amountPaid || 0) < (b.loanDue || 0)) {
+    if (/partial|balance|remain|outstanding|rest/.test(tags + title + body)) score += 3;
+  }
+
+  // ── Call history — many calls means they need escalation ──
+  const callCount = (b.callLog || []).length;
+  if (callCount >= 4)  score += 1;
+  if (callCount >= 8)  score += 1;
+  if (callCount >= 12) score += 2;
+
+  // ── Position within the stage band (0 = just entered, 1 = about to exit) ──
+  const bands = { M0:[0,0], M1:[1,5], M2:[6,15], M3:[16,40], M4:[41,60], M5:[61,89] };
+  const band  = bands[msg.stage];
+  if (band) {
+    const range = (band[1] - band[0]) || 1;
+    const pos   = Math.min(1, (od - band[0]) / range); // 0–1
+    if (pos > 0.65 && /final|last|urgent|warning|today/.test(tags + title)) score += 3;
+    if (pos < 0.35 && /reminder|friendly|gentle|soon/.test(tags + title))   score += 2;
+  }
+
+  // ── Priority score (agent-assigned 1–10) ──
+  const pri = b.priorityScore || 5;
+  if (pri >= 8 && /urgent|critical|final|court|legal/.test(tags + title + body)) score += 2;
+  if (pri <= 3 && /gentle|sweet|reminder|positive/.test(tags + title + body))    score += 2;
+
+  // ── Legal tags preferred for later stages ──
+  if (['M3','M4','M5'].includes(msg.stage) && (msg.legalRefs || []).length >= 2) score += 1;
+
+  // Small shuffle so agents don't see identical 5 on every open
+  score += Math.random() * 0.8;
+  return score;
+}
+
 function showSuggestedMessages(borrowerId) {
   const b = state.borrowers.find(x => x.id === borrowerId);
   if (!b) return;
-  const stage = getAccountStage(b).label;
-  const messages = (state.messageBank || []).filter(m => m.stage === stage).slice(0, 5);
-  if (!messages.length) { toast('No suggestions for this stage', 'info'); return; }
 
-  // Store filled messages safely — avoids escaping hell in inline onclick
-  window._mbSuggestPool = messages.map(msg => msg.body.replace(/\[Name\]/g, getFirstName(b)));
+  const stage  = getAccountStage(b).label;
+  const od     = getOdAge(b.startDate);
+  const stageColors = { M0:'#3b82f6', M1:'#22c55e', M2:'#e8a020', M3:'#f97316', M4:'#ef4444', M5:'#7c3aed' };
+  const color  = stageColors[stage] || 'var(--gold)';
 
-  let html = `<div style="font-size:12px;color:var(--text2);margin-bottom:12px">Suggested messages for ${b.name.split(' ')[0]} (${stage})</div>`;
-  window._mbSuggestPool.forEach((filled, i) => {
-    html += `<div onclick="msgBankSuggestSelect(${i})"
-      style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:8px;cursor:pointer;font-size:11px;color:var(--text2);white-space:pre-wrap;border-left:3px solid var(--gold)"
-    >${filled.slice(0, 100)}…</div>`;
-  });
-  document.getElementById('modal-title').textContent = 'Suggested Messages';
-  document.getElementById('modal-body').innerHTML = html;
-  document.getElementById('modal-footer').innerHTML = '<button class="btn btn-ghost" onclick="closeModal()">Close</button>';
+  // Score, sort, take top 5
+  const scored = (state.messageBank || [])
+    .filter(m => m.stage === stage)
+    .map(m => ({ msg: m, score: _scoreSuggestMsg(m, b, od) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+
+  if (!scored.length) { toast('No suggestions for this stage', 'info'); return; }
+
+  // Store context for the send step
+  window._mbSuggestCtx = { b, scored: scored.map(s => s.msg), color, stage };
+
+  _renderSuggestList();
   document.getElementById('modal-overlay').classList.add('open');
   haptic('light');
 }
 
-// Called when agent taps a suggested message — sends it to dispatch cleanly
-function msgBankSuggestSelect(i) {
-  const filled = (window._mbSuggestPool || [])[i];
-  if (!filled) return;
-  window._pendingDispatchMsg = filled;
-  closeModal();
-  navigate('dispatch');
+function _renderSuggestList() {
+  const { b, scored, color, stage } = window._mbSuggestCtx;
+  const od = getOdAge(b.startDate);
+  const firstName = getFirstName(b);
+
+  // Context pills
+  const pills = [];
+  if (b.promisedToPay && !b.ptpBreached) pills.push(`<span style="background:rgba(34,197,94,0.15);color:#22c55e;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600">🤝 PTP Active</span>`);
+  if (b.ptpBreached)   pills.push(`<span style="background:rgba(239,68,68,0.15);color:#ef4444;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600">⚠️ PTP Breached</span>`);
+  if ((b.amountPaid||0) > 0) pills.push(`<span style="background:rgba(56,189,248,0.15);color:var(--blue);font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600">💰 Partial Paid</span>`);
+  if ((b.callLog||[]).length >= 4) pills.push(`<span style="background:rgba(240,160,48,0.15);color:var(--gold);font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600">📞 ${b.callLog.length} Calls</span>`);
+
+  document.getElementById('modal-title').textContent = `💬 Suggestions for ${getFirstName(b)}`;
+  document.getElementById('modal-body').innerHTML = `
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">${pills.join('')}</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:12px">
+      ${stage} · Day ${od} · Tap a message to send
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${scored.map((msg, i) => {
+        const preview = msg.body.replace(/\[Name\]/g, firstName).slice(0, 110).replace(/\n/g,' ');
+        return `<div onclick="msgBankSuggestShowSend(${i})"
+          style="background:var(--surface2);border-left:3px solid ${color};border-radius:8px;padding:10px 12px;cursor:pointer;transition:border-color 0.15s"
+          onmouseover="this.style.background='var(--surface3,var(--surface))'"
+          onmouseout="this.style.background='var(--surface2)'">
+          <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:4px">${msg.title}</div>
+          <div style="font-size:11px;color:var(--text3);line-height:1.5">${preview}…</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:5px;display:flex;gap:8px">
+            ${(msg.tags||[]).slice(0,3).map(t=>`<span style="opacity:0.7">#${t}</span>`).join('')}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  document.getElementById('modal-footer').innerHTML =
+    `<button class="btn btn-ghost" onclick="closeModal()">Close</button>`;
+}
+
+function msgBankSuggestShowSend(i) {
+  const { b, scored, color } = window._mbSuggestCtx;
+  const msg     = scored[i];
+  if (!msg) return;
+
+  const firstName = getFirstName(b);
+  const filled    = msg.body.replace(/\[Name\]/g, firstName);
+  const rawPhone  = (b.phone || '').replace(/\D/g,'');
+  const waPhone   = rawPhone.startsWith('0') ? '233' + rawPhone.slice(1) : rawPhone;
+  const waLink    = `https://wa.me/${waPhone}?text=${encodeURIComponent(filled)}`;
+  const isIOS     = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const smsLink   = `sms:${b.phone.replace(/\s/g,'')}${isIOS?'&body=':'?body='}${encodeURIComponent(filled)}`;
+
+  document.getElementById('modal-title').textContent = msg.title;
+  document.getElementById('modal-body').innerHTML = `
+    <button onclick="_renderSuggestList()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:0;margin-bottom:10px;display:flex;align-items:center;gap:4px">
+      ← Back to suggestions
+    </button>
+    <div style="background:var(--surface2);border-left:3px solid ${color};border-radius:8px;padding:12px;font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;margin-bottom:14px">${filled}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <a href="${waLink}" target="_blank" onclick="closeModal();haptic('medium')"
+         style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:10px;background:rgba(37,211,102,0.12);color:#25d366;font-size:13px;font-weight:700;text-decoration:none;border:1px solid rgba(37,211,102,0.3)">
+        💬 Send via WhatsApp
+      </a>
+      <a href="${smsLink}" onclick="closeModal();haptic('medium')"
+         style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:10px;background:rgba(56,189,248,0.12);color:var(--blue);font-size:13px;font-weight:700;text-decoration:none;border:1px solid rgba(56,189,248,0.3)">
+        📱 Send via SMS
+      </a>
+    </div>
+    <button onclick="msgBankSuggestCopyAndClose('${i}')"
+      style="width:100%;margin-top:10px;background:none;border:1px solid var(--border2);border-radius:10px;padding:10px;color:var(--text2);font-size:12px;cursor:pointer">
+      📋 Copy to clipboard
+    </button>`;
+  document.getElementById('modal-footer').innerHTML =
+    `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>`;
+  haptic('light');
+}
+
+function msgBankSuggestCopyAndClose(i) {
+  const { b, scored } = window._mbSuggestCtx;
+  const msg    = scored[i];
+  if (!msg) return;
+  const filled = msg.body.replace(/\[Name\]/g, getFirstName(b));
+  navigator.clipboard.writeText(filled).then(() => {
+    toast('Message copied!', 'success');
+    closeModal();
+  });
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
