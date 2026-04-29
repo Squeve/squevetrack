@@ -2880,7 +2880,14 @@ tr.overdue-critical .heat-ring {
         <div class="page-title" style="font-size:22px">Borrowers</div>
         <div id="loans-count-sub" class="bl-sub"></div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+        <button class="btn btn-ghost btn-sm" onclick="openBulkDispatch()" title="Send message to multiple borrowers" style="font-size:11px">
+          📨 Bulk Send
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="navigate('paid')" title="View all fully paid accounts" style="font-size:11px">
+          ✅ Paid
+          <span id="paid-btn-count" style="background:rgba(34,197,94,0.18);color:var(--green);font-size:10px;font-weight:700;padding:1px 5px;border-radius:10px;margin-left:4px"></span>
+        </button>
         <button class="btn btn-ghost btn-sm" onclick="openExportModal()" title="Export CSV">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" style="width:15px;height:15px;vertical-align:middle;margin-right:4px"><path d="M10 3v10M6 10l4 4 4-4"/><line x1="3" y1="17" x2="17" y2="17"/></svg>Export
         </button>
@@ -2951,6 +2958,36 @@ tr.overdue-critical .heat-ring {
     <!-- ── Cards list ─────────────────────────────────────── -->
     <div id="loans-tbody" class="bl-list"></div>
 
+  </section>
+
+  <!-- PAID ACCOUNTS -->
+  <section class="page" id="page-paid">
+    <div class="page-header">
+      <div>
+        <div class="page-title" style="font-size:22px;display:flex;align-items:center;gap:8px">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:22px;height:22px;color:var(--green)"><circle cx="10" cy="10" r="8"/><polyline points="7,10 9,12 13,8" stroke-width="2"/></svg>
+          Paid Accounts
+        </div>
+        <div class="page-sub" id="paid-count-sub">All fully settled loans</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="navigate('loans')">← Borrowers</button>
+    </div>
+    <div id="paid-kpis" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"></div>
+    <div class="bl-filter-bar" style="margin-bottom:10px">
+      <div class="bl-search-wrap">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" class="bl-search-icon"><circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="17" y2="17"/></svg>
+        <input class="bl-search" id="paid-search" placeholder="Search paid accounts…" oninput="renderPaidPage()">
+        <button onclick="clearSearch('paid-search', renderPaidPage)" class="bl-clear-btn">✕</button>
+      </div>
+      <div class="bl-chips">
+        <select class="bl-chip-sel" id="paid-sort" onchange="renderPaidPage()">
+          <option value="name">Name A–Z</option>
+          <option value="date">Recently Paid</option>
+          <option value="amount">Amount High–Low</option>
+        </select>
+      </div>
+    </div>
+    <div id="paid-list" class="bl-list"></div>
   </section>
 
   <!-- ANALYTICS -->
@@ -5292,7 +5329,7 @@ function purgeAgedOut() {
   const agentStage = (_activeAgent && _activeAgent.stage) ? _activeAgent.stage : 'M2';
   const threshold = stageMaxDay[agentStage] !== undefined ? stageMaxDay[agentStage] : 16;
   if (threshold === Infinity) return; // M5 agents don't age out
-  const toRemove = state.borrowers.filter(b => getOdAge(b.startDate) >= threshold);
+  const toRemove = state.borrowers.filter(b => !b.isPaid && getOdAge(b.startDate) >= threshold);
   if (!toRemove.length) return;
   const today = new Date().toISOString().split('T')[0];
   toRemove.forEach(b => {
@@ -5306,7 +5343,7 @@ function purgeAgedOut() {
       });
     }
   });
-  state.borrowers = state.borrowers.filter(b => getOdAge(b.startDate) < threshold);
+  state.borrowers = state.borrowers.filter(b => b.isPaid || getOdAge(b.startDate) < threshold);
 }
 
 // ── Load: Supabase first, localStorage fallback ──────────────
@@ -6458,6 +6495,101 @@ async function renderDailyChart() {
   });
 }
 
+// ── PAID ACCOUNTS PAGE ─────────────────────────────────────
+function renderPaidPage() {
+  const all    = state.borrowers || [];
+  const paid   = all.filter(b => b.isPaid || getStatus(b) === 'Paid');
+  const search = (document.getElementById('paid-search')?.value || '').toLowerCase();
+  const sort   = document.getElementById('paid-sort')?.value || 'name';
+
+  let rows = paid;
+  if (search) rows = rows.filter(b =>
+    b.name.toLowerCase().includes(search) ||
+    (b.phone||'').includes(search)
+  );
+
+  if (sort === 'name')   rows = [...rows].sort((a,b) => a.name.localeCompare(b.name));
+  if (sort === 'amount') rows = [...rows].sort((a,b) => (b.amountPaid||0) - (a.amountPaid||0));
+  if (sort === 'date')   rows = [...rows].sort((a,b) => {
+    const aDate = (a.payLog||[]).slice(-1)[0]?.date || '';
+    const bDate = (b.payLog||[]).slice(-1)[0]?.date || '';
+    return bDate.localeCompare(aDate);
+  });
+
+  // KPI strip
+  const totalCollected = paid.reduce((s,b) => s + (b.amountPaid||0), 0);
+  const totalPrincipal = paid.reduce((s,b) => s + (b.principal||b.loanDue||0), 0);
+  const kpiEl = document.getElementById('paid-kpis');
+  if (kpiEl) kpiEl.innerHTML = `
+    <div class="kpi-card" style="flex:1;min-width:120px">
+      <div class="kpi-label">Total Paid</div>
+      <div class="kpi-value text-green">${paid.length}</div>
+    </div>
+    <div class="kpi-card" style="flex:1;min-width:120px">
+      <div class="kpi-label">Collected</div>
+      <div class="kpi-value">${fmtC(totalCollected)}</div>
+    </div>
+    <div class="kpi-card" style="flex:1;min-width:120px">
+      <div class="kpi-label">Principal</div>
+      <div class="kpi-value">${fmtC(totalPrincipal)}</div>
+    </div>`;
+
+  const sub = document.getElementById('paid-count-sub');
+  if (sub) sub.textContent = search
+    ? `Showing ${rows.length} of ${paid.length} paid accounts`
+    : `${paid.length} fully settled loan${paid.length !== 1 ? 's' : ''}`;
+
+  // Update button badge on loans page
+  const btnCount = document.getElementById('paid-btn-count');
+  if (btnCount) btnCount.textContent = paid.length || '';
+
+  const container = document.getElementById('paid-list');
+  if (!container) return;
+  if (!rows.length) {
+    container.innerHTML = `<div class="empty-state" style="padding:40px 0">
+      <div style="font-size:40px;margin-bottom:8px">🎉</div>
+      <div style="font-size:14px;font-weight:600;color:var(--text2)">${search ? 'No matches' : 'No paid accounts yet'}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px">Paid borrowers will appear here</div>
+    </div>`;
+    return;
+  }
+
+  const hue = (name) => name.charCodeAt(0) % 6;
+  const avatarColors = [['#f0a030','#fcc044'],['#22c55e','#16a34a'],['#60a5fa','#3b82f6'],['#a78bfa','#7c3aed'],['#f97316','#ea580c'],['#14b8a6','#0d9488']];
+  let html = '';
+  rows.forEach((b, i) => {
+    const [ac1] = avatarColors[hue(b.name)];
+    const initials = b.name.trim().split(/\s+/).slice(0,2).map(w=>w[0].toUpperCase()).join('');
+    const lastPay  = (b.payLog||[]).slice(-1)[0];
+    const paidDate = lastPay?.date ? new Date(lastPay.date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}) : '—';
+    const odDays   = getOdAge(b.startDate);
+    html += `
+      <div class="bl-card" style="cursor:pointer;animation:fadeUp 0.2s ease both;animation-delay:${Math.min(i,12)*0.02}s"
+           onclick="_pushModal();openBorrowerDetail('${b.id}')">
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 14px">
+          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,${ac1}cc,${ac1}55);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;border:2px solid rgba(34,197,94,0.4)">${initials}</div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <span style="font-size:12px;font-weight:600;color:var(--text)">${escapeHtml(b.name)}</span>
+              <span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3)">✓ PAID</span>
+            </div>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap">
+              <span>${formatPhoneDisplay(b.phone)}</span>
+              <span>· Day ${odDays}</span>
+              <span>· Paid ${paidDate}</span>
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--green)">${fmtC(b.amountPaid||0)}</div>
+            <div style="font-size:10px;color:var(--text3)">${b.loanType||''}</div>
+          </div>
+        </div>
+        <div class="bl-pay-bar"><div class="bl-pay-bar-fill" style="width:100%;background:var(--green)"></div></div>
+      </div>`;
+  });
+  container.innerHTML = html;
+}
+
 // ── LOANS TABLE ────────────────────────────────────────
 // Persisted loan filter state
 var _loanSearchValue    = '';
@@ -6494,6 +6626,9 @@ function renderLoansTable() {
     generous: getGenerous(b),
     odFeeCalc: getOdFee(b)
   }));
+
+  // Exclude paid accounts from the active list unless user explicitly filters for them
+  if (fStatus !== 'Paid') rows = rows.filter(r => !r.isPaid && r.status !== 'Paid');
 
   // Populate OD filter if empty
   const odSel = document.getElementById('loan-filter-od');
@@ -8699,19 +8834,19 @@ function openBorrowerDetail(id) {
     var elHL  = document.getElementById('bd-hitlist');
     var elAO  = document.getElementById('bd-adjod');
     var elInst = document.getElementById('bd-instalment');
-    if (elPay) elPay.onclick = function(){ haptic('light'); _pushModal(); openPayModal(id); };
+    if (elPay) elPay.onclick = function(){ haptic('light'); _pushModal(() => openBorrowerDetail(id)); openPayModal(id); };
     if (document.getElementById('bd-msgbank')) {
   document.getElementById('bd-msgbank').onclick = () => { showSuggestedMessages(id); };
 }
-    if (elPr)  elPr.onclick  = function(){ haptic('light'); _pushModal(); openPromiseModal(id); };
-    if (elN)   elN.onclick   = function(){ haptic('light'); _pushModal(); openQuickNote(id); };
-    if (elH)   elH.onclick   = function(){ haptic('light'); _pushModal(); openHistoryModal(id); };
-    if (elE)   elE.onclick   = function(){ haptic('light'); _pushModal(); openEditModal(id); };
+    if (elPr)  elPr.onclick  = function(){ haptic('light'); _pushModal(() => openBorrowerDetail(id)); openPromiseModal(id); };
+    if (elN)   elN.onclick   = function(){ haptic('light'); _pushModal(() => openBorrowerDetail(id)); openQuickNote(id); };
+    if (elH)   elH.onclick   = function(){ haptic('light'); _pushModal(() => openBorrowerDetail(id)); openHistoryModal(id); };
+    if (elE)   elE.onclick   = function(){ haptic('light'); _pushModal(() => openBorrowerDetail(id)); openEditModal(id); };
     if (elAO)  elAO.onclick  = function(){ haptic('light'); openAdjustOdModal(id); };
-    if (elInst) elInst.onclick = function(){ haptic('light'); _pushModal(); openEditModal(id); };
-    if (elCL)  elCL.onclick  = function(){ haptic('light'); _pushModal(); openCallLogModal(id); };
+    if (elInst) elInst.onclick = function(){ haptic('light'); _pushModal(() => openBorrowerDetail(id)); openEditModal(id); };
+    if (elCL)  elCL.onclick  = function(){ haptic('light'); _pushModal(() => openBorrowerDetail(id)); openCallLogModal(id); };
     var elTL = document.getElementById('bd-timeline');
-    if (elTL) elTL.onclick = function(){ haptic('light'); _pushModal(); openBorrowerTimeline(id); };
+    if (elTL) elTL.onclick = function(){ haptic('light'); _pushModal(() => openBorrowerDetail(id)); openBorrowerTimeline(id); };
     if (elHL)  elHL.onclick  = function(){ haptic('medium'); addToHitList(id); elHL.textContent = '📌 In Hit List'; };
     if (elD)   elD.onclick   = function(){
       confirmAction({ title: 'Delete Borrower', message: 'Remove <strong>' + escapeHtml(b.name) + '</strong> from your portfolio?', confirmLabel: 'Delete', onConfirm: function() { deleteBorrower(id); } });
@@ -8787,8 +8922,9 @@ function openPayModal(id) {
   const odClickHandler = function(e) {
     const odRow = e.target.closest('#pay-od-row');
     if (odRow && odRow.dataset.odid) {
-      _pushModal();
-      openOdFeeModal(odRow.dataset.odid);
+      const oid = odRow.dataset.odid;
+      _pushModal(() => openPayModal(oid));
+      openOdFeeModal(oid);
       modalBody.removeEventListener('click', odClickHandler);
     }
   };
@@ -8994,14 +9130,17 @@ function deleteBorrower(id) {
 }
 
 function closeModal() {
-  // If there's a modal to go back to, restore it instead of closing
   if (_modalStack.length > 0) {
     const prev = _modalStack.pop();
-    document.getElementById('modal-title').textContent = prev.title;
-    document.getElementById('modal-body').innerHTML    = prev.body;
-    document.getElementById('modal-footer').innerHTML  = prev.footer;
+    if (typeof prev.restoreFn === 'function') {
+      // Re-render via the original function — event listeners re-wired properly
+      prev.restoreFn();
+    } else {
+      document.getElementById('modal-title').textContent = prev.title;
+      document.getElementById('modal-body').innerHTML    = prev.body;
+      document.getElementById('modal-footer').innerHTML  = prev.footer;
+    }
     _syncModalBackBtn();
-    // Re-run any wiring needed
     if (typeof initModalSwipeDown === 'function') setTimeout(function(){
       const overlay=document.getElementById('modal-overlay');
       const modal=overlay&&overlay.querySelector('.modal');
@@ -9021,19 +9160,19 @@ function closeModal() {
 function _syncModalBackBtn() {
   const btn = document.getElementById('modal-back-btn');
   if (!btn) return;
-  if (_modalStack.length > 0) {
-    btn.style.display = 'inline-flex';
-  } else {
-    btn.style.display = 'none';
-  }
+  btn.style.display = _modalStack.length > 0 ? 'inline-flex' : 'none';
 }
 
-// Push current modal state onto the stack before opening a new one
-function _pushModal() {
+// Push current modal state onto the stack before opening a new one.
+// Pass restoreFn so back re-calls the original render fn (avoids dead listeners).
+function _pushModal(restoreFn) {
+  const overlay = document.getElementById('modal-overlay');
+  if (!overlay?.classList.contains('open')) _modalStack = [];
+
   const title  = document.getElementById('modal-title')?.textContent || '';
   const body   = document.getElementById('modal-body')?.innerHTML || '';
   const footer = document.getElementById('modal-footer')?.innerHTML || '';
-  if (title || body) _modalStack.push({ title, body, footer });
+  if (title || body) _modalStack.push({ title, body, footer, restoreFn: restoreFn || null });
   _syncModalBackBtn();
 }
 
@@ -9044,6 +9183,7 @@ function closeAllModals() {
   const modal   = overlay?.querySelector('.modal');
   if (modal) { modal.style.transform = ''; modal.classList.remove('dragging','snap-back'); }
   overlay?.classList.remove('open');
+  _syncModalBackBtn();
   currentModal = null;
 }
 
@@ -9271,6 +9411,51 @@ function initModalSwipeDown() {
 }
 
 // Modal swipe-down observer// Modal swipe-down observer is wired in DOMContentLoaded (see bottom of file)
+
+// ── Horizontal page swipe (swipe left/right to change pages) ─
+function initPageSwipe() {
+  const wrap = document.getElementById('main') || document.querySelector('.app-content') || document.body;
+  if (!wrap || wrap._pageSwipeInited) return;
+  wrap._pageSwipeInited = true;
+
+  const PAGE_ORDER = ['dashboard','loans','analytics','ptp','dispatch'];
+  const THRESHOLD  = 55;
+  const MAX_Y_DRIFT = 40;
+
+  let startX = 0, startY = 0, dx = 0, startTime = 0, swiping = false;
+
+  wrap.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    dx = 0; swiping = true; startTime = Date.now();
+  }, { passive: true });
+
+  wrap.addEventListener('touchmove', e => {
+    if (!swiping || e.touches.length !== 1) return;
+    dx = e.touches[0].clientX - startX;
+    const dy = Math.abs(e.touches[0].clientY - startY);
+    if (dy > MAX_Y_DRIFT && Math.abs(dx) < dy) { swiping = false; return; }
+    if (document.getElementById('modal-overlay')?.classList.contains('open')) { swiping = false; return; }
+    let el = e.target;
+    while (el && el !== wrap) {
+      if (el.scrollWidth > el.clientWidth + 4 && Math.abs(dx) > 10) { swiping = false; return; }
+      el = el.parentElement;
+    }
+  }, { passive: true });
+
+  wrap.addEventListener('touchend', () => {
+    if (!swiping) return;
+    swiping = false;
+    const elapsed = Date.now() - startTime;
+    const velocity = Math.abs(dx) / elapsed;
+    if (Math.abs(dx) < THRESHOLD && velocity < 0.45) return;
+    const idx = PAGE_ORDER.indexOf(currentPage);
+    if (idx === -1) return;
+    if (dx < 0 && idx < PAGE_ORDER.length - 1) { navigate(PAGE_ORDER[idx + 1]); haptic('light'); }
+    else if (dx > 0 && idx > 0)                { navigate(PAGE_ORDER[idx - 1]); haptic('light'); }
+  }, { passive: true });
+}
 
 function updateMonthlyTarget(val) {
   const v = parseFloat(val);
@@ -10162,6 +10347,7 @@ function navigate(page) {
 function renderCurrentPage() {
   if (currentPage === 'dashboard') renderDashboard();
   else if (currentPage === 'loans') { renderLoansTable(); setTimeout(initRowSwipe, 100); }
+  else if (currentPage === 'paid')  { renderPaidPage(); }
   else if (currentPage === 'analytics') renderAnalytics();
   else if (currentPage === 'dispatch') renderDispatch();
   else if (currentPage === 'log') renderLog();
@@ -10187,6 +10373,8 @@ function updateBadges() {
   // Sidebar
   document.getElementById('badge-unpaid').textContent = unpaid;
   document.getElementById('badge-dispatch').textContent = active;
+  const btnCount = document.getElementById('paid-btn-count');
+  if (btnCount) { const p = state.borrowers.filter(b => b.isPaid).length; btnCount.textContent = p || ''; }
   const ba = document.getElementById('badge-agedout');
   if (ba) { ba.textContent = aged; ba.style.display = aged > 0 ? 'inline' : 'none'; }
   // Mobile drawer badges (same IDs used in drawer HTML)
@@ -16448,7 +16636,7 @@ function showBorrowersPopup(status, loanType, odAge, odMin, odMax) {
       }).join('');
   document.getElementById('modal-footer').innerHTML =
     '<button class="btn btn-ghost" onclick="closeModal()">Close</button>'
-    + '<button class="btn btn-ghost btn-sm" onclick="closeModal();filterAndNavigate(\'loans\',\'' + (status||'') + '\',' + (odAge||odMin||'') + ')">Open in Borrowers ↗</button>';
+    + '<button class="btn btn-ghost btn-sm" onclick="closeAllModals();filterAndNavigate(\'loans\',\'' + (status||'') + '\',' + (odAge||odMin||'') + ')">Open in Borrowers ↗</button>';
   document.getElementById('modal-overlay').classList.add('open');
   haptic('light');
 }
@@ -16545,6 +16733,129 @@ function openBorrowerTimeline(id) {
 }
 
 
+// ── Bulk Message Dispatch ─────────────────────────────────────
+function openBulkDispatch() {
+  window._bulkDispatch = { stage: '', tone: '', msgId: null, selected: new Set() };
+  _renderBulkStep1();
+  document.getElementById('modal-overlay').classList.add('open');
+  haptic('light');
+}
+
+function _renderBulkStep1() {
+  const bd = window._bulkDispatch;
+  const stages = ['M0','M1','M2','M3','M4','M5'];
+  const tones  = ['','sweet','gentle','direct','serious','severe','extreme'];
+  const toneLabels = { '':'All Tones','sweet':'🍬 Sweet','gentle':'🌿 Gentle','direct':'🎯 Direct','serious':'⚠️ Serious','severe':'🔴 Severe','extreme':'⚡ Extreme' };
+
+  // Filter messages
+  let msgs = (state.messageBank || []);
+  if (bd.stage) msgs = msgs.filter(m => m.stage === bd.stage);
+  if (bd.tone)  msgs = msgs.filter(m => m.tone  === bd.tone);
+  msgs = msgs.slice(0, 30);
+
+  document.getElementById('modal-title').textContent = '📨 Bulk Send — Pick Message';
+  document.getElementById('modal-body').innerHTML = `
+    <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Step 1 of 2 — Filter and pick a message template</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <select id="bd-stage-sel" class="bl-chip-sel" style="border-radius:8px;padding:7px 10px" onchange="_bulkDispatchFilter()">
+        <option value="">All Stages</option>
+        ${stages.map(s => `<option value="${s}" ${bd.stage===s?'selected':''}>${s}</option>`).join('')}
+      </select>
+      <select id="bd-tone-sel" class="bl-chip-sel" style="border-radius:8px;padding:7px 10px" onchange="_bulkDispatchFilter()">
+        ${tones.map(t => `<option value="${t}" ${bd.tone===t?'selected':''}>${toneLabels[t]}</option>`).join('')}
+      </select>
+    </div>
+    <div id="bd-msg-list" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto">
+      ${msgs.map(m => `
+        <div onclick="_bulkSelectMsg('${m.id}')"
+          style="padding:10px 12px;border-radius:8px;background:var(--surface2);cursor:pointer;border:2px solid ${bd.msgId===m.id?'var(--gold)':'transparent'};transition:border-color 0.15s"
+          id="bdmsg-${m.id}">
+          <div style="font-size:11px;font-weight:600;color:var(--text)">${m.title}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:3px">${m.stage} · ${m.tone} · ${(m.body||'').slice(0,70)}…</div>
+        </div>`).join('')}
+    </div>`;
+  document.getElementById('modal-footer').innerHTML =
+    `<button class="btn btn-ghost" onclick="closeAllModals()">Cancel</button>
+     <button class="btn btn-gold" id="bd-next-btn" onclick="_bulkDispatchNext()" ${bd.msgId?'':'disabled'} style="${bd.msgId?'':'opacity:0.4'}"}>
+       Next: Pick Borrowers →
+     </button>`;
+}
+
+function _bulkDispatchFilter() {
+  window._bulkDispatch.stage  = document.getElementById('bd-stage-sel')?.value || '';
+  window._bulkDispatch.tone   = document.getElementById('bd-tone-sel')?.value  || '';
+  window._bulkDispatch.msgId  = null;
+  _renderBulkStep1();
+}
+
+function _bulkSelectMsg(msgId) {
+  window._bulkDispatch.msgId = msgId;
+  // Highlight selected
+  document.querySelectorAll('#bd-msg-list > div').forEach(el => {
+    el.style.borderColor = el.id === 'bdmsg-' + msgId ? 'var(--gold)' : 'transparent';
+  });
+  const nextBtn = document.getElementById('bd-next-btn');
+  if (nextBtn) { nextBtn.disabled = false; nextBtn.style.opacity = '1'; }
+}
+
+function _bulkDispatchNext() {
+  const bd = window._bulkDispatch;
+  if (!bd.msgId) { toast('Pick a message first', 'error'); return; }
+  const msg = (state.messageBank || []).find(m => m.id === bd.msgId);
+  if (!msg) return;
+
+  // Build borrower list for selected stage
+  let borrowers = (state.borrowers || []).filter(b => !b.isPaid && b.phone);
+  if (bd.stage) borrowers = borrowers.filter(b => getAccountStage(b).label === bd.stage);
+  if (!borrowers.length) { toast('No active borrowers in this stage', 'info'); return; }
+
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+  document.getElementById('modal-title').textContent = `📨 Bulk Send — ${borrowers.length} Borrowers`;
+  document.getElementById('modal-body').innerHTML = `
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Step 2 of 2 — Tap 💬 WA or 📱 SMS for each borrower. Message auto-fills their name.</div>
+    <div style="background:var(--surface2);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:var(--text2);border-left:3px solid var(--gold)">
+      <strong>${msg.title}</strong><br><span style="color:var(--text3)">${(msg.body||'').slice(0,80)}…</span>
+    </div>
+    <input id="bd-b-search" class="bl-search" placeholder="Search borrower…" oninput="_bulkFilterBorrowers()" style="width:100%;margin-bottom:8px;box-sizing:border-box">
+    <div id="bd-borrower-list" style="display:flex;flex-direction:column;gap:5px;max-height:310px;overflow-y:auto">
+      ${borrowers.map(b => {
+        const firstName = getFirstName(b);
+        const filled    = msg.body.replace(/\[Name\]/g, firstName);
+        const rawPhone  = b.phone.replace(/\D/g,'');
+        const waPhone   = rawPhone.startsWith('0') ? '233' + rawPhone.slice(1) : rawPhone;
+        const waLink    = `https://wa.me/${waPhone}?text=${encodeURIComponent(filled)}`;
+        const smsLink   = `sms:${b.phone.replace(/\s/g,'')}${isIOS?'&body=':'?body='}${encodeURIComponent(filled)}`;
+        const od        = getOdAge(b.startDate);
+        return `
+          <div data-name="${b.name.toLowerCase()}"
+               style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border2)">
+            <div style="width:30px;height:30px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#000;flex-shrink:0">
+              ${b.name.trim()[0].toUpperCase()}
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.name}</div>
+              <div style="font-size:10px;color:var(--text3)">Day ${od} · ${b.phone}</div>
+            </div>
+            <a href="${waLink}" target="_blank" onclick="haptic('light')"
+               style="display:inline-flex;align-items:center;padding:5px 9px;border-radius:8px;background:rgba(37,211,102,0.12);color:#25d366;font-size:11px;font-weight:600;text-decoration:none;border:1px solid rgba(37,211,102,0.25);flex-shrink:0">💬</a>
+            <a href="${smsLink}" onclick="haptic('light')"
+               style="display:inline-flex;align-items:center;padding:5px 9px;border-radius:8px;background:rgba(56,189,248,0.12);color:var(--blue);font-size:11px;font-weight:600;text-decoration:none;border:1px solid rgba(56,189,248,0.25);flex-shrink:0">📱</a>
+          </div>`;
+      }).join('')}
+    </div>`;
+  document.getElementById('modal-footer').innerHTML =
+    `<button class="btn btn-ghost" onclick="_renderBulkStep1()">← Back</button>
+     <button class="btn btn-ghost" onclick="closeAllModals()">Done</button>`;
+}
+
+function _bulkFilterBorrowers() {
+  const q = (document.getElementById('bd-b-search')?.value || '').toLowerCase();
+  document.querySelectorAll('#bd-borrower-list [data-name]').forEach(el => {
+    el.style.display = el.dataset.name.includes(q) ? '' : 'none';
+  });
+}
+
 // ── WhatsApp Broadcast List Export ───────────────────────────
 function openWaBroadcastExport() {
   const active = getActiveBorrowers().filter(b => getStatus(b) !== 'Paid');
@@ -16625,8 +16936,10 @@ function openOdFeeModal(id) {
     + '<div style="font-size:11px;color:var(--text3);line-height:1.8">Fee accrues from Day 1. Day 1 = 4%, every subsequent day = 2% of remaining principal. OD stops when principal is fully paid or OD equals principal.</div>';
   document.getElementById('modal-footer').innerHTML =
     '<button class="btn btn-ghost" onclick="closeModal()">Close</button>'
-    + '<button class="btn btn-green" onclick="closeModal();openPayModal(\'' + id + '\')" >💰 Record Payment</button>';
-  document.getElementById('modal-overlay').classList.add('open');
+    + '<button class="btn btn-green" onclick="_pushModal(() => openOdFeeModal(\'' + id + '\'));openPayModal(\'' + id + '\')" >💰 Record Payment</button>';
+  // Only open if not already open (called from borrower detail where modal is already showing)
+  const _ov = document.getElementById('modal-overlay');
+  if (!_ov.classList.contains('open')) _ov.classList.add('open');
   haptic('light');
 }
 
@@ -19206,8 +19519,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     }).observe(overlay, { attributes: true, attributeFilter: ['class'] });
   })();
 
+  // Wire horizontal page swipe
+  initPageSwipe();
+
   await loadState();
   state.messageBank = MESSAGE_BANK;
+  // Silently auto-mark paid accounts on every load
+  if (state.borrowers) {
+    state.borrowers.forEach(b => {
+      if (!b.isPaid && b.amountPaid > 0 && b.loanDue > 0 && b.amountPaid >= b.loanDue) {
+        b.isPaid = true;
+        delete b.odFeeSnapshot; delete b.odFeeSnapshotDate; delete b.odFeeSnapshotNote;
+      }
+    });
+  }
   if (localStorage.getItem('ptp_reminders_enabled') === '1') {
   enablePtpReminders();
 }
