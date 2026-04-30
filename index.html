@@ -1063,6 +1063,16 @@ select.form-input option { background: var(--surface2); }
 .toast.error   { border-left: 3px solid var(--red); }
 .toast.info    { border-left: 3px solid var(--gold); }
 .toast.warn    { border-left: 3px solid var(--orange); }
+.toast-undo-btn {
+  margin-left:auto; padding:2px 9px; border-radius:6px; border:1px solid var(--border-hi);
+  background:rgba(255,255,255,0.08); color:var(--text); font-size:11px; font-weight:700;
+  cursor:pointer; font-family:var(--font-body); flex-shrink:0; white-space:nowrap;
+}
+.toast-undo-btn:hover { background:rgba(255,255,255,0.16); }
+.toast-progress {
+  position:absolute; bottom:0; left:0; height:2px; border-radius:0 0 10px 10px;
+  background:var(--green); transition:width linear;
+}
 /* toastIn defined in animations block above */
 
 
@@ -2970,7 +2980,10 @@ tr.overdue-critical .heat-ring {
         </div>
         <div class="page-sub" id="paid-count-sub">All fully settled loans</div>
       </div>
-      <button class="btn btn-ghost btn-sm" onclick="navigate('loans')">← Borrowers</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-ghost btn-sm" onclick="openArchivedView()" title="View archived accounts" style="font-size:11px">🗄️ Archived</button>
+        <button class="btn btn-ghost btn-sm" onclick="navigate('loans')">← Borrowers</button>
+      </div>
     </div>
     <div id="paid-kpis" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"></div>
     <div class="bl-filter-bar" style="margin-bottom:10px">
@@ -3114,11 +3127,11 @@ tr.overdue-critical .heat-ring {
         </select>
         <div class="bl-search-wrap" style="flex:1;min-width:120px;max-width:200px">
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" class="bl-search-icon"><circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="17" y2="17"/></svg>
-          <input class="bl-search" id="dispatch-search" placeholder="Search name…" oninput="renderDispatch()" style="height:34px;font-size:12px">
+          <input class="bl-search" id="dispatch-search" placeholder="Search name…" oninput="_dispatchSearchDebounce()" style="height:34px;font-size:12px">
           <button onclick="clearSearch('dispatch-search',renderDispatch)" class="bl-clear-btn">✕</button>
         </div>
-        <input type="number" class="bl-chip-sel" id="dispatch-min-amount" placeholder="₵ Min" oninput="renderDispatch()" style="width:72px" min="0">
-        <input type="number" class="bl-chip-sel" id="dispatch-max-amount" placeholder="₵ Max" oninput="renderDispatch()" style="width:72px" min="0">
+        <input type="number" class="bl-chip-sel" id="dispatch-min-amount" placeholder="₵ Min" oninput="_dispatchSearchDebounce()" style="width:72px" min="0">
+        <input type="number" class="bl-chip-sel" id="dispatch-max-amount" placeholder="₵ Max" oninput="_dispatchSearchDebounce()" style="width:72px" min="0">
       </div>
       <!-- Discount -->
       <div style="display:flex;align-items:center;gap:8px;padding-top:6px;border-top:1px solid var(--border);flex-wrap:wrap;min-width:0">
@@ -4486,6 +4499,7 @@ function _getCmdItems(q) {
   const pages = [
     { icon:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px"><rect x="2" y="2" width="7" height="7" rx="1.5"/><rect x="11" y="2" width="7" height="7" rx="1.5"/><rect x="2" y="11" width="7" height="7" rx="1.5"/><rect x="11" y="11" width="7" height="7" rx="1.5"/></svg>', label:'Dashboard', sub:'Overview', fn: ()=>navigate('dashboard') },
     { icon:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px"><circle cx="7" cy="6" r="3"/><path d="M1 18c0-3.31 2.69-6 6-6h.5M14 6a3 3 0 110 6M19 18c0-3.31-2.69-6-6-6"/></svg>', label:'Borrowers', sub:'Full list', fn: ()=>navigate('loans') },
+    { icon:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px"><circle cx="10" cy="10" r="8"/><polyline points="7,10 9,12 13,8" stroke-width="2"/></svg>', label:'Paid Accounts', sub:'Settled loans', fn: ()=>navigate('paid') },
     { icon:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px"><polyline points="2,15 7,9 11,12 18,5"/></svg>', label:'Analytics', sub:'Charts & insights', fn: ()=>navigate('analytics') },
     { icon:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px"><path d="M3 5h14a1 1 0 011 1v8H2V6a1 1 0 011-1z"/><polyline points="2,5 10,11 18,5"/></svg>', label:'WhatsApp Dispatch', sub:'Send messages', fn: ()=>navigate('dispatch') },
     { icon:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px"><rect x="3" y="2" width="14" height="16" rx="1.5"/><line x1="7" y1="7" x2="13" y2="7"/></svg>', label:'Daily Log', sub:'Collection entries', fn: ()=>navigate('log') },
@@ -4496,15 +4510,26 @@ function _getCmdItems(q) {
     { icon:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px"><path d="M4 10a6 6 0 016-6 6 6 0 015.66 4M16 10a6 6 0 01-6 6"/><polyline points="17,4 17,8 13,8"/></svg>', label:'Force Sync', sub:'Push to cloud', fn: ()=>{ closeCmd(); if(typeof _pushToSupabase==='function'){_pushToSupabase();toast('Syncing…','info');} } },
   ];
   const ql = q.toLowerCase();
-  // Borrower matches
-  const bMatches = ql.length >= 2 && state && state.borrowers ? state.borrowers.filter(b =>
-    b.name.toLowerCase().includes(ql) || b.phone.includes(ql)
-  ).slice(0,5).map(b => ({
-    icon:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px"><circle cx="10" cy="7" r="3"/><path d="M4 17c0-3.31 2.69-6 6-6s6 2.69 6 6"/></svg>',
-    label: b.name,
-    sub: b.phone + ' · Day ' + getOdAge(b.startDate),
-    fn: ()=>{ closeCmd(); openBorrowerDetail(b.id); }
-  })) : [];
+  const allBorrowers = state?.borrowers || [];
+
+  // Search ALL borrowers (active + paid) by name OR phone number
+  const bMatches = ql.length >= 2 ? allBorrowers.filter(b =>
+    b.name.toLowerCase().includes(ql) ||
+    b.phone.replace(/\s/g,'').includes(ql.replace(/\s/g,'')) ||
+    (b.phone.replace(/\D/g,'')).includes(ql.replace(/\D/g,''))
+  ).slice(0, 6).map(b => {
+    const isPaid = b.isPaid || getStatus(b) === 'Paid';
+    const od = getOdAge(b.startDate);
+    return {
+      icon: isPaid
+        ? '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px;color:var(--green)"><circle cx="10" cy="10" r="8"/><polyline points="7,10 9,12 13,8" stroke-width="2"/></svg>'
+        : '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px"><circle cx="10" cy="7" r="3"/><path d="M4 17c0-3.31 2.69-6 6-6s6 2.69 6 6"/></svg>',
+      label: b.name,
+      sub: formatPhoneDisplay(b.phone) + (isPaid ? ' · ✓ Paid' : ' · Day ' + od),
+      fn: () => { closeCmd(); openBorrowerDetail(b.id); }
+    };
+  }) : [];
+
   const pageMatches = ql ? pages.filter(p => p.label.toLowerCase().includes(ql) || p.sub.toLowerCase().includes(ql)) : pages;
   return [...bMatches, ...pageMatches];
 }
@@ -5291,7 +5316,7 @@ function initState() {
   return { borrowers: [], dailyLog: [], month: new Date().toLocaleDateString('en-GB',{month:'long',year:'numeric'}),
     discountRate: 0.30, monthlyTarget: 0, agedOutLog: [], archive: [],
     hitList: [], callLog: {}, rankingHistory: [], undoHistory: [], pendingSyncCount: 0,
-    offlineQueue: [], customMessages: [],
+    offlineQueue: [], customMessages: [], archivedBorrowers: [],
     agentProfile: {} };
 }
 
@@ -5308,6 +5333,7 @@ function migrateState(s) {
   if (!s.undoHistory) s.undoHistory = [];
   if (!s.pendingSyncCount) s.pendingSyncCount = 0;
   if (!s.customMessages) s.customMessages = [];
+  if (!s.archivedBorrowers) s.archivedBorrowers = [];
   (s.borrowers||[]).forEach(b => {
     if (b.promisedToPay === undefined) b.promisedToPay = false;
     if (b.isPaid === undefined) b.isPaid = (b.amountPaid >= b.loanDue && b.amountPaid > 0);
@@ -5604,18 +5630,25 @@ async function _pushToSupabase(retries = 3) {
 
 
 
+const _odAgeCache = new Map();
+let   _odAgeCacheDay = '';
 function getOdAge(startDate) {
   if (!startDate) return 0;
+  // Cache key: date + today (resets each new day)
+  const todayObj = new Date(); todayObj.setHours(0,0,0,0);
+  const todayStr = todayObj.toISOString().split('T')[0];
+  if (todayStr !== _odAgeCacheDay) { _odAgeCache.clear(); _odAgeCacheDay = todayStr; }
+  if (_odAgeCache.has(startDate)) return _odAgeCache.get(startDate);
   // Parse as local date (no Z suffix) to match how dates are stored
   const parts = startDate.split('-');
   if (parts.length !== 3) return 0;
   const start = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
   start.setHours(0,0,0,0);
-  const today = new Date();
-  today.setHours(0,0,0,0);
-  const diff = Math.floor((today - start) / 86400000);
+  const diff = Math.floor((todayObj - start) / 86400000);
   // +1 so Day 1 = the day after issue (consistent with stored startDate format)
-  return Math.max(0, diff + 1);
+  const result = Math.max(0, diff + 1);
+  _odAgeCache.set(startDate, result);
+  return result;
 }
 
 // Normalize phone numbers for storage (store as +233XXXXXXXXX)
@@ -5927,7 +5960,7 @@ function getSmsMessage(b, useGenerous) {
   if (isPartial) {
     if (useGenerous) {
       // Partial payer + generous mode: acknowledge payment, then offer discount
-      const saving = fmtC(Math.round(getOdFee(b) * (1 - (state.discountRate||0.30))));
+      const saving = fmtC(Math.round(_getOdFeeCached(b) * (1 - (state.discountRate||0.30))));
       if (isEarlyStage) {
         return name + ', we acknowledge your recent payment on your ' + type + ' loan. As a goodwill gesture, we are offering you a ONE-TIME discount to clear your remaining balance. Settle today for ' + genAmount + ' instead of ' + fullAmount + ' and save ' + saving + ' in penalty fees. This offer is valid TODAY ONLY.' + guide;
       }
@@ -5947,7 +5980,7 @@ function getSmsMessage(b, useGenerous) {
 
   if (useGenerous) {
     // All OD days get the discount message — tone escalates with urgency
-    const saving = fmtC(Math.round(getOdFee(b) * (1 - (state.discountRate||0.30))));
+    const saving = fmtC(Math.round(_getOdFeeCached(b) * (1 - (state.discountRate||0.30))));
     if (isEarlyStage) {
       return name + ', as a goodwill gesture, we are offering you a ONE-TIME discount on your ' + type + ' loan. Settle your account today for ' + genAmount + ' instead of the full ' + fullAmount + ' and save ' + saving + ' in penalty fees. This offer is valid TODAY ONLY and will not be extended.' + guide;
     }
@@ -5985,11 +6018,11 @@ function getAgentDayRange() {
 }
 
 function getActiveBorrowers() {
-  if (!_activeAgent) return state.borrowers.filter(b => getStatus(b) !== 'Paid');
+  if (!_activeAgent) return state.borrowers.filter(b => !b.isPaid && getStatus(b) !== 'Paid');
   const [minDay, maxDay] = getAgentDayRange();
   return state.borrowers.filter(function(b) {
     const od = getOdAge(b.startDate);
-    return getStatus(b) !== 'Paid' && od >= minDay && od <= maxDay;
+    return !b.isPaid && getStatus(b) !== 'Paid' && od >= minDay && od <= maxDay;
   });
 }
 
@@ -6048,10 +6081,10 @@ function ptpAutoFlagMissed() {
 }
 
 // ── Smart Action Strip ────────────────────────────────────────
-function renderDashActionStrip() {
+function renderDashActionStrip(activeList) {
   const el = document.getElementById('dash-action-strip');
   if (!el) return;
-  const active = getActiveBorrowers();
+  const active = activeList || getActiveBorrowers();
   const today  = new Date().toISOString().split('T')[0];
   const _3d    = new Date(Date.now() - 3*86400000).toISOString().split('T')[0];
 
@@ -6318,7 +6351,7 @@ async function renderDashboard() {
     }
   }
   document.getElementById('dash-alerts').innerHTML = alertHtml;
-  renderDashActionStrip();
+  renderDashActionStrip(active);
   var zlb = document.getElementById('zero-log-btn');
   if (zlb) zlb.addEventListener('click', function() { navigate('log'); });
   var glb = document.getElementById('gap-log-btn');
@@ -6495,6 +6528,52 @@ async function renderDailyChart() {
   });
 }
 
+// ── Archive helpers ────────────────────────────────────
+function archiveBorrower(id) {
+  const idx = state.borrowers.findIndex(b => b.id === id);
+  if (idx === -1) return;
+  const b = state.borrowers[idx];
+  if (!state.archivedBorrowers) state.archivedBorrowers = [];
+  state.archivedBorrowers.push({ ...b, archivedAt: new Date().toISOString() });
+  state.borrowers.splice(idx, 1);
+  saveState(); updateBadges(); renderPaidPage();
+  toast(b.name.split(' ')[0] + ' archived', 'info');
+  haptic('light');
+}
+
+function restoreArchivedBorrower(id) {
+  if (!state.archivedBorrowers) return;
+  const idx = state.archivedBorrowers.findIndex(b => b.id === id);
+  if (idx === -1) return;
+  const b = { ...state.archivedBorrowers[idx] };
+  delete b.archivedAt;
+  state.borrowers.push(b);
+  state.archivedBorrowers.splice(idx, 1);
+  saveState(); updateBadges();
+  toast(b.name.split(' ')[0] + ' restored', 'success');
+  haptic('medium');
+  renderPaidPage();
+}
+
+function openArchivedView() {
+  const archived = state.archivedBorrowers || [];
+  document.getElementById('modal-title').textContent = '🗄️ Archived Accounts';
+  if (!archived.length) {
+    document.getElementById('modal-body').innerHTML = '<div class="empty-state" style="padding:30px 0">No archived accounts</div>';
+  } else {
+    document.getElementById('modal-body').innerHTML = archived.map(b => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;color:var(--text)">${escapeHtml(b.name)}</div>
+          <div style="font-size:10px;color:var(--text3)">${formatPhoneDisplay(b.phone)} · ${fmtC(b.amountPaid||0)}</div>
+        </div>
+        <button onclick="restoreArchivedBorrower('${b.id}')" class="btn btn-ghost btn-sm" style="font-size:11px">↩ Restore</button>
+      </div>`).join('');
+  }
+  document.getElementById('modal-footer').innerHTML = '<button class="btn btn-ghost" onclick="closeModal()">Close</button>';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
 // ── PAID ACCOUNTS PAGE ─────────────────────────────────────
 function renderPaidPage() {
   const all    = state.borrowers || [];
@@ -6564,7 +6643,7 @@ function renderPaidPage() {
     const paidDate = lastPay?.date ? new Date(lastPay.date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}) : '—';
     const odDays   = getOdAge(b.startDate);
     html += `
-      <div class="bl-card" style="cursor:pointer;animation:fadeUp 0.2s ease both;animation-delay:${Math.min(i,12)*0.02}s"
+      <div class="bl-card" data-bid="${b.id}" style="cursor:pointer;animation:fadeUp 0.2s ease both;animation-delay:${Math.min(i,12)*0.02}s;position:relative;overflow:hidden"
            onclick="_pushModal();openBorrowerDetail('${b.id}')">
         <div style="display:flex;align-items:center;gap:12px;padding:12px 14px">
           <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,${ac1}cc,${ac1}55);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;border:2px solid rgba(34,197,94,0.4)">${initials}</div>
@@ -6617,18 +6696,28 @@ function renderLoansTable() {
   const fPriority = priorityEl?.value || '';
   const fBadge    = badgeEl?.value    || '';
 
-  let rows = state.borrowers.map(b => ({
-    ...b,
-    status: getStatus(b),
-    odAge: getOdAge(b.startDate),
-    remaining: getRemaining(b),
-    dueToday: getDueToday(b),
-    generous: getGenerous(b),
-    odFeeCalc: getOdFee(b)
-  }));
+  // Filter paid first (cheapest check) before doing expensive computations
+  let source = fStatus === 'Paid'
+    ? state.borrowers.filter(b => b.isPaid || getStatus(b) === 'Paid')
+    : state.borrowers.filter(b => !b.isPaid && !b._statusPaidCache);
 
-  // Exclude paid accounts from the active list unless user explicitly filters for them
-  if (fStatus !== 'Paid') rows = rows.filter(r => !r.isPaid && r.status !== 'Paid');
+  // Apply cheap text search before expensive computations
+  if (search) source = source.filter(b => b.name.toLowerCase().includes(search) || (b.phone||'').includes(search));
+
+  let rows = source.map(b => {
+    const odFeeCalc = _getOdFeeCached(b);
+    const remaining = Math.max(0, (b.loanDue||0) - (b.amountPaid||0));
+    const status    = getStatus(b);
+    const odAge     = getOdAge(b.startDate);
+    const dueToday  = remaining + odFeeCalc;
+    const generous  = Math.max(0, remaining + Math.round(odFeeCalc * (state.discountRate||0.30)));
+    return { id:b.id, name:b.name, phone:b.phone, principal:b.principal, loanDue:b.loanDue,
+             amountPaid:b.amountPaid, startDate:b.startDate, loanType:b.loanType, isPaid:b.isPaid,
+             notes:b.notes, promisedToPay:b.promisedToPay, promiseDate:b.promiseDate, ptpBreached:b.ptpBreached,
+             callLog:b.callLog, instalment:b.instalment, payLog:b.payLog, targetPayment:b.targetPayment,
+             hitList:b.hitList, priorityScore:b.priorityScore, tags:b.tags, odFeeSnapshot:b.odFeeSnapshot,
+             status, odAge, remaining, dueToday, generous, odFeeCalc };
+  });
 
   // Populate OD filter if empty
   const odSel = document.getElementById('loan-filter-od');
@@ -6641,8 +6730,7 @@ function renderLoansTable() {
     });
   }
 
-  if (search) rows = rows.filter(r => r.name.toLowerCase().includes(search) || r.phone.includes(search));
-  if (fStatus) rows = rows.filter(r => r.status === fStatus);
+  if (fStatus && fStatus !== 'Paid') rows = rows.filter(r => r.status === fStatus);
   if (fType) rows = rows.filter(r => r.loanType === fType);
   if (fOd) rows = rows.filter(r => r.odAge === parseInt(fOd));
   if (fPriority) rows = rows.filter(r => {
@@ -6874,12 +6962,12 @@ async function renderAnalytics() {
   const unpaid = all.filter(b => getStatus(b) === 'Unpaid');
   const totalOutstanding = active.reduce((s,b) => s+getRemaining(b), 0);
   const totalPrincipal = active.reduce((s,b) => s+b.principal, 0);
-  const totalOdFees = active.reduce((s,b) => s+getOdFee(b), 0);
+  const totalOdFees = active.reduce((s,b) => s+_getOdFeeCached(b), 0);
   const totalPaid = all.reduce((s,b) => s+b.amountPaid, 0);
   const avgOwed = active.length > 0 ? totalOutstanding / active.length : 0;
   const recoveryRate = (totalPrincipal + totalOdFees) > 0 ? totalPaid / (totalPrincipal + totalOdFees) : 0;
 
-  const todayAccrual = active.reduce((s,b) => s + getOdFee(b), 0);
+  const todayAccrual = active.reduce((s,b) => s + _getOdFeeCached(b), 0);
   const logTotal = state.dailyLog.reduce((s,e) => s + (Number(e.collected)||0), 0);
   const collectionRate = totalOutstanding > 0 ? logTotal / (logTotal + totalOutstanding) : 0;
   const avgOdAge = active.length ? (active.reduce((s,b) => s + getOdAge(b.startDate), 0) / active.length).toFixed(1) : 0;
@@ -7919,7 +8007,7 @@ function doExportCSV() {
   // Summary rows at bottom
   const totalBal   = borrowers.reduce((s,b) => s + getDueToday(b), 0);
   const totalPaid  = borrowers.reduce((s,b) => s + (b.amountPaid||0), 0);
-  const totalOd    = borrowers.reduce((s,b) => s + getOdFee(b), 0);
+  const totalOd    = borrowers.reduce((s,b) => s + _getOdFeeCached(b), 0);
   const promised   = borrowers.filter(b => b.promisedToPay).length;
   const summaryRows = [
     [],
@@ -7986,7 +8074,7 @@ function _getExportData() {
     loanDue:     { label:'Loan Due',       fn:b=>b.loanDue,                                             raw:b=>b.loanDue },
     paid:        { label:'Amount Paid',    fn:b=>b.amountPaid||0,                                       raw:b=>b.amountPaid||0 },
     remaining:   { label:'Remaining',      fn:b=>getRemaining(b),                                       raw:b=>getRemaining(b) },
-    odFee:       { label:'OD Fee',         fn:b=>getOdFee(b),                                           raw:b=>getOdFee(b) },
+    odFee:       { label:'OD Fee',         fn:b=>_getOdFeeCached(b),                                           raw:b=>_getOdFeeCached(b) },
     status:      { label:'Status',         fn:b=>getStatus(b),                                          raw:b=>getStatus(b) },
     smsMsg:      { label:'SMS Message',    fn:b=>'"'+getSmsMessage(b,msgGenerous).replace(/"/g,"'")+'"', raw:b=>getSmsMessage(b,msgGenerous) },
     serial:      { label:'Serial',         fn:b=>b.loanType==='LoanBase Pro'?2:1,                       raw:b=>b.loanType==='LoanBase Pro'?2:1 },
@@ -8069,7 +8157,7 @@ function doExportXLSX() {
   // Add summary sheet
   const _totBal  = borrowers.reduce((s,b) => s + getDueToday(b), 0);
   const _totPaid = borrowers.reduce((s,b) => s + (b.amountPaid||0), 0);
-  const _totOd   = borrowers.reduce((s,b) => s + getOdFee(b), 0);
+  const _totOd   = borrowers.reduce((s,b) => s + _getOdFeeCached(b), 0);
   const _totProm = borrowers.filter(b => b.promisedToPay).length;
   const summaryData = [
     ['SqueveTrack Export'],
@@ -8203,7 +8291,7 @@ function doExportPDF(mode) {
       + sorted.map((b,i) => {
           const status = getStatus(b);
           const rowBg = status==='Paid'?'#f0fdf4':status==='Partial'?'#fff7ed':i%2===0?'#fff':'#f9fafb';
-          return '<tr style="background:'+rowBg+'"><td style="color:#9ca3af">'+(i+1)+'</td><td style="font-weight:600">'+b.name+'</td><td>'+b.phone+'</td><td style="text-align:center">Day '+getOdAge(b.startDate)+'</td><td>'+b.loanType+'</td><td style="text-align:right">₵'+fmt(b.loanDue)+'</td><td style="text-align:right;color:#16a34a">₵'+fmt(b.amountPaid||0)+'</td><td style="text-align:right;color:#7c3aed">₵'+fmt(getOdFee(b))+'</td><td style="text-align:right;font-weight:bold;color:'+  (getDueToday(b)>0?'#dc2626':'#16a34a')+'">₵'+fmt(getDueToday(b))+'</td><td>'+tagStatus(status)+'</td></tr>';
+          return '<tr style="background:'+rowBg+'"><td style="color:#9ca3af">'+(i+1)+'</td><td style="font-weight:600">'+b.name+'</td><td>'+b.phone+'</td><td style="text-align:center">Day '+getOdAge(b.startDate)+'</td><td>'+b.loanType+'</td><td style="text-align:right">₵'+fmt(b.loanDue)+'</td><td style="text-align:right;color:#16a34a">₵'+fmt(b.amountPaid||0)+'</td><td style="text-align:right;color:#7c3aed">₵'+fmt(_getOdFeeCached(b))+'</td><td style="text-align:right;font-weight:bold;color:'+  (getDueToday(b)>0?'#dc2626':'#16a34a')+'">₵'+fmt(getDueToday(b))+'</td><td>'+tagStatus(status)+'</td></tr>';
         }).join('')
       + '</tbody></table>';
   }
@@ -8886,7 +8974,7 @@ function openPayModal(id) {
       <div class="summary-row"><span class="summary-label">Loan Due</span><span class="summary-value">${fmtC(b.loanDue)}</span></div>
       <div class="summary-row"><span class="summary-label">Already Paid</span><span class="summary-value text-green">${fmtC(b.amountPaid)}</span></div>
       <div class="summary-row"><span class="summary-label">Loan Remaining</span><span class="summary-value text-red">${fmtC(remaining)}</span></div>
-      <div class="summary-row" style="cursor:pointer" id="pay-od-row" data-odid="${id}" title="Tap for OD breakdown \u2197"><span class="summary-label">OD Fee <span style="font-size:9px;color:var(--blue)">↗ breakdown</span></span><span class="summary-value text-gold">${fmtC(getOdFee(b))}</span></div>
+      <div class="summary-row" style="cursor:pointer" id="pay-od-row" data-odid="${id}" title="Tap for OD breakdown \u2197"><span class="summary-label">OD Fee <span style="font-size:9px;color:var(--blue)">↗ breakdown</span></span><span class="summary-value text-gold">${fmtC(_getOdFeeCached(b))}</span></div>
       <div class="summary-row" style="background:rgba(232,160,32,0.06);border-radius:6px;padding:10px 8px;margin-top:4px">
         <span class="summary-label" style="font-weight:700;color:var(--text)">Total Balance Owed</span>
         <span class="summary-value text-gold" style="font-size:16px">${fmtC(getDueToday(b))}</span>
@@ -8989,7 +9077,11 @@ function recordPayment(id) {
   updateTemplatePerfFromPayment(id);
   const status = getStatus(b);
   haptic(status === 'Paid' ? 'fullpay' : 'pay');
-  toast((status==='Paid'?'✅ ':'💰 ')+b.name.split(' ')[0]+(status==='Paid'?' fully paid! 🎉':' payment recorded'),'success');
+  if (status === 'Paid') {
+    toastWithUndo(b.name.split(' ')[0] + ' fully paid! 🎉', 7000);
+  } else {
+    toast('💰 ' + b.name.split(' ')[0] + ' payment recorded', 'success');
+  }
   updateBadges(); renderCurrentPage();
 }
 
@@ -9014,7 +9106,7 @@ function buildOdOptions(b) {
 }
 
 function borrowerForm(b) {
-  const odFeeHint = b ? ('Auto: ' + fmtC(getOdFee(b))) : 'Auto-calculated from OD age + principal';
+  const odFeeHint = b ? ('Auto: ' + fmtC(_getOdFeeCached(b))) : 'Auto-calculated from OD age + principal';
   return '<div class="form-row">'
     + '<div class="form-group"><label>Full Name</label>'
     + '<input type="text" class="form-input" id="f-name" placeholder="e.g. Kofi Mensah" value="' + (b ? escapeHtml(b.name) : '') + '"></div>'
@@ -10438,7 +10530,45 @@ function _dismissToast(el) {
 }
 
 
-// ── MOBILE DRAWER ──────────────────────────────────────
+// Toast with an inline Undo button — used after payments
+function toastWithUndo(msg, duration = 7000) {
+  const area = document.getElementById('toast-area');
+  if (!area) return;
+  if (_toastActive >= TOAST_MAX) {
+    const oldest = area.querySelector('.toast');
+    if (oldest) _dismissToast(oldest);
+  }
+  const el = document.createElement('div');
+  el.className = 'toast success';
+  el.style.position = 'relative'; el.style.overflow = 'hidden'; el.style.gap = '8px';
+  el.innerHTML = `✅ ${escapeHtml(msg)}<button class="toast-undo-btn" id="_undo_btn_now">Undo</button><div class="toast-progress" id="_toast_prog"></div>`;
+  area.appendChild(el);
+  _toastActive++;
+
+  // Animate progress bar shrinking
+  const prog = el.querySelector('.toast-progress');
+  if (prog) {
+    prog.style.width = '100%';
+    requestAnimationFrame(() => {
+      prog.style.transition = `width ${duration}ms linear`;
+      prog.style.width = '0%';
+    });
+  }
+
+  // Wire undo button
+  const undoBtn = el.querySelector('.toast-undo-btn');
+  if (undoBtn) {
+    undoBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      _dismissToast(el);
+      undo();
+    });
+  }
+
+  el.addEventListener('click', (e) => { if (!e.target.closest('.toast-undo-btn')) _dismissToast(el); });
+  const timer = setTimeout(() => _dismissToast(el), duration);
+  el._toastTimer = timer;
+}
 function openDrawer() {
   document.getElementById('mobile-drawer').classList.add('open');
   document.getElementById('mobile-drawer-overlay').classList.add('open');
@@ -12142,7 +12272,7 @@ You can still avoid legal action by paying *${balance}* immediately.
   // Level 8: Settlement Offer (Discounted)
 if (level === 8) {
   const discountRate = (typeof state !== 'undefined' && state.discountRate) ? state.discountRate : 0.30;
-  const discounted = Math.round(getRemaining(b) + (getOdFee(b) * discountRate));
+  const discounted = Math.round(getRemaining(b) + (_getOdFeeCached(b) * discountRate));
   return `🎯 *DISCOUNTED SETTLEMENT OFFER – FINAL* 🎯
 
 DATE: ${dateStr}
@@ -19016,6 +19146,10 @@ function msgBankDebouncedSearch() {
   clearTimeout(window._mbSearchTimer);
   window._mbSearchTimer = setTimeout(renderMessageBank, 220);
 }
+function _dispatchSearchDebounce() {
+  clearTimeout(window._dispSearchTimer);
+  window._dispSearchTimer = setTimeout(renderDispatch, 200);
+}
 
 // ── Render Message Bank Page ─────────────────────────────────
 function renderMessageBank() {
@@ -19099,7 +19233,67 @@ function renderMessageBank() {
         </div>
       </div>`;
   });
-  requestAnimationFrame(() => { container.innerHTML = html; });
+  requestAnimationFrame(() => {
+    container.innerHTML = html;
+    setTimeout(() => initPaidSwipe(), 80);
+  });
+}
+
+// ── Swipe-to-archive on paid list ─────────────────────────
+function initPaidSwipe() {
+  const list = document.getElementById('paid-list');
+  if (!list || list._paidSwipeInited) return;
+  list._paidSwipeInited = true;
+
+  let startX = 0, startY = 0, activeCard = null;
+
+  list.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  list.addEventListener('touchmove', e => {
+    const dx = e.touches[0].clientX - startX;
+    const dy = Math.abs(e.touches[0].clientY - startY);
+    if (Math.abs(dx) < 12 || dy > Math.abs(dx) * 0.8) return;
+    const card = e.target.closest('.bl-card[data-bid]');
+    if (!card) return;
+    if (activeCard && activeCard !== card) _hidePaidSwipe(activeCard);
+    if (dx < -40) { _showPaidSwipe(card); activeCard = card; }
+    else if (dx > 20) { _hidePaidSwipe(card); if (activeCard === card) activeCard = null; }
+  }, { passive: true });
+
+  list.addEventListener('click', e => {
+    const btn = e.target.closest('[data-paid-action]');
+    if (!btn) return;
+    e.stopPropagation();
+    const id = btn.dataset.bid;
+    if (btn.dataset.paidAction === 'archive') archiveBorrower(id);
+    if (btn.dataset.paidAction === 'detail')  { _hidePaidSwipe(btn.closest('.bl-card')); _pushModal(); openBorrowerDetail(id); }
+  });
+
+  document.addEventListener('touchstart', e => {
+    if (activeCard && !e.target.closest('#paid-list')) { _hidePaidSwipe(activeCard); activeCard = null; }
+  }, { passive: true });
+}
+
+function _showPaidSwipe(card) {
+  const id = card.dataset.bid;
+  if (!id) return;
+  let ov = card.querySelector('.swipe-actions-overlay');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.className = 'swipe-actions-overlay';
+    ov.innerHTML =
+      `<button class="sa-btn" style="background:var(--blue)" data-paid-action="detail" data-bid="${id}">👁 View</button>`
+      + `<button class="sa-btn" style="background:var(--red)" data-paid-action="archive" data-bid="${id}">🗄️ Archive</button>`;
+    card.appendChild(ov);
+  }
+  setTimeout(() => ov.classList.add('revealed'), 10);
+  haptic('light');
+}
+function _hidePaidSwipe(card) {
+  card?.querySelector('.swipe-actions-overlay')?.classList.remove('revealed');
 }
 
 // ── Open Message Detail Modal ────────────────────────────────
@@ -19144,7 +19338,7 @@ function openMessageDetail(msgId, type) {
   document.getElementById('modal-footer').innerHTML = `
     <button class="btn btn-ghost" onclick="closeModal()">Close</button>
     <button class="btn btn-ghost btn-sm" id="mb-copy-btn">📋 Copy</button>
-    <button class="btn btn-green btn-sm" id="mb-send-btn">💬 Send to Borrower</button>
+    <button class="btn btn-green btn-sm" id="mb-send-btn">💬 Send via WhatsApp</button>
   `;
   document.getElementById('modal-overlay').classList.add('open');
   haptic('light');
