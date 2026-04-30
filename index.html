@@ -270,7 +270,66 @@ tr.overdue-critical td:first-child,
   background: rgba(255,255,255,0.75);
 }
 
-/* SMART ACTION STRIP */
+/* ── DASHBOARD HERO CARD ── */
+#dash-hero-card {
+  background: linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%);
+  border: 1px solid var(--border2);
+  border-top: 1px solid rgba(240,160,48,0.25);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+  position: relative;
+  overflow: hidden;
+}
+#dash-hero-card::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 140px; height: 140px;
+  background: radial-gradient(circle, rgba(240,160,48,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-ring-wrap { position: relative; flex-shrink: 0; width: 72px; height: 72px; }
+.hero-ring-wrap svg { transform: rotate(-90deg); }
+.hero-ring-track { fill: none; stroke: var(--border2); stroke-width: 6; }
+.hero-ring-fill  { fill: none; stroke-width: 6; stroke-linecap: round;
+  transition: stroke-dashoffset 0.9s cubic-bezier(0.34,1.2,0.64,1); }
+.hero-ring-center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-weight: 800; font-size: 13px; line-height: 1.1;
+}
+
+/* ── NO-CONTACT DOT ── */
+.no-contact-dot {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 9px; font-weight: 700; color: var(--orange);
+  background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.25);
+  border-radius: 10px; padding: 1px 5px; flex-shrink: 0;
+}
+
+/* ── BORROWER DETAIL HERO ── */
+.bd-hero {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px; margin-bottom: 12px;
+  background: var(--surface2); border-radius: 12px;
+  border: 1px solid var(--border2);
+}
+.bd-hero-avatar {
+  width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 800; color: #fff;
+  border: 2px solid rgba(255,255,255,0.1);
+}
+.bd-hero-info { flex: 1; min-width: 0; }
+.bd-hero-name { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 2px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bd-hero-meta { font-size: 11px; color: var(--text3); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.bd-hero-quick { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+
 .action-strip { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:16px; scrollbar-width:none; }
 .action-strip::-webkit-scrollbar { display:none; }
 .action-pill {
@@ -2843,6 +2902,9 @@ tr.overdue-critical .heat-ring {
 
     <div class="kpi-grid" id="kpi-grid"></div>
 
+    <!-- HERO CARD -->
+    <div id="dash-hero" style="margin-bottom:16px"></div>
+
     <div id="dash-action-strip" class="action-strip"></div>
 
     <div id="dash-target-section"></div>
@@ -3067,6 +3129,10 @@ tr.overdue-critical .heat-ring {
       <div class="card full">
         <div class="card-header"><span class="card-title">📊 Month vs Last Month</span><span style="font-size:10px;color:var(--text3)">side-by-side</span></div>
         <div class="card-body" id="analytics-month-compare" style="padding:0 4px"></div>
+      </div>
+      <div class="card full">
+        <div class="card-header"><span class="card-title">🎯 Stage Funnel</span><span style="font-size:10px;color:var(--text3)">portfolio distribution</span></div>
+        <div class="card-body" id="analytics-stage-funnel" style="padding:4px 0"></div>
       </div>
       <div class="card">
         <div class="card-header"><span class="card-title">📅 Day of Week Performance</span><span style="font-size:11px;color:var(--text3)">When you collect most</span></div>
@@ -4512,12 +4578,17 @@ function _getCmdItems(q) {
   const ql = q.toLowerCase();
   const allBorrowers = state?.borrowers || [];
 
-  // Search ALL borrowers (active + paid) by name OR phone number
-  const bMatches = ql.length >= 2 ? allBorrowers.filter(b =>
+  // Search ALL borrowers (active + paid) by name OR phone — matches from 1 char
+  const bMatches = ql.length >= 1 ? allBorrowers.filter(b =>
     b.name.toLowerCase().includes(ql) ||
     b.phone.replace(/\s/g,'').includes(ql.replace(/\s/g,'')) ||
-    (b.phone.replace(/\D/g,'')).includes(ql.replace(/\D/g,''))
-  ).slice(0, 6).map(b => {
+    b.phone.replace(/\D/g,'').includes(ql.replace(/\D/g,''))
+  ).sort((a, b) => {
+    // Exact start-of-name matches float to top
+    const aStarts = a.name.toLowerCase().startsWith(ql) ? 0 : 1;
+    const bStarts = b.name.toLowerCase().startsWith(ql) ? 0 : 1;
+    return aStarts - bStarts;
+  }).slice(0, 6).map(b => {
     const isPaid = b.isPaid || getStatus(b) === 'Paid';
     const od = getOdAge(b.startDate);
     return {
@@ -6080,6 +6151,64 @@ function ptpAutoFlagMissed() {
   if (changed) saveState();
 }
 
+// ── Dashboard Hero Card ───────────────────────────────────────
+function renderDashHero() {
+  const el = document.getElementById('dash-hero');
+  if (!el) return;
+
+  const today    = new Date().toISOString().split('T')[0];
+  const logEntry = (state.dailyLog||[]).find(e => e.date === today);
+  const collected = logEntry ? (logEntry.collected||0) : 0;
+  const target    = state.monthlyTarget > 0
+    ? Math.round(state.monthlyTarget / new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate())
+    : 0;
+  const pct  = target > 0 ? Math.min(1, collected / target) : 0;
+  const r    = 30, circ = 2 * Math.PI * r;
+  const dash = circ - pct * circ;
+  const ringColor = pct >= 1 ? 'var(--green)' : pct >= 0.6 ? 'var(--gold)' : pct > 0 ? 'var(--orange)' : 'var(--border2)';
+  const pctLabel  = target > 0 ? Math.round(pct * 100) + '%' : '—';
+
+  // Today's PTPs
+  const ptpToday = (state.borrowers||[]).filter(b =>
+    b.promisedToPay && (b.promiseDate||'').startsWith(today) && !b.isPaid
+  ).length;
+
+  // Outstanding today
+  const active = getActiveBorrowers();
+  const todayDue = active.reduce((s,b) => s + getDueToday(b), 0);
+
+  el.innerHTML = `
+    <div id="dash-hero-card">
+      <div class="hero-ring-wrap">
+        <svg width="72" height="72" viewBox="0 0 72 72">
+          <circle class="hero-ring-track" cx="36" cy="36" r="${r}"/>
+          <circle class="hero-ring-fill" cx="36" cy="36" r="${r}"
+            stroke="${ringColor}"
+            stroke-dasharray="${circ.toFixed(1)}"
+            stroke-dashoffset="${dash.toFixed(1)}"/>
+        </svg>
+        <div class="hero-ring-center" style="color:${ringColor}">
+          <span>${pctLabel}</span>
+          <span style="font-size:8px;color:var(--text3);font-weight:400">of target</span>
+        </div>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Today's Collection</div>
+        <div style="font-family:var(--font-mono);font-size:22px;font-weight:800;color:var(--text);line-height:1">${fmtC(collected)}</div>
+        ${target > 0 ? `<div style="font-size:11px;color:var(--text3);margin-top:3px">of ${fmtC(target)} daily target</div>` : '<div style="font-size:10px;color:var(--text3);margin-top:3px">No target set — <span style="color:var(--gold);cursor:pointer" onclick="navigate(\'log\')">set one →</span></div>'}
+        <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
+          ${ptpToday > 0 ? `<span style="font-size:10px;color:var(--purple);font-weight:600;background:rgba(167,139,250,0.12);padding:2px 7px;border-radius:8px;border:1px solid rgba(167,139,250,0.2)">🤝 ${ptpToday} PTP today</span>` : ''}
+          <span style="font-size:10px;color:var(--text3)">Due today: <strong style="color:var(--text2)">${fmtC(todayDue)}</strong></span>
+        </div>
+      </div>
+      <div style="flex-shrink:0;text-align:right">
+        <button class="btn btn-gold btn-sm" onclick="navigate('log');haptic('light')" style="font-size:11px;padding:7px 12px">
+          Log Today
+        </button>
+      </div>
+    </div>`;
+}
+
 // ── Smart Action Strip ────────────────────────────────────────
 function renderDashActionStrip(activeList) {
   const el = document.getElementById('dash-action-strip');
@@ -6352,6 +6481,7 @@ async function renderDashboard() {
   }
   document.getElementById('dash-alerts').innerHTML = alertHtml;
   renderDashActionStrip(active);
+  renderDashHero();
   var zlb = document.getElementById('zero-log-btn');
   if (zlb) zlb.addEventListener('click', function() { navigate('log'); });
   var glb = document.getElementById('gap-log-btn');
@@ -6810,6 +6940,15 @@ function renderLoansTable() {
     // Quick-win badge
     const quickWinBadge = (!r.isPaid && payRatio >= 0.75 && r.status !== 'Paid')
       ? ' <span class="badge-quickwin">⚡ Close</span>' : '';
+    // No-contact warning
+    const _3dAgo = new Date(Date.now() - 3*86400000).toISOString().split('T')[0];
+    const lastCallEntry = (r.callLog||[]).slice(-1)[0];
+    const daysSinceContact = lastCallEntry
+      ? Math.floor((Date.now() - new Date(lastCallEntry.date).getTime()) / 86400000)
+      : null;
+    const noContactBadge = (!r.isPaid && r.odAge > 0 && (!lastCallEntry || lastCallEntry.date < _3dAgo))
+      ? `<span class="no-contact-dot" title="${daysSinceContact !== null ? daysSinceContact+'d no contact' : 'Never contacted'}">📵 ${daysSinceContact !== null ? daysSinceContact+'d' : 'Never'}</span>`
+      : '';
     const d = document.createElement('div');
     d.className = 'bl-card' + critCls;
     d.dataset.bid = r.id;
@@ -6824,6 +6963,7 @@ function renderLoansTable() {
             + '<span class="bl-day ' + heatCls + '">Day ' + r.odAge + '</span>'
             + (r.loanType==='LoanBase Pro' ? '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;background:rgba(167,139,250,0.15);color:var(--purple)">PRO</span>' : '')
             + (r.promisedToPay ? '<span style="font-size:9px;color:var(--purple)">🤝' + ptpDateStr + '</span>' : '')
+            + noContactBadge
             + getBestCallIndicator(r)
           + '</div>'
           + payBarHtml
@@ -7033,6 +7173,7 @@ async function renderAnalytics() {
   }, 60);
 
   renderMonthComparison();
+  renderStageFunnel();
   const ctxS = document.getElementById('chart-status');
   updateOrCreateChart('status', ctxS, {
     type: 'doughnut',
@@ -8855,21 +8996,46 @@ function openBorrowerDetail(id) {
     ${(b.callLog||[]).some(c=>c.outcome==='Fraud')?'<div style="font-size:11px;color:var(--red);font-weight:700">🚨 Fraud Flag</div>':''}
   </div>`;
 
-  document.getElementById('modal-title').textContent = b.name;
+  // ── Hero header ──────────────────────────────────────────────
+  const hueN  = b.name.charCodeAt(0) % 6;
+  const avClrs = [['#f0a030','#fcc044'],['#22c55e','#16a34a'],['#60a5fa','#3b82f6'],['#a78bfa','#7c3aed'],['#f97316','#ea580c'],['#14b8a6','#0d9488']];
+  const [hc1, hc2] = avClrs[hueN];
+  const heroInitials = b.name.trim().split(/\s+/).slice(0,2).map(w=>w[0].toUpperCase()).join('');
+  const payRatioHero = b.loanDue > 0 ? Math.min(1, (b.amountPaid||0)/b.loanDue) : 0;
+  const heroBarCol   = payRatioHero >= 1 ? 'var(--green)' : payRatioHero >= 0.75 ? '#22c55e' : payRatioHero >= 0.5 ? 'var(--gold)' : payRatioHero > 0 ? 'var(--orange)' : 'var(--red)';
+
+  document.getElementById('modal-title').textContent = '';   // title lives in body now
   document.getElementById('modal-body').innerHTML =
-    liveActivityHtml
+    // Hero block
+    `<div class="bd-hero">
+      <div class="bd-hero-avatar" style="background:linear-gradient(135deg,${hc1},${hc2})">${heroInitials}</div>
+      <div class="bd-hero-info">
+        <div class="bd-hero-name">${escapeHtml(b.name)}</div>
+        <div class="bd-hero-meta">
+          ${getStageBadgeHtml(b)}
+          <span onclick="navigator.clipboard.writeText('${b.phone}').then(()=>toast('Phone copied','success'))" style="cursor:pointer;color:var(--text3)" title="Tap to copy">${formatPhoneDisplay(b.phone)} 📋</span>
+        </div>
+        <div style="margin-top:6px">
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-bottom:2px">
+            <span>Paid ${Math.round(payRatioHero*100)}%</span>
+            <span>${fmtC(b.amountPaid||0)} / ${fmtC(b.loanDue)}</span>
+          </div>
+          <div style="height:4px;border-radius:3px;background:var(--border2);overflow:hidden">
+            <div style="height:100%;width:${(payRatioHero*100).toFixed(1)}%;background:${heroBarCol};border-radius:3px;transition:width 0.5s cubic-bezier(0.34,1.2,0.64,1)"></div>
+          </div>
+        </div>
+      </div>
+      <div class="bd-hero-quick">
+        <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:${odColor}">Day ${od}</span>
+        <span class="priority-score ${pCls}" title="Priority">${pScore}</span>
+        <span style="font-size:10px;font-weight:700;color:${stColor};background:${stColor}22;padding:1px 6px;border-radius:8px">${st}</span>
+      </div>
+    </div>`
+    + liveActivityHtml
     + '<div style="background:var(--surface2);border-radius:8px;padding:14px;margin-bottom:14px">'
-    + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px">'
-    + '<div><div style="font-size:12px;color:var(--text3)">' + b.loanType + ' &middot; <span onclick="navigator.clipboard.writeText(\''+b.phone+'\').then(()=>toast(\'Phone copied\',\'success\'))" style="cursor:pointer;border-bottom:1px dashed var(--border2);padding-bottom:1px" title="Tap to copy">' + formatPhoneDisplay(b.phone) + ' 📋</span></div>'
-    + (b.promisedToPay ? '<div style="font-size:11px;color:var(--purple);margin-top:2px">🤝 Promise: ' + (b.promiseDate||'today') + (b.promiseNote?' — '+b.promiseNote:'') + '</div>' : '')
-    + (b.notes ? '<div style="font-size:11px;color:var(--gold);margin-top:2px">📝 ' + b.notes + '</div>' : '')
-    + (badges ? '<div style="margin-top:4px">' + badges + '</div>' : '')
-    + '</div>'
-    + '<div style="text-align:right">'
-    + '<div style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:'+odColor+'">Day '+od+'</div>'
-    + '<div style="margin-top:3px"><span class="priority-score '+pCls+'" title="Priority score">'+pScore+'</span></div>'
-    + '</div>'
-    + '</div>'
+    + (b.promisedToPay ? '<div style="font-size:11px;color:var(--purple);margin-bottom:4px">🤝 Promise: ' + (b.promiseDate||'today') + (b.promiseNote?' — '+b.promiseNote:'') + '</div>' : '')
+    + (b.notes ? '<div style="font-size:11px;color:var(--gold);margin-bottom:8px">📝 ' + b.notes + '</div>' : '')
+    + (badges ? '<div style="margin-bottom:8px">' + badges + '</div>' : '')
     + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">'
     + '<div><div style="font-family:var(--font-mono);font-size:13px;font-weight:700">' + fmtC(b.loanDue) + '</div><div style="font-size:10px;color:var(--text3)">Loan Due</div></div>'
     + '<div><div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--green)">' + fmtC(b.amountPaid||0) + '</div><div style="font-size:10px;color:var(--text3)">Paid</div></div>'
@@ -11365,12 +11531,8 @@ function renderGlobalSearch() {
 }
 
 function openGlobalSearch() {
-  // On mobile, navigate to borrowers and focus the search
-  navigate('loans');
-  setTimeout(function() {
-    var el = document.getElementById('loan-search');
-    if (el) { el.focus(); el.select(); }
-  }, 100);
+  // Always open the command palette — it searches all borrowers (active + paid) by name and phone
+  if (typeof openCmd === 'function') openCmd();
 }
 
 
@@ -17170,51 +17332,170 @@ function animatePillNumber(el, target, isBehind) {
 function renderMonthComparison() {
   const el = document.getElementById('analytics-month-compare');
   if (!el) return;
-  const now = new Date();
-  const thisStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-  const lastStart = new Date(now.getFullYear(), now.getMonth()-1, 1).toISOString().split('T')[0];
-  const lastEnd   = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
-  const tLogs = state.dailyLog.filter(e => e.date >= thisStart);
-  const lLogs = state.dailyLog.filter(e => e.date >= lastStart && e.date <= lastEnd);
-  const tTotal = tLogs.reduce((s,e) => s+(e.collected||0), 0);
-  const lTotal = lLogs.reduce((s,e) => s+(e.collected||0), 0);
-  const tBest  = tLogs.length ? Math.max(...tLogs.map(e => e.collected||0)) : 0;
-  const lBest  = lLogs.length ? Math.max(...lLogs.map(e => e.collected||0)) : 0;
-  const tDays  = tLogs.filter(e => (e.collected||0) > 0).length;
-  const lDays  = lLogs.filter(e => (e.collected||0) > 0).length;
-  const tAvg   = tDays ? Math.round(tTotal/tDays) : 0;
-  const lAvg   = lDays ? Math.round(lTotal/lDays) : 0;
+
+  const now       = new Date();
+  const thisYear  = now.getFullYear();
+  const thisMon   = now.getMonth();          // 0-based
+
+  // Build a helper that sums collections for a given month from BOTH sources:
+  // 1) dailyLog  (manual entries)
+  // 2) borrower payLog (actual payment records)
+  function getMonthData(year, month) {
+    const start = new Date(year, month, 1).toISOString().split('T')[0];
+    const end   = new Date(year, month+1, 0).toISOString().split('T')[0];
+
+    // From dailyLog
+    const logEntries = (state.dailyLog||[]).filter(e => e.date >= start && e.date <= end);
+    const logTotal   = logEntries.reduce((s,e) => s+(Number(e.collected)||0), 0);
+    const logDays    = logEntries.filter(e => (e.collected||0) > 0).length;
+    const logBest    = logEntries.length ? Math.max(...logEntries.map(e => e.collected||0)) : 0;
+
+    // From borrower payLog (richer, per-payment records)
+    let payTotal = 0, payDaysSet = new Set(), payBest = 0;
+    (state.borrowers||[]).forEach(b => {
+      (b.payLog||[]).forEach(p => {
+        if (!p.date) return;
+        const d = p.date.split('T')[0];
+        if (d < start || d > end) return;
+        const amt = Number(p.amount)||0;
+        payTotal += amt;
+        payDaysSet.add(d);
+        if (amt > payBest) payBest = amt;
+      });
+    });
+
+    // Use whichever source has more data
+    const total  = Math.max(logTotal, payTotal);
+    const days   = Math.max(logDays, payDaysSet.size);
+    const best   = Math.max(logBest, payBest);
+    const avg    = days > 0 ? Math.round(total / days) : 0;
+
+    // Count paid accounts this month
+    const cleared = (state.borrowers||[]).filter(b => {
+      if (!b.isPaid) return false;
+      const last = (b.payLog||[]).slice(-1)[0];
+      if (!last?.date) return false;
+      const d = last.date.split('T')[0];
+      return d >= start && d <= end;
+    }).length;
+
+    return { total, days, best, avg, cleared };
+  }
+
+  // Collect last 3 months + current
+  const months = [];
+  for (let i = 2; i >= 0; i--) {
+    let y = thisYear, m = thisMon - i;
+    if (m < 0) { m += 12; y -= 1; }
+    const label = new Date(y, m, 1).toLocaleDateString('en-GB',{month:'short',year:'2-digit'});
+    months.push({ label, ...getMonthData(y, m), isCurrent: i === 0 });
+  }
+
+  const current  = months[2];
+  const prev     = months[1];
+  const twoBack  = months[0];
+
   function delta(a, b) {
     if (!b) return '';
-    const d = a - b; const pct = Math.abs(((d/b)*100)).toFixed(0);
+    const d = a - b;
+    const pct = Math.abs(((d/b)*100)).toFixed(0);
     const col = d >= 0 ? 'var(--green)' : 'var(--red)';
-    return '<span style="font-size:10px;color:' + col + ';font-weight:700">' + (d>=0?'▲':'▼') + pct + '%</span>';
+    return `<span style="font-size:10px;color:${col};font-weight:700">${d>=0?'▲':'▼'}${pct}%</span>`;
   }
-  const tMon = now.toLocaleDateString('en-GB',{month:'short'});
-  const lMon = new Date(now.getFullYear(),now.getMonth()-1,1).toLocaleDateString('en-GB',{month:'short'});
-  const rows = [
-    ['Total Collected', fmtC(tTotal), fmtC(lTotal), delta(tTotal, lTotal)],
-    ['Active Days',     tDays+'',     lDays+'',     delta(tDays, lDays)],
-    ['Best Single Day', fmtC(tBest),  fmtC(lBest),  delta(tBest, lBest)],
-    ['Avg per Day',     fmtC(tAvg),   fmtC(lAvg),   delta(tAvg, lAvg)],
-  ];
-  el.innerHTML =
-    '<div style="display:grid;grid-template-columns:1fr 78px 72px 38px;gap:2px 4px;font-size:11px;align-items:center">'
-    + '<div style="color:var(--text3);font-weight:700;padding:4px 0 6px;border-bottom:1px solid var(--border)">Metric</div>'
-    + '<div style="color:var(--gold);font-weight:700;text-align:right;padding:4px 0 6px;border-bottom:1px solid var(--border)">' + tMon + ' ▲</div>'
-    + '<div style="color:var(--text3);text-align:right;padding:4px 0 6px;border-bottom:1px solid var(--border)">' + lMon + '</div>'
-    + '<div style="padding:4px 0 6px;border-bottom:1px solid var(--border)"></div>'
-    + rows.map(([lbl,tv,lv,dv]) =>
-        '<div style="color:var(--text2);padding:5px 0;border-bottom:1px solid var(--border)">' + lbl + '</div>'
-        + '<div style="font-family:var(--font-mono);font-weight:700;text-align:right;padding:5px 0;border-bottom:1px solid var(--border)">' + tv + '</div>'
-        + '<div style="font-family:var(--font-mono);color:var(--text3);text-align:right;padding:5px 0;border-bottom:1px solid var(--border)">' + lv + '</div>'
-        + '<div style="text-align:center;padding:5px 0;border-bottom:1px solid var(--border)">' + dv + '</div>'
-      ).join('')
-    + '</div>'
-    + (lTotal === 0 ? '<div style="font-size:10px;color:var(--text3);margin-top:8px">Log entries from last month will appear here automatically.</div>' : '');
+
+  // Visual bar for each month
+  const maxTotal = Math.max(...months.map(m => m.total), 1);
+  function bar(val, isCur) {
+    const pct = Math.max(2, Math.round(val / maxTotal * 100));
+    const col = isCur ? 'var(--gold)' : 'var(--border-hi,var(--border2))';
+    return `<div style="display:flex;align-items:flex-end;gap:2px;height:28px;margin:4px 0">
+      <div style="width:100%;height:${pct}%;background:${col};border-radius:3px 3px 0 0;min-height:3px;transition:height 0.4s cubic-bezier(0.34,1.2,0.64,1)"></div>
+    </div>`;
+  }
+
+  const hasAnyData = months.some(m => m.total > 0);
+
+  el.innerHTML = `
+    <!-- Mini bar chart -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px">
+      ${months.map(m => `
+        <div style="text-align:center">
+          ${bar(m.total, m.isCurrent)}
+          <div style="font-size:9px;color:${m.isCurrent?'var(--gold)':'var(--text3)'};font-weight:${m.isCurrent?700:400}">${m.label}</div>
+          <div style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:${m.isCurrent?'var(--text)':'var(--text2)'}">${fmtC(m.total)}</div>
+        </div>`).join('')}
+    </div>
+
+    <!-- Comparison table: current vs previous -->
+    <div style="display:grid;grid-template-columns:1fr 80px 76px 36px;gap:0 4px;font-size:11px;align-items:center">
+      <div style="color:var(--text3);font-weight:700;padding:4px 0 6px;border-bottom:1px solid var(--border)">Metric</div>
+      <div style="color:var(--gold);font-weight:700;text-align:right;padding:4px 0 6px;border-bottom:1px solid var(--border)">${current.label} ▲</div>
+      <div style="color:var(--text3);text-align:right;padding:4px 0 6px;border-bottom:1px solid var(--border)">${prev.label}</div>
+      <div style="padding:4px 0 6px;border-bottom:1px solid var(--border)"></div>
+      ${[
+        ['Collected',    fmtC(current.total),   fmtC(prev.total),    delta(current.total,  prev.total)],
+        ['Active Days',  current.days+'d',       prev.days+'d',       delta(current.days,   prev.days)],
+        ['Best Day',     fmtC(current.best),     fmtC(prev.best),     delta(current.best,   prev.best)],
+        ['Daily Avg',    fmtC(current.avg),      fmtC(prev.avg),      delta(current.avg,    prev.avg)],
+        ['Accounts ✓',   current.cleared+'',     prev.cleared+'',     delta(current.cleared, prev.cleared)],
+      ].map(([lbl,tv,lv,dv]) =>
+        `<div style="color:var(--text2);padding:5px 0;border-bottom:1px solid var(--border)">${lbl}</div>`
+        +`<div style="font-family:var(--font-mono);font-weight:700;text-align:right;padding:5px 0;border-bottom:1px solid var(--border)">${tv}</div>`
+        +`<div style="font-family:var(--font-mono);color:var(--text3);text-align:right;padding:5px 0;border-bottom:1px solid var(--border)">${lv}</div>`
+        +`<div style="text-align:center;padding:5px 0;border-bottom:1px solid var(--border)">${dv}</div>`
+      ).join('')}
+    </div>
+    ${!hasAnyData ? '<div style="font-size:10px;color:var(--text3);margin-top:10px;text-align:center">No payment data yet — start logging or recording payments to see comparisons.</div>' : ''}
+    ${prev.total === 0 && hasAnyData ? '<div style="font-size:10px;color:var(--text3);margin-top:8px">Last month data will appear once the month rolls over.</div>' : ''}
+  `;
 }
 
 // ── F5: Key toggle ───────────────────────────────────────────
+
+function renderStageFunnel() {
+  const el = document.getElementById('analytics-stage-funnel');
+  if (!el) return;
+  const active = (state.borrowers||[]).filter(b => !b.isPaid);
+  if (!active.length) { el.innerHTML = '<div style="color:var(--text3);font-size:12px;text-align:center;padding:16px 0">No active borrowers yet</div>'; return; }
+
+  const stages = ['M0','M1','M2','M3','M4','M5'];
+  const colors  = { M0:'#3b82f6', M1:'#22c55e', M2:'#e8a020', M3:'#f97316', M4:'#ef4444', M5:'#7c3aed' };
+  const labels  = { M0:'Pre-Due', M1:'Day 1-5', M2:'Day 6-15', M3:'Day 16-40', M4:'Day 41-60', M5:'Day 61+' };
+
+  const counts = {}, amounts = {};
+  stages.forEach(s => { counts[s] = 0; amounts[s] = 0; });
+  active.forEach(b => {
+    const s = getAccountStage(b).label;
+    if (counts[s] !== undefined) { counts[s]++; amounts[s] += getRemaining(b); }
+  });
+
+  const maxCount = Math.max(...stages.map(s => counts[s]), 1);
+  const total = active.length;
+
+  el.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${stages.filter(s => counts[s] > 0 || true).map(s => {
+        const c  = counts[s];
+        const pct = ((c / total) * 100).toFixed(1);
+        const barW = Math.max(2, Math.round(c / maxCount * 100));
+        return `
+          <div style="display:grid;grid-template-columns:46px 1fr 44px 84px;gap:8px;align-items:center">
+            <span style="font-size:11px;font-weight:700;color:${colors[s]};font-family:var(--font-mono)">${s}</span>
+            <div style="position:relative;height:18px;background:var(--surface2);border-radius:4px;overflow:hidden">
+              <div style="position:absolute;left:0;top:0;height:100%;width:${barW}%;background:${colors[s]}33;border-radius:4px;transition:width 0.5s cubic-bezier(0.34,1.2,0.64,1)"></div>
+              <div style="position:absolute;left:0;top:0;height:100%;width:${barW}%;background:${colors[s]}88;border-left:3px solid ${colors[s]};border-radius:4px"></div>
+              <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--text2);font-weight:600">${labels[s]}</span>
+            </div>
+            <span style="font-size:11px;font-family:var(--font-mono);font-weight:700;color:${c > 0 ? 'var(--text)' : 'var(--text3)'};text-align:right">${c}<span style="font-size:9px;color:var(--text3);font-weight:400"> (${pct}%)</span></span>
+            <span style="font-size:10px;color:var(--text3);text-align:right;font-family:var(--font-mono)">${c > 0 ? fmtC(amounts[s]) : '—'}</span>
+          </div>`;
+      }).join('')}
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:10px;color:var(--text3)">
+      <span>${total} active accounts</span>
+      <span>${fmtC(stages.reduce((s,k) => s+amounts[k], 0))} outstanding</span>
+    </div>`;
+}
 
 
 
@@ -19338,7 +19619,7 @@ function openMessageDetail(msgId, type) {
   document.getElementById('modal-footer').innerHTML = `
     <button class="btn btn-ghost" onclick="closeModal()">Close</button>
     <button class="btn btn-ghost btn-sm" id="mb-copy-btn">📋 Copy</button>
-    <button class="btn btn-green btn-sm" id="mb-send-btn">💬 Send via WhatsApp</button>
+    <button class="btn btn-green btn-sm" id="mb-send-btn">💬 Send To Borrower</button>
   `;
   document.getElementById('modal-overlay').classList.add('open');
   haptic('light');
