@@ -6933,9 +6933,6 @@ function renderLoansTable() {
     const daysSinceContact = lastCallEntry
       ? Math.floor((Date.now() - new Date(lastCallEntry.date).getTime()) / 86400000)
       : null;
-    const noContactBadge = (!r.isPaid && r.odAge > 0 && (!lastCallEntry || lastCallEntry.date < _3dAgo))
-      ? `<span class="no-contact-dot" title="${daysSinceContact !== null ? daysSinceContact+'d no contact' : 'Never contacted'}">📵 ${daysSinceContact !== null ? daysSinceContact+'d' : 'Never'}</span>`
-      : '';
     const d = document.createElement('div');
     d.className = 'bl-card' + critCls;
     d.dataset.bid = r.id;
