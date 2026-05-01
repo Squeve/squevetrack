@@ -9022,6 +9022,7 @@ function openBorrowerDetail(id) {
     + '<button class="btn btn-ghost" id="bd-history">📋 History (' + log.length + ')</button>'
     + '<button class="btn btn-ghost" id="bd-instalment">📅 Instalment Plan</button>'
     + '<button class="btn btn-ghost" id="bd-adjod" style="color:var(--orange);border-color:rgba(249,115,22,0.3)">⚙️ Correct OD' + (b.odFeeSnapshot !== undefined && b.odFeeSnapshot !== null ? ' ✓' : '') + '</button>'
+    + '<button class="btn btn-ghost btn-sm" id="bd-escalate" style="grid-column:1/-1;background:linear-gradient(135deg,rgba(124,58,237,0.12),rgba(220,38,38,0.12));border-color:rgba(124,58,237,0.3);color:#a78bfa;font-weight:700">⚖️ Escalate</button>'
     + '<button class="btn btn-ghost" id="bd-timeline" style="grid-column:1/-1">📜 Timeline</button>'
     + '</div>'
     + (log.length ? '<div style="margin-bottom:6px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Recent Payments</div>'
@@ -9044,6 +9045,7 @@ function openBorrowerDetail(id) {
   haptic('light');
 
   setTimeout(function() {
+    var elEsc = document.getElementById('bd-escalate');
     var elPay = document.getElementById('bd-pay');
     var elPr  = document.getElementById('bd-promise');
     var elN   = document.getElementById('bd-note');
@@ -9068,6 +9070,7 @@ function openBorrowerDetail(id) {
     var elTL = document.getElementById('bd-timeline');
     if (elTL) elTL.onclick = function(){ haptic('light'); _pushModal(() => openBorrowerDetail(id)); openBorrowerTimeline(id); };
     if (elHL)  elHL.onclick  = function(){ haptic('medium'); addToHitList(id); elHL.textContent = '📌 In Hit List'; };
+    if (elEsc) elEsc.onclick = function(){ haptic('light'); _pushModal(() => openBorrowerDetail(id)); openEscalFromBorrower(id); };
     if (elD)   elD.onclick   = function(){
       confirmAction({ title: 'Delete Borrower', message: 'Remove <strong>' + escapeHtml(b.name) + '</strong> from your portfolio?', confirmLabel: 'Delete', onConfirm: function() { deleteBorrower(id); } });
     };
@@ -12632,31 +12635,212 @@ Thank you for resolving this matter.
 
 *LoanBase Recovery Management*`;
   }
+
+  // ── Level 14: Unreachable / Silent Phone ──────────────────
+  if (level === 14) {
+    return `📵 *NOTICE: ACCOUNT UNREACHABLE – ESCALATION TRIGGERED* 📵
+
+DATE: ${dateStr}
+CASE REF: ${caseRef}
+DEBTOR: *${fullName}*
+OUTSTANDING BALANCE: *${balance}*
+
+*${salute},*
+
+Multiple contact attempts to your registered number have gone unanswered. Your phone appears to be switched off, redirected, or you are actively avoiding contact.
+
+Under the Borrowers and Lenders Act 2008 (Act 773), deliberate evasion of a creditor constitutes *willful default* and is admissible as evidence in court proceedings.
+
+We are now proceeding with *offline escalation*, which includes:
+
+• Field agent dispatch to your registered address on *${_escalVisitDate()}*
+• Contact with your listed references and emergency contacts
+• Formal filing with the Credit Bureau
+
+You may still prevent all of the above by calling *${_escalAgentPhone()}* or paying *${balance}* via *${payNum}* before *${deadline}*.
+
+*LoanBase Recovery Management*`;
+  }
+
+  // ── Level 15: Employer / Workplace Contact Warning ────────
+  if (level === 15) {
+    const workplace = b.workplace || 'your place of employment as listed in your loan file';
+    return `💼 *WORKPLACE NOTIFICATION WARNING* 💼
+
+DATE: ${dateStr}
+CASE REF: ${caseRef}
+DEBTOR: *${fullName}*
+OUTSTANDING BALANCE: *${balance}*
+
+*${salute},*
+
+Your ${loanType} loan account is now *${odDays} days* overdue with a balance of *${balance}*.
+
+Under Ghanaian credit recovery law, a creditor may contact a borrower's employer to verify employment status and facilitate debt recovery where direct contact has failed.
+
+LoanBase is authorised to contact *${workplace}* if payment is not received by *${deadline}* today.
+
+This action is not our preference. Pay *${balance}* now to prevent workplace contact.
+
+📌 Dial *${payNum}* or call *${_escalAgentPhone()}* immediately.
+
+*LoanBase Recovery Management*`;
+  }
+
+  // ── Level 16: Credit Bureau Filed Confirmation ────────────
+  if (level === 16) {
+    return `🚫 *CREDIT BUREAU SUBMISSION NOTICE* 🚫
+
+DATE: ${dateStr}
+CASE REF: ${caseRef}
+DEBTOR: *${fullName}*
+OUTSTANDING BALANCE: *${balance}*
+
+*${salute},*
+
+This is formal notice that your Ghana Card identification and loan default details have been submitted to the *Ghana Credit Bureau* (XDS Data / CRB Africa) as of *${dateStr}*.
+
+*What this means for you:*
+
+❌ You will be flagged on all credit checks by banks and mobile lenders
+❌ Future loan and credit applications will be declined
+❌ Mobile money credit lines (Qwikloan, MTN Xcredit) may be suspended
+❌ This record remains for *up to 5 years*
+
+A reversal is possible — but ONLY upon full payment of *${balance}*.
+
+📌 Pay now via *${payNum}* and send your confirmation to initiate the reversal.
+
+*LoanBase Recovery Management*
+*Ref: ${caseRef}*`;
+  }
+
+  // ── Level 17: Debt Write-Off Warning ──────────────────────
+  if (level === 17) {
+    return `⚠️ *FINAL ACCOUNT REVIEW – WRITE-OFF WARNING* ⚠️
+
+DATE: ${dateStr}
+CASE REF: ${caseRef}
+DEBTOR: *${fullName}*
+OUTSTANDING BALANCE: *${balance}*
+
+*${salute},*
+
+Your account has been referred to our *Final Account Review Committee*. After *${odDays} days* of non-payment, your file is being evaluated for *debt write-off and external litigation handover*.
+
+A write-off does *NOT* cancel your debt. It means:
+
+• Your file transfers permanently to a licensed recovery agency
+• Legal proceedings under Act 773 will be initiated immediately
+• All recovery costs are added to your balance
+• Your credit record will carry the notation *"Written-Off"* — the most severe flag possible
+
+*This is your absolute final opportunity* to resolve this directly with LoanBase.
+
+Full payment of *${balance}* by *${deadline}* will withdraw your file from write-off review.
+
+📌 Pay immediately via *${payNum}*.
+
+*LoanBase Final Recovery Unit*`;
+  }
+
+  // ── Level 18: Emergency Contact Notification ──────────────
+  if (level === 18) {
+    const emergencyName = b.guarantorName || b.emergencyContact || 'listed emergency contact';
+    return `📢 *EMERGENCY CONTACT NOTIFICATION* 📢
+
+DATE: ${dateStr}
+CASE REF: ${caseRef}
+BORROWER: *${fullName}*
+OUTSTANDING BALANCE: *${balance}*
+
+Dear *${emergencyName}*,
+
+You are listed as the emergency contact / guarantor for *${b.name}* in connection with their ${loanType} loan with LoanBase.
+
+*${b.name}*'s account is *${odDays} days* overdue with an outstanding balance of *${balance}*. All direct contact attempts have been unsuccessful.
+
+Please ask *${b.name}* to contact us immediately on *${_escalAgentPhone()}* or to make payment via *${payNum}*.
+
+If this matter is not resolved within *48 hours*, formal legal proceedings will commence and all listed contacts will be involved.
+
+Thank you for your assistance.
+
+*LoanBase Recovery Management*`;
+  }
+
+  // ── Level 19: Full OD Fee Waiver Offer ────────────────────
+  if (level === 19) {
+    const principalAmt = b.principal || b.loanDue || 0;
+    const odFeeAmt     = getOdFee(b);
+    const remaining    = Math.max(0, principalAmt - (b.amountPaid || 0));
+    return `🤝 *ONE-TIME OFFER: FULL OD FEE WAIVER* 🤝
+
+DATE: ${dateStr}
+CASE REF: ${caseRef}
+DEBTOR: *${fullName}*
+PRINCIPAL REMAINING: *${fmtC(remaining)}*
+OD FEES WAIVED: *${fmtC(odFeeAmt)}*
+*YOU ONLY PAY: ${fmtC(remaining)}*
+
+*${salute},*
+
+As a final gesture of goodwill, LoanBase is offering you a *one-time exceptional settlement*:
+
+Pay only the outstanding principal of *${fmtC(remaining)}* and we will waive *ALL* accrued overdue fees (*${fmtC(odFeeAmt)}*).
+
+✅ No penalties
+✅ No OD charges
+✅ Account closed with positive credit reference
+
+*⚠️ This offer expires at ${deadline} TODAY. It will not be extended.*
+
+After this deadline, the full balance of *${balance}* (including all fees and legal costs) will be pursued with no further concessions.
+
+📌 Pay *${fmtC(remaining)}* via *${payNum}* and send your receipt to confirm the waiver.
+
+*LoanBase Recovery Management*
+*Ref: ${caseRef}*`;
+  }
+
   return '';
+}
+
+// Open escalation for a single borrower (from borrower detail card)
+function openEscalFromBorrower(borrowerId) {
+  window._escalSingleId = borrowerId;
+  openEscalationPanel();
 }
 
 function openEscalationPanel() {
   document.getElementById('modal-title').textContent = '⚖️ Escalation Notices';
   
   const escalationOptions = [
-    // Standard warnings
-    { level:1, label:'⚠️ Level 1 – Formal Warning', color:'#f97316', desc:'First escalation. Credit bureau threat, 24hr deadline.' },
-    { level:2, label:'⚖️ Level 2 – Pre-Litigation', color:'#dc2626', desc:'Final notice. Field dispatch, third-party disclosure, judicial attachment.' },
-    { level:3, label:'🔴 Level 3 – Litigation Commenced', color:'#7c3aed', desc:'Court filing confirmed, account freeze, asset inventory.' },
-    // Payment & promise related
-    { level:4, label:'💰 Level 4 – Partial Payment Follow-Up', color:'#f59e0b', desc:'Acknowledge partial payment, demand remainder.' },
-    { level:5, label:'💔 Level 5 – Broken Promise (PTP Missed)', color:'#ef4444', desc:'Customer missed a promise to pay.' },
-    { level:8, label:'🎯 Level 8 – Settlement Offer (Discounted)', color:'#10b981', desc:'One‑time reduced amount to close account.' },
-    // Field & legal escalation
-    { level:6, label:'🚪 Level 6 – Field Visit Notification', color:'#f97316', desc:'Warn before sending a field agent.' },
-    { level:7, label:'⚖️ Level 7 – Final Demand (Pre-Legal)', color:'#dc2626', desc:'Last notice before handing over to lawyers.' },
-    { level:11,label:'🚗 Level 11 – Asset Attachment Warning', color:'#ef4444', desc:'For secured loans – repossession threat.' },
-    // Instalment plans
-    { level:9, label:'📅 Level 9 – Instalment Confirmation', color:'#3b82f6', desc:'Confirm a structured repayment plan.' },
-    { level:10,label:'⚠️ Level 10 – Instalment Breach', color:'#f97316', desc:'Missed payment on an instalment plan.' },
-    // Third‑party & closure
-    { level:12,label:'👥 Level 12 – Guarantor Notification', color:'#8b5cf6', desc:'Inform guarantor of default.' },
-    { level:13,label:'✅ Level 13 – Payment Acknowledgment', color:'#22c55e', desc:'Confirm full payment and release.' },
+    // ── Standard warnings ─────────────────────────────────────
+    { level:1,  label:'⚠️ L1 – Formal Warning',            color:'#f97316', desc:'First escalation. Credit bureau threat, 24 hr deadline.' },
+    { level:2,  label:'⚖️ L2 – Pre-Litigation',            color:'#dc2626', desc:'Final notice. Field dispatch, third-party disclosure.' },
+    { level:3,  label:'🔴 L3 – Litigation Commenced',       color:'#7c3aed', desc:'Court filing confirmed, account freeze, asset inventory.' },
+    { level:7,  label:'⚖️ L7 – Final Demand (Pre-Legal)',   color:'#dc2626', desc:'Last notice before handing over to lawyers.' },
+    // ── Payment & promise related ──────────────────────────────
+    { level:4,  label:'💰 L4 – Partial Payment Follow-Up',  color:'#f59e0b', desc:'Acknowledge partial payment, demand remainder.' },
+    { level:5,  label:'💔 L5 – Broken Promise (PTP Missed)',color:'#ef4444', desc:'Customer missed a promise to pay.' },
+    { level:8,  label:'🎯 L8 – Settlement Offer',           color:'#10b981', desc:'One-time reduced amount to close account.' },
+    { level:19, label:'🤝 L19 – Full OD Fee Waiver',        color:'#22c55e', desc:'Pay principal only — waive all OD fees. Last resort goodwill.' },
+    // ── Field & third-party ────────────────────────────────────
+    { level:6,  label:'🚪 L6 – Field Visit Notification',   color:'#f97316', desc:'Warn before sending a field agent.' },
+    { level:14, label:'📵 L14 – Unreachable / Silent Phone', color:'#f97316', desc:'Phone not being answered — triggers offline escalation.' },
+    { level:15, label:'💼 L15 – Workplace Contact Warning',  color:'#ef4444', desc:'Warn of employer contact if payment not received today.' },
+    { level:18, label:'📢 L18 – Emergency Contact Notice',   color:'#8b5cf6', desc:'Notify guarantor / emergency contact of default.' },
+    { level:12, label:'👥 L12 – Guarantor Notification',    color:'#8b5cf6', desc:'Inform guarantor of default.' },
+    // ── Credit & legal consequences ────────────────────────────
+    { level:11, label:'🚗 L11 – Asset Attachment Warning',  color:'#ef4444', desc:'For secured loans – repossession threat.' },
+    { level:16, label:'🚫 L16 – Credit Bureau Filed',        color:'#dc2626', desc:'Confirm submission to Ghana Credit Bureau.' },
+    { level:17, label:'⚠️ L17 – Write-Off Warning',          color:'#7c3aed', desc:'Final account review — external handover if unpaid.' },
+    // ── Instalment plans ──────────────────────────────────────
+    { level:9,  label:'📅 L9 – Instalment Confirmation',    color:'#3b82f6', desc:'Confirm a structured repayment plan.' },
+    { level:10, label:'⚠️ L10 – Instalment Breach',          color:'#f97316', desc:'Missed payment on an instalment plan.' },
+    // ── Closure ───────────────────────────────────────────────
+    { level:13, label:'✅ L13 – Payment Acknowledgment',    color:'#22c55e', desc:'Confirm full payment and release.' },
   ];
 
   let html = `<div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">
@@ -12719,36 +12903,42 @@ function previewEscalation(level) {
   // Save settings first
   saveEscalSettings();
 
-  // Get sample borrower (first in current dispatch list) for preview
-  const sampleId = _currentDispatchIds && _currentDispatchIds[0];
+  // Get sample borrower — prefer single-borrower mode
+  const sampleId = window._escalSingleId || (_currentDispatchIds && _currentDispatchIds[0]);
   const sampleB  = sampleId && state.borrowers.find(b => b.id === sampleId);
-  const previewMsg = sampleB ? buildEscalationMsg(sampleB, level) : '(No contacts in current filter)';
-  const levelColors = {1:'#f97316', 2:'#dc2626', 3:'#7c3aed'};
-  const levelLabels = {1:'Level 1 — Formal Warning', 2:'Level 2 — Pre-Litigation', 3:'Level 3 — Litigation Notice'};
+  const count    = window._escalSingleId ? 1 : (_currentDispatchIds ? _currentDispatchIds.length : 0);
+  const previewMsg = sampleB ? buildEscalationMsg(sampleB, level) : '(No contacts selected)';
+  const levelColors = {1:'#f97316',2:'#dc2626',3:'#7c3aed',4:'#f59e0b',5:'#ef4444',6:'#f97316',7:'#dc2626',8:'#10b981',9:'#3b82f6',10:'#f97316',11:'#ef4444',12:'#8b5cf6',13:'#22c55e',14:'#f97316',15:'#ef4444',16:'#dc2626',17:'#7c3aed',18:'#8b5cf6',19:'#22c55e'};
+  const levelLabels = {1:'Formal Warning',2:'Pre-Litigation',3:'Litigation Notice',4:'Partial Follow-Up',5:'Broken Promise',6:'Field Visit',7:'Final Demand',8:'Settlement Offer',9:'Instalment Confirm',10:'Instalment Breach',11:'Asset Warning',12:'Guarantor Notice',13:'Payment Ack',14:'Unreachable',15:'Workplace Warning',16:'Credit Bureau Filed',17:'Write-Off Warning',18:'Emergency Contact',19:'OD Fee Waiver'};
 
   _pushModal();
   document.getElementById('modal-title').textContent = '⚖️ ' + levelLabels[level];
   document.getElementById('modal-body').innerHTML =
     '<div style="font-size:11px;color:var(--text3);margin-bottom:10px">' +
       'Preview for <strong>' + (sampleB ? escapeHtml(sampleB.name) : 'sample') + '</strong>. ' +
-      'Sent to <strong>' + (_currentDispatchIds ? _currentDispatchIds.length : 0) + ' contacts</strong> when you tap Send All.' +
+      'Sent to <strong>' + count + ' contact' + (count !== 1 ? 's' : '') + '</strong> when you tap Send.' +
     '</div>' +
     '<div style="background:rgba(37,211,102,0.07);border:1px solid rgba(37,211,102,0.2);border-radius:8px;padding:12px;font-size:11px;color:var(--text2);line-height:1.8;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word;max-height:320px;overflow-y:auto;overflow-x:hidden;font-family:var(--font-body)">' +
       escapeHtml(previewMsg) +
     '</div>';
   document.getElementById('modal-footer').innerHTML =
     '<button class="btn btn-ghost" onclick="closeModal()">← Back</button>' +
-    '<button class="btn btn-ghost btn-sm" style="color:#25d366;border-color:#25d366" onclick="launchEscalationQueue(' + level + ')">💬 Send All (' + (_currentDispatchIds ? _currentDispatchIds.length : 0) + ')</button>';
+    '<button class="btn btn-ghost btn-sm" style="color:#25d366;border-color:#25d366" onclick="launchEscalationQueue(' + level + ')">💬 Send (' + count + ')</button>';
 }
 
 function launchEscalationQueue(level) {
   closeAllModals();
-  if (!_currentDispatchIds || !_currentDispatchIds.length) {
-    toast('No contacts in current filter', 'error'); return;
+  let borrowers;
+  if (window._escalSingleId) {
+    const b = state.borrowers.find(b => b.id === window._escalSingleId);
+    borrowers = b ? [b] : [];
+    window._escalSingleId = null;
+  } else {
+    if (!_currentDispatchIds || !_currentDispatchIds.length) {
+      toast('No contacts in current filter', 'error'); return;
+    }
+    borrowers = _currentDispatchIds.map(id => state.borrowers.find(b => b.id === id)).filter(Boolean);
   }
-  const borrowers = _currentDispatchIds
-    .map(id => state.borrowers.find(b => b.id === id))
-    .filter(Boolean);
   window._escalLevel    = level;
   window._escalBorrowers = borrowers;
   window._escalIdx      = 0;
@@ -12772,8 +12962,8 @@ function escalRenderModal() {
   const ph    = b.phone.replace(/\D/g,'');
   const waLink = 'https://wa.me/' + ph + '?text=' + encodeURIComponent(msg);
   const pct   = Math.round((idx / tot) * 100);
-  const levelColors = {1:'#f97316', 2:'#dc2626', 3:'#7c3aed'};
-  const levelLabels = {1:'Warning', 2:'Pre-Litigation', 3:'Litigation'};
+  const levelColors = {1:'#f97316',2:'#dc2626',3:'#7c3aed',4:'#f59e0b',5:'#ef4444',6:'#f97316',7:'#dc2626',8:'#10b981',9:'#3b82f6',10:'#f97316',11:'#ef4444',12:'#8b5cf6',13:'#22c55e',14:'#f97316',15:'#ef4444',16:'#dc2626',17:'#7c3aed',18:'#8b5cf6',19:'#22c55e'};
+  const levelLabels = {1:'Formal Warning',2:'Pre-Litigation',3:'Litigation Notice',4:'Partial Follow-Up',5:'Broken Promise',6:'Field Visit',7:'Final Demand',8:'Settlement Offer',9:'Instalment Confirm',10:'Instalment Breach',11:'Asset Warning',12:'Guarantor Notice',13:'Payment Ack',14:'Unreachable',15:'Workplace Warning',16:'Credit Bureau Filed',17:'Write-Off Warning',18:'Emergency Contact',19:'OD Fee Waiver'};
   const col = levelColors[level] || '#dc2626';
 
   document.getElementById('modal-title').textContent = '⚖️ Escalation — ' + (idx+1) + ' of ' + tot;
