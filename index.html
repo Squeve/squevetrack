@@ -11029,14 +11029,38 @@ function checkOdAdvance() {
   }
 }
 
-// ── MONTHLY ROLLOVER ───────────────────────────────────
+// ── MONTHLY ROLLOVER WITH MONTH PICKER ───────────────────
 function openRolloverModal() {
   const active = getActiveBorrowers();
   const paid = state.borrowers.filter(b => getStatus(b) === 'Paid');
   const totalOut = active.reduce((s,b) => s+getDueToday(b), 0);
+  
+  // Build month and year dropdowns
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  
+  // Next month is default
+  let defaultMonth = currentMonth + 1;
+  let defaultYear = currentYear;
+  if (defaultMonth > 11) {
+    defaultMonth = 0;
+    defaultYear++;
+  }
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const nextMonth = monthNames[(new Date().getMonth()+1) % 12] + ' ' + (new Date().getMonth()===11 ? new Date().getFullYear()+1 : new Date().getFullYear());
-
+  
+  // Month dropdown options
+  let monthOptions = '';
+  for (let i = 0; i < 12; i++) {
+    monthOptions += `<option value="${i}" ${i === defaultMonth ? 'selected' : ''}>${monthNames[i]}</option>`;
+  }
+  
+  // Year dropdown options (current year to +2)
+  let yearOptions = '';
+  for (let y = currentYear; y <= currentYear + 2; y++) {
+    yearOptions += `<option value="${y}" ${y === defaultYear ? 'selected' : ''}>${y}</option>`;
+  }
+  
   document.getElementById('modal-title').textContent = '📅 Start New Month';
   document.getElementById('modal-body').innerHTML =
     '<div style="background:rgba(232,160,32,0.07);border:1px solid rgba(232,160,32,0.25);border-radius:8px;padding:14px;margin-bottom:16px">'
@@ -11051,14 +11075,45 @@ function openRolloverModal() {
     + '<div style="background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);border-radius:6px;padding:10px;margin-bottom:14px;font-size:12px;color:var(--red)">'
     + '<b>⚠️ Warning:</b> ' + active.length + ' active accounts (' + fmtC(totalOut) + ' outstanding) will be moved to Aged Out. This cannot be undone.'
     + '</div>'
+    + '<div class="form-group"><label>Select New Month</label>'
+    + '<div style="display:flex;gap:10px;">'
+    + '<select id="rollover-month" class="form-input" style="flex:1">' + monthOptions + '</select>'
+    + '<select id="rollover-year" class="form-input" style="flex:1">' + yearOptions + '</select>'
+    + '</div>'
+    + '<div id="rollover-date-warning" style="font-size:11px;margin-top:6px;min-height:18px"></div>'
+    + '</div>'
     + '<div class="form-group"><label>New Monthly Target (₵) <span style="font-size:11px;color:var(--text3)">optional</span></label>'
-    + '<input type="number" class="form-input" id="rollover-target" placeholder="e.g. 50000" min="0"></div>'
-    + '<div style="font-size:12px;color:var(--text3);margin-top:4px">Starting: <b style="color:var(--text)">' + nextMonth + '</b></div>';
-
+    + '<input type="number" class="form-input" id="rollover-target" placeholder="e.g. 50000" min="0"></div>';
+  
   document.getElementById('modal-footer').innerHTML =
     '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>'
     + '<button class="btn btn-red" id="confirm-rollover-btn">🔄 Confirm Rollover</button>';
   document.getElementById('modal-overlay').classList.add('open');
+  
+  // Add warning if past month selected
+  const monthSel = document.getElementById('rollover-month');
+  const yearSel = document.getElementById('rollover-year');
+  const warningEl = document.getElementById('rollover-date-warning');
+  
+  function checkDateWarning() {
+    const selMonth = parseInt(monthSel.value);
+    const selYear = parseInt(yearSel.value);
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
+    if (selYear < currentYear || (selYear === currentYear && selMonth < currentMonth)) {
+      warningEl.innerHTML = '<span style="color:var(--orange)">⚠️ You are rolling over to a past month. This may affect historical accuracy.</span>';
+    } else if (selYear === currentYear && selMonth === currentMonth) {
+      warningEl.innerHTML = '<span style="color:var(--orange)">⚠️ Rolling over to the current month? Use only if you just started fresh this month.</span>';
+    } else {
+      warningEl.innerHTML = '';
+    }
+  }
+  
+  monthSel.addEventListener('change', checkDateWarning);
+  yearSel.addEventListener('change', checkDateWarning);
+  checkDateWarning();
+  
   setTimeout(function() {
     var rb = document.getElementById('confirm-rollover-btn');
     if (rb) rb.addEventListener('click', doRollover);
@@ -11067,13 +11122,18 @@ function openRolloverModal() {
 
 function doRollover() {
   const newTarget = parseFloat(document.getElementById('rollover-target')?.value) || 0;
+  const selectedMonth = parseInt(document.getElementById('rollover-month').value);
+  const selectedYear = parseInt(document.getElementById('rollover-year').value);
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const newMonthStr = monthNames[selectedMonth] + ' ' + selectedYear;
+  
   const today = new Date().toISOString().split('T')[0];
-  const monthStr = new Date().toLocaleDateString('en-GB', {month:'long', year:'numeric'});
-
+  const monthStr = state.month || new Date().toLocaleDateString('en-GB', {month:'long', year:'numeric'});
+  
   // Archive current state
   if (!state.archive) state.archive = [];
   state.archive.push({
-    month: state.month || monthStr,
+    month: monthStr,
     archivedAt: today,
     borrowerCount: state.borrowers.length,
     paidCount: state.borrowers.filter(b => getStatus(b)==='Paid').length,
@@ -11081,28 +11141,32 @@ function doRollover() {
     totalCollected: state.dailyLog.reduce((s,e) => s+(Number(e.collected)||0), 0),
     monthlyTarget: state.monthlyTarget || 0
   });
-
+  
   // Move remaining active to aged out
   const active = getActiveBorrowers();
   active.forEach(b => {
     const alreadyLogged = state.agedOutLog.some(a => a.id === b.id);
     if (!alreadyLogged) {
-      state.agedOutLog.unshift({ id:b.id, name:b.name, phone:b.phone, loanType:b.loanType, loanDue:b.loanDue, amountPaid:b.amountPaid, odAge:getOdAge(b.startDate), agedDate:today, status:'Rolled Over' });
+      state.agedOutLog.unshift({ 
+        id: b.id, name: b.name, phone: b.phone, loanType: b.loanType, 
+        loanDue: b.loanDue, amountPaid: b.amountPaid, 
+        odAge: getOdAge(b.startDate), agedDate: today, 
+        status: 'Rolled Over to ' + newMonthStr 
+      });
     }
   });
-
-  // Reset
-  const nextMonthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const nm = nextMonthNames[(new Date().getMonth()+1)%12] + ' ' + (new Date().getMonth()===11?new Date().getFullYear()+1:new Date().getFullYear());
-  state.borrowers = state.borrowers.filter(b => false); // clear all
+  
+  // Reset state for new month
   state.borrowers = [];
   state.dailyLog = [];
   state.monthlyTarget = newTarget || 0;
-  state.month = nm;
-
-  saveState(); closeModal(); updateBadges();
+  state.month = newMonthStr;
+  
+  saveState(); 
+  closeModal(); 
+  updateBadges();
   navigate('dashboard');
-  toast('✅ Rolled over to ' + nm + '. Fresh start!', 'success');
+  toast('✅ Rolled over to ' + newMonthStr + '. Fresh start!', 'success');
 }
 
 // ── COLLECTION PACING HELPER ───────────────────────────
