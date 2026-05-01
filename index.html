@@ -12299,7 +12299,7 @@ CASE REF: ${caseRef}
 DEBTOR: *${fullName}*
 OUTSTANDING BALANCE: *${balance}*
 
-Dear ${salute},
+ ${salute},
 
 We acknowledge your recent payment of *${paidAmount}* on your ${loanType} account. Thank you.
 
@@ -12323,7 +12323,7 @@ DEBTOR: *${fullName}*
 PROMISED DATE: ${promiseDate}
 AMOUNT DUE: *${balance}*
 
-Dear ${salute},
+ ${salute},
 
 You made a solemn commitment to pay *${balance}* on *${promiseDate}*. To date, no payment has been received.
 
@@ -12351,7 +12351,7 @@ CASE REF: ${caseRef}
 DEBTOR: *${fullName}*
 ADDRESS: (as registered)
 
-Dear ${salute},
+ ${salute},
 
 Despite multiple call attempts, we have been unable to reach you regarding your overdue ${loanType} loan of *${balance}* (Day ${odDays}).
 
@@ -12374,7 +12374,7 @@ CASE REF: ${caseRef}
 DEBTOR: *${fullName}*
 TOTAL OUTSTANDING: *${balance}* (including fees)
 
-Dear ${salute},
+ ${salute},
 
 This is your *FINAL NOTICE* before your file is handed over to our external solicitors for legal action.
 
@@ -12404,7 +12404,7 @@ DEBTOR: *${fullName}*
 ORIGINAL BALANCE: *${balance}*
 OFFERED SETTLEMENT: *${fmtC(discounted)}*
 
-Dear ${salute},
+ ${salute},
 
 As a gesture of goodwill, LoanBase is offering you a *one‑time discounted settlement* of *${fmtC(discounted)}* to fully close your ${loanType} account.
 
@@ -12431,7 +12431,7 @@ CASE REF: ${caseRef}
 DEBTOR: *${fullName}*
 PLAN: *${instalmentAmount}* every *${instalmentFreq}* starting *${instalmentStart}*
 
-Dear ${salute},
+ ${salute},
 
 Thank you for committing to the following repayment plan for your overdue ${loanType} loan:
 
@@ -12457,7 +12457,7 @@ CASE REF: ${caseRef}
 DEBTOR: *${fullName}*
 MISSED INSTALMENT: *${instalmentAmount}* due on *${instalmentStart}*
 
-Dear ${salute},
+ ${salute},
 
 You have missed your agreed instalment payment of *${instalmentAmount}* due on *${instalmentStart}*.
 
@@ -12481,7 +12481,7 @@ CASE REF: ${caseRef}
 DEBTOR: *${fullName}*
 SECURED ASSET: *${assetDesc}*
 
-Dear ${salute},
+ ${salute},
 
 Your ${loanType} loan is secured against *${assetDesc}*. You are now *${odDays} days* in default with an outstanding balance of *${balance}*.
 
@@ -12506,7 +12506,7 @@ BORROWER: *${fullName}*
 GUARANTOR: *${guarantorName}*
 AMOUNT DUE: *${balance}*
 
-Dear ${guarantorName},
+ ${guarantorName},
 
 This is to inform you that ${b.name} has defaulted on their ${loanType} loan with an outstanding balance of *${balance}*, now *${odDays} days* overdue.
 
@@ -12528,7 +12528,7 @@ CASE REF: ${caseRef}
 DEBTOR: *${fullName}*
 AMOUNT PAID: *${balance}*
 
-Dear ${salute},
+ ${salute},
 
 We hereby confirm receipt of *${balance}* as full and final settlement of your ${loanType} loan account.
 
@@ -19718,7 +19718,7 @@ function openMessageDetail(msgId, type) {
   document.getElementById('modal-footer').innerHTML = `
     <button class="btn btn-ghost" onclick="closeModal()">Close</button>
     <button class="btn btn-ghost btn-sm" id="mb-copy-btn">📋 Copy</button>
-    <button class="btn btn-green btn-sm" id="mb-send-btn">💬 Send via WhatsApp</button>
+    <button class="btn btn-green btn-sm" id="mb-send-btn">💬 Send To Borrower</button>
   `;
   document.getElementById('modal-overlay').classList.add('open');
   haptic('light');
