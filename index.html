@@ -303,14 +303,6 @@ tr.overdue-critical td:first-child,
   font-family: var(--font-mono); font-weight: 800; font-size: 13px; line-height: 1.1;
 }
 
-/* ── NO-CONTACT DOT ── */
-.no-contact-dot {
-  display: inline-flex; align-items: center; gap: 3px;
-  font-size: 9px; font-weight: 700; color: var(--orange);
-  background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.25);
-  border-radius: 10px; padding: 1px 5px; flex-shrink: 0;
-}
-
 /* ── BORROWER DETAIL HERO ── */
 .bd-hero {
   display: flex; align-items: center; gap: 14px;
@@ -6202,17 +6194,11 @@ function renderDashActionStrip(activeList) {
   if (!el) return;
   const active = activeList || getActiveBorrowers();
   const today  = new Date().toISOString().split('T')[0];
-  const _3d    = new Date(Date.now() - 3*86400000).toISOString().split('T')[0];
 
   // Count each signal
   const ptpDue     = active.filter(b => b.promisedToPay && b.promiseDate && b.promiseDate.startsWith(today) && !b.isPaid).length;
   const ptpBreached = active.filter(b => b.ptpBreached && !b.isPaid).length;
   const critical   = active.filter(b => getOdAge(b.startDate) >= 13 && !b.isPaid).length;
-  const noContact  = active.filter(b => {
-    if (b.isPaid) return false;
-    const lastCall = (b.callLog||[]).slice(-1)[0];
-    return !lastCall || lastCall.date < _3d;
-  }).length;
   const quickWins  = active.filter(b => !b.isPaid && b.loanDue > 0 && b.amountPaid / b.loanDue >= 0.75).length;
   const partialPaid = active.filter(b => getStatus(b) === 'Partial').length;
 
@@ -6220,7 +6206,6 @@ function renderDashActionStrip(activeList) {
   if (ptpDue > 0)      pills.push(`<button class="action-pill gold" onclick="showBorrowersPopup('','','','','');haptic('light')" title="PTP promised for today"><span class="pill-count">${ptpDue}</span>🤝 PTP Due Today</button>`);
   if (ptpBreached > 0) pills.push(`<button class="action-pill urgent" onclick="showBorrowersPopup('','','','','');haptic('light')" title="Broken promises"><span class="pill-count">${ptpBreached}</span>🔴 PTP Breached</button>`);
   if (critical > 0)    pills.push(`<button class="action-pill urgent" onclick="showBorrowersPopup('Unpaid','',13,'','');haptic('light')" title="Day 13+ — critical stage"><span class="pill-count">${critical}</span>🚨 Critical</button>`);
-  if (noContact > 0)   pills.push(`<button class="action-pill warn"   onclick="showBorrowersPopup('','','','','');haptic('light')" title="No call in 3+ days"><span class="pill-count">${noContact}</span>📵 No Contact 3d+</button>`);
   if (quickWins > 0)   pills.push(`<button class="action-pill green"  onclick="showBorrowersPopup('Partial','','','','');haptic('light')" title="75%+ paid — close to done"><span class="pill-count">${quickWins}</span>⚡ Quick Wins</button>`);
   if (partialPaid > 0) pills.push(`<button class="action-pill blue"   onclick="showBorrowersPopup('Partial','','','','');haptic('light')" title="Partial payers"><span class="pill-count">${partialPaid}</span>💰 Partial</button>`);
 
@@ -6927,12 +6912,7 @@ function renderLoansTable() {
     // Quick-win badge
     const quickWinBadge = (!r.isPaid && payRatio >= 0.75 && r.status !== 'Paid')
       ? ' <span class="badge-quickwin">⚡ Close</span>' : '';
-    // No-contact warning
-    const _3dAgo = new Date(Date.now() - 3*86400000).toISOString().split('T')[0];
-    const lastCallEntry = (r.callLog||[]).slice(-1)[0];
-    const daysSinceContact = lastCallEntry
-      ? Math.floor((Date.now() - new Date(lastCallEntry.date).getTime()) / 86400000)
-      : null;
+    // No-contact warning removed
     const d = document.createElement('div');
     d.className = 'bl-card' + critCls;
     d.dataset.bid = r.id;
@@ -6947,7 +6927,6 @@ function renderLoansTable() {
             + '<span class="bl-day ' + heatCls + '">Day ' + r.odAge + '</span>'
             + (r.loanType==='LoanBase Pro' ? '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;background:rgba(167,139,250,0.15);color:var(--purple)">PRO</span>' : '')
             + (r.promisedToPay ? '<span style="font-size:9px;color:var(--purple)">🤝' + ptpDateStr + '</span>' : '')
-            + noContactBadge
             + getBestCallIndicator(r)
           + '</div>'
           + payBarHtml
