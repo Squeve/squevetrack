@@ -5348,10 +5348,14 @@ async function _pushToSupabaseIncremental() {
     }
     // Always do a full upsert – simpler and safer
     await _db.from('app_state').upsert({
-      id: getSupabaseId(),
-      data: { ...currentState, _lastSaveTs: new Date().toISOString() },
-      updated_at: new Date().toISOString()
-    });
+  id: getSupabaseId(),
+  data: { 
+    ...currentState, 
+    _lastSaveTs: Date.now(),
+    _lastLocalSave: currentState._lastLocalSave
+  },
+  updated_at: new Date().toISOString()
+});
     _lastFullState = JSON.parse(JSON.stringify(currentState));
     _lastKnownHash = currentHash;
     setSyncStatus('saved');
@@ -5367,7 +5371,7 @@ function initState() {
     discountRate: 0.30, monthlyTarget: 0, agedOutLog: [], archive: [],
     hitList: [], callLog: {}, rankingHistory: [], undoHistory: [], pendingSyncCount: 0,
     offlineQueue: [], customMessages: [], archivedBorrowers: [],
-    agentProfile: {} };
+    agentProfile: {},     _lastLocalSave: 0, _blockRemotePullUntil: 0 };
 }
 
 function migrateState(s) {
@@ -5540,10 +5544,19 @@ if (!migrationFlag && state.borrowers && state.borrowers.length) {
 
 async function pullRemoteState() {
   if (!_db || !_activeAgent) return;
-  if (state.offlineQueue && state.offlineQueue.length > 0) {
-    console.log('Skipping remote pull – offline actions pending');
+  
+  // Don't pull if we just saved locally within the last 2 seconds
+  if (state._lastLocalSave && (Date.now() - state._lastLocalSave) < 2000) {
     return;
   }
+  // Don't pull if we've explicitly blocked (e.g., after manual edit)
+  if (state._blockRemotePullUntil && Date.now() < state._blockRemotePullUntil) {
+    return;
+  }
+  if (state.offlineQueue && state.offlineQueue.length > 0) {
+    return;
+  }
+  
   try {
     const { data, error } = await _db
       .from('app_state')
@@ -5554,24 +5567,20 @@ async function pullRemoteState() {
     if (!data || !data.data) return;
 
     const remoteState = data.data;
-    const remoteHash = await _hashState(remoteState);
-    const localHash = await _hashState(state);
-
-    if (remoteHash === localHash) return; // already in sync
-
-    // Simple last-write-wins based on _lastSaveTs
     const remoteTs = remoteState._lastSaveTs || 0;
-    const localTs = state._lastSaveTs || 0;
+    const localTs = state._lastLocalSave || 0;
+    
     if (remoteTs > localTs) {
-      // Remote is newer – replace local state
-      state = migrateState(remoteState);
-      _lastFullState = JSON.parse(JSON.stringify(state));
-      _lastKnownHash = remoteHash;
-      saveState(); // persist to localStorage
-      renderCurrentPage();
-      updateBadges();
-    } else {
-      // Local is newer – push to cloud (already scheduled)
+      if (!state.offlineQueue || state.offlineQueue.length === 0) {
+        state = migrateState(remoteState);
+        _lastFullState = JSON.parse(JSON.stringify(state));
+        _lastKnownHash = await _hashState(state);
+        saveState();
+        renderCurrentPage();
+        updateBadges();
+        toast('Synced latest changes from cloud', 'info');
+      }
+    } else if (localTs > remoteTs && remoteTs > 0) {
       _pushToSupabaseIncremental();
     }
   } catch (e) {
@@ -5612,6 +5621,9 @@ function _trackBorrowerScores() {
 }
 
 function saveState() {
+    // Add timestamp to track when this save happened
+  state._lastLocalSave = Date.now();
+  
   // Encrypt state before writing to localStorage
   const key     = getStateKey();
   const agentId = _activeAgent?.id || null;
@@ -5737,6 +5749,23 @@ function formatPhoneDisplay(phone) {
     return '+233 ' + digits.substring(1,3) + ' ' + digits.substring(3,6) + ' ' + digits.substring(6,10);
   } else {
     return cleaned;
+  }
+}
+
+// ── Scroll position persistence ─────────────────────────
+let _scrollPositions = new Map();
+
+function saveScrollPosition(pageId) {
+  const main = document.getElementById('main');
+  if (main) _scrollPositions.set(pageId, main.scrollTop);
+}
+
+function restoreScrollPosition(pageId) {
+  const main = document.getElementById('main');
+  if (main && _scrollPositions.has(pageId)) {
+    requestAnimationFrame(() => {
+      main.scrollTop = _scrollPositions.get(pageId);
+    });
   }
 }
 
@@ -9128,6 +9157,9 @@ function setPayAmount(amount) {
 }
 
 function recordPayment(id) {
+    // Block remote sync temporarily
+  state._blockRemotePullUntil = Date.now() + 3000;
+  
   const b = state.borrowers.find(b => b.id === id);
   if (!b) return;
   const newPaid = parseFloat(document.getElementById('pay-amount').value) || 0;
@@ -9176,7 +9208,7 @@ function recordPayment(id) {
   if (newPaid !== prevPaid) {
     b.payLog.push({ date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}), amount: newPaid, delta: newPaid - prevPaid, note: notes, isPaid: b.isPaid });
   }
-  purgeAgedOut(); saveState(); _odFeeCache.clear(); closeModal();
+  purgeAgedOut(); saveState(); setTimeout(() => { state._blockRemotePullUntil = 0; }, 3000); _odFeeCache.clear(); closeModal();
   updateTemplatePerfFromPayment(id);
   const status = getStatus(b);
   haptic(status === 'Paid' ? 'fullpay' : 'pay');
@@ -9241,6 +9273,9 @@ function borrowerForm(b) {
 
 
 function saveBorrower(id) {
+// Block remote sync temporarily
+  state._blockRemotePullUntil = Date.now() + 3000;
+  
   const name = document.getElementById('f-name').value.trim();
   let phone = document.getElementById('f-phone').value.trim();
 phone = normalizePhone(phone);
@@ -9296,6 +9331,10 @@ if (phoneDigits.length < 9) return toast('Enter a valid phone number (include co
   }
   _odFeeCache.clear();
   saveState();
+
+  // Re-enable after timeout
+  setTimeout(() => { state._blockRemotePullUntil = 0; }, 3000);
+  
   closeModal();
   updateBadges();
   renderCurrentPage();
@@ -10502,6 +10541,9 @@ let currentPage = 'dashboard';
 })();
 
 function navigate(page) {
+   // Save current page scroll before leaving
+  saveScrollPosition(currentPage);
+  
   // Brief exit animation on the current page
   const outgoing = document.querySelector('.page.active');
   if (outgoing && outgoing.id !== 'page-' + page) {
@@ -10540,9 +10582,18 @@ function navigate(page) {
 }
 
 function renderCurrentPage() {
+  const pageId = currentPage;
+  
+  // Save scroll position before re-render
+  saveScrollPosition(pageId);
+  
+  // Render the page content
   if (currentPage === 'dashboard') renderDashboard();
-  else if (currentPage === 'loans') { renderLoansTable(); setTimeout(initRowSwipe, 100); }
-  else if (currentPage === 'paid')  { renderPaidPage(); }
+  else if (currentPage === 'loans') { 
+    renderLoansTable(); 
+    setTimeout(initRowSwipe, 100); 
+  }
+  else if (currentPage === 'paid')  renderPaidPage();
   else if (currentPage === 'analytics') renderAnalytics();
   else if (currentPage === 'dispatch') renderDispatch();
   else if (currentPage === 'log') renderLog();
@@ -10557,6 +10608,9 @@ function renderCurrentPage() {
   else if (currentPage === 'ptp') { if(typeof switchPtpHub==='function') switchPtpHub(_ptpTab||'morning'); }
   else if (currentPage === 'reports') renderReportsPage();
   else if (currentPage === 'health') renderSettingsPage();
+  
+  // Restore scroll position after DOM updates
+  setTimeout(() => restoreScrollPosition(pageId), 50);
 }
 
 function updateBadges() {
