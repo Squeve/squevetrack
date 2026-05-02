@@ -2903,6 +2903,12 @@ tr.overdue-critical .heat-ring {
 
     <div id="dash-alerts"></div>
 
+    <!-- Empty state for new agents -->
+    <div id="dash-empty-state" style="display:none"></div>
+
+    <!-- Activity feed -->
+    <div id="dash-activity" style="margin-bottom:14px"></div>
+
     <!-- Treadmill Alert -->
     <div id="treadmill-alert" style="display:none;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-left:4px solid var(--red);border-radius:8px;padding:12px 18px;margin-bottom:14px"></div>
 
@@ -3211,7 +3217,14 @@ tr.overdue-critical .heat-ring {
         <div class="page-title" style="font-size:22px">Daily Log</div>
         <div class="page-sub" id="log-month-label">—</div>
       </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-ghost btn-sm" onclick="importLogFromPayments()" title="Auto-fill from recorded payments" style="font-size:11px">↓ Sync Payments</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportLogMonth()" title="Export this month's log" style="font-size:11px">↑ Export</button>
+      </div>
     </div>
+
+    <!-- Month progress bar -->
+    <div id="log-month-progress" style="background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:12px 16px;margin-bottom:14px"></div>
 
     <!-- KPI strip -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
@@ -3239,7 +3252,6 @@ tr.overdue-critical .heat-ring {
     <div style="background:var(--surface);border:1px solid var(--border2);border-radius:14px;margin-bottom:14px;overflow:hidden;box-shadow:inset 0 1px 0 var(--border-hi)">
       <div style="padding:14px 16px 0;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:12px">Log Collection</div>
       <div style="padding:0 16px">
-        <!-- Date + amount on one row -->
         <div style="display:flex;gap:10px;margin-bottom:10px">
           <input type="date" class="form-input" id="log-date" style="flex:1;font-size:13px;padding:10px 12px">
           <div style="position:relative;flex:1">
@@ -3247,7 +3259,6 @@ tr.overdue-critical .heat-ring {
             <input type="number" class="form-input" id="log-amount" placeholder="Amount" min="0" style="padding-left:26px;font-size:13px;padding-top:10px;padding-bottom:10px;width:100%">
           </div>
         </div>
-        <!-- Note with quick chips -->
         <input type="text" class="form-input" id="log-notes" placeholder="Notes (optional)…" onfocus="showLogNoteSuggestions()" onblur="setTimeout(()=>hideLogNoteSuggestions(),200)" style="width:100%;font-size:13px;margin-bottom:8px">
         <div id="log-note-suggestions" style="display:none;gap:6px;flex-wrap:wrap;margin-bottom:10px">
           <button class="bl-action-btn" style="font-size:11px" onclick="setLogNote('No collections today')">No collections</button>
@@ -5578,7 +5589,6 @@ async function pullRemoteState() {
         saveState();
         renderCurrentPage();
         updateBadges();
-        toast('Synced latest changes from cloud', 'info');
       }
     } else if (localTs > remoteTs && remoteTs > 0) {
       _pushToSupabaseIncremental();
@@ -6217,6 +6227,78 @@ function renderDashHero() {
     </div>`;
 }
 
+// ── Empty State for New Agents ────────────────────────────────
+function renderDashEmptyState(active) {
+  const el = document.getElementById('dash-empty-state');
+  if (!el) return;
+  if (active && active.length > 0) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  el.innerHTML = `
+    <div style="text-align:center;padding:40px 20px;background:var(--surface);border:1px solid var(--border2);border-radius:16px;margin-bottom:16px">
+      <div style="font-size:48px;margin-bottom:12px">🚀</div>
+      <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px">Welcome to SqueveTrack</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:20px;max-width:280px;margin-left:auto;margin-right:auto">Add your first borrower to start tracking, dispatching messages and recording payments.</div>
+      <button class="btn btn-gold" style="padding:12px 28px;font-size:14px;border-radius:12px" onclick="openAddModal();haptic('medium')">
+        ＋ Add First Borrower
+      </button>
+      <div style="margin-top:16px;display:flex;justify-content:center;gap:20px;flex-wrap:wrap">
+        <button onclick="navigate('messagebank')" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;font-family:var(--font-body)">💬 Message Bank</button>
+        <button onclick="navigate('log')" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;font-family:var(--font-body)">📅 Daily Log</button>
+        <button onclick="navigate('health')" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;font-family:var(--font-body)">⚙️ Settings</button>
+      </div>
+    </div>`;
+}
+
+// ── Activity Feed ────────────────────────────────────────────
+function renderDashActivityFeed() {
+  const el = document.getElementById('dash-activity');
+  if (!el) return;
+  const events = [];
+  const now = Date.now();
+  const fmt = ms => {
+    const d = Math.floor((now - ms) / 60000);
+    if (d < 1)  return 'just now';
+    if (d < 60) return d + 'm ago';
+    const h = Math.floor(d / 60);
+    if (h < 24) return h + 'h ago';
+    return Math.floor(h/24) + 'd ago';
+  };
+  // Collect events from payLog and callLog
+  (state.borrowers||[]).forEach(b => {
+    (b.payLog||[]).forEach(p => {
+      if (!p.date) return;
+      const ms = new Date(p.date).getTime();
+      if (now - ms > 7 * 86400000) return; // last 7 days only
+      events.push({ ms, icon:'💰', text: `${b.name.split(' ')[0]} paid ${fmtC(p.amount||0)}`, time: fmt(ms), id: b.id });
+    });
+    (b.callLog||[]).forEach(c => {
+      if (!c.date) return;
+      const ms = new Date(c.date).getTime();
+      if (now - ms > 3 * 86400000) return; // last 3 days for calls
+      events.push({ ms, icon:'📞', text: `Called ${b.name.split(' ')[0]}${c.outcome?' — '+c.outcome:''}`, time: fmt(ms), id: b.id });
+    });
+    if (b.promisedToPay && b.promiseDate) {
+      const ms = new Date(b.promiseDate).getTime();
+      if (Math.abs(now - ms) < 2 * 86400000) {
+        events.push({ ms, icon:'🤝', text: `${b.name.split(' ')[0]} promised to pay`, time: fmt(ms), id: b.id });
+      }
+    }
+  });
+  events.sort((a,b) => b.ms - a.ms);
+  const recent = events.slice(0, 8);
+  if (!recent.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:12px;overflow:hidden">
+      <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">⚡ Recent Activity</div>
+      ${recent.map(e => `
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer" onclick="_pushModal();openBorrowerDetail('${e.id}')">
+          <span style="font-size:15px;flex-shrink:0">${e.icon}</span>
+          <span style="font-size:12px;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(e.text)}</span>
+          <span style="font-size:10px;color:var(--text3);flex-shrink:0">${e.time}</span>
+        </div>`).join('')}
+    </div>`;
+}
+
 // ── Smart Action Strip ────────────────────────────────────────
 function renderDashActionStrip(activeList) {
   const el = document.getElementById('dash-action-strip');
@@ -6483,6 +6565,8 @@ async function renderDashboard() {
   document.getElementById('dash-alerts').innerHTML = alertHtml;
   renderDashActionStrip(active);
   renderDashHero();
+  renderDashEmptyState(active);
+  renderDashActivityFeed();
   var zlb = document.getElementById('zero-log-btn');
   if (zlb) zlb.addEventListener('click', function() { navigate('log'); });
   var glb = document.getElementById('gap-log-btn');
@@ -7633,9 +7717,19 @@ function renderDispatch() {
     g.items.forEach((b, i) => {
       const msg = getSmsMessage(b, useGenerous);
       const waLink = getWaLink(b, useGenerous);
+      const smsPhone = b.phone.replace(/\s/g,'');
+      const isIOS    = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const smsLink  = `sms:${smsPhone}${isIOS?'&body=':'?body='}${encodeURIComponent(msg)}`;
       const odCls = odClass(b.odAge);
       const amountShown = useGenerous ? b.generous : b.dueToday;
-      html += '<div class="dispatch-item">'
+
+      // Last contacted
+      const lastCall = (b.callLog||[]).slice(-1)[0];
+      const lastContactStr = lastCall?.date
+        ? (() => { const d=Math.floor((Date.now()-new Date(lastCall.date).getTime())/86400000); return d===0?'Today':d===1?'Yesterday':d+'d ago'; })()
+        : null;
+
+      html += '<div class="dispatch-item" id="drow-' + b.id + '">'
         + '<div class="dispatch-rank">' + (i+1) + '</div>'
         + '<div class="dispatch-info">'
         + '<div class="dispatch-name">' + escapeHtml(b.name) + (b.promisedToPay ? ' <span class="promise-badge">🤝 Promised</span>' : '') + '</div>'
@@ -7643,12 +7737,16 @@ function renderDispatch() {
         + ' &nbsp;·&nbsp; <span class="' + odCls + '">Day ' + b.odAge + '</span>'
         + ' &nbsp;·&nbsp; ' + (b.loanType==='LoanBase Pro' ? '<span class="badge badge-pro">Pro</span>' : '<span class="badge badge-loanbase">Base</span>')
         + ' &nbsp;·&nbsp; ' + statusBadge(b.status)
-        + ' &nbsp;·&nbsp; <span class="dispatch-amount" style="font-family:var(--font-mono);color:var(--gold)">' + fmtC(amountShown) + '</span></div>'
+        + ' &nbsp;·&nbsp; <span class="dispatch-amount" style="font-family:var(--font-mono);color:var(--gold)">' + fmtC(amountShown) + '</span>'
+        + (lastContactStr ? ' &nbsp;·&nbsp; <span style="color:var(--text3);font-size:10px">📞 ' + lastContactStr + '</span>' : '')
+        + '</div>'
         + '<div class="dispatch-msg" style="font-size:11px;color:var(--text2);background:var(--surface2);padding:6px 10px;border-radius:6px;margin-top:5px;line-height:1.5">' + msg + '</div>'
         + '</div>'
         + '<div class="dispatch-actions">'
-        + '<a href="' + waLink + '" target="_blank" class="btn btn-green btn-sm">📲 WhatsApp</a>'
-        + '<button class="btn btn-ghost btn-sm" onclick="copyDispatchMsg(\'' + b.id + '\')">📋 Copy</button>'
+        + '<a href="' + waLink + '" target="_blank" class="btn btn-green btn-sm" onclick="markDispatchContacted(\'' + b.id + '\')">💬 WA</a>'
+        + '<a href="' + smsLink + '" class="btn btn-ghost btn-sm" style="color:var(--blue);border-color:rgba(96,165,250,0.4)" onclick="markDispatchContacted(\'' + b.id + '\')">📱 SMS</a>'
+        + '<button class="btn btn-ghost btn-sm" onclick="markDispatchContacted(\'' + b.id + '\')">✓</button>'
+        + '<button class="btn btn-ghost btn-sm" onclick="copyDispatchMsg(\'' + b.id + '\')">📋</button>'
         + '</div></div>';
     });
   });
@@ -7676,6 +7774,28 @@ function copyDispatchMsg(id) {
   });
 }
 
+function markDispatchContacted(id) {
+  // Visually fade the row to show it's been handled this session
+  const row = document.getElementById('drow-' + id);
+  if (!row) return;
+  row.style.opacity = '0.4';
+  row.style.filter  = 'grayscale(0.6)';
+  // Log call without navigating away
+  const b = state.borrowers.find(x => x.id === id);
+  if (b) {
+    if (!b.callLog) b.callLog = [];
+    const today = new Date().toISOString();
+    // Only log if not already logged today
+    const todayStr = today.split('T')[0];
+    const alreadyLogged = b.callLog.some(c => (c.date||'').startsWith(todayStr));
+    if (!alreadyLogged) {
+      b.callLog.push({ date: today, type: 'WA/SMS', note: 'Dispatched via message queue' });
+      saveState();
+    }
+  }
+  haptic('light');
+}
+
 // ── DAILY LOG ──────────────────────────────────────────
 async function renderLog() {
   await loadChartJS();
@@ -7696,6 +7816,7 @@ async function renderLog() {
   document.getElementById('log-avg').textContent = fmtC(Math.round(avg));
   const mlEl = document.getElementById('log-month-label');
   if (mlEl) mlEl.textContent = new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  renderLogMonthProgress();
 
   const todayStr = nowD.toISOString().split('T')[0];
   const logDateEl = document.getElementById('log-date');
@@ -7808,6 +7929,93 @@ async function renderLog() {
   });
 
   document.getElementById('log-entries').innerHTML = pbestBanner + entriesHtml;
+}
+
+// ── Month Progress Bar ─────────────────────────────────────────
+function renderLogMonthProgress() {
+  const el = document.getElementById('log-month-progress');
+  if (!el) return;
+  const now     = new Date();
+  const dim     = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  const dayNum  = now.getDate();
+  const daysLeft = dim - dayNum;
+  const target  = state.monthlyTarget || 0;
+  const start   = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  const total   = (state.dailyLog||[]).filter(e => e.date >= start).reduce((s,e) => s+(e.collected||0), 0);
+  const pct     = target > 0 ? Math.min(100, Math.round(total / target * 100)) : 0;
+  const colPct  = pct >= 100 ? 'var(--green)' : pct >= 60 ? 'var(--gold)' : 'var(--orange)';
+  const remaining = Math.max(0, target - total);
+  const dailyNeeded = daysLeft > 0 ? Math.ceil(remaining / daysLeft) : 0;
+
+  if (!target) {
+    el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:11px;color:var(--text3)">No monthly target set</span>
+      <button onclick="navigate('health')" class="btn btn-ghost btn-sm" style="font-size:10px">Set Target →</button>
+    </div>`;
+    return;
+  }
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+      <span style="font-size:11px;font-weight:700;color:var(--text2)">Month Target <span style="color:${colPct}">${pct}%</span></span>
+      <span style="font-size:11px;font-family:var(--font-mono);color:var(--text3)">${fmtC(total)} / ${fmtC(target)}</span>
+    </div>
+    <div style="height:8px;background:var(--border2);border-radius:6px;overflow:hidden;margin-bottom:6px">
+      <div style="height:100%;width:${pct}%;background:${colPct};border-radius:6px;transition:width 0.6s cubic-bezier(0.34,1.2,0.64,1)"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3)">
+      <span>${daysLeft} days left in month</span>
+      <span>${remaining > 0 ? 'Need ' + fmtC(dailyNeeded) + '/day' : '🎯 Target reached!'}</span>
+    </div>`;
+}
+
+// ── Import from payLog ────────────────────────────────────────
+function importLogFromPayments() {
+  const todayStr = new Date().toISOString().split('T')[0];
+  let todayPay = 0;
+  (state.borrowers||[]).forEach(b => {
+    (b.payLog||[]).forEach(p => {
+      if ((p.date||'').split('T')[0] === todayStr) todayPay += Number(p.amount)||0;
+    });
+  });
+  if (todayPay === 0) { toast('No payment records found for today', 'info'); return; }
+  const existing = (state.dailyLog||[]).find(e => e.date === todayStr);
+  if (existing && existing.collected >= todayPay) {
+    toast('Log already up to date for today', 'info'); return;
+  }
+  if (!state.dailyLog) state.dailyLog = [];
+  const idx = state.dailyLog.findIndex(e => e.date === todayStr);
+  const entry = { date: todayStr, collected: todayPay, notes: 'Auto-synced from payment records' };
+  if (idx >= 0) state.dailyLog[idx] = entry; else state.dailyLog.push(entry);
+  saveState(); updateDailyPill(); renderLog();
+  toast(`↓ Synced ${fmtC(todayPay)} from today's payments`, 'success');
+  haptic('medium');
+}
+
+// ── Export Month Log ──────────────────────────────────────────
+function exportLogMonth() {
+  const now   = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  const end   = new Date(now.getFullYear(), now.getMonth()+1, 0).toISOString().split('T')[0];
+  const logs  = (state.dailyLog||[]).filter(e => e.date >= start && e.date <= end)
+    .sort((a,b) => a.date.localeCompare(b.date));
+  if (!logs.length) { toast('No entries for this month', 'info'); return; }
+
+  const monthName = now.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  const total = logs.reduce((s,e) => s+(e.collected||0), 0);
+  let csv = `Date,Amount,Notes\n`;
+  logs.forEach(e => { csv += `${e.date},${e.collected||0},"${(e.notes||'').replace(/"/g,'""')}"\n`; });
+  csv += `\nTotal,${total},`;
+
+  // Show in modal for copy
+  document.getElementById('modal-title').textContent = `📋 Export — ${monthName}`;
+  document.getElementById('modal-body').innerHTML = `
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">${logs.length} entries · ${fmtC(total)} total</div>
+    <textarea id="log-export-csv" readonly style="width:100%;height:220px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px;font-family:var(--font-mono);font-size:11px;color:var(--text);resize:none;box-sizing:border-box">${csv}</textarea>`;
+  document.getElementById('modal-footer').innerHTML =
+    `<button class="btn btn-ghost" onclick="closeModal()">Close</button>
+     <button class="btn btn-gold" onclick="navigator.clipboard.writeText(document.getElementById('log-export-csv').value).then(()=>toast('Copied!','success'))">📋 Copy CSV</button>`;
+  document.getElementById('modal-overlay').classList.add('open');
+  haptic('light');
 }
 
 // Improvement 4: Quick note suggestions for log
@@ -14790,6 +14998,44 @@ function _showPtpSeqModal() {
   document.getElementById('modal-overlay').classList.add('open');
 }
 
+function ptpReschedule(id) {
+  const b = state.borrowers.find(x => x.id === id);
+  if (!b) return;
+  // Pre-fill with tomorrow's date
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+  const curNote  = b.promiseNote || '';
+  document.getElementById('modal-title').textContent = '📅 Reschedule Promise';
+  document.getElementById('modal-body').innerHTML = `
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px">Rescheduling promise for <strong>${escapeHtml(b.name.split(' ')[0])}</strong></div>
+    <div class="form-group"><label>New Date</label><input type="date" class="form-input" id="ptpr-date" value="${tomorrow}" min="${tomorrow}"></div>
+    <div class="form-group"><label>New Time</label><input type="time" class="form-input" id="ptpr-time" value="09:00"></div>
+    <div class="form-group"><label>Reason</label><input type="text" class="form-input" id="ptpr-note" placeholder="e.g. Asked for 2 more days" value="${curNote.replace(/"/g,'&quot;')}"></div>`;
+  document.getElementById('modal-footer').innerHTML = `
+    <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-gold" onclick="ptpRescheduleSave('${id}')">📅 Reschedule</button>`;
+  document.getElementById('modal-overlay').classList.add('open');
+  haptic('light');
+}
+
+function ptpRescheduleSave(id) {
+  const b = state.borrowers.find(x => x.id === id);
+  if (!b) return;
+  const date = document.getElementById('ptpr-date')?.value;
+  const time = document.getElementById('ptpr-time')?.value || '09:00';
+  const note = document.getElementById('ptpr-note')?.value?.trim() || '';
+  if (!date) { toast('Please pick a date', 'error'); return; }
+  b.promisedToPay = true;
+  b.promiseDate   = date + ' ' + time;
+  b.promiseNote   = note;
+  b.ptpOutcome    = 'pending';
+  b.ptpBreached   = false;
+  if (!b.promiseHistory) b.promiseHistory = [];
+  b.promiseHistory.push({ rescheduled: new Date().toISOString(), to: b.promiseDate, note });
+  saveState(); closeModal(); renderCurrentPage();
+  toast(b.name.split(' ')[0] + ' rescheduled to ' + date, 'success');
+  haptic('medium');
+}
+
 function ptpToggleHonour(bid) {
   const b = state.borrowers.find(x => x.id === bid);
   if (!b) return;
@@ -14944,6 +15190,7 @@ function buildPtpMorningHtml() {
         </div>
         <button class="btn btn-green btn-xs" onclick="openPayModal('${b.id}');haptic('light')" title="Record payment">💰</button>
         <button class="btn btn-xs" style="background:${ok?'rgba(239,68,68,0.12)':'rgba(34,197,94,0.1)'};color:${ok?'var(--red)':'var(--green)'};border:1px solid ${ok?'rgba(239,68,68,0.3)':'rgba(34,197,94,0.3)'};font-size:10px;font-weight:700;padding:4px 8px;border-radius:6px;cursor:pointer" onclick="ptpToggleHonour('${b.id}');haptic('medium')" title="${ok?'Mark as broken':'Mark as honoured'}">${ok?'↩ Undo':'✅ Honour'}</button>
+        <button class="btn btn-ghost btn-xs" style="color:var(--gold);font-size:10px;font-weight:700;padding:4px 8px" onclick="ptpReschedule('${b.id}');haptic('light')" title="Reschedule">📅</button>
         <button class="btn btn-ghost btn-xs" style="color:#25d366;font-size:11px;font-weight:700;padding:4px 8px" onclick="ptpShowRemindMenu('${b.id}');haptic('light')" title="Send PTP reminder">📩</button>
         <button class="btn btn-ghost btn-xs" onclick="clearPromise('${b.id}');event.stopPropagation()" title="Clear promise">🗑</button>
       </div>`;
@@ -14961,6 +15208,7 @@ function buildPtpMorningHtml() {
           <div style="font-size:10px;color:var(--text3)">${b.promiseDate}</div>
         </div>
         <div style="font-family:var(--font-mono);font-size:12px;color:var(--text2)">${fmtC(getDueToday(b))}</div>
+        <button class="btn btn-ghost btn-xs" style="color:var(--gold);font-size:10px;font-weight:700;padding:3px 7px;flex-shrink:0" onclick="ptpReschedule('${b.id}');haptic('light')" title="Reschedule">📅</button>
         <button class="btn btn-ghost btn-xs" style="color:#25d366;font-size:10px;font-weight:700;padding:3px 7px;flex-shrink:0" onclick="ptpShowRemindMenu('${b.id}');haptic('light')" title="Send reminder">📩</button>
         <button class="btn btn-ghost btn-xs" onclick="clearPromise('${b.id}');event.stopPropagation()" title="Clear promise">🗑</button>
       </div>`;
@@ -17395,31 +17643,77 @@ function _bulkFilterBorrowers() {
 
 // ── WhatsApp Broadcast List Export ───────────────────────────
 function openWaBroadcastExport() {
-  const active = getActiveBorrowers().filter(b => getStatus(b) !== 'Paid');
-  const byOd = [...active].sort((a,b) => getOdAge(b.startDate) - getOdAge(a.startDate));
-  const numbers = byOd.map(b => localPhone(b.phone)).filter(Boolean);
-  const display = byOd.map((b,i) => {
-    const num = numbers[i];
-    return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">'
-      + '<div style="flex:1;font-size:12px;font-weight:600">' + escapeHtml(b.name.split(' ')[0]) + '</div>'
-      + '<div style="font-family:var(--font-mono);font-size:11px;color:var(--text3)">' + num + '</div>'
-      + '<div style="font-size:11px;color:var(--red)">Day ' + getOdAge(b.startDate) + '</div>'
-      + '</div>';
-  }).join('');
-
-  const textBlock = numbers.join('\n');
-
-  document.getElementById('modal-title').textContent = '📋 WA Broadcast List (' + numbers.length + ')';
-  document.getElementById('modal-body').innerHTML =
-    '<div style="font-size:12px;color:var(--text2);margin-bottom:10px">Copy these numbers into WhatsApp → New Broadcast → Add Recipients. Sorted by highest OD age first.</div>'
-    + '<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:10px;max-height:240px;overflow-y:auto">'
-    + display + '</div>'
-    + '<textarea id="wa-broadcast-numbers" style="width:100%;height:80px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font-mono);font-size:11px;padding:8px;resize:none;box-sizing:border-box" readonly>' + textBlock + '</textarea>';
-  document.getElementById('modal-footer').innerHTML =
-    '<button class="btn btn-ghost" onclick="closeModal()">Close</button>'
-    + '<button class="btn btn-green" onclick="copyWaBroadcast()">📋 Copy All Numbers</button>';
+  window._broadcastStage = '';
+  _renderBroadcastStep1();
   document.getElementById('modal-overlay').classList.add('open');
   haptic('light');
+}
+
+function _renderBroadcastStep1() {
+  const active   = getActiveBorrowers().filter(b => getStatus(b) !== 'Paid' && b.phone);
+  const stages   = ['','M0','M1','M2','M3','M4','M5'];
+  const stageLabels = {'':'All Stages','M0':'M0 – Pre-Due','M1':'M1 – Day 1-5','M2':'M2 – Day 6-15','M3':'M3 – Day 16-40','M4':'M4 – Day 41-60','M5':'M5 – Day 61+'};
+
+  const stage    = window._broadcastStage || '';
+  let pool       = stage ? active.filter(b => getAccountStage(b).label === stage) : active;
+  pool = [...pool].sort((a,b) => getOdAge(b.startDate) - getOdAge(a.startDate));
+
+  // Message options for selected stage
+  const msgs = (state.messageBank||[]).filter(m => !stage || m.stage === stage).slice(0, 20);
+  const selMsg = window._broadcastMsgId || '';
+
+  document.getElementById('modal-title').textContent = `📢 Broadcast — ${pool.length} contacts`;
+  document.getElementById('modal-body').innerHTML = `
+    <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Step 1 — Pick a stage filter and message template</div>
+    <select id="bc-stage" class="bl-chip-sel" style="width:100%;border-radius:8px;padding:8px 10px;margin-bottom:10px" onchange="window._broadcastStage=this.value;window._broadcastMsgId='';_renderBroadcastStep1()">
+      ${stages.map(s => `<option value="${s}" ${stage===s?'selected':''}>${stageLabels[s]} (${s?active.filter(b=>getAccountStage(b).label===s).length:active.length})</option>`).join('')}
+    </select>
+    <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px">Pick a message (optional):</div>
+    <div style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:5px;margin-bottom:10px">
+      ${msgs.map(m => `
+        <div onclick="window._broadcastMsgId='${m.id}';_renderBroadcastStep1()"
+          style="padding:8px 10px;border-radius:8px;background:var(--surface2);cursor:pointer;border:2px solid ${selMsg===m.id?'var(--gold)':'transparent'};transition:border-color 0.12s">
+          <div style="font-size:11px;font-weight:600;color:var(--text)">${m.title}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">${m.stage} · ${m.tone} · ${(m.body||'').slice(0,55)}…</div>
+        </div>`).join('')}
+      ${msgs.length === 0 ? '<div style="color:var(--text3);font-size:11px;text-align:center;padding:12px">No messages for this stage</div>' : ''}
+    </div>
+    <div style="font-size:10px;color:var(--text3);background:var(--surface2);border-radius:8px;padding:8px 10px">
+      ${pool.length} contacts will receive the message (or the standard collection message if no template is picked)
+    </div>`;
+  document.getElementById('modal-footer').innerHTML =
+    `<button class="btn btn-ghost" onclick="closeAllModals()">Cancel</button>
+     <button class="btn btn-gold" onclick="_renderBroadcastStep2()">Next: Numbers →</button>`;
+}
+
+function _renderBroadcastStep2() {
+  const stage  = window._broadcastStage || '';
+  const active = getActiveBorrowers().filter(b => getStatus(b) !== 'Paid' && b.phone);
+  const pool   = stage ? active.filter(b => getAccountStage(b).label === stage) : active;
+  const sorted = [...pool].sort((a,b) => getOdAge(b.startDate) - getOdAge(a.startDate));
+  const selMsg = window._broadcastMsgId ? (state.messageBank||[]).find(m => m.id === window._broadcastMsgId) : null;
+
+  const numbers = sorted.map(b => {
+    const raw = b.phone.replace(/\D/g,'');
+    return raw.startsWith('0') ? '233' + raw.slice(1) : raw;
+  }).filter(Boolean);
+  const textBlock = numbers.join('\n');
+
+  document.getElementById('modal-title').textContent = `📢 Broadcast — ${numbers.length} numbers`;
+  document.getElementById('modal-body').innerHTML = `
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Step 2 — Copy numbers into WhatsApp → New Broadcast → Add from contacts. Sorted by highest OD age first.</div>
+    ${selMsg ? `<div style="background:rgba(240,160,48,0.08);border-left:3px solid var(--gold);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:11px;color:var(--text2)"><strong>${selMsg.title}</strong> selected as template</div>` : ''}
+    <div style="max-height:160px;overflow-y:auto;background:var(--surface2);border-radius:8px;padding:8px 10px;margin-bottom:10px">
+      ${sorted.map(b => `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border)">
+        <div style="flex:1;font-size:11px;font-weight:600">${escapeHtml(b.name.split(' ')[0])}</div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:var(--text3)">${b.phone}</div>
+        <div style="font-size:10px;color:var(--red)">Day ${getOdAge(b.startDate)}</div>
+      </div>`).join('')}
+    </div>
+    <textarea id="wa-broadcast-numbers" readonly style="width:100%;height:72px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:8px;font-family:var(--font-mono);font-size:11px;color:var(--text);resize:none;box-sizing:border-box">${textBlock}</textarea>`;
+  document.getElementById('modal-footer').innerHTML =
+    `<button class="btn btn-ghost" onclick="_renderBroadcastStep1()">← Back</button>
+     <button class="btn btn-green" onclick="copyWaBroadcast()">📋 Copy ${numbers.length} Numbers</button>`;
 }
 
 function copyWaBroadcast() {
@@ -19859,12 +20153,15 @@ function renderMessageBank() {
       : `${total} messages`;
   }
 
-  // Update favorites button active state
+  // Update favorites button with count
   const favBtn = document.getElementById('msg-fav-btn');
   if (favBtn) {
+    const favCount = msgBankGetFavorites().length;
+    favBtn.textContent = window._mbFavOnly
+      ? `★ Exit Favorites`
+      : `⭐ Favorites${favCount > 0 ? ` (${favCount})` : ''}`;
     favBtn.style.background = window._mbFavOnly ? 'var(--gold)' : '';
-    favBtn.style.color      = window._mbFavOnly ? '#000'        : '';
-    favBtn.textContent      = window._mbFavOnly ? '★ Exit Favorites' : '⭐ Favorites';
+    favBtn.style.color      = window._mbFavOnly ? '#000' : '';
   }
 
   if (!messages.length) {
