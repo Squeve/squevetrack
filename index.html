@@ -3789,6 +3789,23 @@ tr.overdue-critical .heat-ring {
         </div>
         <span class="settings-chevron">›</span>
       </button>
+      <div class="settings-row" style="cursor:default">
+        <div class="settings-row-icon" style="background:rgba(239,68,68,0.12);color:var(--red)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:17px;height:17px"><circle cx="10" cy="10" r="8"/><polyline points="10,6 10,10 13,13"/></svg>
+        </div>
+        <div class="settings-row-label">
+          <div class="settings-row-label-main">Auto-lock after inactivity</div>
+          <div class="settings-row-label-sub">Locks screen when app is idle</div>
+        </div>
+        <select id="auto-lock-select" onchange="setAutoLockTimeout(this.value)"
+          style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font-body);font-size:12px;padding:5px 8px;cursor:pointer;outline:none">
+          <option value="0">Off</option>
+          <option value="1">1 min</option>
+          <option value="5">5 min</option>
+          <option value="10">10 min</option>
+          <option value="30">30 min</option>
+        </select>
+      </div>
     </div>
 
     <!-- Undo History -->
@@ -10752,9 +10769,9 @@ let currentPage = 'dashboard';
 })();
 
 function navigate(page) {
-   // Save current page scroll before leaving
+  // Save the current page's scroll position before leaving
   saveScrollPosition(currentPage);
-  
+
   // Brief exit animation on the current page
   const outgoing = document.querySelector('.page.active');
   if (outgoing && outgoing.id !== 'page-' + page) {
@@ -10764,15 +10781,15 @@ function navigate(page) {
 
   currentPage = page;
   _modalStack = [];  // clear modal stack on navigation
-  // Clear all active states immediately (cheap DOM ops)
+
+  // Clear all active states immediately
   document.querySelectorAll('.page').forEach(p => {
     p.classList.remove('active');
     p.style.animation = 'none';
   });
   document.querySelectorAll('.nav-item, .mdrawer-item').forEach(n => n.classList.remove('active'));
-  if (typeof updateStatusBarColor === 'function') updateStatusBarColor(page);
 
-  // Activate the target page shell instantly so the transition plays
+  // Activate the target page shell
   const pageEl = document.getElementById('page-' + page);
   if (pageEl) {
     pageEl.style.animation = 'none';
@@ -10782,46 +10799,67 @@ function navigate(page) {
     });
   }
   document.querySelectorAll('[data-page="' + page + '"]').forEach(el => el.classList.add('active'));
-  document.getElementById('main').scrollTop = 0;
-  haptic('light');
+
+  // Reset scroll to top for new page, then mark as "fresh navigation"
+  // so renderCurrentPage knows to restore saved position (not re-save)
+  const mainEl = document.getElementById('main');
+  if (mainEl) mainEl.scrollTop = 0;
+  window._scrollJustNavigated = page;
+
   if (typeof updateStatusBarColor === 'function') updateStatusBarColor(page);
   _updateFab(page);
+  haptic('light');
 
   // Defer the heavy content render until after the transition frame
-  // This lets the browser paint the page skeleton before doing JS work
   setTimeout(renderCurrentPage, 0);
 }
 
 function renderCurrentPage() {
   const pageId = currentPage;
-  
-  // Save scroll position before re-render
-  saveScrollPosition(pageId);
-  
+
+  // Capture scroll NOW (before render mutates DOM) — only if we're re-rendering in place
+  // If we just navigated here (_scrollJustNavigated flag), the scroll was already reset to 0
+  // and the saved position from the previous time on this page should be restored, not re-saved.
+  const isRerender = window._scrollJustNavigated !== pageId;
+  const mainEl = document.getElementById('main');
+  const preRenderScroll = isRerender ? 0 : null; // will be set below
+
+  // If this is a re-render (not a fresh navigation), save current scroll so we can restore after
+  let scrollToRestore = null;
+  if (isRerender && mainEl) {
+    scrollToRestore = mainEl.scrollTop;
+  } else if (!isRerender) {
+    // Fresh navigation — restore whatever was saved for this page
+    scrollToRestore = _scrollPositions.has(pageId) ? _scrollPositions.get(pageId) : 0;
+    window._scrollJustNavigated = null; // clear the flag
+  }
+
   // Render the page content
   if (currentPage === 'dashboard') renderDashboard();
-  else if (currentPage === 'loans') { 
-    renderLoansTable(); 
-    setTimeout(initRowSwipe, 100); 
-  }
+  else if (currentPage === 'loans') { renderLoansTable(); setTimeout(initRowSwipe, 100); }
   else if (currentPage === 'paid')  renderPaidPage();
   else if (currentPage === 'analytics') renderAnalytics();
   else if (currentPage === 'dispatch') renderDispatch();
   else if (currentPage === 'log') renderLog();
   else if (currentPage === 'smsblast') renderSmsBlast();
   else if (currentPage === 'messagebank') renderMessageBank();
-  else if (currentPage === 'agedout') { navigate('health'); }
-  else if (currentPage === 'ptp-history') { navigate('reports'); }
-  else if (currentPage === 'ptp-stats') { navigate('reports'); }
-  else if (currentPage === 'forecast') { navigate('dashboard'); }
+  else if (currentPage === 'agedout') { navigate('health'); return; }
+  else if (currentPage === 'ptp-history') { navigate('reports'); return; }
+  else if (currentPage === 'ptp-stats') { navigate('reports'); return; }
+  else if (currentPage === 'forecast') { navigate('dashboard'); return; }
   else if (currentPage === 'segments') renderSegments();
   else if (currentPage === 'ranking') renderRanking();
   else if (currentPage === 'ptp') { if(typeof switchPtpHub==='function') switchPtpHub(_ptpTab||'morning'); }
   else if (currentPage === 'reports') renderReportsPage();
   else if (currentPage === 'health') renderSettingsPage();
-  
-  // Restore scroll position after DOM updates
-  setTimeout(() => restoreScrollPosition(pageId), 50);
+
+  // Restore scroll after DOM settles — use two rAF + small timeout for async renders
+  if (scrollToRestore !== null && mainEl) {
+    const target = scrollToRestore;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      setTimeout(() => { if (mainEl) mainEl.scrollTop = target; }, 80);
+    }));
+  }
 }
 
 function updateBadges() {
@@ -18953,6 +18991,7 @@ async function processPin() {
       _pinAttempts = 0; _pinLockUntil = 0;  // reset on success
       localStorage.setItem('sq_lastactive_' + _pinTarget.id, Date.now().toString());
       hideLockScreen();
+      initAutoLock();  // restart idle timer on unlock
       haptic('pay');
       await loadStateForAgent();
     } else {
@@ -19380,6 +19419,10 @@ function settingsSetCardStyle(style) {
 
 function _openAvatarPicker() { var el = document.getElementById('avatar-file-input'); if (el) el.click(); }
 function renderSettingsPage() {
+  // Sync auto-lock dropdown to current setting
+  const lockSel = document.getElementById('auto-lock-select');
+  if (lockSel) lockSel.value = String(_autoLockMinutes || 0);
+
   const el = document.getElementById('settings-agent-card');
   if (el && _activeAgent) {
     const s = STAGE_CONFIG[_activeAgent.stage] || STAGE_CONFIG.M2;
@@ -20051,8 +20094,65 @@ function lockApp() {
   _activeAgent = null;
   _sessionUnlocked = false;
   state = initState(); // clear in-memory state for privacy
+  stopAutoLockTimer();  // cancel any running idle timer
   showLockScreen();
   haptic('medium');
+}
+
+// ── Auto-lock idle timer ──────────────────────────────────────
+let _autoLockTimer    = null;
+let _autoLockMinutes  = 0;  // 0 = off
+
+function setAutoLockTimeout(minutes) {
+  _autoLockMinutes = parseInt(minutes) || 0;
+  localStorage.setItem('auto_lock_minutes', _autoLockMinutes);
+  stopAutoLockTimer();
+  if (_autoLockMinutes > 0) {
+    startAutoLockTimer();
+    toast('Auto-lock set to ' + _autoLockMinutes + ' min', 'info');
+  } else {
+    toast('Auto-lock disabled', 'info');
+  }
+}
+
+function startAutoLockTimer() {
+  stopAutoLockTimer();
+  if (!_autoLockMinutes || !_sessionUnlocked) return;
+  _autoLockTimer = setTimeout(() => {
+    if (_sessionUnlocked) {
+      lockApp();
+      toast('Screen locked after inactivity', 'info');
+    }
+  }, _autoLockMinutes * 60 * 1000);
+}
+
+function stopAutoLockTimer() {
+  if (_autoLockTimer) { clearTimeout(_autoLockTimer); _autoLockTimer = null; }
+}
+
+function resetAutoLockTimer() {
+  if (_autoLockMinutes > 0 && _sessionUnlocked) {
+    stopAutoLockTimer();
+    startAutoLockTimer();
+  }
+}
+
+function initAutoLock() {
+  // Restore saved setting
+  const saved = parseInt(localStorage.getItem('auto_lock_minutes') || '0');
+  _autoLockMinutes = saved;
+  // Set dropdown value when settings page opens (called from renderSettingsPage)
+  const sel = document.getElementById('auto-lock-select');
+  if (sel) sel.value = String(saved);
+  // Wire user activity events to reset the timer
+  const events = ['touchstart','mousedown','keydown','scroll','click'];
+  events.forEach(ev => document.addEventListener(ev, resetAutoLockTimer, { passive: true }));
+  // Also reset on visibility returning
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') resetAutoLockTimer();
+  });
+  // Start timer if setting is active
+  if (saved > 0 && _sessionUnlocked) startAutoLockTimer();
 }
 
 
@@ -20773,6 +20873,7 @@ loadChartJS().catch(e => console.warn('Chart.js failed to load:', e));
     _sessionUnlocked = true;
     await loadState();
     updateSidebarAgentInfo();
+    initAutoLock();  // start idle timer with saved setting
     if (!state.agentProfile?.setupComplete) {
       setTimeout(() => startOnboarding(false), 350);
     }
