@@ -7188,409 +7188,229 @@ function sortLoans(col) {
 // ── ANALYTICS ──────────────────────────────────────────
 async function renderAnalytics() {
   await loadChartJS();
-  const all = state.borrowers;
-  const active = getActiveBorrowers();
-  const paid = all.filter(b => getStatus(b) === 'Paid');
-  const partial = all.filter(b => getStatus(b) === 'Partial');
-  const unpaid = all.filter(b => getStatus(b) === 'Unpaid');
-  const totalOutstanding = active.reduce((s,b) => s+getRemaining(b), 0);
-  const totalPrincipal = active.reduce((s,b) => s+b.principal, 0);
-  const totalOdFees = active.reduce((s,b) => s+_getOdFeeCached(b), 0);
-  const totalPaid = all.reduce((s,b) => s+b.amountPaid, 0);
-  const avgOwed = active.length > 0 ? totalOutstanding / active.length : 0;
-  const recoveryRate = (totalPrincipal + totalOdFees) > 0 ? totalPaid / (totalPrincipal + totalOdFees) : 0;
 
-  const todayAccrual = active.reduce((s,b) => s + _getOdFeeCached(b), 0);
-  const logTotal = state.dailyLog.reduce((s,e) => s + (Number(e.collected)||0), 0);
-  const collectionRate = totalOutstanding > 0 ? logTotal / (logTotal + totalOutstanding) : 0;
-  const avgOdAge = active.length ? (active.reduce((s,b) => s + getOdAge(b.startDate), 0) / active.length).toFixed(1) : 0;
-  // Projected clearance & best day
-  const activeDaysLog = state.dailyLog.filter(e => (e.collected||0) > 0);
-  const avgDailyCollect = activeDaysLog.length ? activeDaysLog.reduce((s,e)=>s+(e.collected||0),0) / activeDaysLog.length : 0;
+  const all     = state.borrowers || [];
+  const active  = getActiveBorrowers().filter(b => !b.isPaid);
+  const paid    = all.filter(b => b.isPaid || getStatus(b) === 'Paid');
+  const partial = all.filter(b => getStatus(b) === 'Partial' && !b.isPaid);
+  const unpaid  = all.filter(b => !b.isPaid && getStatus(b) === 'Unpaid');
+
+  // Core figures
+  const totalOutstanding  = active.reduce((s,b) => s + getRemaining(b), 0);
+  const totalPrincipal    = active.reduce((s,b) => s + (b.principal || b.loanDue || 0), 0);
+  const totalPaid         = all.reduce((s,b) => s + (b.amountPaid||0), 0);
+  const totalOdFees       = active.reduce((s,b) => s + getOdFee(b), 0);
+  const avgOwed           = active.length ? Math.round(totalOutstanding / active.length) : 0;
+
+  // From payLog (more accurate than dailyLog alone)
+  let payLogTotal = 0;
+  all.forEach(b => (b.payLog||[]).forEach(p => { payLogTotal += Number(p.amount)||0; }));
+  const logTotal = Math.max(
+    payLogTotal,
+    (state.dailyLog||[]).reduce((s,e) => s+(Number(e.collected)||0), 0)
+  );
+
+  // Collection rate = what's been paid / (what's been paid + what's still outstanding)
+  const collectionRate = (logTotal + totalOutstanding) > 0
+    ? (logTotal / (logTotal + totalOutstanding) * 100).toFixed(1)
+    : '0.0';
+
+  // Projected clearance using avg daily from payLog (more reliable)
+  const activeDays = (state.dailyLog||[]).filter(e => (e.collected||0)>0);
+  const avgDailyCollect = activeDays.length
+    ? activeDays.reduce((s,e)=>s+(e.collected||0),0) / activeDays.length
+    : 0;
   const daysToClose = avgDailyCollect > 0 ? Math.ceil(totalOutstanding / avgDailyCollect) : null;
-  const projDate = daysToClose ? new Date(Date.now() + daysToClose*86400000).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : 'N/A';
-  // Best collection day of week
+  const projDate    = daysToClose
+    ? new Date(Date.now() + daysToClose*86400000).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'})
+    : '—';
+
+  // Best day of week
   const dayTotals = [0,0,0,0,0,0,0];
-  state.dailyLog.forEach(e => { const d = new Date(e.date); dayTotals[d.getDay()] += (e.collected||0); });
-  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const bestDayIdx = dayTotals.indexOf(Math.max(...dayTotals));
-  const bestDayName = dayNames[bestDayIdx];
-
-    const akGrid = document.getElementById('analytics-kpis');
-  akGrid.innerHTML =
-    '<div class="kpi-card gold" style="cursor:pointer" data-akpi="loans" title="View all borrowers">'
-    + '<div class="kpi-label">Total Principal</div>'
-    + '<div class="kpi-value gold kpi-value-animate" data-val="' + totalPrincipal + '" data-fmt="currency">₵0</div>'
-    + '<div class="kpi-sub">Active · avg OD age ' + avgOdAge + ' days · best day: <b>' + bestDayName + '</b></div>'
-    + '<div style="font-size:10px;color:var(--text3);margin-top:4px">↗ view borrowers</div></div>'
-    + '<div class="kpi-card red" style="cursor:pointer" data-akpi="unpaid" title="View unpaid">'
-    + '<div class="kpi-label">Total Outstanding</div>'
-    + '<div class="kpi-value red kpi-value-animate" data-val="' + totalOutstanding + '" data-fmt="currency">₵0</div>'
-    + '<div class="kpi-sub">Avg per borrower: ' + fmtC(Math.round(avgOwed)) + '</div>'
-    + '<div style="font-size:10px;color:var(--text3);margin-top:4px">↗ view unpaid</div></div>'
-    + '<div class="kpi-card green" style="cursor:pointer" data-akpi="partial" title="View partial payers">'
-    + '<div class="kpi-label">Collection Rate</div>'
-    + '<div class="kpi-value green kpi-value-animate" data-val="' + (collectionRate*100).toFixed(1) + '" data-fmt="pct">0%</div>'
-    + '<div class="kpi-sub">' + fmtC(logTotal) + ' collected · ' + paid.length + ' fully paid</div>'
-    + '<div style="font-size:10px;color:var(--text3);margin-top:4px">↗ view partial</div></div>'
-    + '<div class="kpi-card blue">'
-    + '<div class="kpi-label">Projected Clearance</div>'
-    + '<div class="kpi-value" style="color:var(--blue);font-size:18px">' + projDate + '</div>'
-    + '<div class="kpi-sub">At avg ' + fmtC(Math.round(avgDailyCollect)) + '/day · ' + (daysToClose||'?') + ' days left</div>'
-    + '<div style="font-size:10px;color:var(--text3);margin-top:4px">OD fees accruing: ' + fmtC(todayAccrual) + '/day</div></div>';
-  akGrid.querySelectorAll('[data-akpi]').forEach(function(el) {
-    el.addEventListener('click', function() {
-      const k = el.dataset.akpi;
-      if (k === 'loans') showBorrowersPopup('','','','','');
-      else if (k === 'unpaid') showBorrowersPopup('Unpaid','','','','');
-      else if (k === 'partial') showBorrowersPopup('Partial','','','','');
-    });
+  (state.dailyLog||[]).forEach(e => {
+    const d = new Date(e.date); dayTotals[d.getDay()] += (e.collected||0);
   });
-  // Animate analytics KPIs
-  setTimeout(function() {
-    akGrid.querySelectorAll('[data-val]').forEach(function(el) {
-      const target = parseFloat(el.dataset.val) || 0;
-      const fmtType = el.dataset.fmt;
-      const dur = 500, start = performance.now();
-      function step(now) {
-        const p = Math.min((now-start)/dur, 1);
-        const ease = 1 - Math.pow(1-p, 3);
-        const cur = Math.round(target * ease);
-        if (fmtType === 'currency') el.textContent = '₵' + fmt(cur);
-        else if (fmtType === 'pct') el.textContent = (target*ease).toFixed(1) + '%';
-        if (p < 1) requestAnimationFrame(step);
-        else { if (fmtType === 'currency') el.textContent = fmtC(target); else if (fmtType === 'pct') el.textContent = target + '%'; }
-      }
-      requestAnimationFrame(step);
-    });
-  }, 60);
+  const dayNames   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const bestDayIdx = dayTotals.reduce((mi,v,i,arr) => v>arr[mi]?i:mi, 0);
 
-  renderMonthComparison();
+  // ── KPI Grid ─────────────────────────────────────────────────
+  const akGrid = document.getElementById('analytics-kpis');
+  if (akGrid) {
+    akGrid.innerHTML =
+      kpiCard('gold','Total Outstanding',fmtC(totalOutstanding),
+        active.length + ' active · avg ' + fmtC(avgOwed) + ' each','unpaid') +
+      kpiCard('green','Total Collected',fmtC(logTotal),
+        collectionRate + '% recovery rate · ' + paid.length + ' fully paid','partial') +
+      kpiCard('blue','Projected Clearance',projDate,
+        daysToClose ? daysToClose + ' days at ' + fmtC(Math.round(avgDailyCollect)) + '/day' : 'Log entries needed','') +
+      kpiCard('red','OD Fee Exposure',fmtC(Math.round(totalOdFees)),
+        'Best collection day: ' + dayNames[bestDayIdx],'');
+
+    akGrid.querySelectorAll('[data-akpi]').forEach(el => {
+      el.addEventListener('click', () => {
+        const k = el.dataset.akpi;
+        if (k === 'unpaid')  showBorrowersPopup('Unpaid','','','','');
+        else if (k === 'partial') showBorrowersPopup('Partial','','','','');
+        else if (k) showBorrowersPopup('','','','','');
+      });
+    });
+  }
+
+  // ── Stage Funnel & Month Comparison ──────────────────────────
   renderStageFunnel();
+  renderMonthComparison();
+
+  // ── Rolling 7-Day Trend Chart ─────────────────────────────────
+  const allLogs  = [...(state.dailyLog||[])].sort((a,b) => a.date.localeCompare(b.date));
+  const last14   = allLogs.slice(-14);
+  const week1avg = last14.slice(0,7).reduce((s,e)=>s+(e.collected||0),0) / Math.max(1, Math.min(7, last14.slice(0,7).length));
+  const week2avg = last14.slice(7).reduce((s,e)=>s+(e.collected||0),0) / Math.max(1, Math.min(7, last14.slice(7).length));
+  const trendDir = week2avg > week1avg + 10 ? '↑ Up' : week2avg < week1avg - 10 ? '↓ Down' : '→ Flat';
+  const trendCol = week2avg > week1avg + 10 ? 'var(--green)' : week2avg < week1avg - 10 ? 'var(--red)' : 'var(--gold)';
+
+  const ctxR = document.getElementById('chart-rolling');
+  if (ctxR && last14.length) {
+    updateOrCreateChart('rolling', ctxR, {
+      type: 'line',
+      data: {
+        labels: last14.map(e => { const d=new Date(e.date); return d.getDate()+'/'+String(d.getMonth()+1); }),
+        datasets: [
+          { label:'Daily (₵)', data: last14.map(e=>e.collected||0),
+            borderColor: chartGoldColor(), backgroundColor:'rgba(232,160,32,0.08)',
+            fill:true, tension:0.4, pointRadius:4, pointBackgroundColor:chartGoldColor() },
+          { label:'7-day avg', data: last14.map((_,i)=>i<7?Math.round(week1avg):Math.round(week2avg)),
+            borderColor:trendCol, borderDash:[5,4], borderWidth:2, pointRadius:0, fill:false }
+        ]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{
+          legend:{ labels:{ color:chartTextColor(), font:{family:'Instrument Sans',size:11} } },
+          subtitle:{ display:true, text:'Trend: '+trendDir+' (₵'+fmt(Math.round(week1avg))+'→₵'+fmt(Math.round(week2avg))+' avg)',
+            color:trendCol, font:{size:11} }
+        },
+        scales:{
+          x:{grid:{color:chartColor(0.05)},ticks:{color:chartTextColor(),font:{family:'IBM Plex Mono',size:10}}},
+          y:{grid:{color:chartColor(0.05)},ticks:{color:chartTextColor(),font:{family:'IBM Plex Mono',size:10},callback:v=>'₵'+fmt(v)},min:0}
+        }
+      }
+    });
+  } else if (ctxR && !last14.length) {
+    ctxR.closest('.chart-wrap').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:12px">Start logging daily to see your trend</div>';
+  }
+
+  // ── Daily Collection Heatmap ──────────────────────────────────
+  const heatLogs = [...(state.dailyLog||[])].sort((a,b) => a.date.localeCompare(b.date));
+  const heatMax  = Math.max(...heatLogs.map(e=>e.collected||0), 1);
+  const heatTotal = heatLogs.reduce((s,e)=>s+(e.collected||0),0);
+  const heatDaysOk = heatLogs.filter(e=>(e.collected||0)>0).length;
+  const hmMeta = document.getElementById('analytics-heatmap-meta');
+  if (hmMeta) hmMeta.textContent = heatDaysOk + ' active days · avg ' + fmtC(Math.round(heatTotal / Math.max(1,heatLogs.length)));
+  const hmEl = document.getElementById('analytics-heatmap');
+  if (hmEl) {
+    if (!heatLogs.length) {
+      hmEl.innerHTML = '<div style="color:var(--text3);font-size:12px;text-align:center;padding:16px">No log entries yet — start logging daily collections</div>';
+    } else {
+      hmEl.innerHTML = '<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:flex-end">' +
+        heatLogs.map(e => {
+          const val = e.collected||0;
+          const h   = Math.max(8, Math.round(val/heatMax*72));
+          const col = val===0?'rgba(239,68,68,0.18)':val<heatMax*0.3?'rgba(232,160,32,0.3)':val<heatMax*0.6?'rgba(232,160,32,0.6)':val<heatMax*0.85?'rgba(232,160,32,0.85)':'var(--gold)';
+          const day = new Date(e.date).getDate();
+          return `<div style="flex:1;min-width:18px;max-width:32px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer" data-logdate="${e.date}" title="${e.date}: ${fmtC(val)} · tap to edit">
+            <div data-logdate="${e.date}" style="width:100%;height:${h}px;background:${col};border-radius:3px;min-height:6px"></div>
+            <div data-logdate="${e.date}" style="font-family:var(--font-mono);font-size:9px;color:var(--text3)">${day}</div>
+          </div>`;
+        }).join('') + '</div>';
+      if (!hmEl._wired) {
+        hmEl._wired = true;
+        hmEl.addEventListener('click', e => {
+          const date = e.target.dataset.logdate || e.target.closest('[data-logdate]')?.dataset.logdate;
+          if (date) { haptic('light'); openLogEntryEdit(date); }
+        });
+      }
+    }
+  }
+
+  // ── Risk Aging Matrix ─────────────────────────────────────────
+  const agBands = [
+    { label:'M1 · Day 1-5',  min:1,  max:5  },
+    { label:'M2 · Day 6-15', min:6,  max:15 },
+    { label:'M3 · Day 16-40',min:16, max:40 },
+    { label:'M4 · Day 41-60',min:41, max:60 },
+    { label:'M5 · Day 61+',  min:61, max:999},
+  ];
+  const agingEl = document.getElementById('analytics-aging');
+  if (agingEl) {
+    const totalDue = active.reduce((s,b)=>s+getDueToday(b),0);
+    agingEl.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px">' +
+      agBands.map(band => {
+        const grp   = active.filter(b=>{ const od=getOdAge(b.startDate); return od>=band.min&&od<=band.max; });
+        const due   = grp.reduce((s,b)=>s+getDueToday(b),0);
+        const pct   = totalDue > 0 ? Math.round(due/totalDue*100) : 0;
+        const barW  = active.length > 0 ? Math.round(grp.length/active.length*100) : 0;
+        const risk  = band.min>=61?'#7c3aed':band.min>=41?'#ef4444':band.min>=16?'#f97316':band.min>=6?'#e8a020':'#22c55e';
+        return `<div onclick="showBorrowersPopup('','',${band.min},'',${band.max===999?'':band.max});haptic('light')" style="cursor:pointer;padding:10px 12px;background:var(--surface2);border-radius:10px;border-left:4px solid ${risk}">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+            <span style="font-size:11px;font-weight:700;color:${risk}">${band.label}</span>
+            <span style="font-family:var(--font-mono);font-size:13px;font-weight:800;color:${risk}">${grp.length} <span style="font-size:10px;font-weight:400;color:var(--text3)">accounts</span></span>
+          </div>
+          <div style="height:5px;background:var(--border2);border-radius:3px;overflow:hidden;margin-bottom:5px">
+            <div style="height:100%;width:${barW}%;background:${risk};border-radius:3px"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3)">
+            <span>${fmtC(due)} outstanding</span><span>${pct}% of total · tap to view</span>
+          </div>
+        </div>`;
+      }).join('') + '</div>';
+  }
+
+  // ── Day of Week & Call Time ───────────────────────────────────
+  const dowContainer = document.getElementById('analytics-dow');
+  if (dowContainer) renderDowChart('analytics-dow');
+  renderCallTimeHeatmap('analytics-calltime');
+
+  // ── PTP Success Rate, Recovery, Closing, OD Exposure ─────────
   renderPtpSuccessRate();
   renderRecoveryByStage();
   renderClosingAccounts();
   renderOdExposure();
-  // Rolling 7-day chart
-  const odGroups = {};
-  active.forEach(b => {
-    const od = getOdAge(b.startDate);
-    const key = `Day ${od}`;
-    if (!odGroups[key]) odGroups[key] = { count:0, outstanding:0, od };
-    odGroups[key].count++;
-    odGroups[key].outstanding += getRemaining(b);
-  });
-  const sortedOd = Object.entries(odGroups).sort((a,b) => a[1].od - b[1].od);
-  const ctxOd = document.getElementById('chart-od-bar');
-  const _wasNewOdbar = !charts['odbar'];
-  updateOrCreateChart('odbar', ctxOd, {
-    type: 'bar',
-    data: {
-      labels: sortedOd.map(([k]) => k),
-      datasets: [
-        { label: 'Outstanding (₵)', data: sortedOd.map(([,v]) => v.outstanding), backgroundColor: 'rgba(232,160,32,0.6)', borderColor: '#e8a020', borderWidth: 1, borderRadius: 3, yAxisID: 'y' },
-        { label: 'Borrowers', data: sortedOd.map(([,v]) => v.count), backgroundColor: 'rgba(96,165,250,0.4)', borderColor: '#60a5fa', borderWidth: 1, borderRadius: 3, type: 'line', yAxisID: 'y1' }
-      ]
-    },
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ labels:{ color:chartTextColor(), font:{ family:'Instrument Sans', size:12 } } } },
-      scales: {
-        x:{ grid:{ color:chartColor(0.06) }, ticks:{ color:chartTextColor(), font:{ family:'IBM Plex Mono', size:11 } } },
-        y:{ grid:{ color:chartColor(0.06) }, ticks:{ color:chartTextColor(), font:{ family:'IBM Plex Mono', size:11 }, callback: v=>'₵'+fmt(v) } },
-        y1:{ position:'right', grid:{ display:false }, ticks:{ color:chartTextColor(), font:{ family:'IBM Plex Mono', size:11 } } }
-      },
-      onClick: function(evt, items) {
-        if (!items.length) return;
-        const label = sortedOd[items[0].index]?.[0];
-        if (!label) return;
-        const od = parseInt(label.replace('Day ',''));
-        if (!isNaN(od)) filterAndNavigate('loans', '', od);
-      },
-      onHover: function(evt, items) { evt.native.target.style.cursor = items.length ? 'pointer' : 'default'; }
-    }
-  });
-  // Add hint only once (guard against re-render duplicating it)
-  if (ctxOd && _wasNewOdbar && !ctxOd.parentNode.querySelector('.chart-od-hint')) {
-    const hint = document.createElement('div');
-    hint.className = 'chart-od-hint';
-    hint.style.cssText = 'font-size:10px;color:var(--text3);text-align:center;margin-top:4px';
-    hint.textContent = '↗ Click any bar to filter borrowers by that OD day';
-    ctxOd.parentNode.appendChild(hint);
-  }
 
-  // Loan type table
-  const types = ['LoanBase','LoanBase Pro'];
-  document.getElementById('analytics-type-table').innerHTML = types.map(t => {
-    const tb = all.filter(b => b.loanType === t);
-    const ta = active.filter(b => b.loanType === t);
-    const tPaid = tb.filter(b => getStatus(b) === 'Paid');
-    const tOut = ta.reduce((s,b) => s+getRemaining(b), 0);
-    const tP = tb.reduce((s,b) => s+b.amountPaid, 0);
-    const tL = tb.reduce((s,b) => s+b.loanDue, 0);
-    const rr = tL > 0 ? tP/tL : 0;
-    return `
-      <div style="padding:12px;background:var(--surface2);border-radius:8px;margin-bottom:10px;cursor:pointer;transition:transform 0.15s" onclick="showBorrowersPopup('','','','${t}')" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'" title="View ${t} accounts">
-        <div style="font-family:var(--font-head);font-weight:700;font-size:13px;margin-bottom:8px;color:${t==='LoanBase'?'var(--green)':'var(--orange)'}">${t === 'LoanBase' ? '🟢 ' : '🟠 '}${t} ↗</div>
-        <div class="summary-row"><span class="summary-label">Total Active</span><span class="summary-value">${ta.length}</span></div>
-        <div class="summary-row"><span class="summary-label">Fully Paid</span><span class="summary-value text-green">${tPaid.length}</span></div>
-        <div class="summary-row"><span class="summary-label">Outstanding</span><span class="summary-value text-red">${fmtC(tOut)}</span></div>
-        <div class="summary-row"><span class="summary-label">Recovery Rate</span><span class="summary-value text-gold">${(rr*100).toFixed(1)}%</span></div>
-      </div>`;
-  }).join('');
+  // ── Analytics subtitle ────────────────────────────────────────
+  const subEl = document.getElementById('analytics-sub');
+  if (subEl) subEl.textContent = active.length + ' active · ' + paid.length + ' paid · ' + fmtC(totalOutstanding) + ' outstanding';
 
-  // ── Risk Aging Matrix ──────────────────────────────────────────
-  const agingBands = [
-    { label:'Day 6-7',  min:6,  max:7  },
-    { label:'Day 8-9',  min:8,  max:9  },
-    { label:'Day 10-11',min:10, max:11 },
-    { label:'Day 12-13',min:12, max:13 },
-    { label:'Day 14-15',min:14, max:15 },
-  ];
-  const totalDueTodayAll = active.reduce((s,b) => s + getDueToday(b), 0);
-  document.getElementById('analytics-aging').innerHTML =
-    '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px;padding:0 4px"><div style="display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));gap:10px;min-width:600px">'
-    + agingBands.map(band => {
-        const grp = active.filter(b => { const od=getOdAge(b.startDate); return od>=band.min && od<=band.max; });
-        const grpDue = grp.reduce((s,b) => s+getDueToday(b), 0);
-        const grpPaid = grp.filter(b => getStatus(b)==='Partial').length;
-        const risk = band.min >= 14 ? 'var(--red)' : band.min >= 12 ? 'var(--orange)' : band.min >= 10 ? '#fbbf24' : band.min >= 8 ? 'var(--blue)' : 'var(--green)';
-        const pct = totalDueTodayAll > 0 ? (grpDue/totalDueTodayAll*100).toFixed(0) : 0;
-        const clickFn = 'showBorrowersPopup(\'\',\'\','+ band.min +');haptic(\'light\')';
-        return '<div style="background:var(--surface2);border:1px solid var(--border);border-top:3px solid '+risk+';border-radius:8px;padding:12px;text-align:center;cursor:pointer;transition:transform 0.15s" onclick="'+clickFn+'" onmouseover="this.style.transform=\'scale(1.03)\'" onmouseout="this.style.transform=\'scale(1)\'">'
-          + '<div style="font-size:11px;color:var(--text3);font-weight:700;letter-spacing:0.5px;margin-bottom:6px">'+band.label+'</div>'
-          + '<div style="font-family:var(--font-mono);font-size:18px;font-weight:700;color:'+risk+'">'+grp.length+'</div>'
-          + '<div style="font-size:10px;color:var(--text3);margin:2px 0">accounts</div>'
-          + '<div style="font-family:var(--font-mono);font-size:12px;color:var(--text2);margin-top:4px">'+fmtC(grpDue)+'</div>'
-          + '<div style="font-size:10px;color:var(--text3)">'+pct+'% of total</div>'
-          + (grpPaid ? '<div style="margin-top:4px;font-size:10px;color:var(--gold)">'+grpPaid+' partial</div>' : '')
-          + '<div style="font-size:10px;color:var(--text3);margin-top:6px">↗ tap to filter</div>'
-          + '</div>';
-      }).join('')
-    + '</div></div>';
-
-  // ── Daily Collection Heatmap ────────────────────────────────
-  const heatLogs = [...state.dailyLog].sort((a,b) => a.date.localeCompare(b.date));
-  const heatMax = Math.max(...heatLogs.map(e => e.collected||0), 1);
-  const heatTotal = heatLogs.reduce((s,e) => s+(e.collected||0), 0);
-  const heatDaysCollected = heatLogs.filter(e => (e.collected||0) > 0).length;
-  document.getElementById('analytics-heatmap-meta').textContent =
-    heatDaysCollected + ' active days · avg ' + fmtC(Math.round(heatTotal/(heatLogs.length||1)));
-  document.getElementById('analytics-heatmap').innerHTML =
-    '<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:flex-end">'
-    + heatLogs.map(e => {
-        const val = e.collected || 0;
-        const heightPct = Math.max(10, (val/heatMax*100));
-        const intensity = val === 0 ? 'rgba(239,68,68,0.15)' :
-          val < heatMax*0.3 ? 'rgba(232,160,32,0.3)' :
-          val < heatMax*0.6 ? 'rgba(232,160,32,0.6)' :
-          val < heatMax*0.85 ? 'rgba(232,160,32,0.85)' : 'var(--gold)';
-        const d = new Date(e.date);
-        const label = (d.getDate()) + '';
-        const h = (heightPct*0.8).toFixed(0);
-        return '<div style="flex:1;min-width:18px;max-width:32px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer" data-logdate="'+e.date+'" title="'+e.date+': '+fmtC(val)+' (tap to edit)">'
-          + '<div data-logdate="'+e.date+'" style="width:100%;height:'+h+'px;background:'+intensity+';border-radius:3px;min-height:6px"></div>'
-          + '<div data-logdate="'+e.date+'" style="font-family:var(--font-mono);font-size:9px;color:var(--text3)">'+label+'</div>'
-          + '</div>';
-      }).join('')
-    + '</div>';
-  // Wire click delegation for heatmap bars
+  // ── Animate KPI numbers ───────────────────────────────────────
   setTimeout(() => {
-    const hm = document.getElementById('analytics-heatmap');
-    if (hm && !hm._wired) {
-      hm._wired = true;
-      hm.addEventListener('click', function(e) {
-        const date = e.target.dataset.logdate || e.target.closest('[data-logdate]')?.dataset.logdate;
-        if (date) { haptic('light'); openLogEntryEdit(date); }
-      });
-    }
-  }, 0);
-
-  // ── Rolling 7-Day Trend ──────────────────────────────────
-  const allLogs = [...state.dailyLog].sort((a,b) => a.date.localeCompare(b.date));
-  const last14 = allLogs.slice(-14);
-  const week1 = last14.slice(0, 7).reduce((s,e)=>s+(e.collected||0),0) / 7;
-  const week2 = last14.slice(7).reduce((s,e)=>s+(e.collected||0),0) / 7;
-  const trendDir = week2 > week1 ? '↑' : week2 < week1 ? '↓' : '→';
-  const trendCol = week2 > week1 ? 'var(--green)' : week2 < week1 ? 'var(--red)' : 'var(--gold)';
-  if (last14.length) {
-    const ctxR = document.getElementById('chart-rolling');
-    updateOrCreateChart('rolling', ctxR, {
-      type: 'line',
-      data: {
-        labels: last14.map(e => { const d=new Date(e.date); return d.getDate()+''; }),
-        datasets: [
-          { label: 'Daily (₵)', data: last14.map(e=>e.collected||0), borderColor: chartGoldColor(), backgroundColor: 'rgba(232,160,32,0.08)', fill:true, tension:0.4, pointRadius:3, pointBackgroundColor: chartGoldColor() },
-          { label: '7-day avg', data: last14.map((_,i)=> i<7 ? week1 : week2), borderColor: trendCol, borderDash:[5,4], borderWidth:2, pointRadius:0, fill:false }
-        ]
-      },
-      options: { responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{ labels:{ color:chartTextColor(), font:{family:'Instrument Sans',size:11} } },
-          subtitle:{ display:true, text: 'Week trend: ' + trendDir + ' (prev avg ₵'+fmt(Math.round(week1))+' → this avg ₵'+fmt(Math.round(week2))+')', color:trendCol, font:{size:11} } },
-        scales:{
-          x:{grid:{color:chartColor(0.05)},ticks:{color:chartTextColor(),font:{family:'IBM Plex Mono',size:10}}},
-          y:{grid:{color:chartColor(0.05)},ticks:{color:chartTextColor(),font:{family:'IBM Plex Mono',size:10},callback:v=>'₵'+fmt(v)}}
+    (akGrid||document).querySelectorAll?.('[data-val]')?.forEach(el => {
+      const target = parseFloat(el.dataset.val) || 0;
+      const fmt2   = el.dataset.fmt;
+      const dur = 600, start = performance.now();
+      const step = now => {
+        const p = Math.min((now-start)/dur, 1);
+        const ease = 1 - Math.pow(1-p,3);
+        if (fmt2 === 'currency') el.textContent = '₵' + fmt(Math.round(target*ease));
+        else if (fmt2 === 'pct') el.textContent = (target*ease).toFixed(1) + '%';
+        if (p < 1) requestAnimationFrame(step);
+        else {
+          if (fmt2 === 'currency') el.textContent = fmtC(target);
+          else if (fmt2 === 'pct') el.textContent = target + '%';
         }
-      }
+      };
+      requestAnimationFrame(step);
     });
-  }
-
-  // ── Rolling 7-Day Trend ──────────────────────────────────
-  const top5due = [...active].sort((a,b)=>getDueToday(b)-getDueToday(a)).slice(0,5);
-  const top5sum = top5due.reduce((s,b)=>s+getDueToday(b),0);
-  const concPct = totalOutstanding > 0 ? (top5sum/totalOutstanding*100).toFixed(1) : 0;
-  const concRisk = concPct >= 60 ? 'var(--red)' : concPct >= 40 ? 'var(--orange)' : 'var(--green)';
-  const concLabel = concPct >= 60 ? 'HIGH RISK' : concPct >= 40 ? 'MODERATE' : 'LOW RISK';
-  document.getElementById('analytics-concentration').innerHTML =
-    '<div style="text-align:center;padding:8px 0 14px">'
-    + '<div style="font-family:var(--font-mono);font-size:32px;font-weight:700;color:'+concRisk+'">'+concPct+'%</div>'
-    + '<div style="font-size:11px;font-weight:700;color:'+concRisk+';letter-spacing:1px;margin:2px 0">'+concLabel+'</div>'
-    + '<div style="font-size:11px;color:var(--text3);margin-bottom:12px">Top 5 accounts hold '+concPct+'% of total outstanding</div>'
-    + '</div>'
-    + top5due.map((b,i) => {
-        const pct2 = totalOutstanding > 0 ? (getDueToday(b)/totalOutstanding*100).toFixed(1) : 0;
-        return '<div class="summary-row" style="cursor:pointer" onclick="openPayModal(\''+b.id+'\')" title="Tap to record payment">'
-          + '<div style="display:flex;align-items:center;gap:8px">'
-          + '<span style="font-family:var(--font-mono);font-size:10px;color:var(--text3);min-width:14px">'+(i+1)+'</span>'
-          + '<div>'
-          + '<div style="font-size:12px;font-weight:600">'+b.name+'</div>'
-          + '<a href="tel:'+b.phone+'" style="font-size:10px;color:var(--blue);text-decoration:none" onclick="event.stopPropagation();haptic(\'light\')">📞 '+b.phone+'</a>'
-          + '</div></div>'
-          + '<div style="text-align:right"><div style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:'+concRisk+'">'+fmtC(getDueToday(b))+'</div>'
-          + '<div style="font-size:10px;color:var(--text3)">'+pct2+'% of total</div></div></div>';
-      }).join('');
-
-  // ── Payment Behaviour Scores ──────────────────────────────
-  function getBehaviourScore(b) {
-    let score = 50;
-    const od = getOdAge(b.startDate);
-    if (b.amountPaid > 0) score += 20;
-    const ratio = b.loanDue > 0 ? b.amountPaid / b.loanDue : 0;
-    score += Math.round(ratio * 20);
-    score -= (od - 6) * 3;
-    if (b.promisedToPay) score += 5;
-    return Math.max(0, Math.min(100, score));
-  }
-  const scoredBorrowers = [...active].map(b => ({...b, score: getBehaviourScore(b)}))
-    .sort((a,b) => b.score - a.score).slice(0, 8);
-  document.getElementById('analytics-behaviour').innerHTML =
-    '<div style="font-size:11px;color:var(--text3);margin-bottom:10px">Score: 80+ likely to pay · 50-79 uncertain · below 50 high risk</div>'
-    + scoredBorrowers.map(b => {
-        const col = b.score >= 80 ? 'var(--green)' : b.score >= 50 ? 'var(--gold)' : 'var(--red)';
-        const w = b.score + '%';
-        return '<div style="margin-bottom:10px;cursor:pointer" onclick="openRiskCard(\''+b.id+'\')">'
-          + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px">'
-          + '<div>'
-          + '<div style="font-size:12px;font-weight:600">'+b.name.split(' ')[0]+'</div>'
-          + '<a href="tel:'+b.phone+'" style="font-size:10px;color:var(--blue);text-decoration:none" onclick="event.stopPropagation();haptic(\'light\')">📞 '+b.phone+'</a>'
-          + '</div>'
-          + '<span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:'+col+'">'+b.score+'</span></div>'
-                    + '<div style="background:var(--border);border-radius:4px;height:5px;overflow:hidden">'
-          + '<div style="width:'+w+';height:100%;background:'+col+';border-radius:4px;transition:width 0.8s ease"></div>'
-          + '</div></div>';
-      }).join('');
-
-  // ── Account Aging Timeline ───────────────────────────────
-  var agingEl = document.getElementById('analytics-aging-timeline');
-  if (agingEl) {
-    var agBands = [
-      {label:'Day 6-7', min:6,max:7,  color:'rgba(96,165,250,0.75)'},
-      {label:'Day 8-9', min:8,max:9,  color:'rgba(232,160,32,0.75)'},
-      {label:'Day 10-11',min:10,max:11,color:'rgba(249,115,22,0.75)'},
-      {label:'Day 12-13',min:12,max:13,color:'rgba(239,68,68,0.75)'},
-      {label:'Day 14-15',min:14,max:15,color:'rgba(168,85,247,0.85)'},
-    ];
-    var agMax = Math.max.apply(null, agBands.map(function(bd){
-      return active.filter(function(b){ var o=getOdAge(b.startDate); return o>=bd.min&&o<=bd.max; }).length;
-    }).concat([1]));
-    var agHtml = '<div style="font-size:11px;color:var(--text3);margin-bottom:10px">Tap any band to view those accounts in Borrowers</div>';
-    agHtml += agBands.map(function(bd) {
-      var grp = active.filter(function(b){ var o=getOdAge(b.startDate); return o>=bd.min&&o<=bd.max; });
-      var cnt = grp.length, due = grp.reduce(function(s,b){ return s+getDueToday(b); },0);
-      var pct = Math.round(cnt/agMax*100);
-      return '<div class="ag-band" data-agmin="'+bd.min+'" style="display:flex;align-items:center;gap:10px;margin-bottom:8px;cursor:pointer">'
-        + '<div style="font-size:11px;color:var(--text3);min-width:68px">'+bd.label+'</div>'
-        + '<div style="flex:1;background:var(--border);border-radius:4px;height:24px;overflow:hidden">'
-        + '<div style="width:'+pct+'%;height:100%;background:'+bd.color+';display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:700;color:#fff;min-width:'+(cnt>0?'28px':'0')+'">'+( cnt>0?cnt:'' )+'</div>'
-        + '</div>'
-        + '<div style="font-family:var(--font-mono);font-size:11px;font-weight:700;min-width:70px;text-align:right;color:var(--text2)">'+fmtC(due)+'</div>'
-        + '</div>';
-    }).join('');
-    // Dot timeline
-    agHtml += '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">'
-      + '<div style="font-size:11px;color:var(--text3);margin-bottom:6px">Account positions (Day 6 → 15)</div>'
-      + '<div style="position:relative;height:24px;background:linear-gradient(to right,rgba(96,165,250,0.12),rgba(168,85,247,0.2));border-radius:6px">';
-    active.forEach(function(b) {
-      var od=getOdAge(b.startDate), pct2=(function(){var _r=getAgentDayRange();return Math.round(_r[1]-_r[0]>0?(od-_r[0])/(_r[1]-_r[0])*100:0);})();
-      var _r2=getAgentDayRange(),_rr=Math.max(1,_r2[1]-_r2[0]),_pp=(od-_r2[0])/_rr;
-      var dc=_pp>=0.90?'#a855f7':_pp>=0.70?'#ef4444':_pp>=0.50?'#f97316':_pp>=0.25?'#e8a020':'#60a5fa';
-      agHtml += '<div style="position:absolute;left:'+pct2+'%;top:50%;transform:translate(-50%,-50%);width:8px;height:8px;border-radius:50%;background:'+dc+';opacity:0.85" title="'+b.name+' Day '+od+'"></div>';
-    });
-    agHtml += '</div><div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:2px"><span>Day '+getAgentDayRange()[0]+'</span><span>Day '+getAgentDayRange()[1]+'</span></div></div>';
-    agingEl.innerHTML = agHtml;
-    agingEl.querySelectorAll('.ag-band').forEach(function(el){
-      el.addEventListener('click',function(){ haptic('light'); showBorrowersPopup('','',parseInt(el.dataset.agmin)); });
-    });
-  }
-
-  // ── OD Fee Accrual Tracker ────────────────────────────────
-  const feeByType = { LoanBase: 0, 'LoanBase Pro': 0 };
-  const feeByDay = {};
-  active.forEach(b => {
-    const od = getOdAge(b.startDate);
-    const fee = getOdFee(b);
-    feeByType[b.loanType] = (feeByType[b.loanType]||0) + fee;
-    const key = 'Day ' + od;
-    feeByDay[key] = (feeByDay[key]||0) + fee;
-  });
-  const feeDays = Object.entries(feeByDay).sort((a,b)=>parseInt(a[0].slice(4))-parseInt(b[0].slice(4)));
-  if (feeDays.length) {
-    const ctxFee = document.getElementById('chart-odfee-accrual');
-    updateOrCreateChart('odfee', ctxFee, {
-      type: 'bar',
-      data: {
-        labels: feeDays.map(([k])=>k),
-        datasets: [{ label: 'OD Fees Accruing (₵)', data: feeDays.map(([,v])=>v), backgroundColor: 'rgba(124,58,237,0.5)', borderColor: '#7c3aed', borderWidth: 1, borderRadius: 3 }]
-      },
-      options: { responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{display:false}, subtitle:{display:true, text:'LoanBase: ₵'+fmt(Math.round(feeByType.LoanBase||0))+'  ·  LoanBase Pro: ₵'+fmt(Math.round(feeByType['LoanBase Pro']||0)), color:chartTextColor(), font:{size:11}} },
-        scales:{ x:{grid:{color:chartColor(0.05)},ticks:{color:chartTextColor(),font:{family:'IBM Plex Mono',size:10}}}, y:{grid:{color:chartColor(0.05)},ticks:{color:chartTextColor(),font:{family:'IBM Plex Mono',size:10},callback:v=>'₵'+fmt(v)}} }
-      }
-    });
-  }
-
-  // ── Zero-Day Streak (removed from UI but keep calc safe) ─
-  const sortedLogs = [...state.dailyLog].sort((a,b)=>b.date.localeCompare(a.date));
-  let streak = 0, bestStreak = 0, cur = 0;
-  sortedLogs.forEach(e => { if ((e.collected||0) > 0) { streak++; cur++; bestStreak = Math.max(bestStreak, cur); } else { cur = 0; } });
-  let currentStreak = 0;
-  for (const e of sortedLogs) { if ((e.collected||0) > 0) currentStreak++; else break; }
-  // analytics-streak card removed from HTML — skip write
-  const _streakEl = document.getElementById('analytics-streak');
-  if (_streakEl) _streakEl.innerHTML = currentStreak + ' day streak';
-
-  // ── Collection Efficiency ─────────────────────────────────
-  const logsWithCollect = allLogs.filter(e => (e.collected||0) > 0).length;
-  const logsTotal = allLogs.length;
-  const effPct = logsTotal > 0 ? (logsWithCollect/logsTotal*100).toFixed(1) : 0;
-  const avgOnGoodDay = logsWithCollect > 0 ? allLogs.filter(e=>(e.collected||0)>0).reduce((s,e)=>s+(e.collected||0),0)/logsWithCollect : 0;
-  const avgOnBadDay = (logsTotal-logsWithCollect) > 0 ? 0 : null;
-  document.getElementById('analytics-efficiency').innerHTML =
-    '<div style="text-align:center;padding:8px 0 12px">'
-    + '<div style="font-family:var(--font-mono);font-size:36px;font-weight:700;color:var(--blue)">'+effPct+'%</div>'
-    + '<div style="font-size:11px;color:var(--text3);margin-bottom:14px">of logged days had collections</div>'
-    + '</div>'
-    + '<div class="summary-row"><span class="summary-label">Days with collections</span><span class="summary-value text-green">'+logsWithCollect+'</span></div>'
-    + '<div class="summary-row"><span class="summary-label">Zero collection days</span><span class="summary-value text-red">'+(logsTotal-logsWithCollect)+'</span></div>'
-    + '<div class="summary-row"><span class="summary-label">Avg on active day</span><span class="summary-value text-gold">'+fmtC(Math.round(avgOnGoodDay))+'</span></div>'
-    + '<div class="summary-row"><span class="summary-label">Total days logged</span><span class="summary-value">'+logsTotal+'</span></div>';
-  renderCallTimeHeatmap('analytics-calltime');
-
-  // ── Day of Week Chart ───────────────────────────────────
-  const dowContainer = document.getElementById('analytics-dow');
-  if (dowContainer) renderDowChart('analytics-dow');
+  }, 60);
 }
 
+// Helper: build a KPI card for analytics
+function kpiCard(color, label, value, sub, akpi) {
+  return `<div class="kpi-card ${color}" ${akpi?`style="cursor:pointer" data-akpi="${akpi}" title="Tap to filter"`:''}>
+    <div class="kpi-label">${label}</div>
+    <div class="kpi-value ${color}">${value}</div>
+    <div class="kpi-sub">${sub}</div>
+    ${akpi?'<div style="font-size:10px;color:var(--text3);margin-top:4px">↗ tap to view</div>':''}
+  </div>`;
+}
 // ── WHATSAPP DISPATCH ──────────────────────────────────
 // ── Custom dispatch message ────────────────────────────────────
 function toggleDispatchCustomMsg() {
@@ -15036,6 +14856,78 @@ function _showPtpSeqModal() {
   document.getElementById('modal-overlay').classList.add('open');
 }
 
+// ── Carry over yesterday's PTPs to today ──────────────────────
+function ptpCarryoverOne(id) {
+  const b = state.borrowers.find(x => x.id === id);
+  if (!b) return;
+  const today = new Date().toISOString().split('T')[0];
+  b.promiseDate   = today + ' 09:00';
+  b.ptpOutcome    = 'pending';
+  b.ptpBreached   = false;
+  b.promisedToPay = true;
+  if (!b.promiseHistory) b.promiseHistory = [];
+  b.promiseHistory.push({ rescheduled: new Date().toISOString(), to: b.promiseDate, note: 'Carried over from yesterday' });
+  saveState(); renderPtpHub();
+  toast(b.name.split(' ')[0] + ' moved to today', 'success');
+  haptic('light');
+}
+
+function ptpCarryoverMoveAll() {
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  const today     = new Date().toISOString().split('T')[0];
+  const carryover = state.borrowers.filter(b =>
+    b.promisedToPay && (b.promiseDate||'').startsWith(yesterday) &&
+    b.ptpOutcome !== 'paid' && !b.isPaid
+  );
+  if (!carryover.length) { toast('Nothing to carry over', 'info'); return; }
+  carryover.forEach(b => {
+    b.promiseDate   = today + ' 09:00';
+    b.ptpOutcome    = 'pending';
+    b.ptpBreached   = false;
+    if (!b.promiseHistory) b.promiseHistory = [];
+    b.promiseHistory.push({ rescheduled: new Date().toISOString(), to: b.promiseDate, note: 'Bulk carry-over' });
+  });
+  saveState(); renderPtpHub();
+  toast(`${carryover.length} PTPs moved to today`, 'success');
+  haptic('medium');
+}
+
+// ── Quick-set PTP from hub ────────────────────────────────────
+function ptpQuickSet() {
+  const active = (state.borrowers||[]).filter(b => !b.isPaid && !b.promisedToPay && b.phone);
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+  document.getElementById('modal-title').textContent = '🤝 Quick Set PTP';
+  document.getElementById('modal-body').innerHTML = `
+    <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Search a borrower and set a promise date</div>
+    <input id="qptp-search" class="bl-search" placeholder="Search borrower…" oninput="_qptpFilter()" style="width:100%;margin-bottom:10px;box-sizing:border-box">
+    <div id="qptp-list" style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:5px">
+      ${active.slice(0,12).map(b => `
+        <div data-name="${b.name.toLowerCase()}" onclick="ptpQuickSetPick('${b.id}')"
+          style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface2);border-radius:8px;cursor:pointer;border:1px solid var(--border2)">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:600;color:var(--text)">${escapeHtml(b.name)}</div>
+            <div style="font-size:10px;color:var(--text3)">${getAccountStage(b).label} · Day ${getOdAge(b.startDate)}</div>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--gold)">${fmtC(getDueToday(b))}</div>
+        </div>`).join('')}
+    </div>`;
+  document.getElementById('modal-footer').innerHTML = '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>';
+  document.getElementById('modal-overlay').classList.add('open');
+  haptic('light');
+}
+
+function _qptpFilter() {
+  const q = (document.getElementById('qptp-search')?.value || '').toLowerCase();
+  document.querySelectorAll('#qptp-list [data-name]').forEach(el => {
+    el.style.display = el.dataset.name.includes(q) ? '' : 'none';
+  });
+}
+
+function ptpQuickSetPick(id) {
+  closeModal();
+  setTimeout(() => { _pushModal(); openPromiseModal(id, false); }, 50);
+}
+
 function ptpReschedule(id) {
   const b = state.borrowers.find(x => x.id === id);
   if (!b) return;
@@ -15138,28 +15030,78 @@ function getAgentProfileName() {
 }
 
 function buildPtpMorningHtml() {
-  const today = new Date().toISOString().split('T')[0];
+  const today     = new Date().toISOString().split('T')[0];
   const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-  const todayStr = new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
-  const ptps = getTodayPtps2();
+  const tomorrow  = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+  const todayStr  = new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+  const ptps      = getTodayPtps2();
 
-  // Carryover: yesterday's PTPs with no outcome, or outcome not 'paid'
   const carryover = state.borrowers.filter(b =>
-    b.promisedToPay &&
-    b.promiseDate &&
-    b.promiseDate.startsWith(yesterday) &&
-    b.ptpOutcome !== 'paid' &&
-    !b.isPaid
+    b.promisedToPay && b.promiseDate && b.promiseDate.startsWith(yesterday) &&
+    b.ptpOutcome !== 'paid' && !b.isPaid
   );
 
-  const honoured = ptps.filter(b => b.amountPaid > 0 || b.ptpOutcome === 'paid');
-  const rate = ptps.length > 0 ? Math.round(honoured.length / ptps.length * 100) : 0;
-  const rateCol = rate >= 70 ? 'var(--green)' : rate >= 40 ? 'var(--gold)' : 'var(--red)';
-  const totalExp = ptps.reduce((s,b) => s + getDueToday(b), 0);
-  const upcoming = state.borrowers.filter(b => b.promisedToPay && b.promiseDate && b.promiseDate > today).sort((a,b) => a.promiseDate.localeCompare(b.promiseDate));
+  const honoured  = ptps.filter(b => b.amountPaid > 0 || b.ptpOutcome === 'paid');
+  const rate      = ptps.length > 0 ? Math.round(honoured.length / ptps.length * 100) : 0;
+  const rateCol   = rate >= 70 ? 'var(--green)' : rate >= 40 ? 'var(--gold)' : 'var(--red)';
+  const totalExp  = ptps.reduce((s,b) => s + getDueToday(b), 0);
+  const totalColl = ptps.filter(b => b.amountPaid > 0).reduce((s,b) => s + b.amountPaid, 0);
+  const upcoming  = state.borrowers.filter(b => b.promisedToPay && b.promiseDate && b.promiseDate.split(' ')[0] > today)
+                      .sort((a,b) => a.promiseDate.localeCompare(b.promiseDate));
+  const tomorrowPtps = upcoming.filter(b => b.promiseDate.startsWith(tomorrow));
   const agentName = getAgentProfileName();
 
-  let html = `
+  // ── Week strip ───────────────────────────────────────────────
+  const weekDays = [];
+  for (let i = -1; i <= 5; i++) {
+    const d    = new Date(Date.now() + i * 86400000);
+    const ds   = d.toISOString().split('T')[0];
+    const cnt  = state.borrowers.filter(b => b.promisedToPay && (b.promiseDate||'').startsWith(ds)).length;
+    const label = i === -1 ? 'Yest' : i === 0 ? 'Today' : i === 1 ? 'Tmrw' : d.toLocaleDateString('en-GB',{weekday:'short'});
+    const isToday = i === 0;
+    weekDays.push({ ds, cnt, label, isToday });
+  }
+  const weekStripHtml = `
+    <div style="display:flex;gap:5px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;scrollbar-width:none">
+      ${weekDays.map(w => {
+        const col = w.cnt > 0 ? (w.isToday ? 'var(--gold)' : 'var(--text2)') : 'var(--text3)';
+        const bg  = w.isToday ? 'rgba(240,160,48,0.12)' : w.cnt > 0 ? 'var(--surface2)' : 'transparent';
+        const bor = w.isToday ? '2px solid var(--gold)' : '1px solid var(--border2)';
+        return `<div onclick="switchPtpHub('calendar')" style="flex-shrink:0;text-align:center;padding:7px 10px;border-radius:10px;background:${bg};border:${bor};cursor:pointer;min-width:48px">
+          <div style="font-size:9px;color:var(--text3);margin-bottom:3px;font-weight:${w.isToday?700:400}">${w.label}</div>
+          <div style="font-family:var(--font-mono);font-size:16px;font-weight:800;color:${col}">${w.cnt}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  // ── Progress bar: expected vs collected ─────────────────────
+  const collPct  = totalExp > 0 ? Math.min(100, Math.round(totalColl / totalExp * 100)) : 0;
+  const collBar  = `
+    <div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:4px">
+        <span>Collected from PTPs today</span>
+        <span>${fmtC(totalColl)} / ${fmtC(totalExp)}</span>
+      </div>
+      <div style="height:6px;background:var(--border2);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${collPct}%;background:${rateCol};border-radius:4px;transition:width 0.5s cubic-bezier(0.34,1.2,0.64,1)"></div>
+      </div>
+    </div>`;
+
+  // ── Helper: reliability score ────────────────────────────────
+  function reliabilityBadge(b) {
+    const hist = (b.promiseHistory||[]);
+    const kept = hist.filter(h => h.outcome === 'paid').length;
+    const total = hist.length;
+    if (total < 2) return '';
+    const pct = Math.round(kept/total*100);
+    const col = pct >= 70 ? 'var(--green)' : pct >= 40 ? 'var(--gold)' : 'var(--red)';
+    return `<span style="font-size:9px;color:${col};font-weight:700;background:${col}18;padding:1px 5px;border-radius:6px">${pct}% reliable</span>`;
+  }
+
+  let html = weekStripHtml;
+
+  // ── Summary KPIs ─────────────────────────────────────────────
+  html += `
     <div style="background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:14px;margin-bottom:14px">
       <div style="font-size:11px;color:var(--text3);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Today · ${todayStr}</div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
@@ -15170,25 +15112,28 @@ function buildPtpMorningHtml() {
       </div>
     </div>`;
 
-  // ── Carryover banner ─────────────────────────────────────
+  html += collBar;
+
+  // ── Carryover banner ─────────────────────────────────────────
   if (carryover.length > 0) {
     html += `<div style="background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.25);border-left:3px solid var(--red);border-radius:10px;padding:12px 14px;margin-bottom:14px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div style="font-size:12px;font-weight:700;color:var(--red)">⚠️ ${carryover.length} Unresolved from Yesterday</div>
-        <span style="font-size:10px;color:var(--text3)">${new Date(Date.now()-86400000).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</span>
+        <button onclick="ptpCarryoverMoveAll()" style="font-size:10px;font-weight:700;color:var(--gold);background:rgba(240,160,48,0.1);border:1px solid rgba(240,160,48,0.3);border-radius:6px;padding:3px 8px;cursor:pointer;font-family:var(--font-body)">Move all → Today</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:4px">`;
     carryover.forEach(b => {
       const phone = b.phone.replace(/\s/g,'').replace('+','');
       const oc = b.ptpOutcome || 'no outcome';
       const ocColor = oc === 'broken' ? 'var(--red)' : oc === 'no_answer' ? 'var(--orange)' : 'var(--text3)';
-      html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface);border-radius:8px;cursor:pointer" onclick="openBorrowerDetail('${b.id}');haptic('light')">
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface);border-radius:8px">
         <div style="width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--red)"></div>
-        <div style="flex:1;min-width:0">
+        <div style="flex:1;min-width:0;cursor:pointer" onclick="openBorrowerDetail('${b.id}');haptic('light')">
           <div style="font-size:12px;font-weight:600">${escapeHtml(b.name.split(' ')[0])}</div>
           <div style="font-size:10px;color:${ocColor}">${oc.replace(/_/g,' ')}</div>
         </div>
         <div style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--red)">${fmtC(getDueToday(b))}</div>
+        <button class="btn btn-ghost btn-xs" style="color:var(--gold);font-size:10px;padding:3px 7px" onclick="ptpCarryoverOne('${b.id}')">→ Today</button>
         <button class="btn btn-green btn-xs" onclick="event.stopPropagation();openPayModal('${b.id}');haptic('light')">💰</button>
         <a href="https://wa.me/${phone}" target="_blank" class="btn btn-ghost btn-xs" style="color:#25d366" onclick="event.stopPropagation();haptic('light')">💬</a>
       </div>`;
@@ -15196,17 +15141,21 @@ function buildPtpMorningHtml() {
     html += `</div></div>`;
   }
 
-  html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-    <div style="font-size:13px;font-weight:700">📋 ${todayStr} Promises <span style="font-size:11px;font-weight:400;color:var(--text3)">${ptps.length} set</span></div>
-    <button class="btn btn-gold btn-sm" onclick="ptpShareMorning('${agentName}');haptic('light')">📤 Share Morning</button>
+  // ── Today's promises ─────────────────────────────────────────
+  html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+    <div style="font-size:13px;font-weight:700">📋 ${todayStr} · ${ptps.length} Promise${ptps.length!==1?'s':''}</div>
+    <div style="display:flex;gap:6px">
+      <button onclick="ptpQuickSet()" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--surface2);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font-body);color:var(--text2)">＋ New PTP</button>
+      <button class="btn btn-gold btn-sm" onclick="ptpShareMorning('${agentName}');haptic('light')">📤 Share</button>
+    </div>
   </div>`;
 
   if (ptps.length === 0) {
-    html += `<div style="background:var(--surface2);border-radius:10px;padding:24px;text-align:center;color:var(--text3);font-size:12px">
-      No promises set for today.<br><span style="font-size:11px">Go to Borrowers → tap 🤝 to set a promise.</span></div>`;
+    html += `<div style="background:var(--surface2);border-radius:10px;padding:24px;text-align:center;color:var(--text3);font-size:12px;margin-bottom:14px">
+      No promises set for today.<br><span style="font-size:11px">Tap <strong>＋ New PTP</strong> or go to a borrower card → 🤝 Promise.</span></div>`;
   } else {
-    html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <div style="font-size:13px;font-weight:700;color:var(--text)">📋 Today's Promises <span style="font-size:11px;font-weight:400;color:var(--text3)">${ptps.length} borrower${ptps.length!==1?'s':''}</span></div>
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <span style="font-size:11px;color:var(--text3)">${honoured.length} honoured · ${ptps.length - honoured.length} pending</span>
       <button onclick="ptpSendAllReminders();haptic('medium')" style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;border:1px solid rgba(37,211,102,0.35);background:rgba(37,211,102,0.08);color:#25d366;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font-body)">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:12px;height:12px"><path d="M3 10l14-7-7 14V10H3z"/></svg>
         Remind All
@@ -15214,58 +15163,80 @@ function buildPtpMorningHtml() {
     </div>`;
     html += `<div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;overflow:hidden;margin-bottom:14px">`;
     ptps.forEach(b => {
-      const ok = b.isPaid === true || b.ptpOutcome === 'paid';
+      const ok    = b.isPaid === true || b.ptpOutcome === 'paid';
       const phone = b.phone.replace(/\s/g,'').replace('+','');
-      html += `<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);${ok?'background:rgba(34,197,94,0.04)':''}">
+      const rel   = reliabilityBadge(b);
+      html += `<div style="display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--border);${ok?'background:rgba(34,197,94,0.04)':''}">
         <div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${ok?'var(--green)':'var(--orange)'}"></div>
-        <div style="flex:1;min-width:0;cursor:pointer" onclick="openBorrowerDetail('${b.id}');haptic('light')">
-          <div style="font-size:13px;font-weight:600">${b.name.split(' ')[0]}</div>
-          <div style="font-size:10px;color:var(--text3)">${b.promiseDate||''} ${b.promiseNote?'· '+b.promiseNote:''}</div>
+        <div style="flex:1;min-width:0;cursor:pointer" onclick="_pushModal();openBorrowerDetail('${b.id}');haptic('light')">
+          <div style="font-size:13px;font-weight:600;display:flex;align-items:center;gap:5px;flex-wrap:wrap">${b.name.split(' ')[0]} ${rel}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:1px">${b.promiseDate||''} ${b.promiseNote?'· '+b.promiseNote:''}</div>
         </div>
-        <div style="text-align:right;margin-right:8px">
+        <div style="text-align:right;margin-right:4px;flex-shrink:0">
           <div style="font-family:var(--font-mono);font-size:12px;font-weight:700">${fmtC(getDueToday(b))}</div>
           <div style="font-size:10px;color:${ok?'var(--green)':'var(--text3)'}">${ok?'✅ Honoured':'⏳ Pending'}</div>
         </div>
         <button class="btn btn-green btn-xs" onclick="openPayModal('${b.id}');haptic('light')" title="Record payment">💰</button>
-        <button class="btn btn-xs" style="background:${ok?'rgba(239,68,68,0.12)':'rgba(34,197,94,0.1)'};color:${ok?'var(--red)':'var(--green)'};border:1px solid ${ok?'rgba(239,68,68,0.3)':'rgba(34,197,94,0.3)'};font-size:10px;font-weight:700;padding:4px 8px;border-radius:6px;cursor:pointer" onclick="ptpToggleHonour('${b.id}');haptic('medium')" title="${ok?'Mark as broken':'Mark as honoured'}">${ok?'↩ Undo':'✅ Honour'}</button>
-        <button class="btn btn-ghost btn-xs" style="color:var(--gold);font-size:10px;font-weight:700;padding:4px 8px" onclick="ptpReschedule('${b.id}');haptic('light')" title="Reschedule">📅</button>
-        <button class="btn btn-ghost btn-xs" style="color:#25d366;font-size:11px;font-weight:700;padding:4px 8px" onclick="ptpShowRemindMenu('${b.id}');haptic('light')" title="Send PTP reminder">📩</button>
-        <button class="btn btn-ghost btn-xs" onclick="clearPromise('${b.id}');event.stopPropagation()" title="Clear promise">🗑</button>
+        <button class="btn btn-xs" style="background:${ok?'rgba(239,68,68,0.12)':'rgba(34,197,94,0.1)'};color:${ok?'var(--red)':'var(--green)'};border:1px solid ${ok?'rgba(239,68,68,0.3)':'rgba(34,197,94,0.3)'};font-size:10px;font-weight:700;padding:4px 8px;border-radius:6px;cursor:pointer" onclick="ptpToggleHonour('${b.id}');haptic('medium')">${ok?'↩':'✅'}</button>
+        <button class="btn btn-ghost btn-xs" style="color:var(--gold)" onclick="ptpReschedule('${b.id}');haptic('light')" title="Reschedule">📅</button>
+        <button class="btn btn-ghost btn-xs" style="color:#25d366" onclick="ptpShowRemindMenu('${b.id}');haptic('light')" title="Remind">📩</button>
+        <button class="btn btn-ghost btn-xs" onclick="clearPromise('${b.id}');event.stopPropagation()" title="Clear">🗑</button>
       </div>`;
     });
     html += `</div>`;
   }
 
-  if (upcoming.length > 0) {
-    html += `<div style="font-size:13px;font-weight:700;margin-bottom:8px">📅 Upcoming <span style="font-size:11px;font-weight:400;color:var(--text3)">${upcoming.length} promises</span></div>
-    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;overflow:hidden">`;
-    upcoming.slice(0,10).forEach(b => {
+  // ── Plan Tomorrow ─────────────────────────────────────────────
+  if (tomorrowPtps.length > 0) {
+    html += `
+    <div style="font-size:13px;font-weight:700;margin-bottom:8px">🌅 Tomorrow's Promises <span style="font-size:11px;font-weight:400;color:var(--text3)">${tomorrowPtps.length} set</span></div>
+    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;overflow:hidden;margin-bottom:14px">`;
+    tomorrowPtps.forEach(b => {
+      const phone = b.phone.replace(/\s/g,'').replace('+','');
       html += `<div style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border)">
-        <div style="flex:1;min-width:0;cursor:pointer" onclick="openBorrowerDetail('${b.id}');haptic('light')">
+        <div style="flex:1;min-width:0;cursor:pointer" onclick="_pushModal();openBorrowerDetail('${b.id}')">
+          <div style="font-size:12px;font-weight:600">${b.name.split(' ')[0]}</div>
+          <div style="font-size:10px;color:var(--text3)">${b.promiseNote||'Promise due tomorrow'}</div>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:12px;font-weight:700">${fmtC(getDueToday(b))}</div>
+        <a href="https://wa.me/${phone}?text=${encodeURIComponent('Hi '+getFirstName(b)+', this is a reminder that your loan repayment of '+fmtC(getDueToday(b))+' is due tomorrow. Dial *714*674# to pay. LoanBase.')}" target="_blank" class="btn btn-ghost btn-xs" style="color:#25d366;font-size:10px;font-weight:700" onclick="haptic('light')">📩 Early</a>
+        <button class="btn btn-ghost btn-xs" style="color:var(--gold)" onclick="ptpReschedule('${b.id}');haptic('light')">📅</button>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // ── Upcoming (beyond tomorrow) ───────────────────────────────
+  const beyondTomorrow = upcoming.filter(b => !b.promiseDate.startsWith(tomorrow));
+  if (beyondTomorrow.length > 0) {
+    html += `<div style="font-size:13px;font-weight:700;margin-bottom:8px">📅 Upcoming <span style="font-size:11px;font-weight:400;color:var(--text3)">${beyondTomorrow.length} promises</span></div>
+    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;overflow:hidden">`;
+    beyondTomorrow.slice(0,8).forEach(b => {
+      html += `<div style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border)">
+        <div style="flex:1;min-width:0;cursor:pointer" onclick="_pushModal();openBorrowerDetail('${b.id}');haptic('light')">
           <div style="font-size:12px;font-weight:600">${b.name.split(' ')[0]}</div>
           <div style="font-size:10px;color:var(--text3)">${b.promiseDate}</div>
         </div>
         <div style="font-family:var(--font-mono);font-size:12px;color:var(--text2)">${fmtC(getDueToday(b))}</div>
-        <button class="btn btn-ghost btn-xs" style="color:var(--gold);font-size:10px;font-weight:700;padding:3px 7px;flex-shrink:0" onclick="ptpReschedule('${b.id}');haptic('light')" title="Reschedule">📅</button>
-        <button class="btn btn-ghost btn-xs" style="color:#25d366;font-size:10px;font-weight:700;padding:3px 7px;flex-shrink:0" onclick="ptpShowRemindMenu('${b.id}');haptic('light')" title="Send reminder">📩</button>
-        <button class="btn btn-ghost btn-xs" onclick="clearPromise('${b.id}');event.stopPropagation()" title="Clear promise">🗑</button>
+        <button class="btn btn-ghost btn-xs" style="color:var(--gold);padding:3px 7px" onclick="ptpReschedule('${b.id}');haptic('light')">📅</button>
+        <button class="btn btn-ghost btn-xs" style="color:#25d366;padding:3px 7px" onclick="ptpShowRemindMenu('${b.id}');haptic('light')">📩</button>
+        <button class="btn btn-ghost btn-xs" onclick="clearPromise('${b.id}');event.stopPropagation()">🗑</button>
       </div>`;
     });
-    if (upcoming.length > 10) html += `<div style="padding:8px 14px;font-size:11px;color:var(--text3)">+${upcoming.length-10} more</div>`;
+    if (beyondTomorrow.length > 8) html += `<div style="padding:8px 14px;font-size:11px;color:var(--text3)">+${beyondTomorrow.length-8} more</div>`;
     html += `</div>`;
   }
-html += `
-  <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+
+  html += `
+  <div style="display:flex;justify-content:flex-end;margin-top:12px;margin-bottom:12px">
     <button class="btn btn-ghost btn-sm" id="enable-reminders-btn" style="gap:4px">
       <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px"><circle cx="10" cy="10" r="8"/><polyline points="10,6 10,10 13,13"/></svg>
       Enable Daily Reminders
     </button>
-  </div>
-`; 
+  </div>`;
+
   return html;
 }
-
-let _reminderInterval = null;
 
 function enablePtpReminders() {
   if (_reminderInterval) {
