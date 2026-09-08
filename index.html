@@ -6791,6 +6791,18 @@ function initState() {
 function migrateState(s) {
   if (!s) return s;
   if (s.discountRate === undefined) s.discountRate = 0.30;
+  // Backfill lastPtpDate for any borrower who already has an active promise
+  // set from before this field existed — otherwise a promise made yesterday
+  // (in app terms) would silently vanish from today's PTP list on first load
+  // after this update, since getTodayPtps2() now reads lastPtpDate instead of
+  // the live promiseDate/promisedToPay pair.
+  if (s.borrowers) {
+    s.borrowers.forEach(b => {
+      if (b.promisedToPay && b.promiseDate && !b.lastPtpDate) {
+        b.lastPtpDate = b.promiseDate;
+      }
+    });
+  }
   if (!s.agedOutLog) s.agedOutLog = [];
   if (!s.monthlyTarget) s.monthlyTarget = 0;
   if (!s.archive) s.archive = [];
@@ -13462,6 +13474,14 @@ function savePromise(id, isEdit = false) {
   const note = document.getElementById('promise-note')?.value?.trim() || '';
   b.promisedToPay = true;
   b.promiseDate = date + (time ? ' ' + time : '');
+  // Stable marker of "a promise was set for this date" that survives
+  // _clearPromiseOnPaid clearing promiseDate/promisedToPay once paid — this
+  // is what getTodayPtps2() actually filters on, so a borrower who pays in
+  // full during EOD review stays visible in today's PTP list and correctly
+  // counts toward the day's honoured/collected totals, instead of vanishing
+  // the moment they're marked paid (and being silently excluded from the
+  // very snapshot that's supposed to count them).
+  b.lastPtpDate = date;
   b.promiseNote = note;
   b.ptpConfidence = window._ptpConfSelected || b.ptpConfidence || '';
   b.promiseCreatedAt = b.promiseCreatedAt || new Date().toISOString(); // set only once
@@ -13508,6 +13528,7 @@ function clearPromise(id) {
   // Remove all PTP fields
   b.promisedToPay = false;
   b.promiseDate = null;
+  b.lastPtpDate = null; // explicit cancel — unlike a payment resolving it, this should leave today's list entirely
   b.promiseNote = '';
   b.ptpOutcome = '';
   b.ptpBreached = false;
@@ -14968,7 +14989,7 @@ function bulkAction(action) {
     _maybeCelebratePersonalBest(_prevBest);
   } else if (action === 'promise') {
     const d = new Date().toISOString().split('T')[0];
-    ids.forEach(id => { const b = state.borrowers.find(x => x.id === id); if (b) { b.promisedToPay = true; b.promiseDate = d; } });
+    ids.forEach(id => { const b = state.borrowers.find(x => x.id === id); if (b) { b.promisedToPay = true; b.promiseDate = d; b.lastPtpDate = d; } });
     toast(ids.length + ' accounts marked as Promised', 'success');
   } else if (action === 'base') {
     ids.forEach(id => { const b = state.borrowers.find(x => x.id === id); if (b) b.loanType = 'LoanBase'; });
@@ -19127,7 +19148,12 @@ function generateReport(type) {
   const active = getActiveBorrowers();
   const paid = state.borrowers.filter(b => getStatus(b) === 'Paid');
   const partial = state.borrowers.filter(b => getStatus(b) === 'Partial');
-  const ptpToday = state.borrowers.filter(b => b.promisedToPay && b.promiseDate && b.promiseDate.startsWith(todayKey));
+  // lastPtpDate persists even after a promise is paid off (unlike promiseDate,
+  // which gets cleared) — see getTodayPtps2()'s comment for why. Without this,
+  // a borrower who pays in full during EOD review would already be excluded
+  // here before the ptpOutcome==='paid' check below even runs, meaning they'd
+  // never count as honoured no matter what outcome they actually had.
+  const ptpToday = state.borrowers.filter(b => b.lastPtpDate && b.lastPtpDate.startsWith(todayKey));
   // ptpOutcome === 'paid' reflects whether TODAY's specific promise was kept —
   // not b.amountPaid > 0, which is the borrower's entire lifetime payment total.
   // The old check meant anyone who'd ever paid anything, even months ago on a
@@ -19958,7 +19984,14 @@ function switchPtpHub(tab) {
 
 function getTodayPtps2() {
   const today = new Date().toISOString().split('T')[0];
-  return state.borrowers.filter(b => b.promisedToPay && b.promiseDate && b.promiseDate.startsWith(today));
+  // lastPtpDate is a stable marker set whenever a promise is made, and is
+  // deliberately NOT cleared when that promise is paid off (see savePromise
+  // and _clearPromiseOnPaid) — using the live promisedToPay/promiseDate
+  // fields here instead would make a borrower vanish from today's PTP list,
+  // and from the EOD snapshot's honoured/collected totals, the instant
+  // they're marked paid, since paying clears those two fields as a side
+  // effect. lastPtpDate only goes away on an explicit cancel (clearPromise).
+  return state.borrowers.filter(b => b.lastPtpDate && b.lastPtpDate.startsWith(today));
 }
 
 function setPtpOutcome2(bid, outcome) {
