@@ -6599,30 +6599,6 @@ function initSupabase() {
   } catch(e) { return null; }
 }
 
-// If the Supabase CDN script (loaded from cdn.jsdelivr.net) fails to load —
-// a network hiccup during that one page load, an ad-blocker, anything — _db
-// gets set to null once in loadState() and every sync function below used to
-// just silently give up forever after that, for the rest of the session,
-// even once connectivity was completely fine again. This retries
-// initialization lazily instead of treating one failed attempt as permanent.
-function _ensureDb() {
-  if (!_db) _db = initSupabase();
-  return _db;
-}
-
-// messageBank is built-in reference data — identical for every device, already
-// shipped in this file's own source as the MESSAGE_BANK constant, and force-
-// resynced from that constant on every load (see initState/migrateState).
-// There is no reason it should ever be uploaded to Supabase: doing so adds
-// ~175KB of completely static, redundant data to every single sync push. On
-// a slow mobile connection that's a very plausible way to push a save past
-// the 10s timeout and start failing outright — this strips it out of every
-// sync payload below.
-function _stateForSync(s) {
-  const { messageBank, ...rest } = s;
-  return rest;
-}
-
 // ── Network timeout guard ─────────────────────────────────────
 // A fully-offline device fails fetch() fast — this isn't about that case.
 // A slow/flaky connection (weak signal, captive portal, DNS hanging) can
@@ -6758,12 +6734,11 @@ async function _loadStateFromIndexedDB(key) {
 }
 
 async function _pushToSupabaseIncremental() {
-  if (!_ensureDb()) return;
+  if (!_db) return;
   setSyncStatus('saving');
   try {
     const currentState = state;
-    const syncPayload = _stateForSync(currentState);
-    const currentHash = await _hashState(syncPayload);
+    const currentHash = await _hashState(currentState);
     if (currentHash === _lastKnownHash) {
       setSyncStatus('saved');
       return;
@@ -6780,7 +6755,7 @@ async function _pushToSupabaseIncremental() {
     await withTimeout(_db.from('app_state').upsert({
   id: getSupabaseId(),
   data: { 
-    ...syncPayload, 
+    ...currentState, 
     _pinHash: pinHash,
     _lastSaveTs: Date.now(),
     _lastLocalSave: currentState._lastLocalSave
@@ -6816,18 +6791,6 @@ function initState() {
 function migrateState(s) {
   if (!s) return s;
   if (s.discountRate === undefined) s.discountRate = 0.30;
-  // Backfill lastPtpDate for any borrower who already has an active promise
-  // set from before this field existed — otherwise a promise made yesterday
-  // (in app terms) would silently vanish from today's PTP list on first load
-  // after this update, since getTodayPtps2() now reads lastPtpDate instead of
-  // the live promiseDate/promisedToPay pair.
-  if (s.borrowers) {
-    s.borrowers.forEach(b => {
-      if (b.promisedToPay && b.promiseDate && !b.lastPtpDate) {
-        b.lastPtpDate = b.promiseDate;
-      }
-    });
-  }
   if (!s.agedOutLog) s.agedOutLog = [];
   if (!s.monthlyTarget) s.monthlyTarget = 0;
   if (!s.archive) s.archive = [];
@@ -7250,14 +7213,7 @@ function _doSaveState() {
 }
 
 async function _pushToSupabase(retries = 3) {
-  if (!_ensureDb()) {
-    // Previously a silent no-op with zero indication sync was even attempted —
-    // if the Supabase client never initialized (CDN script blocked/failed on
-    // this page load), every save just quietly stayed local-only forever.
-    console.warn('Supabase sync unavailable — client failed to initialize (check network/CDN access to cdn.jsdelivr.net)');
-    setSyncStatus('offline');
-    return;
-  }
+  if (!_db) return;
   setSyncStatus('saving');
   
   for (let attempt = 1; attempt <= retries; attempt++) {
@@ -7269,7 +7225,7 @@ async function _pushToSupabase(retries = 3) {
       const { error } = await withTimeout(_db.from('app_state').upsert({
         id: getSupabaseId(),
         data: {
-          ..._stateForSync(state),
+          ...state,
           _pinHash: pinHash,
           _lastSaveTs: nowTs,
           agentProfile: {
@@ -13506,14 +13462,6 @@ function savePromise(id, isEdit = false) {
   const note = document.getElementById('promise-note')?.value?.trim() || '';
   b.promisedToPay = true;
   b.promiseDate = date + (time ? ' ' + time : '');
-  // Stable marker of "a promise was set for this date" that survives
-  // _clearPromiseOnPaid clearing promiseDate/promisedToPay once paid — this
-  // is what getTodayPtps2() actually filters on, so a borrower who pays in
-  // full during EOD review stays visible in today's PTP list and correctly
-  // counts toward the day's honoured/collected totals, instead of vanishing
-  // the moment they're marked paid (and being silently excluded from the
-  // very snapshot that's supposed to count them).
-  b.lastPtpDate = date;
   b.promiseNote = note;
   b.ptpConfidence = window._ptpConfSelected || b.ptpConfidence || '';
   b.promiseCreatedAt = b.promiseCreatedAt || new Date().toISOString(); // set only once
@@ -13560,7 +13508,6 @@ function clearPromise(id) {
   // Remove all PTP fields
   b.promisedToPay = false;
   b.promiseDate = null;
-  b.lastPtpDate = null; // explicit cancel — unlike a payment resolving it, this should leave today's list entirely
   b.promiseNote = '';
   b.ptpOutcome = '';
   b.ptpBreached = false;
@@ -15021,7 +14968,7 @@ function bulkAction(action) {
     _maybeCelebratePersonalBest(_prevBest);
   } else if (action === 'promise') {
     const d = new Date().toISOString().split('T')[0];
-    ids.forEach(id => { const b = state.borrowers.find(x => x.id === id); if (b) { b.promisedToPay = true; b.promiseDate = d; b.lastPtpDate = d; } });
+    ids.forEach(id => { const b = state.borrowers.find(x => x.id === id); if (b) { b.promisedToPay = true; b.promiseDate = d; } });
     toast(ids.length + ' accounts marked as Promised', 'success');
   } else if (action === 'base') {
     ids.forEach(id => { const b = state.borrowers.find(x => x.id === id); if (b) b.loanType = 'LoanBase'; });
@@ -19180,12 +19127,7 @@ function generateReport(type) {
   const active = getActiveBorrowers();
   const paid = state.borrowers.filter(b => getStatus(b) === 'Paid');
   const partial = state.borrowers.filter(b => getStatus(b) === 'Partial');
-  // lastPtpDate persists even after a promise is paid off (unlike promiseDate,
-  // which gets cleared) — see getTodayPtps2()'s comment for why. Without this,
-  // a borrower who pays in full during EOD review would already be excluded
-  // here before the ptpOutcome==='paid' check below even runs, meaning they'd
-  // never count as honoured no matter what outcome they actually had.
-  const ptpToday = state.borrowers.filter(b => b.lastPtpDate && b.lastPtpDate.startsWith(todayKey));
+  const ptpToday = state.borrowers.filter(b => b.promisedToPay && b.promiseDate && b.promiseDate.startsWith(todayKey));
   // ptpOutcome === 'paid' reflects whether TODAY's specific promise was kept —
   // not b.amountPaid > 0, which is the borrower's entire lifetime payment total.
   // The old check meant anyone who'd ever paid anything, even months ago on a
@@ -20016,14 +19958,7 @@ function switchPtpHub(tab) {
 
 function getTodayPtps2() {
   const today = new Date().toISOString().split('T')[0];
-  // lastPtpDate is a stable marker set whenever a promise is made, and is
-  // deliberately NOT cleared when that promise is paid off (see savePromise
-  // and _clearPromiseOnPaid) — using the live promisedToPay/promiseDate
-  // fields here instead would make a borrower vanish from today's PTP list,
-  // and from the EOD snapshot's honoured/collected totals, the instant
-  // they're marked paid, since paying clears those two fields as a side
-  // effect. lastPtpDate only goes away on an explicit cancel (clearPromise).
-  return state.borrowers.filter(b => b.lastPtpDate && b.lastPtpDate.startsWith(today));
+  return state.borrowers.filter(b => b.promisedToPay && b.promiseDate && b.promiseDate.startsWith(today));
 }
 
 function setPtpOutcome2(bid, outcome) {
@@ -24415,7 +24350,7 @@ async function _maybeRunWeeklyBackup() {
 // the rollover itself, and never surfaces an error to the person doing it;
 // if it fails, the primary archive above still has them covered.
 async function _silentPreRolloverBackup(monthStr) {
-  if (!_ensureDb()) return;
+  if (!_db) return;
   try {
     const stamp = new Date().toISOString().split('T')[0];
     const backupId = getSupabaseId() + '_rollover_' + stamp;
@@ -25345,7 +25280,7 @@ function settingsPinPress(k) {
         if(idx>=0){agents[idx].pinHash=hash;saveAgentList(agents);_pinTarget.pinHash=hash;if(_activeAgent)_activeAgent.pinHash=hash;}
         state._pinHash=hash;
         const db=initSupabase();if(db){try{
-          await db.from('app_state').upsert({id:'agent_'+_pinTarget.id,data:{..._stateForSync(state),_pinHash:hash},updated_at:new Date().toISOString()});
+          await db.from('app_state').upsert({id:'agent_'+_pinTarget.id,data:{...state,_pinHash:hash},updated_at:new Date().toISOString()});
         }catch{}}
         for(let i=0;i<4;i++){const d=document.getElementById('modal-pindot-'+i);if(d)d.classList.add('success');}
         for(let i=0;i<3;i++){const s=document.getElementById('cp-step-'+i);if(s){s.classList.remove('active');s.classList.add('done');}}
