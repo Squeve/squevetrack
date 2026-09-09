@@ -6610,6 +6610,19 @@ function _ensureDb() {
   return _db;
 }
 
+// messageBank is built-in reference data — identical for every device, already
+// shipped in this file's own source as the MESSAGE_BANK constant, and force-
+// resynced from that constant on every load (see initState/migrateState).
+// There is no reason it should ever be uploaded to Supabase: doing so adds
+// ~175KB of completely static, redundant data to every single sync push. On
+// a slow mobile connection that's a very plausible way to push a save past
+// the 10s timeout and start failing outright — this strips it out of every
+// sync payload below.
+function _stateForSync(s) {
+  const { messageBank, ...rest } = s;
+  return rest;
+}
+
 // ── Network timeout guard ─────────────────────────────────────
 // A fully-offline device fails fetch() fast — this isn't about that case.
 // A slow/flaky connection (weak signal, captive portal, DNS hanging) can
@@ -6749,7 +6762,8 @@ async function _pushToSupabaseIncremental() {
   setSyncStatus('saving');
   try {
     const currentState = state;
-    const currentHash = await _hashState(currentState);
+    const syncPayload = _stateForSync(currentState);
+    const currentHash = await _hashState(syncPayload);
     if (currentHash === _lastKnownHash) {
       setSyncStatus('saved');
       return;
@@ -6766,7 +6780,7 @@ async function _pushToSupabaseIncremental() {
     await withTimeout(_db.from('app_state').upsert({
   id: getSupabaseId(),
   data: { 
-    ...currentState, 
+    ...syncPayload, 
     _pinHash: pinHash,
     _lastSaveTs: Date.now(),
     _lastLocalSave: currentState._lastLocalSave
@@ -7255,7 +7269,7 @@ async function _pushToSupabase(retries = 3) {
       const { error } = await withTimeout(_db.from('app_state').upsert({
         id: getSupabaseId(),
         data: {
-          ...state,
+          ..._stateForSync(state),
           _pinHash: pinHash,
           _lastSaveTs: nowTs,
           agentProfile: {
@@ -25331,7 +25345,7 @@ function settingsPinPress(k) {
         if(idx>=0){agents[idx].pinHash=hash;saveAgentList(agents);_pinTarget.pinHash=hash;if(_activeAgent)_activeAgent.pinHash=hash;}
         state._pinHash=hash;
         const db=initSupabase();if(db){try{
-          await db.from('app_state').upsert({id:'agent_'+_pinTarget.id,data:{...state,_pinHash:hash},updated_at:new Date().toISOString()});
+          await db.from('app_state').upsert({id:'agent_'+_pinTarget.id,data:{..._stateForSync(state),_pinHash:hash},updated_at:new Date().toISOString()});
         }catch{}}
         for(let i=0;i<4;i++){const d=document.getElementById('modal-pindot-'+i);if(d)d.classList.add('success');}
         for(let i=0;i<3;i++){const s=document.getElementById('cp-step-'+i);if(s){s.classList.remove('active');s.classList.add('done');}}
