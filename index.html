@@ -6599,6 +6599,17 @@ function initSupabase() {
   } catch(e) { return null; }
 }
 
+// If the Supabase CDN script (loaded from cdn.jsdelivr.net) fails to load —
+// a network hiccup during that one page load, an ad-blocker, anything — _db
+// gets set to null once in loadState() and every sync function below used to
+// just silently give up forever after that, for the rest of the session,
+// even once connectivity was completely fine again. This retries
+// initialization lazily instead of treating one failed attempt as permanent.
+function _ensureDb() {
+  if (!_db) _db = initSupabase();
+  return _db;
+}
+
 // ── Network timeout guard ─────────────────────────────────────
 // A fully-offline device fails fetch() fast — this isn't about that case.
 // A slow/flaky connection (weak signal, captive portal, DNS hanging) can
@@ -6734,7 +6745,7 @@ async function _loadStateFromIndexedDB(key) {
 }
 
 async function _pushToSupabaseIncremental() {
-  if (!_db) return;
+  if (!_ensureDb()) return;
   setSyncStatus('saving');
   try {
     const currentState = state;
@@ -7225,7 +7236,14 @@ function _doSaveState() {
 }
 
 async function _pushToSupabase(retries = 3) {
-  if (!_db) return;
+  if (!_ensureDb()) {
+    // Previously a silent no-op with zero indication sync was even attempted —
+    // if the Supabase client never initialized (CDN script blocked/failed on
+    // this page load), every save just quietly stayed local-only forever.
+    console.warn('Supabase sync unavailable — client failed to initialize (check network/CDN access to cdn.jsdelivr.net)');
+    setSyncStatus('offline');
+    return;
+  }
   setSyncStatus('saving');
   
   for (let attempt = 1; attempt <= retries; attempt++) {
@@ -24383,7 +24401,7 @@ async function _maybeRunWeeklyBackup() {
 // the rollover itself, and never surfaces an error to the person doing it;
 // if it fails, the primary archive above still has them covered.
 async function _silentPreRolloverBackup(monthStr) {
-  if (!_db) return;
+  if (!_ensureDb()) return;
   try {
     const stamp = new Date().toISOString().split('T')[0];
     const backupId = getSupabaseId() + '_rollover_' + stamp;
